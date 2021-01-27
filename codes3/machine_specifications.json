@@ -1,0 +1,1610 @@
+{
+
+    "PMSM Q18p2y4 A": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 18,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       4,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":                 1,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+    "PMSM Q12p4y1 A": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 12,
+            "p":                                  4,
+            "ps":                                 5,
+            "coil_pitch_y":                       1,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            2000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":                 1,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+    "PMSM Q12p2y3 A s2": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 12,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       3,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               2,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "PMSM Q12p2y3 A": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 12,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       3,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":                 1,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+
+    "PMSM Q12p1y5 A": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 12,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       5,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":                 1,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+
+    "PMSM Q06p2y1 A": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 6,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       1,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":                 1,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "PMSM Q06p2y1 A s2": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 6,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       1,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               2,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "PMSM Q06p2y1 A s3": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 6,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       1,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               3,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+    "PMSM Q06p2y1 A s40": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 6,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       1,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               40,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "PMSM Q06p2y1 A s8": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 6,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       1,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               8,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+    "PMSM Q06p1y2 A": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 6,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       2,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":                 1,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "PMSM Q06p1y2 A s2": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 6,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       2,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               2,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "PMSM Q06p1y2 A s8": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 6,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       2,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               8,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "PMSM Q06p1y2 A s4": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 6,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       2,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               4,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "PMSM Q06p1y2 A s3": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                 6,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       2,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               3,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "PMSM Q24p1y9 A s2": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                   24,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       9,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               2,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+    "PMSM Q24p1y9 A": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                   24,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       9,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               1,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+    "PMSM Q24p2y6 WT": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "PMSM",
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "Qs":                                   24,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       6,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Js":                                   4e6,
+            "Temperature":                          75,
+            "guess_efficiency":                   0.95,
+            "guess_power_factor":                 0.9,
+            "no_segmented_magnets":               1,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+
+
+
+    "IM Q24p1y9 Qr30-FSW Round Bar EquivDoubleLayer TEST":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                true,
+            "m":                                    3,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       9,
+            "coil_pitch_y_Qr":                    10,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 24,
+            "Qr":                                 30,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.6,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+    "IM Q36p3y5ps2 Qr30-FSW Round Bar EquivDoubleLayer TEST":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                true,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "coil_pitch_y":                       5,
+            "coil_pitch_y_Qr":                    10,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 36,
+            "Qr":                                 30,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.6,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+
+
+    "IM p2ps3Qs24y5 Qr18 Round Bar EquivDoubleLayer":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                true,
+            "m":                                    3,
+            "p":                                  2,
+            "ps":                                 3,
+            "coil_pitch_y":                       5,
+            "coil_pitch_y_Qr":                    6,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 24,
+            "Qr":                                 18,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.6,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM p2ps3Qs18y4 Qr30-FSW Round Bar EquivDoubleLayer":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                true,
+            "m":                                    3,
+            "p":                                  2,
+            "ps":                                 3,
+            "coil_pitch_y":                       4,
+            "coil_pitch_y_Qr":                    10,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 18,
+            "Qr":                                 30,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.6,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+
+
+
+    "IM Q36p3y5ps2 Qr20-FSW Round Bar Separate Winding":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                       false,
+            "PoleSpecificNeutral":                true,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "coil_pitch_y":                       "None",
+            "coil_pitch_y_Qr":                    10,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 36,
+            "Qr":                                 20,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.6,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM Q36p3y5ps2 Qr24-ISW Round Bar Separate Winding":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                       false,
+            "PoleSpecificNeutral":                true,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "coil_pitch_y":                       "None",
+            "coil_pitch_y_Qr":                    12,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 36,
+            "Qr":                                 24,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.6,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+
+    "IM Q36p3y5ps2 Qr20-FSW Round Bar":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                true,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "coil_pitch_y":                       5,
+            "coil_pitch_y_Qr":                    10,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 36,
+            "Qr":                                 20,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.6,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM Q36p3y5ps2 Qr24-ISW Round Bar":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                true,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "coil_pitch_y":                       5,
+            "coil_pitch_y_Qr":                    12,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 36,
+            "Qr":                                 24,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.6,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+
+
+
+
+
+
+
+    "IM Q27p3y4ps2 Qr24 Round Bar":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                true,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "coil_pitch_y":                       4,
+            "coil_pitch_y_Qr":                    12,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 27,
+            "Qr":                                 24,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.6,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM Q27p3y4ps2 Qr28 Round Bar":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                true,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "coil_pitch_y":                       4,
+            "coil_pitch_y_Qr":                    14,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 27,
+            "Qr":                                 28,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.6,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM Q24p1y9 Qr16 Round Bar":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                false,
+            "m":                                    3,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       9,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                   24,
+            "Qr":                                   16,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.75,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM Q24p1y9 Qr14 Round Bar":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                false,
+            "m":                                    3,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       9,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                 24,
+            "Qr":                                 14,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":         1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                0.75,
+            "use_drop_shape_rotor_bar":          false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+
+
+
+
+
+
+
+    "IM Q24p1y9 Qr32 Round Bar":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                false,
+            "m":                                    3,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       9,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                   24,
+            "Qr":                                 32,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.7,
+            "use_drop_shape_rotor_bar":       false,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM Q24p1y9 A":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       9,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                   24,
+            "Qr":                                   16,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.7,
+            "use_drop_shape_rotor_bar":             true,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM Q24p1y9 Qr32":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "p":                                  1,
+            "ps":                                 2,
+            "coil_pitch_y":                       9,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            500,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                   24,
+            "Qr":                                 32,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.7,
+            "use_drop_shape_rotor_bar":             true,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM Q24p2y6 Qr32":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "PoleSpecificNeutral":                false,
+            "m":                                    3,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       6,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                   24,
+            "Qr":                                 32,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.6,
+            "use_drop_shape_rotor_bar":             true,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM Q24p2y6 Qr16":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       6,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                   24,
+            "Qr":                                 16,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.6,
+            "use_drop_shape_rotor_bar":             true,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+
+
+
+
+
+
+
+
+
+    "IM #4001": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                       true,
+            "m":                                    3,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       6,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                   24,
+            "Qr":                                   16,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.6,
+            "use_drop_shape_rotor_bar":             true,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM #4002": 
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                       false,
+            "m":                                    3,
+            "p":                                  2,
+            "ps":                                 1,
+            "coil_pitch_y":                       6,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1000,
+            "VoltageRating":                        480,
+            "TangentialStress":                     12000,
+            "Qs":                                   24,
+            "Qr":                                   16,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.6,
+            "use_drop_shape_rotor_bar":             true,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM #6006": 
+    {
+        "Inputs":
+        {
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         false,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1500,
+            "VoltageRating":                      1000,
+            "TangentialStress":                     12000,
+            "Qs":                                 36,
+            "Qr":                                 6,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.5,
+            "use_drop_shape_rotor_bar":             true,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM #6012": 
+    {
+        "Inputs":
+        {
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         false,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1500,
+            "VoltageRating":                      1000,
+            "TangentialStress":                     12000,
+            "Qs":                                 36,
+            "Qr":                                 12,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.5,
+            "use_drop_shape_rotor_bar":             true,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM #6018": 
+    {
+        "Inputs":
+        {
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         false,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1500,
+            "VoltageRating":                      1000,
+            "TangentialStress":                     12000,
+            "Qs":                                 36,
+            "Qr":                                 18,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.5,
+            "use_drop_shape_rotor_bar":             true,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
+
+    "IM #6024": 
+    {
+        "Inputs":
+        {
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         false,
+            "m":                                    3,
+            "p":                                  3,
+            "ps":                                 2,
+            "mec_power":                            50e3,
+            "ExcitationFreqSimulated":            1500,
+            "VoltageRating":                      1000,
+            "TangentialStress":                     12000,
+            "Qs":                                 36,
+            "Qr":                                 24,
+            "Js":                                   4e6,
+            "Jr":                                   6.5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "space_factor_kCu":                     0.5,
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":       1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":       1.4,
+            "guess_air_gap_flux_density":           0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                 0.5,
+            "use_drop_shape_rotor_bar":             true,
+            "tip_speed":                            150,
+            "safety_factor_to_yield":               "None",
+            "safety_factor_to_critical_speed":      1.5,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    }
+}
+
