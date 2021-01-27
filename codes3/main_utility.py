@@ -1,11 +1,12 @@
 from pylab import np
 import pygmo as pg
 import utility_moo
+import json
 def load_settings(select_spec, select_fea_config_dict, project_loc, bool_post_processing=False):
-    import json
-    with open(__file__[:-len('main_utility.py')]+'./machine_specifications.json', 'r') as f:
+    print(__file__[:-len('main_utility.py')]+'machine_specifications.json')
+    with open(__file__[:-len('main_utility.py')]+'machine_specifications.json', 'r') as f:
         raw_specs = json.load(f)
-    with open(__file__[:-len('main_utility.py')]+'/machine_simulation.json', 'r') as f:
+    with open(__file__[:-len('main_utility.py')]+'machine_simulation.json', 'r') as f:
         raw_fea_config_dicts = json.load(f)
 
     def decode_raw_specs(raw_specs, select_spec=None):

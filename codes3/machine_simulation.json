@@ -107,7 +107,7 @@
         "ignore_rotor_current_density_constraint": false
     },
 
-    "#0193 JMAG IM Nine Variables": {
+    "#0193 JMAG IM Nine Variables | Coarse_Mesh_Level": {
 
         "TORQUE_CURRENT_RATIO" : 0.975,
         "SUSPENSION_CURRENT_RATIO" : 0.025,
@@ -360,6 +360,42 @@
 
         "femm.Coarse_Mesh": false,
         "femm.deg_per_step": "None"
+    },
+
+
+
+    "#03 JMAG Non-Nearingless Motor Evaluation Setting": {
+
+        "TORQUE_CURRENT_RATIO" : 1.0,
+        "SUSPENSION_CURRENT_RATIO" : 0.0,
+
+        "which_filter": "AllFreeParameters",
+
+        "local_sensitivity_analysis":false,
+        "local_sensitivity_analysis_number_of_variants": 20,
+
+        "bool_post_processing":false,
+        "flag_optimization":false, 
+        "bool_re_evaluate":false,
+        "bool_re_evaluate_wo_csv":false,
+        "delete_results_after_calculation": false, 
+
+        "designer.Show": true,
+        "designer.MultipleCPUs":false,
+        "designer.OnlyTableResults":false, 
+        "designer.Restart":false, 
+        "designer.JMAG_Scheduler":false, 
+
+        "designer.number_of_steps_1stTSS":24, 
+        "designer.number_of_steps_2ndTSS":32, 
+        "designer.StepPerCycle_3rdTSS":64, 
+        "designer.number_cycles_in_1stTSS":3, 
+        "designer.number_cycles_in_2ndTSS":0.5, 
+        "designer.number_cycles_in_3rdTSS":0, 
+        "designer.number_cycles_prolonged":0, 
+        "designer.TranRef-StepPerCycle":64, 
+
+        "femm.Coarse_Mesh": false,
+        "femm.deg_per_step": "N.A."
     }
 }
-

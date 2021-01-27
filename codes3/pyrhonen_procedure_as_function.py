@@ -91,10 +91,11 @@ class desgin_specification(object):
             self.rotor_yoke_flux_density_Byr = kwarg['rotor_yoke_flux_density_Byr']
             self.guess_air_gap_flux_density = kwarg['guess_air_gap_flux_density']
 
-            if not os.path.isdir('../' + 'pop/'):
-                os.mkdir('../' + 'pop/')
-            self.loc_txt_file = '../' + 'pop/' + r'initial_design.txt'
-            open(self.loc_txt_file, 'w').close() # clean slate to begin with
+            # Obsolete ./pop/initial_design.txt
+            # if not os.path.isdir('../' + 'pop/'):
+            #     os.mkdir('../' + 'pop/')
+            # self.loc_txt_file = '../' + 'pop/' + r'initial_design.txt'
+            # open(self.loc_txt_file, 'w').close() # clean slate to begin with
 
             # Bar_Conductivity
             if self.Coil == 'Cu' and self.Conductor == 'Cu':
@@ -843,7 +844,7 @@ class desgin_specification(object):
         #
             if 'M19' in self.Steel:
                 # M19-Gauge29 (from FEMM@spmloss example)
-                hdata, bdata = np.loadtxt('./M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1))
+                hdata, bdata = np.loadtxt('../BH/M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1))
                 print('The magnetic material is M19-Gauge29.', file=fname)
             elif 'Arnon' in self.Steel and '7' in self.Steel:
                 # Arnon-7 (from ELS)

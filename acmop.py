@@ -1,12 +1,58 @@
 def main(bool_post_processing=False):
+    # TEC-ISMB-2021
+        # select_spec = "IM Q24p1y9 A"
+        # select_spec = "IM Q24p1y9 Qr32"
+        # select_spec = "IM Q24p2y6 Qr32"
+        # select_spec = "IM Q24p2y6 Qr16"
+        # select_spec = "IM Q36p3y5ps2 Qr20-FSW Round Bar"
+        # select_spec = "IM Q36p3y5ps2 Qr24-ISW Round Bar"
+        # select_spec = "IM Q36p3y5ps2 Qr20-FSW Round Bar Separate Winding"
+        # select_spec = "IM Q36p3y5ps2 Qr24-ISW Round Bar Separate Winding"
+        # select_spec = "IM Q24p1y9 Qr14 Round Bar"
+        # select_spec = "IM Q24p1y9 Qr16 Round Bar"
+        # select_spec = "IM p2ps3Qs18y4 Qr30-FSW Round Bar EquivDoubleLayer"
+        # select_spec = "IM p2ps3Qs24y5 Qr18 Round Bar EquivDoubleLayer"
+    # TIA-IEMDC-ECCE-2020
+        # select_spec = "IM Q24p1y9 A"
+        # select_spec = "IM Q24p1y9 Qr32"
+        # select_spec = "IM Q24p2y6 Qr32"
+        # select_spec = "IM Q24p2y6 Qr16"
+        # select_spec = "IM Q24p1y9 Qr32 Round Bar" # RevisionInNov: rev2 reviewer 1
+        # select_spec = "IM Q24p1y9 Qr16 Round Bar" # Prototype
     mop = AC_Machine_Optiomization_Wrapper(
-            select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-            select_spec            = 'PMSM Q12p2y3 A',
+            select_fea_config_dict = "#019 JMAG IM Nine Variables",
+            select_spec            = 'IM p2ps3Qs18y4 Qr30-FSW Round Bar EquivDoubleLayer',
             project_loc            = r'D:/DrH/acmop/_default/'
         )
 
-    # mop.part_winding()
+    # PEMD 2020 paper 
+        # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting'
+        # select_fea_config_dict = '#021   PMSM Re-evaluation wo/ CSV Setting'
+        # select_fea_config_dict = "#0210 JMAG PMSM Re-evaluation wo/ CSV Setting Q12p4ps5 Sub-hamonics"
+        # select_spec =  "PMSM Q06p1y2 A"            # [ './spec_PEMD_BPMSM_Q6p1.py',
+        # select_spec =  "PMSM Q06p2y1 A"            #   './spec_ECCE_PMSM_Q6p2.py',
+        # select_spec =  "PMSM Q12p1y5 A"            #   './spec_PEMD_BPMSM_Q12p1.py',
+        # select_spec =  "PMSM Q12p2y3 A"            #   './spec_PEMD_BPMSM_Q12p2.py',
+        # select_spec =  "PMSM Q12p4y1 A"            #   './spec_PEMD_BPMSM_Q12p4.py',
+        # select_spec =  "PMSM Q24p1y9 A"            #   './spec_PEMD_BPMSM_Q24p1.py'],
+    # mop = AC_Machine_Optiomization_Wrapper(
+    #         select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+    #         select_spec            = 'PMSM Q12p2y3 A',
+    #         project_loc            = r'D:/DrH/acmop/_default/'
+    #     )
 
+    # Vernier Machine
+    # mop = AC_Machine_Optiomization_Wrapper(
+    #         select_fea_config_dict = "#03 JMAG Non-Nearingless Motor Evaluation Setting",
+    #         select_spec            = "PMVM p2pr10-Q12y3 Wenbo",
+    #         project_loc            = r'D:/DrH/acmop/_WenboVShapeVernier/'
+    #     )
+
+    #########################
+    # Call the five modules
+    #########################
+
+    # mop.part_winding()
     spec = mop.part_initialDesign()
 
     if not bool_post_processing:
@@ -16,8 +62,12 @@ def main(bool_post_processing=False):
     else:
         # Recover a design from its jsonpickle-object file
         import utility_json
-        motor_design_variant = utility_json.from_json_recursively('p2ps1-Q12y3-0999', load_here=mop.ad.output_dir+'jsonpickle/')
-        motor_design_variant.build_jmag_project(motor_design_variant.project_meta_data)
+        try:
+            motor_design_variant = utility_json.from_json_recursively('p2ps1-Q12y3-0999', load_here=mop.ad.output_dir+'jsonpickle/')
+            motor_design_variant.build_jmag_project(motor_design_variant.project_meta_data)
+        except FileNotFoundError as e:
+            print(e)
+            print("你有没有搞错啊？json文件找不到啊，忘记把bool_post_processing改回来了？")
 
 from dataclasses import dataclass
 import sys; sys.path.insert(0, './codes3/')
@@ -148,7 +198,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
             import population
                                 # load initial design using the obsolete class bearingless_induction_motor_design
-            spec.acm_template = population.bearingless_induction_motor_design(self.spec_input_dict, spec.spec_derive_dict, spec.spec_geometry_dict, fea_config_dict)
+            spec.acm_template = population.bearingless_induction_motor_design(self.spec_input_dict, spec.spec_derive_dict, spec.spec_geometry_dict, self.fea_config_dict)
 
         elif 'PMSM' in self.select_spec:
             spec.acm_template = spec.build_pmsm_template(self.fea_config_dict, self.spec_input_dict, im_template=None)
@@ -169,6 +219,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         self.ad = ad
 
         return spec
+
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[3] Evaluation Part (Can be skipped)'
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
@@ -442,4 +493,4 @@ class AC_Machine_Optiomization_Wrapper(object):
         pass
 
 if __name__ == '__main__':
-    main(bool_post_processing=True)
+    main()

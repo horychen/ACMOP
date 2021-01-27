@@ -1560,24 +1560,6 @@ class acm_designer(object):
         self.logger = utility.myLogger(self.output_dir+'../', prefix=prefix)
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    # Automatic Report Generation
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    def build_oneReport(self):
-        if '730' in self.fea_config_dict['pc_name']:
-            os.system('cd /d "'+ self.fea_config_dict['dir.parent'] + 'release/OneReport/OneReport_TEX" && z_nul"')
-
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    # Talk to Database
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    def talk_to_mysql_database(self):
-        if self.spec.bool_bad_specifications:
-            print('\nThe specifiaction can not be fulfilled. Read script log or OneReport.pdf for information and revise the specifiaction for $J_r$ or else your design name is wrong.')
-        else:
-            print('\nThe specifiaction is meet. Now check the database of blimuw if on Y730.')
-            if '730' in self.fea_config_dict['pc_name']:
-                utility.communicate_database(self.spec)
-
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # Automatic Performance Evaluation (This is just a wraper)
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def evaluate_design(self, acm_template, x_denorm, counter=999, counter_loop=1):
@@ -1660,139 +1642,8 @@ class acm_designer(object):
         force_error_angle
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    # 1. Bounds for DE optimiazation
+    # Post-processing
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    # def get_original_bounds(self, Jr_max=8e6):
-
-        # from math import tan, pi
-        # 定子齿宽最小值 = 1
-        # 定子齿宽最大值 = tan(2*pi/self.spec.Qs*0.5)*self.spec.Radius_OuterRotor * 2 # 圆（半径为Radius_OuterRotor）的外接正多边形（Regular polygon）的边长
-        # # print(定子齿宽最大值, 2*pi*self.spec.Radius_OuterRotor/self.spec.Qs) # 跟弧长比应该比较接近说明对了
-
-        # 转子齿宽最小值 = 1
-        # 内接圆的半径 = self.spec.Radius_OuterRotor - (self.spec.d_ro + self.spec.Radius_of_RotorSlot)
-        # 转子齿宽最大值 = tan(2*pi/self.spec.Qr*0.5)*内接圆的半径 * 2 
-        # # print(转子齿宽最大值, 2*pi*内接圆的半径/self.spec.Qr) # 跟弧长比应该比较接近说明对了
-
-        # self.original_bounds = [ [           1.0,                3],          # air_gap_length_delta
-        #                          [定子齿宽最小值,   定子齿宽最大值],#--# stator_tooth_width_b_ds
-        #                          [转子齿宽最小值,   转子齿宽最大值],#--# rotor_tooth_width_b_dr
-        #                          [             1, 360/self.spec.Qs],           # Angle_StatorSlotOpen
-        #                          [          5e-1,                3],           # Width_RotorSlotOpen 
-        #                          [          5e-1,                3],           # Width_StatorTeethHeadThickness
-        #                          [          5e-1,                3] ]          # Length_HeadNeckRotorSlot
-        # # 定子齿范围检查
-        # # 定子齿再宽，都可以无限加长轭部来满足导电面积。
-        # # stator_inner_radius_r_is_eff = stator_inner_radius_r_is + (width_statorTeethHeadThickness + width_StatorTeethNeck)
-        # # temp = (2*pi*stator_inner_radius_r_is_eff - self.Qs*stator_tooth_width_b_ds)
-        # # stator_tooth_height_h_ds = ( sqrt(temp**2 + 4*pi*area_stator_slot_Sus*self.Qs) - temp ) / (2*pi)
-
-        # def check_valid_rotor_slot_height(rotor_tooth_width_b_dr, Jr_max):
-
-        #     area_conductor_rotor_Scr = self.spec.rotor_current_actual / Jr_max
-        #     area_rotor_slot_Sur = area_conductor_rotor_Scr
-            
-        #     rotor_outer_radius_r_or_eff = 1e-3*(self.spec.Radius_OuterRotor - self.spec.d_ro)
-
-        #     slot_height, _, _ = pyrhonen_procedure_as_function.get_parallel_tooth_height(area_rotor_slot_Sur, rotor_tooth_width_b_dr, self.spec.Qr, rotor_outer_radius_r_or_eff)
-        #     return np.isnan(slot_height)
-
-
-        # # 转子齿范围检查
-        # 下界, 上界 = self.original_bounds[2][0], self.original_bounds[2][1]
-        # 步长 = (上界-下界)*0.05
-        # list_valid_tooth_width = []
-        # for rotor_tooth_width_b_dr in np.arange(下界, 上界, 步长):
-        #     # print('b_dr =', rotor_tooth_width_b_dr)
-        #     list_valid_tooth_width.append( check_valid_rotor_slot_height(rotor_tooth_width_b_dr, Jr_max) ) # 8e6 from Pyrhonen's book for copper
-        # # print(list_valid_tooth_width)
-        # 有效上界 = 下界
-        # for ind, el in enumerate(list_valid_tooth_width):
-        #     if el == True:
-        #         break
-        #     else:
-        #         有效上界 += 步长
-        # self.original_bounds[2][1] = 有效上界
-
-        # return self.original_bounds
-
-    # def get_classic_bounds(self):
-        # if 'SM' in self.spec.acm_template.name:
-        #     Q = self.spec.pmsm_template.Q
-        #     s = self.spec.pmsm_template.s
-        #     p = self.spec.pmsm_template.p
-        #     PMSM = self.spec.pmsm_template
-        #     self.classic_bounds =  [ 
-        #                         [ 0.35*360/Q, 0.9*360/Q],    # deg_alpha_st        = free_variables[0]
-        #                         [  0.5,   5],                # mm_d_so             = free_variables[1]
-        #                         [0.8*PMSM.mm_d_st,                1.2*PMSM.mm_d_st], # mm_d_st    = free_variables[2]
-        #                         [0.8*PMSM.Radius_OuterStatorYoke, 1.2*PMSM.Radius_OuterStatorYoke], # stator_outer_radius = free_variables[3]
-        #                         [0.8*PMSM.mm_w_st,                1.2*PMSM.mm_w_st], # mm_w_st    = free_variables[4]
-        #                         [3,   4],                    # sleeve_length       = free_variables[5]
-        #                         [2.5, 7],                    # mm_d_pm             = free_variables[6]
-        #                         [0.6*360/(2*p), 1.0*360/(2*p)],      # deg_alpha_rm        = free_variables[7]
-        #                         [0.8*360/(2*p)/s, 0.975*360/(2*p)/s], # deg_alpha_rs        = free_variables[8]
-        #                         [0.8*PMSM.mm_d_ri,  1.2*PMSM.mm_d_ri], # mm_d_ri   = free_variables[9]
-        #                         [0.8*PMSM.Radius_OuterRotor, 1.2*PMSM.Radius_OuterRotor], # rotor_outer_radius  = free_variables[10] 
-        #                         [2.5,   6],                  # mm_d_rp             = free_variables[11]
-        #                         [2.5,   6] ]                 # mm_d_rs             = free_variables[12]
-        #     self.original_bounds = self.classic_bounds
-        #     return self.classic_bounds
-        # else:
-        #     self.get_original_bounds()
-        #     self.classic_bounds = [ [self.spec.delta*0.9, self.spec.delta*2  ],          # air_gap_length_delta
-        #                             [self.spec.w_st *0.5, self.spec.w_st *1.5],          #--# stator_tooth_width_b_ds
-        #                             [self.spec.w_rt *0.5, self.spec.w_rt *1.5],          #--# rotor_tooth_width_b_dr
-        #                             [                1.5,                  12],           # Angle_StatorSlotOpen
-        #                             [               5e-1,                   3],           # Width_RotorSlotOpen 
-        #                             [               5e-1,                   3],           # Width_StatorTeethHeadThickness
-        #                             [               5e-1,                   3] ]          # Length_HeadNeckRotorSlot
-        #     # classic_bounds cannot be beyond original_bounds
-        #     index = 0
-        #     for A, B in zip(self.classic_bounds, self.original_bounds):
-        #         if A[0] < B[0]:
-        #             self.classic_bounds[index] = B[0]
-        #         if A[1] > B[1]:
-        #             self.classic_bounds[index] = B[1]
-        #         index += 1
-                
-        #     return self.classic_bounds
-
-    def get_de_config(self):
-
-        self.de_config_dict = { 'original_bounds': self.get_original_bounds(),
-                                'mut':        0.8,
-                                'crossp':     0.7,
-                                'popsize':    35, # 5~10 \times number of geometry parameters --JAC223
-                                'iterations': 70,
-                                'narrow_bounds_normalized':[[],
-                                                            [],
-                                                            [],
-                                                            [],
-                                                            [],
-                                                            [],
-                                                            [] ], # != []*7 （完全是两回事）
-                                'bounds':None}
-        return self.de_config_dict
-
-    def run_local_sensitivity_analysis(self, the_bounds, design_denorm=None):
-        # if design_denorm not in the_bounds: then raise 
-        if design_denorm is not None:
-            for ind, el in enumerate(design_denorm):
-                if el < the_bounds[ind][0] or el > the_bounds[ind][1]:
-                    raise Exception('给的设计不在边界的内部')
-
-        self.logger.debug('---------\nBegin Local Sensitivity Analysis')
-
-        # de_config_dict['bounds'] 还没有被赋值
-        self.de_config_dict['bounds'] = the_bounds
-
-        self.init_swarm() # define app.sw
-        self.sw.generate_pop(specified_initial_design_denorm=design_denorm)
-        de_generator = self.sw.de()
-        for result in de_generator:
-            print(result)
-
     def check_results_of_local_sensitivity_analysis(self):
         if self.fea_config_dict['local_sensitivity_analysis'] == True:
             run_folder = self.fea_config_dict['run_folder'][:-1] + 'lsa/'
@@ -1900,6 +1751,24 @@ class acm_designer(object):
         return local_bounds
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    # Automatic Report Generation
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    def build_oneReport(self):
+        if '730' in self.fea_config_dict['pc_name']:
+            os.system('cd /d "'+ self.fea_config_dict['dir.parent'] + 'release/OneReport/OneReport_TEX" && z_nul"')
+
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    # Talk to Database
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    def talk_to_mysql_database(self):
+        if self.spec.bool_bad_specifications:
+            print('\nThe specifiaction can not be fulfilled. Read script log or OneReport.pdf for information and revise the specifiaction for $J_r$ or else your design name is wrong.')
+        else:
+            print('\nThe specifiaction is meet. Now check the database of blimuw if on Y730.')
+            if '730' in self.fea_config_dict['pc_name']:
+                utility.communicate_database(self.spec)
+
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # 2. Initilize Swarm and Initial Pyrhonen's Design (Run this part in JMAG) and femm solver (if required by run_list)
     #    Bounds: 1e-1也还是太小了（第三次报错），至少0.5mm长吧 
     #    # 1e-1 is the least geometry value. 
@@ -1956,6 +1825,23 @@ class acm_designer(object):
             else:
                 logger.info('Done.')
                 utility.send_notification('Done.')
+
+    def get_de_config(self):
+
+        self.de_config_dict = { 'original_bounds': self.get_original_bounds(),
+                                'mut':        0.8,
+                                'crossp':     0.7,
+                                'popsize':    35, # 5~10 \times number of geometry parameters --JAC223
+                                'iterations': 70,
+                                'narrow_bounds_normalized':[[],
+                                                            [],
+                                                            [],
+                                                            [],
+                                                            [],
+                                                            [],
+                                                            [] ], # != []*7 （完全是两回事）
+                                'bounds':None}
+        return self.de_config_dict
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # 4. Post-processing
@@ -2039,6 +1925,24 @@ class acm_designer(object):
         os.system('cd /d '+ r'"D:\OneDrive - UW-Madison\c\release\OneReport\BestReport_TEX" && z_nul"') # 必须先关闭文件！否则编译不起来的
         # import subprocess
         # subprocess.call(r"D:\OneDrive - UW-Madison\c\release\OneReport\OneReport_TEX\z_nul", shell=True)
+
+    def run_local_sensitivity_analysis(self, the_bounds, design_denorm=None):
+        # if design_denorm not in the_bounds: then raise 
+        if design_denorm is not None:
+            for ind, el in enumerate(design_denorm):
+                if el < the_bounds[ind][0] or el > the_bounds[ind][1]:
+                    raise Exception('给的设计不在边界的内部')
+
+        self.logger.debug('---------\nBegin Local Sensitivity Analysis')
+
+        # de_config_dict['bounds'] 还没有被赋值
+        self.de_config_dict['bounds'] = the_bounds
+
+        self.init_swarm() # define app.sw
+        self.sw.generate_pop(specified_initial_design_denorm=design_denorm)
+        de_generator = self.sw.de()
+        for result in de_generator:
+            print(result)
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # 5. Check mechanical strength for the best design

@@ -1,5 +1,39 @@
 {
 
+    "PMVM p2pr10-Q12y3 Wenbo": 
+    {
+        "Inputs":
+        {
+            "machine_type":                       "PMVM",
+            "DPNV_or_SEPA":                       "N.A.",
+            "m":                                  3,
+            "Qs":                                 12,
+            "p":                                  2,
+            "pr":                                 10,
+            "ps":                                 "N.A.",
+            "coil_pitch_y":                       3,
+            "mec_power":                          3300,
+            "ExcitationFreqSimulated":            66,
+            "VoltageRating":                      50,
+            "TangentialStress":                   "N.A.",
+            "Steel":                              "M19Gauge29",
+            "lamination_stacking_factor_kFe":     0.95,
+            "Coil":                               "Cu",
+            "space_factor_kCu":                   0.4,
+            "Js":                                 4.6e6,
+            "Temperature":                        75,
+            "guess_efficiency":                   0.8,
+            "guess_power_factor":                 0.6,
+            "no_segmented_magnets":               1,
+            "tip_speed":                          "N.A.",
+            "safety_factor_to_yield":             "N.A.",
+            "safety_factor_to_critical_speed":    "N.A.",
+            "bool_skew_stator":                   false,
+            "bool_skew_rotor":                    false
+        }
+    },
+
+
     "PMSM Q18p2y4 A": 
     {
         "Inputs":

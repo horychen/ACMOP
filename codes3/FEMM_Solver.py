@@ -177,7 +177,7 @@ class FEMM_Solver(object):
         self.stack_length = im.stack_length
 
         self.im = im
-        self.dir_codes = im.fea_config_dict['dir.codes']
+        # self.dir_codes = im.fea_config_dict['dir.codes']
 
         # evaluate initial design only or optimize
         if im.bool_initial_design == True:
@@ -203,9 +203,11 @@ class FEMM_Solver(object):
                     os.makedirs(self.dir_run)
         else:
             if self.individual_index is not None:
-                self.dir_run = im.fea_config_dict['dir.femm_files'] + im.fea_config_dict['run_folder'] +  'ind#%04d/'%(self.individual_index)
+                self.dir_run = im.fea_config_dict['run_folder'] +  'ind#%04d/'%(self.individual_index) # im.fea_config_dict['dir.femm_files'] +
             else:
-                self.dir_run = im.fea_config_dict['dir.femm_files'] + im.fea_config_dict['run_folder']
+                self.dir_run = im.fea_config_dict['run_folder'] # im.fea_config_dict['dir.femm_files'] +
+
+            print('DEBUG', self.dir_run)
 
             if not os.path.exists(self.dir_run):
                 logger = logging.getLogger(__name__)
@@ -1744,14 +1746,14 @@ class FEMM_Solver(object):
         if self.im.spec_input_dict['Steel'] == 'M19Gauge29':
             # femm.mi_getmaterial('M-19 Steel') # for Stator & Rotor Iron Cores (Nonlinear with B-H curve)
             femm.mi_addmaterial('M19Gauge29',0,0, 0,0, 0,0.3556,0, 0.95) # no lamination for testing consistency with JMAG
-            hdata, bdata = np.loadtxt(self.dir_codes + './M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1))
+            hdata, bdata = np.loadtxt('../BH/M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1))
             for n in range(0,len(bdata)):
                 femm.mi_addbhpoint('M19Gauge29', bdata[n], hdata[n])
 
         elif self.im.spec_input_dict['Steel'] == 'Arnon5':
             # Arnon5 is 1/5 thick as M15, which is too thin to use and it is expensive as well
             femm.mi_addmaterial('Arnon5-final',0,0, 0,0, 0.0,0.127,0, 0.96)
-            BH = np.loadtxt(self.dir_codes + '../Arnon5/Arnon5-final.txt', unpack=True, usecols=(0,1))
+            BH = np.loadtxt('../Arnon5/Arnon5-final.txt', unpack=True, usecols=(0,1))
             bdata = BH[1][1:] # if not skip the first point, there will be two (0,0) in FEMM software, reason unknown.
             hdata = BH[0][1:] # if not skip the first point, there will be two (0,0) in FEMM software, reason unknown.
             for n in range(0,len(bdata)):
@@ -1759,7 +1761,7 @@ class FEMM_Solver(object):
 
         elif self.im.spec_input_dict['Steel'] == 'M15':
             femm.mi_addmaterial('My M-15 Steel',0,0, 0,0, 0,0.635,0, 0.98)
-            BH = np.loadtxt(self.dir_codes + '../Arnon5/M-15-Steel-BH-Curve.txt', unpack=True, usecols=(0,1))
+            BH = np.loadtxt('../Arnon5/M-15-Steel-BH-Curve.txt', unpack=True, usecols=(0,1))
             bdata = BH[1]
             hdata = BH[0]
             for n in range(0,len(bdata)):
