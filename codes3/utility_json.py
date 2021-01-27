@@ -15,7 +15,7 @@ def build_json_fname(fname, suffix):
     else:
         return fname
 
-def to_json(obj, fname, suffix='', save_here=''):
+def to_json(obj, fname, suffix=''):
 
     # remove not json serilizable content
     keys_to_delete = []
@@ -53,14 +53,13 @@ def recursive_dictionarify(obj, keys_not_jsonable):
                 obj.__dict__.update(the_big_dict)
             return obj, keys_not_jsonable
 
-def to_json_recursively(obj, fname, suffix=''):
+def to_json_recursively(obj, fname, suffix='', save_here=''):
     s = json.dumps( json.loads( jsonpickle.encode(obj)), indent=4 )
-    print('[to_json_recursively]', type( s ))
+    # print('[to_json_recursively]', type( s ))
     # print( s )
-
-    print('[to_json_recursively]', obj.spec_geometry_dict['DriveW_CurrentAmp'])
-
-    with open(build_json_fname(fname, suffix), 'w') as f:
+    # print('[to_json_recursively]', obj.spec_geometry_dict['DriveW_CurrentAmp'])
+    
+    with open(save_here + build_json_fname(fname, suffix), 'w') as f:
         f.write( s )
 
     # Obsolete
@@ -69,8 +68,8 @@ def to_json_recursively(obj, fname, suffix=''):
     # with open(build_json_fname(fname, suffix), 'w') as f:
     #     json.dump(obj.__dict__, f, indent=4)
 
-def from_json_recursively(fname, suffix=''):
-    with open(build_json_fname(fname, suffix), 'r') as f:
+def from_json_recursively(fname, suffix='', load_here=''):
+    with open(load_here+build_json_fname(fname, suffix), 'r') as f:
         read_obj = jsonpickle.decode(f.read())
     return read_obj
 

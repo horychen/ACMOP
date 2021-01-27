@@ -706,13 +706,16 @@ class FEA_Solver:
         self.spec_input_dict = spec_input_dict
         self.app = None
 
-        # self.output_dir = self.fea_config_dict['dir.parent'] + self.fea_config_dict['run_folder']
+        # 如果文件夹不存在，那就造起来！
         self.output_dir = self.fea_config_dict['run_folder']
-        self.dir_csv_output_folder = self.output_dir + 'csv/'
         if not os.path.isdir(self.output_dir):
             os.makedirs(self.output_dir)
+        self.dir_csv_output_folder = self.output_dir + 'csv/'
         if not os.path.isdir(self.dir_csv_output_folder):
             os.makedirs(self.dir_csv_output_folder)
+        self.dir_jsonpickle_folder = self.output_dir + 'jsonpickle/'
+        if not os.path.isdir(self.dir_jsonpickle_folder):
+            os.makedirs(self.dir_jsonpickle_folder)
 
         if fea_config_dict['bool_post_processing'] == False:
             self.fig_main, self.axeses = plt.subplots(2, 2, sharex=True, dpi=150, figsize=(16, 8), facecolor='w', edgecolor='k')
@@ -1647,7 +1650,7 @@ class acm_designer(object):
             f.write(',\n')
             json.dump(big_dict, f, indent=4)
 
-        utility_json.to_json_recursively(motor_design_variant, motor_design_variant.name, save_here=self.output_dir)
+        utility_json.to_json_recursively(motor_design_variant, motor_design_variant.name, save_here=self.output_dir+'jsonpickle/')
 
         # return motor_design_variant
 

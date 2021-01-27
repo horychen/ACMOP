@@ -1,4 +1,4 @@
-def main():
+def main(bool_post_processing=False):
     mop = AC_Machine_Optiomization_Wrapper(
             select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
             select_spec            = 'PMSM Q12p2y3 A',
@@ -6,10 +6,18 @@ def main():
         )
 
     # mop.part_winding()
+
     spec = mop.part_initialDesign()
-    mop.part_evaluation()
-    # mop.part_optimization(spec)
-    # mop.part_reportWithStreamlit()
+
+    if not bool_post_processing:
+        mop.part_evaluation()
+        # mop.part_optimization(spec)
+        # mop.part_reportWithStreamlit()
+    else:
+        # Recover a design from its jsonpickle-object file
+        import utility_json
+        motor_design_variant = utility_json.from_json_recursively('p2ps1-Q12y3-0999', load_here=mop.ad.output_dir+'jsonpickle/')
+        motor_design_variant.build_jmag_project(motor_design_variant.project_meta_data)
 
 from dataclasses import dataclass
 import sys; sys.path.insert(0, './codes3/')
@@ -434,5 +442,4 @@ class AC_Machine_Optiomization_Wrapper(object):
         pass
 
 if __name__ == '__main__':
-    main()
-
+    main(bool_post_processing=True)
