@@ -571,7 +571,7 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
     rotor_weight = acm_variant.get_rotor_weight()
     shaft_power  = acm_variant.Omega * torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
 
-    if 'IM' in machine_type:
+    if 'IM' in variant.machine_type:
         if False: # fea_config_dict['jmag_run_list'][0] == 0
             # by JMAG only
             copper_loss  = dm.jmag_loss_list[0] + dm.jmag_loss_list[1] 
@@ -583,12 +583,14 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
             else:
                 copper_loss  = dm.femm_loss_list[0] + dm.femm_loss_list[1]
             iron_loss = dm.jmag_loss_list[2] 
-    elif 'PMSM' in machine_type:
+    elif 'PM' in variant.machine_type:
         # Rotor magnet loss by JMAG
         magnet_Joule_loss = dm.jmag_loss_list[1]
-                      # Stator copper loss by Bolognani  
+                      # Stator copper loss by Binder and Bolognani 2006
         copper_loss = dm.femm_loss_list[0] + magnet_Joule_loss
         iron_loss = dm.jmag_loss_list[2] 
+    else:
+        raise Exception('Unknown machine type:', variant.machine_type)
 
     windage_loss = get_windage_loss(acm_variant, acm_variant.stack_length)
 
@@ -1283,7 +1285,7 @@ def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict,
     new_key_list = []
     if fea_config_dict['delete_results_after_calculation'] == False:
         # file name is by individual_name like ID32-2-4_EXPORT_CIRCUIT_VOLTAGE.csv rather than ID32-2-4Tran2TSS_circuit_current.csv
-        fname = path_prefix + study_name[:-len('-Transient')] + "_EXPORT_CIRCUIT_VOLTAGE.csv"
+        fname = path_prefix + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv"
         # print 'Terminal Voltage - look into:', fname
         with open(fname, 'r') as f:
             count = 0

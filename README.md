@@ -2,22 +2,22 @@
 
 > bearingless optimization python
 
-Requirements:
+## Requirements:
 
 - anaconda3
-
-- pyx, pyfemm and others (if any) can be installed via pip
 
 - pygmo:
     - conda config --add channels conda-forge
     - conda install pygmo
 
-- latex (if you want pdf report for motor design)
+- pyx, pyfemm, streamlit and others (if any) can be installed via pip
 
-# Features
+- texlive, or other latex compiler (if you want pdf report for motor design)
+
+## Features
 - Restartable. Upon interrupts, this program is able to re-start from the file "swarm_data.txt" of the current run (or even from a different run).
 
-# TODO
+## TODO
 
 - The circuit excitation will give wrong terminal voltage results (the electromagnetic performance is correct because the current is correct, though).
 - Variable d_rp and d_rs can be larger than d_pm. This is not allowed for using sleeve to retain the magnet. Should add new variable like d_pm_to_iron instead.

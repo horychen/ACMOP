@@ -11,6 +11,7 @@ EPS = 1e-2 # unit: mm
 
 class bearingless_spmsm_template(object):
     def __init__(self, fea_config_dict=None, spec_input_dict=None, model_name_prefix='SPMSM'):
+        self.machine_type = 'SPMSM'
         self.model_name_prefix = model_name_prefix
         self.name = model_name_prefix
         self.fea_config_dict = fea_config_dict
@@ -149,6 +150,8 @@ class bearingless_spmsm_template(object):
 class bearingless_spmsm_design(bearingless_spmsm_template):
 
     def __init__(self, spmsm_template=None, x_denorm=None, counter=None, counter_loop=None):
+        self.machine_type = spmsm_template.machine_type
+
         #00 Settings
         super(bearingless_spmsm_design, self).__init__()
         self.fea_config_dict = spmsm_template.fea_config_dict
@@ -1304,7 +1307,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
                 # Export Circuit Voltage
                 ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                 app.GetDataManager().CreateGraphModel(ref1)
-                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + spmsm_variant.name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
         else:
 
             THE_mm2_magnet_area = self.spmsm_variant.rotorMagnet.draw(None, bool_re_evaluate=True)

@@ -1470,6 +1470,117 @@ class desgin_specification(object):
 
             return self.pmsm_template
 
+    def build_pmvm_template(self, fea_config_dict, spec_input_dict, im_template=None):
+        self.pmVM_template = vernier_motor_design.vernier_motor_VShapePM_template(fea_config_dict=fea_config_dict, spec_input_dict=spec_input_dict)
+
+        # Bianchi 2006
+        air_gap_flux_density_B = 0.9
+        stator_tooth_flux_density_B_ds = 1.5
+        if self.p >= 2:
+            ROTOR_STATOR_YOKE_HEIGHT_RATIO = 0.75
+            stator_yoke_flux_density_Bys = 1.2
+            alpha_rm_over_alpha_rp = 1.0
+        else:
+            # penalty for p=1 motor, i.e., large yoke height
+            ROTOR_STATOR_YOKE_HEIGHT_RATIO = 0.5
+            stator_yoke_flux_density_Bys = 1.5
+            alpha_rm_over_alpha_rp = 0.75
+
+        stator_outer_diameter_Dse = 0.128 # m # WenboThesis@Table6.2-2
+        stator_outer_radius_r_os  = 0.5*stator_outer_diameter_Dse
+
+        speed_rpm = self.ExcitationFreqSimulated * 60 / self.p # rpm
+
+        split_ratio = 0.5 # refer to 2020-MLMS-0953@Fig. 5
+        stator_inner_radius_r_is = stator_outer_radius_r_os * split_ratio
+        stator_inner_diameter_Dis = stator_inner_radius_r_is*2
+
+        rotor_outer_radius_r_or = stator_inner_radius_r_is  - 0.75*1e-3 # m (sleeve 0 mm, air gap 0.75 mm)
+        rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
+
+        # Binder06@(1)--(3)
+        stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*self.p)
+        stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
+        stator_slot_height_h_ss = stator_tooth_height_h_ds
+        stator_tooth_width_b_ds = air_gap_flux_density_B *pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* self.Qs)
+
+        # Binder06@(4)
+        stator_slot_area = pi/(4*self.Qs) * ((stator_outer_diameter_Dse - 2*stator_yoke_height_h_ys)**2 - stator_inner_diameter_Dis**2) - stator_tooth_width_b_ds * stator_tooth_height_h_ds
+        print('stator_slot_area [mm^2]:', stator_slot_area*1e6)
+
+        if fea_config_dict is not None:
+            wily = winding_layout_v2(spec_input_dict['DPNV_or_SEPA'], self.Qs, self.p, self.ps, self.coil_pitch_y)
+
+        # Binder06@(5)
+        slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / self.Qs
+        kov = 1.8 # \in [1.6, 2.0]
+        end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (wily.coil_pitch_y - 1)
+
+        spec_geometry_dict = dict()
+        Q = spec_geometry_dict['Qs'] = self.Qs
+        p = spec_geometry_dict['p']  = self.p
+        self.pmVM_template.deg_alpha_st         = spec_geometry_dict['deg_alpha_st'] = 360/Q - 2 # deg
+        self.pmVM_template.deg_alpha_so         = spec_geometry_dict['deg_alpha_so'] = self.pmVM_template.deg_alpha_st/2 # im_template uses alpha_so as 0.
+        self.pmVM_template.mm_r_si              = spec_geometry_dict['mm_r_si'] = 1e3*stator_inner_radius_r_is # mm
+        self.pmVM_template.mm_d_so              = spec_geometry_dict['mm_d_so'] = 1 # mm
+        self.pmVM_template.mm_d_sp              = spec_geometry_dict['mm_d_sp'] = 1.5*self.pmVM_template.mm_d_so
+        self.pmVM_template.mm_d_st              = spec_geometry_dict['mm_d_st'] = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - self.pmVM_template.mm_r_si - self.pmVM_template.mm_d_sp  # mm
+        self.pmVM_template.mm_d_sy              = spec_geometry_dict['mm_d_sy'] = 1e3*stator_yoke_height_h_ys # mm
+        self.pmVM_template.mm_w_st              = spec_geometry_dict['mm_w_st'] = 1e3*stator_tooth_width_b_ds # mm
+        self.pmVM_template.mm_r_st              = spec_geometry_dict['mm_r_st'] = 0
+        self.pmVM_template.mm_r_sf              = spec_geometry_dict['mm_r_sf'] = 0
+        self.pmVM_template.mm_r_sb              = spec_geometry_dict['mm_r_sb'] = 0
+        self.pmVM_template.Q                    = spec_geometry_dict['Q'] = Q
+        self.pmVM_template.sleeve_length        = spec_geometry_dict['sleeve_length'] = 2 # 3 # mm
+        self.pmVM_template.fixed_air_gap_length = spec_geometry_dict['fixed_air_gap_length'] = 0.75 # mm
+        self.pmVM_template.mm_d_pm              = spec_geometry_dict['mm_d_pm'] = 4  # mm
+        self.pmVM_template.deg_alpha_rm         = spec_geometry_dict['deg_alpha_rm'] = 0.95*360/(2*p) # deg
+        self.pmVM_template.deg_alpha_rs         = spec_geometry_dict['deg_alpha_rs'] = 0.975*self.pmVM_template.deg_alpha_rm / self.no_segmented_magnets
+        self.pmVM_template.mm_d_ri              = spec_geometry_dict['mm_d_ri'] = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is randomly specified
+        self.pmVM_template.mm_r_ri              = spec_geometry_dict['mm_r_ri'] = 1e3*stator_inner_radius_r_is - self.pmVM_template.mm_d_pm - self.pmVM_template.mm_d_ri - self.pmVM_template.sleeve_length - self.pmVM_template.fixed_air_gap_length
+        self.pmVM_template.mm_d_rp              = spec_geometry_dict['mm_d_rp'] = 3  # mm
+        self.pmVM_template.mm_d_rs              = spec_geometry_dict['mm_d_rs'] = 0.20*self.pmVM_template.mm_d_rp # d_pm > d_rp and d_pm > d_rs
+        self.pmVM_template.p                    = spec_geometry_dict['p'] = p
+        self.pmVM_template.s                    = spec_geometry_dict['s'] = self.no_segmented_magnets
+
+        # Those are some obsolete variables that are convenient to have.
+        self.pmVM_template.Radius_OuterStatorYoke = spec_geometry_dict['Radius_OuterStatorYoke'] = 1e3*0.5*stator_outer_diameter_Dse # mm
+        self.pmVM_template.Radius_OuterRotor      = spec_geometry_dict['Radius_OuterRotor'] = 1e3*rotor_outer_radius_r_or # mm
+
+        # Those variables are for PMSM convenience
+        self.rotor_steel_outer_radius             = spec_geometry_dict['rotor_steel_outer_radius'] = self.pmVM_template.Radius_OuterRotor
+
+        # Excitation Properties
+        self.pmVM_template.wily              = wily
+        self.pmVM_template.DriveW_Freq       = spec_geometry_dict['DriveW_Freq']= self.ExcitationFreqSimulated
+        print('Pyrhonen TODO: set a proper Rs value')
+        self.pmVM_template.DriveW_Rs         = spec_geometry_dict['DriveW_Rs']= 1.0 # TODO: Must be greater than zero to let JMAG work
+        self.pmVM_template.DriveW_zQ         = spec_geometry_dict['DriveW_zQ']= self.get_zQ() # TODO:
+        self.pmVM_template.DriveW_CurrentAmp = spec_geometry_dict['DriveW_CurrentAmp']= np.sqrt(2)*self.get_stator_phase_current_rms() # TODO:
+        self.pmVM_template.DriveW_poles      = spec_geometry_dict['DriveW_poles']= self.p*2
+
+        self.pmVM_template.Js                = spec_geometry_dict['Js']= 4e6 # Arms/mm^2 im_template.Js 
+        self.pmVM_template.fill_factor       = spec_geometry_dict['fill_factor']= 0.5 # im_template.fill_factor 
+
+        self.pmVM_template.stack_length      = spec_geometry_dict['stack_length']= 1e3*self.get_stack_length() # mm TODO:
+        print('[P] DriveW_CurrentAmp:', self.pmVM_template.DriveW_CurrentAmp, 'A')
+        print('[P] zQ:', self.pmVM_template.DriveW_zQ)
+        print('[P] stack_length:', self.pmVM_template.stack_length, 'mm')
+        # quit()
+
+        # Specification details:
+        #         # 让儿子能访问爸爸
+        self.pmVM_template.spec = self
+        self.pmVM_template.spec_geometry_dict = spec_geometry_dict
+
+        # raise Exception('Not implemented error.')
+
+        required_torque = self.mec_power/(2*pi*speed_rpm)*60
+        rotor_volume_Vr = required_torque/(2*self.TangentialStress)
+        self.required_torque = required_torque
+
+        return self.pmVM_template
+
     def get_im_classic_bounds(self, which_filter='FixedStatorSlotDepth', user_bound_filter=None):
         spec = self
         # bound_filter is used to filter out some free_variables that are not going to be optimized.

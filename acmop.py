@@ -1,4 +1,11 @@
 def main(bool_post_processing=False):
+    # Vernier Machine
+    # mop = AC_Machine_Optiomization_Wrapper(
+    #         select_fea_config_dict = "#03 JMAG Non-Nearingless Motor Evaluation Setting",
+    #         select_spec            = "PMVM p2pr10-Q12y3 Wenbo",
+    #         project_loc            = r'D:/DrH/acmop/_WenboVShapeVernier/'
+    #     )
+
     # TEC-ISMB-2021
         # select_spec = "IM Q24p1y9 A"
         # select_spec = "IM Q24p1y9 Qr32"
@@ -19,11 +26,11 @@ def main(bool_post_processing=False):
         # select_spec = "IM Q24p2y6 Qr16"
         # select_spec = "IM Q24p1y9 Qr32 Round Bar" # RevisionInNov: rev2 reviewer 1
         # select_spec = "IM Q24p1y9 Qr16 Round Bar" # Prototype
-    mop = AC_Machine_Optiomization_Wrapper(
-            select_fea_config_dict = "#019 JMAG IM Nine Variables",
-            select_spec            = 'IM p2ps3Qs18y4 Qr30-FSW Round Bar EquivDoubleLayer',
-            project_loc            = r'D:/DrH/acmop/_default/'
-        )
+    # mop = AC_Machine_Optiomization_Wrapper(
+    #         select_fea_config_dict = "#019 JMAG IM Nine Variables",
+    #         select_spec            = 'IM p2ps3Qs18y4 Qr30-FSW Round Bar EquivDoubleLayer',
+    #         project_loc            = r'D:/DrH/acmop/_default/'
+    #     )
 
     # PEMD 2020 paper 
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting'
@@ -35,18 +42,12 @@ def main(bool_post_processing=False):
         # select_spec =  "PMSM Q12p2y3 A"            #   './spec_PEMD_BPMSM_Q12p2.py',
         # select_spec =  "PMSM Q12p4y1 A"            #   './spec_PEMD_BPMSM_Q12p4.py',
         # select_spec =  "PMSM Q24p1y9 A"            #   './spec_PEMD_BPMSM_Q24p1.py'],
-    # mop = AC_Machine_Optiomization_Wrapper(
-    #         select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-    #         select_spec            = 'PMSM Q12p2y3 A',
-    #         project_loc            = r'D:/DrH/acmop/_default/'
-    #     )
+    mop = AC_Machine_Optiomization_Wrapper(
+            select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+            select_spec            = 'PMSM Q12p2y3 A',
+            project_loc            = r'D:/DrH/acmop/_default/'
+        )
 
-    # Vernier Machine
-    # mop = AC_Machine_Optiomization_Wrapper(
-    #         select_fea_config_dict = "#03 JMAG Non-Nearingless Motor Evaluation Setting",
-    #         select_spec            = "PMVM p2pr10-Q12y3 Wenbo",
-    #         project_loc            = r'D:/DrH/acmop/_WenboVShapeVernier/'
-    #     )
 
     #########################
     # Call the five modules

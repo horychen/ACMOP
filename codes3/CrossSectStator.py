@@ -238,21 +238,20 @@ class CrossSectInnerRotorStatorWinding(object):
 if __name__ == '__main__':
     import JMAG
     import Location2D
-    if True:
-        from utility import my_execfile
-        # my_execfile('./default_setting.py', g=globals(), l=locals())
-        # fea_config_dict
 
-        import main_utility
-        select_spec =  "PMSM Q12p4y1 A"
-        select_fea_config_dict = "#0210 JMAG PMSM Re-evaluation wo/ CSV Setting Q12p4ps5 Sub-hamonics"
-        output_dir, spec_input_dict, fea_config_dict = main_utility.load_settings(select_spec, select_fea_config_dict)
+    import sys; sys.path.insert(0, '../')
+    import acmop
+    mop = acmop.AC_Machine_Optiomization_Wrapper(
+            select_fea_config_dict = "#03 JMAG Non-Nearingless Motor Evaluation Setting",
+            select_spec            = "PMVM p2pr10-Q12y3 Wenbo",
+            project_loc            = r'D:/DrH/acmop/_WenboVShapeVernier/'
+        )
 
-        toolJd = JMAG.JMAG(fea_config_dict, spec_input_dict=spec_input_dict)
+    toolJd = JMAG.JMAG(mop.fea_config_dict, spec_input_dict=mop.spec_input_dict)
 
-        project_name          = 'proj%d'%(0)
-        expected_project_file_path = './' + "%s.jproj"%(project_name)
-        toolJd.open(expected_project_file_path)
+    project_name               = '_test_vernier'
+    expected_project_file_path = f"./{project_name}.jproj"
+    toolJd.open(expected_project_file_path)
 
     stator_core = CrossSectInnerRotorStator( name = 'StatorCore',
                                         deg_alpha_st = 40,

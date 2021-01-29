@@ -678,7 +678,7 @@ class swarm(object):
                     # Export Circuit Voltage
                     ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                     app.GetDataManager().CreateGraphModel(ref1)
-                    app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + im_variant.individual_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                    app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
             else:
                 # if csv already exists, im_variant.slip_freq_breakdown_torque is still None till here
                 # print 'DEBUG::::::::::::', im_variant.slip_freq_breakdown_torque
@@ -2429,7 +2429,7 @@ class swarm(object):
         new_key_list = []
         if self.fea_config_dict['delete_results_after_calculation'] == False:
             # file name is by individual_name like ID32-2-4_EXPORT_CIRCUIT_VOLTAGE.csv rather than ID32-2-4Tran2TSS_circuit_current.csv
-            with open(path_prefix + study_name[:-8] + "_EXPORT_CIRCUIT_VOLTAGE.csv", 'r') as f:
+            with open(path_prefix + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv", 'r') as f:
                 count = 0
                 for row in self.csv_row_reader(f):
                     count +=1
@@ -2728,6 +2728,7 @@ class swarm(object):
 class bearingless_induction_motor_design(object):
 
     def __init__(self, spec_input_dict=None, spec_derive_dict=None, spec_geometry_dict=None, fea_config_dict=None, model_name_prefix='PS'):
+        self.machine_type = 'IM'
 
         # introspection (settings that may differ for initial design and variant designs)
         self.spec_input_dict = spec_input_dict
@@ -3199,6 +3200,7 @@ class bearingless_induction_motor_design(object):
                     new_spec_geometry_dict,
                     im.fea_config_dict, 
                     "PS-variant" + str(number_current_generation) + '-' + str(individual_index))
+
         self.number_current_generation = number_current_generation
         self.individual_index = individual_index
 
@@ -5891,7 +5893,7 @@ class TrimDrawer(object):
 def add_M1xSteel(app, dir_parent, steel_name="M-19 Steel Gauge-29"):
 
     if '19' in steel_name:
-        BH = np.loadtxt(dir_parent + 'codes3/M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1)) # after JMAG smooth, it beomces HB rather than BH
+        BH = np.loadtxt(dir_parent + './M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1)) # after JMAG smooth, it beomces HB rather than BH
     elif '15' in steel_name:
         BH = np.loadtxt(dir_parent + './M-15-Steel-BH-Curve.txt', unpack=True, usecols=(0,1))
 

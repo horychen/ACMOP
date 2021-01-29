@@ -798,6 +798,66 @@ class FEA_Solver:
             #         print('swarm_data.txt is empty')
             #         return None
 
+    def fea_wrapper(self, template, x_denorm, counter, counter_loop, bool_re_evaluate=False):
+        logger = logging.getLogger(__name__)
+        msg = 'Run FEA for individual #%d'%(counter)
+        logger.info(msg)
+        # print(msg)
+
+        # get local design variant
+        if 'SPMSM' in template.machine_type:
+            function = bearingless_spmsm_design.bearingless_spmsm_design
+        elif 'PMVM' in template.machine_type:
+            function = vernier_motor_design.vernier_motor_VShapePM_design
+        else:
+            raise Exception('Unknown machine_type:', template.machine_type)
+        self.variant = variant = function(
+                        spmsm_template=template,
+                        x_denorm=x_denorm,
+                        counter=counter,
+                        counter_loop=counter_loop
+                    )
+
+        # 传递模板的爸爸给孙子（考虑移除）
+        variant.spec = template.spec
+
+        # project name
+        self.project_name = variant.name
+        self.expected_project_file = self.output_dir + "%s.jproj"%(self.project_name)
+
+        # study name
+        study_name = variant.name + "-Transient" # Change here and there 
+
+        # project meta data
+        project_meta_data = {
+            "expected_project_file": self.expected_project_file,
+            "project_name": self.project_name,
+            "study_name": study_name,
+            "dir_csv_output_folder": self.dir_csv_output_folder,
+            "output_dir": self.output_dir
+        }
+
+        # Leave the solving task to JMAG
+        variant.build_jmag_project(project_meta_data, bool_re_evaluate=bool_re_evaluate)
+
+        ################################################################
+        # Load data for cost function evaluation
+        ################################################################
+        variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+        if results_to_be_unpacked is not None:
+            if self.fig_main is not None:
+                try:
+                    self.fig_main.savefig(self.output_dir + variant.name + 'results.png', dpi=150)
+                except Exception as e:
+                    print(e)
+                    print('\n\n\nIgnore error and continue.')
+                finally:
+                    utility.pyplot_clear(self.axeses)
+            # show()
+            return variant 
+        else:
+            raise Exception('[acm_designer] results_to_be_unpacked is None.')
+
     def fea_bearingless_spmsm(self, spmsm_template, x_denorm, counter, counter_loop, bool_re_evaluate=False):
         logger = logging.getLogger(__name__)
         msg = 'SPMSM: Run FEA for individual #%d'%(counter)
@@ -880,6 +940,7 @@ class FEA_Solver:
         # print('::', im_variant.Radius_OuterRotor, im_variant.Width_RotorSlotOpen)
         # quit()
 
+        # TODO: Change indivudal name to be more useful
         if counter_loop == 1:
             im_variant.name = 'ind%d'%(counter)
         else:
@@ -1294,7 +1355,8 @@ class FEA_Solver:
                 # Export Circuit Voltage
                 ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                 app.GetDataManager().CreateGraphModel(ref1)
-                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + im_variant.name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                # app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + im_variant.name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
 
             # TranRef
             # transient_FEA_as_reference(im_variant, slip_freq_breakdown_torque)
@@ -1565,7 +1627,8 @@ class acm_designer(object):
     def evaluate_design(self, acm_template, x_denorm, counter=999, counter_loop=1):
         # print(dir(acm_template))
         if 'SM' in acm_template.name:
-            function = self.solver.fea_bearingless_spmsm
+            # function = self.solver.fea_bearingless_spmsm
+            function = self.solver.fea_wrapper
         else:
             function = self.solver.fea_bearingless_induction
 
