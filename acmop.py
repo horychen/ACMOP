@@ -54,11 +54,11 @@ def main(bool_post_processing=False):
     #########################
 
     # mop.part_winding()
-    spec = mop.part_initialDesign()
+    acm_template = mop.part_initialDesign()
 
     if not bool_post_processing:
-        mop.part_evaluation()
-        # mop.part_optimization(spec)
+        # mop.part_evaluation()
+        mop.part_optimization(acm_template)
         # mop.part_reportWithStreamlit()
     else:
         # Recover a design from its jsonpickle-object file
@@ -73,10 +73,12 @@ def main(bool_post_processing=False):
 from dataclasses import dataclass
 import sys; sys.path.insert(0, './codes3/')
 import main_utility
+
 # part_winding
 # import winding_layout, PyX_Utility, math
+
 # part_initialDesign
-import pyrhonen_procedure_as_function, acm_designer
+import pyrhonen_procedure_as_function, acm_designer, bearingless_spmsm_design
 global ad
 
 @dataclass
@@ -179,60 +181,40 @@ class AC_Machine_Optiomization_Wrapper(object):
     # '[2] Initial Design Part'
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def part_initialDesign(self):
-        # [2.1] Attain spec_derive_dict
-        spec = pyrhonen_procedure_as_function.desgin_specification(**self.spec_input_dict)
-        for k,v in self.spec_input_dict.items():
-            print(k+':', v)
-        for k,v in spec.spec_derive_dict.items():
-            print(k+':', v)
-        spec.show()
-        # quit()
+        if 'PM' in self.select_spec:
+            function = bearingless_spmsm_design.bearingless_spmsm_template
+        elif 'VM' in self.select_spec:
+            function = vernier_motor_design.vernier_motor_VShapePM_template
+        acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
-        # [2.2] Attain spec_geometry_dict
-        print('Build ACM template...')
-        if 'IM' in self.select_spec:
-            print(spec.build_name())
-            spec.bool_bad_specifications = spec.pyrhonen_procedure()
-            for k,v in spec.spec_geometry_dict.items():
-                print(k+':', v)
-            print(spec.build_name()) # rebuild for new guess air gap flux density # TODO：自动修正转子电流密度的设置值？
-
-            import population
-                                # load initial design using the obsolete class bearingless_induction_motor_design
-            spec.acm_template = population.bearingless_induction_motor_design(self.spec_input_dict, spec.spec_derive_dict, spec.spec_geometry_dict, self.fea_config_dict)
-
-        elif 'PMSM' in self.select_spec:
-            spec.acm_template = spec.build_pmsm_template(self.fea_config_dict, self.spec_input_dict, im_template=None)
-
-        ad = acm_designer.acm_designer(
+        self.ad = acm_designer.acm_designer(
                     self.fea_config_dict, 
                     self.spec_input_dict, 
-                    spec, 
                     self.output_dir, 
                     self.select_spec, 
-                    self.select_fea_config_dict
+                    self.select_fea_config_dict,
+                    acm_template=acm_template
                 )
+
         if False:
             if 'Y730' in self.fea_config_dict['pc_name']:
-                ad.build_oneReport() # require LaTeX
+                self.ad.build_oneReport() # require LaTeX
                 # ad.talk_to_mysql_database() # require MySQL
 
-        self.ad = ad
-
-        return spec
+        return acm_template
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[3] Evaluation Part (Can be skipped)'
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def part_evaluation(self):
         # build x_denorm for the template design
-        x_denorm = self.ad.spec.acm_template.build_x_denorm()
+        x_denorm = self.ad.acm_template.build_x_denorm()
 
         # evaluate design (with json output)
         cost_function, f1, f2, f3, FRW, \
             normalized_torque_ripple, \
             normalized_force_error_magnitude, \
-            force_error_angle = self.ad.evaluate_design_json_wrapper(self.ad.spec.acm_template, x_denorm)
+            force_error_angle = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
 
         print('[part_evaluation]:', cost_function, f1, f2, f3, FRW, \
         normalized_torque_ripple, \
@@ -244,32 +226,27 @@ class AC_Machine_Optiomization_Wrapper(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[4] Optimization Part' Multi-Objective Optimization
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    def part_optimization(self, spec):
+    def part_optimization(self, acm_template):
         ad = self.ad
         ad.init_logger(prefix='acmdm')
 
         # [4.1] Get bounds
-        if 'IM' in self.select_spec:
-            ad.bounds_denorm = spec.get_im_classic_bounds(which_filter=self.fea_config_dict['which_filter'])
-            ad.bound_filter  = spec.bound_filter
-            otnb = spec.original_template_neighbor_bounds
-        elif 'PMSM' in self.select_spec:
-            ad.bounds_denorm = spec.acm_template.get_classic_bounds(which_filter=self.fea_config_dict['which_filter'])
-            ad.bound_filter  = spec.acm_template.bound_filter
-            otnb = spec.acm_template.original_template_neighbor_bounds
-        print('---------------------\nBounds: (if there are two bounds within one line, they should be the same)')
-        idx_ad = 0
-        for idx, f in enumerate(ad.bound_filter):
-            if f == True:
-                print(idx, f, '[%g,%g]'%tuple(otnb[idx]), '[%g,%g]'%tuple(ad.bounds_denorm[idx_ad]))
-                idx_ad += 1
-            else:
-                print(idx, f, '[%g,%g]'%tuple(otnb[idx]))
+        # ad.bounds_denorm = acm_template.bounds_denorm # get_classic_bounds(which_filter=self.fea_config_dict['which_filter'])
+        # ad.bound_filter  = acm_template.bound_filter
+        # otnb = acm_template.original_template_neighbor_bounds
+        # print('---------------------\nBounds: (if there are two bounds within one line, they should be the same)')
+        # idx_ad = 0
+        # for idx, f in enumerate(ad.bound_filter):
+        #     if f == True:
+        #         print(idx, f, '[%g,%g]'%tuple(otnb[idx]), '[%g,%g]'%tuple(ad.bounds_denorm[idx_ad]))
+        #         idx_ad += 1
+        #     else:
+        #         print(idx, f, '[%g,%g]'%tuple(otnb[idx]))
 
-        if self.fea_config_dict['bool_post_processing'] == True: # use the new script file instead: main_post_processing_pm.py
-            import one_script_pm_post_processing 
-            one_script_pm_post_processing.post_processing(ad, self.fea_config_dict)
-            quit()
+        # if self.fea_config_dict['bool_post_processing'] == True: # use the new script file instead: main_post_processing_pm.py
+        #     import one_script_pm_post_processing 
+        #     one_script_pm_post_processing.post_processing(ad, self.fea_config_dict)
+        #     quit()
 
         # [4.3] MOO
         from acm_designer import get_bad_fintess_values
@@ -280,7 +257,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         ad.counter_fitness_return = 0
         __builtins__.ad = ad # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable
         import codes3.Problem_BearinglessSynchronousDesign # must import this after __builtins__.ad = ad
-        print(__builtins__.ad)
+        print('[acmop.py]', __builtins__.ad)
 
         ################################################################
         # MOO Step 1:
@@ -290,7 +267,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         # [4.3.1] Basic setup
         _, prob, popsize = codes3.Problem_BearinglessSynchronousDesign.get_prob_and_popsize()
 
-        print('-'*40 + '\nPop size is', popsize)
+        print('[acmop.py]', '-'*40 + '\n[acmop.py] Pop size is', popsize)
 
         # [4.3.2] Generate the pop
         if False:
@@ -311,8 +288,8 @@ class AC_Machine_Optiomization_Wrapper(object):
             #     return swarm_data_on_pareto_front
 
             # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
-            print('Check swarm_data.txt...')
-            number_of_chromosome = ad.solver.read_swarm_data(ad.bound_filter)
+            print('[acmop.py] Check swarm_data.txt...')
+            number_of_chromosome = ad.solver.read_swarm_data()
 
             # case 1: swarm_data.txt exists
             if number_of_chromosome is not None:
@@ -327,7 +304,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                     print('\tWhat is the odds! The script just stopped when the evaluation of the whole pop is finished.')
                     print('\tSet number_of_finished_chromosome_in_current_generation to popsize %d'%(number_of_finished_chromosome_in_current_generation))
 
-                print('This is a restart of '+ self.fea_config_dict['run_folder'][:-1])
+                print('[acmop.py] This is a restart of '+ self.fea_config_dict['run_folder'][:-1])
                 print('\tNumber of finished iterations is %d'%(number_of_finished_iterations))
                 # print('This means the initialization of the population class is interrupted. So the pop in swarm_data.txt is used as the survivor.')
 
@@ -349,7 +326,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
                 # 这些计数器的值永远都是评估过的chromosome的个数。
                 ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome
-                print('ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome = %d'%(number_of_chromosome))
+                print('[acmop.py] ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome = %d'%(number_of_chromosome))
 
                 # case 1-A: swarm_data.txt exists and this is a re-evaluation run using the existing csv files (比如我们修改了计算铜损的代码，那就必须借助已有的有限元结果重新生成swarm_data.txt)
                 if self.fea_config_dict['bool_re_evaluate']:
@@ -459,6 +436,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         # try:
         if True:
             for _ in range(number_of_finished_iterations, number_of_iterations):
+                ad.number_of
                 msg = 'This is iteration #%d. '%(_)
                 print(msg)
                 logger.info(msg)

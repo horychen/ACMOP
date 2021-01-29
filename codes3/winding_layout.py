@@ -328,7 +328,7 @@ class winding_layout_v2(object):
             # below is valid for PMSM only
 
             q = SPP = Qs / (2*p * m)
-            print('[wily] q =', q)
+            # print('[wily] q =', q)
             # if q%1 > 0:
             #     print('[wily] Fractional slot winding with an SPP of %g.'%(q))
             #     if q>1:
@@ -342,17 +342,18 @@ class winding_layout_v2(object):
             # Valid for PMSM                                                这个1是由于1号槽从x轴便宜了半个槽距角所导致的，那么为什么1号槽这么特别？因为我们默认了u相是从1号槽开始的，但是有时候U相可能从24号槽开始，那么就要进一步进入这种情况
             # self.initial_excitation_bias_compensation_deg = 360/Qs*0.5 * (1 + self.coil_pitch_y)
 
+            # 寻找初始d轴激励角度
             if q%1 == 0:
                 # integral slot
 
                 phase_U_belt = self.layer_X_phases[:int(q)]
                 number_of_U = sum([1 for el in phase_U_belt if el =='U'])
                 if number_of_U<q:
-                    print('目前只有%d个字母U，需要寻找一共q(=%d)个字母U。'%(number_of_U, q))
+                    # print('目前只有%d个字母U，需要寻找一共q(=%d)个字母U。'%(number_of_U, q))
                     for phase_U_starting_slot_number in range(-1, -int(q)-1, -1):
                         new_phase_U_belt = self.layer_X_phases[phase_U_starting_slot_number:] + phase_U_belt
                         number_of_U = sum([1 for el in new_phase_U_belt if el =='U'])
-                        print(phase_U_starting_slot_number, number_of_U)
+                        # print(phase_U_starting_slot_number, number_of_U)
                         if number_of_U < q:
                             continue
                         else:
@@ -365,7 +366,7 @@ class winding_layout_v2(object):
                 # This clause includes fractional slot winding with an SPP value below 1.
                 phase_U_starting_slot_number = 1
 
-                print('[wily] Fractional slot winding with an SPP of %g.'%(q))
+                # print('[wily] Fractional slot winding with an SPP of %g.'%(q))
 
                 if q<1:
                     # fractional slot and q<1
@@ -373,7 +374,7 @@ class winding_layout_v2(object):
                 else:
                     # fractional slot and q>1
                     self.deg_winding_U_phase_phase_axis_angle = 360/Qs*0.5 * (phase_U_starting_slot_number + self.coil_pitch_y )
-                    msg = 'This case (q=%g) is not thought thorough, so you must inspect the initial excitation angle and initial rotor position manually to make sure it is id=0 control.'%(q)
+                    msg = '[wily][Warning] This case (q=%g) is not thought thorough, so you must inspect the initial excitation angle and initial rotor position manually to make sure it is id=0 control.'%(q)
                     print(msg)
                     if q>2:
                         raise Exception(msg)
@@ -386,6 +387,12 @@ class winding_layout_v2(object):
         except:
             print(Qs,p,ps,coil_pitch_y)
             raise Exception('Error: This winding is not implemented.')
+
+
+        # 这是实际在pre_procee中调用的字典
+        self.dict_coil_connection = {'layer X phases': self.layer_X_phases, 'layer X signs':self.layer_X_signs,   # 这里的命名规则是按照seprate winding的情况来的。
+                                     'layer Y phases': self.layer_Y_phases, 'layer Y signs':self.layer_Y_signs}   # 这里的命名规则是按照seprate winding的情况来的。
+
 
         # ACMDM: motor mode and suspension mode
         if self.number_winding_layer == 1: # this is equivalent to separate winding for now
@@ -425,8 +432,8 @@ class winding_layout_v2(object):
         self.ox_distribution_phase_U = [replace_uvw_with_ox(el, 'U') for el in self.ox_distribution_three_phase]
         self.ox_distribution_phase_U = [replace_uvw_with_empty_string(el, 'V') for el in self.ox_distribution_phase_U]
         self.ox_distribution_phase_U = [replace_uvw_with_empty_string(el, 'W') for el in self.ox_distribution_phase_U]
-        print(self.ox_distribution_three_phase)
-        print(self.ox_distribution_phase_U)
+        # print(self.ox_distribution_three_phase)
+        # print(self.ox_distribution_phase_U)
 
 # if __name__ == '__main__':
 #     wily = winding_layout_v2(DPNV_or_SEPA=True, Qs=24, p=2, ps=1, coil_pitch=6)

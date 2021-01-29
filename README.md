@@ -4,13 +4,14 @@
 
 ## Requirements:
 
-- anaconda3
+- anaconda3 (Anaconda3-2020.02-Windows-x86_64.exe with python 3.7.6)
+> If using newer version of anaconda3 after 2020.02, pacakge pygmo might not work, as far as I know.
 
 - pygmo:
     - conda config --add channels conda-forge
     - conda install pygmo
 
-- pyx, pyfemm, streamlit and others (if any) can be installed via pip
+- pyx, pyfemm, streamlit, jsonpickle and others (if any) can be installed via pip
 
 - texlive, or other latex compiler (if you want pdf report for motor design)
 

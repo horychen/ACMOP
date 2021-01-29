@@ -1693,6 +1693,92 @@ class desgin_specification(object):
 
         return no_conductors_per_slot_zQ
 
+
+# Public Access Utility Funcitons for Initial Design
+def get_stator_phase_current_rms(SD):
+    no_phase_m = SD['m']
+    stator_phase_voltage_rms = SD['VoltageRating'] / np.sqrt(3)
+    stator_phase_current_rms = SD['mec_power'] / (no_phase_m*SD['guess_efficiency']*stator_phase_voltage_rms*SD['guess_power_factor'])
+    return stator_phase_current_rms
+
+def get_mm_stack_length(SD):
+
+    speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
+    rotor_outer_radius_r_or = eric_specify_tip_speed_get_radius(SD['tip_speed'], speed_rpm)
+    required_torque = SD['mec_power']/(2*np.pi*speed_rpm)*60
+    rotor_volume_Vr = required_torque/(2*SD['TangentialStress'])
+    m_stack_length = rotor_volume_Vr / (np.pi * rotor_outer_radius_r_or**2)
+    return 1e3*m_stack_length # m -> mm
+
+def get_zQ(SD, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
+
+    stator_phase_voltage_rms = SD['VoltageRating'] / np.sqrt(3)
+    desired_emf_Em = 0.95 * stator_phase_voltage_rms 
+
+    if SD['DPNV_or_SEPA'] is None:
+        number_parallel_branch = SD['number_parallel_branch']
+    else:
+        if SD['DPNV_or_SEPA']:
+            number_parallel_branch = 2
+        else:
+            number_parallel_branch = 1
+    speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
+
+    pole_pitch_tau_p = np.pi*stator_inner_diameter_Dis/(2*SD['p'])
+
+    if SD['coil_pitch_y'] < 0:
+        kw1 = 1
+        print(f'[zQ] coil_pitch_y={SD["coil_pitch_y"]}, kw1={kw1}')
+    else:
+        if SD['number_winding_layer'] == 1:
+            # full pitch - easy
+            coil_span_W = pole_pitch_tau_p
+        else: 
+            # short pitch (not tested)
+            stator_slot_pitch_tau_us = np.pi * stator_inner_diameter_Dis / SD['Qs']
+            coil_span_W = SD['coil_pitch_y'] * stator_slot_pitch_tau_us
+            # for 2 pole motor, the recommended short pitch is 0.7. --p76
+
+        kd1 = 2*sin(1/SD['m']*np.pi/2)/(SD['Qs']/(SD['m']*SD['p'])*sin(1*np.pi*SD['p']/SD['Qs']))
+        kq1 = sin(1*coil_span_W/pole_pitch_tau_p*np.pi/2)        
+        ksq1 = 1
+        kw1 = kd1 * kq1 * ksq1
+        print(f'[zQ] coil_pitch_y={SD["coil_pitch_y"]}, kw1={kw1}')
+
+    alpha_i = 2/np.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
+
+    # guess_air_gap_flux_density_B = 0.9 # T
+    guess_air_gap_flux_density_B = SD['guess_air_gap_flux_density_B']
+
+    mm_stack_length = get_mm_stack_length(SD)
+    air_gap_length_delta = 0.5*(stator_inner_diameter_Dis - rotor_outer_diameter_Dr)
+    # print(stator_inner_diameter_Dis, rotor_outer_diameter_Dr, air_gap_length_delta)
+    # quit()
+    stack_length_eff = mm_stack_length*1e-3 + 2 * air_gap_length_delta
+    # print(stack_length, 2 * air_gap_length_delta)
+
+    air_gap_flux_Phi_m = alpha_i * guess_air_gap_flux_density_B * pole_pitch_tau_p * stack_length_eff
+    # print(alpha_i, guess_air_gap_flux_density_B,  pole_pitch_tau_p,  stack_length_eff)
+
+    no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi*SD['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
+    # print(sqrt(2)*desired_emf_Em , SD['ExcitationFreqSimulated'], kw1,  air_gap_flux_Phi_m)
+    if no_series_coil_turns_N<1:
+        raise Exception('What? no_series_coil_turns_N is negative?')
+    print('[zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_B is', no_series_coil_turns_N)
+    no_series_coil_turns_N = round(no_series_coil_turns_N)
+    print('[zQ] Rounds up to:', no_series_coil_turns_N)
+    backup = no_series_coil_turns_N
+    distribution_q = SD['Qs'] / (2*SD['p']*SD['m'])
+    bool_we_have_plenty_voltage = True
+    if bool_we_have_plenty_voltage:
+        no_series_coil_turns_N = min([SD['p']*distribution_q*i for i in range(100,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
+    else:
+        no_series_coil_turns_N = min([SD['p']*distribution_q*i for i in range(100)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
+    print('[zQ] no_series_coil_turns_N should be multiple of pq:', no_series_coil_turns_N, '= q * p =', distribution_q, '*', SD['p'])
+    no_conductors_per_slot_zQ = 2* SD['m'] * no_series_coil_turns_N / SD['Qs'] * number_parallel_branch
+    print('[zQ] =', no_conductors_per_slot_zQ)
+    return no_conductors_per_slot_zQ
+
 #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 # Play with this Pyrhonen procedure
 #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~

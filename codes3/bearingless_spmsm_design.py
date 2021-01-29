@@ -1,103 +1,226 @@
 import CrossSectInnerNotchedRotor
 import CrossSectStator
 import Location2D
-import winding_layout
-import pyrhonen_procedure_as_function
+import pyrhonen_procedure_as_function, winding_layout
 import numpy as np
 import logging
 import utility
 from time import time as clock_time
+from collections import OrderedDict
+from recordtype import recordtype
 EPS = 1e-2 # unit: mm
 
+# template 有点类似analytical的电机（由几何尺寸组成）
+# variant则有点像是具体的电机实现类（由各个局部类，比如转子、定子等组成）
+
+acmop_parameter = recordtype('acmop_parameter', 'type, name, value, bounds')
 class bearingless_spmsm_template(object):
-    def __init__(self, fea_config_dict=None, spec_input_dict=None, model_name_prefix='SPMSM'):
+    def __init__(self, fea_config_dict=None, spec_input_dict=None):
+        # 基本信息
         self.machine_type = 'SPMSM'
-        self.model_name_prefix = model_name_prefix
-        self.name = model_name_prefix
+        self.name = '__SPMSM'
+
+        # 仿真输入
         self.fea_config_dict = fea_config_dict
         self.spec_input_dict = spec_input_dict
+        self.SD = SD = spec_input_dict # short name
 
+        # 初始化搜索空间
         self.bound_filter = None
+        geometric_parameters = OrderedDict({
+            # STATOR
+            "deg_alpha_st" : acmop_parameter("free", "stator_tooth_span_angle"       , None, [None, None]),
+            "mm_d_so"      : acmop_parameter("free", "stator_tooth_open_depth"       , None, [None, None]),
+            "mm_d_st"      : acmop_parameter("free", "stator_tooth_depth"            , None, [None, None]),
+            "mm_r_os"      : acmop_parameter("free", "outer_stator_radius"           , None, [None, None]),
+            "mm_w_st"      : acmop_parameter("free", "stator_tooth_width"            , None, [None, None]),
+            "mm_r_si"      : acmop_parameter("derived", "inner_stator_radius"        , None, [None, None]),
+            "deg_alpha_so" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None]),
+            "mm_d_sp"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None]),
+            "mm_d_sy"      : acmop_parameter("derived", "stator_yoke_depth"          , None, [None, None]),
+            # ROTOR
+            "mm_d_fixed_air_gap": acmop_parameter("fixed",                                                "sleeve_length",                 None, [None, None]),
+            "mm_d_sleeve"       : acmop_parameter("fixed",                                                "sleeve_length",                 None, [None, None]),
+            "split_ratio"       : acmop_parameter("free",                                                 "split_ratio_r_is_slash_r_os",   None, [None, None]),
+            "mm_d_pm"           : acmop_parameter("free",                                                 "magnet_depth",                  None, [None, None]),
+            "deg_alpha_rm"      : acmop_parameter("free",                                                 "magnet_pole_span_angle",        None, [None, None]),
+            "mm_d_ri"           : acmop_parameter("free",                                                 "rotor_iron (back iron) depth",  None, [None, None]),
+            "mm_d_rp"           : acmop_parameter("free",                                                 "inter_polar_iron_thickness",    None, [None, None]),
+            "mm_r_or"           : acmop_parameter("derived",                                              "outer_rotor_radius",            None, [None, None]),
+            "mm_r_ri"           : acmop_parameter("derived",                                              "inner_rotor_radius",            None, [None, None]),
+            "deg_alpha_rs"      : acmop_parameter("free" if SD['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None]),
+            "mm_d_rs"           : acmop_parameter("free" if SD['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None]),
+        })
+        # all in one place
+        self.d = {
+            "which_filter": fea_config_dict['which_filter'],
+            "GP": geometric_parameters,
+            "OP": None
+        }
 
-    def build_design_parameters_list(self):
-        self.design_parameters = [
-            self.deg_alpha_st,
-            self.deg_alpha_so,
-            self.mm_r_si,
-            self.mm_d_so,
-            self.mm_d_sp,
-            self.mm_d_st,
-            self.mm_d_sy,
-            self.mm_w_st,
-            self.mm_r_st,
-            self.mm_r_sf,
-            self.mm_r_sb,
-            self.Q,
-            self.sleeve_length,
-            self.fixed_air_gap_length,
-            self.mm_d_pm,
-            self.deg_alpha_rm,
-            self.deg_alpha_rs,
-            self.mm_d_ri,
-            self.mm_r_ri,
-            self.mm_d_rp,
-            self.mm_d_rs,
-            self.p,
-            self.s
-            ]
-        return self.design_parameters
-
-    def get_classic_bounds(self, which_filter='FixedSleeveLength', user_bound_filter=None):
-        # bound_filter is used to filter out some free_variables that are not going to be optimized.
-        self.bound_filter = [ 1,          # deg_alpha_st        = free_variables[0]
-                              1,          # mm_d_so             = free_variables[1]
-                              1,          # mm_d_st             = free_variables[2]
-                              1,          # stator_outer_radius = free_variables[3]
-                              1,          # mm_w_st             = free_variables[4] # STATOR
-                              0,          # sleeve_length       = free_variables[5] # AIRGAP  # 0: sleeve_length = 3 mm        # TIA ITEC
-                              1,          # mm_d_pm             = free_variables[6] # ROTOR
-                              1,          # deg_alpha_rm        = free_variables[7] # 2019/08/25: 我发现 alpha_rm 导致的 notch 有可能会导致转矩波动——好吧，并不是，实际上没有 notch 的电机的转矩波动很大。
-                              self.s!=1,  # deg_alpha_rs        = free_variables[8]           # 0: deg_alpha_rs = deg_alpha_rm # s=1
-                              1,          # mm_d_ri             = free_variables[9]
-                              1,          # rotor_outer_radius  = free_variables[10]                                           # Comment: the outer radius of the rotor without magnet
-                              1,          # mm_d_rp             = free_variables[11]
-                              self.s!=1]  # mm_d_rs             = free_variables[12]          # 0: mm_d_rs = 0                 # s=1
-        if 'FixedSleeveLength' in which_filter:
-            pass
-        elif 'VariableSleeveLength' in which_filter:
-            self.bound_filter[5] = 1
+        if 'FixedSleeveLength' in self.d['which_filter']:
+            self.d['GP']['mm_d_sleeve'].type = "fixed"
+        elif 'VariableSleeveLength' in self.d['which_filter']:
+            self.d['GP']['mm_d_sleeve'].type = "free"
         else:
-            if len(user_bound_filter) != 13:
-                raise Exception('Invalid bound_filter for bounds. Length should be 13 rather than %d.'%(len(user_bound_filter)))
-            self.bound_filter = user_bound_filter
+            raise Exception('Not defined', self.d['which_filter'])
 
-        Q = self.Q
-        s = self.s
-        p = self.p
-        # print('Debug:', self.mm_d_st)
-        self.original_template_neighbor_bounds =  [ 
-                            [ 0.35*360/Q, 0.9*360/Q],                                           # deg_alpha_st        = free_variables[0]
-                            [  0.5,   5],                                                       # mm_d_so             = free_variables[1]
-                            [0.8*self.mm_d_st,                1.2*self.mm_d_st],                # mm_d_st             = free_variables[2]
-                            [1.0*self.Radius_OuterStatorYoke, 1.2*self.Radius_OuterStatorYoke], # stator_outer_radius = free_variables[3]
-                            [0.8*self.mm_w_st,                1.2*self.mm_w_st],                # mm_w_st             = free_variables[4] # STATOR
-                            [3,   6],                                                           # sleeve_length       = free_variables[5] # AIRGAP
-                            [2.5, 7],                                                           # mm_d_pm             = free_variables[6] # ROTOR
-                            [0.6*360/(2*p), 1.0*360/(2*p)],                                     # deg_alpha_rm        = free_variables[7]
-                            [0.8*360/(2*p)/s, 0.975*360/(2*p)/s],                               # deg_alpha_rs        = free_variables[8]
-                            [0.8*self.mm_d_ri,  1.2*self.mm_d_ri],                              # mm_d_ri             = free_variables[9]
-                            [0.8*self.Radius_OuterRotor, 1.2*self.Radius_OuterRotor],           # rotor_outer_radius  = free_variables[10] 
-                            [2.5,   6],                                                         # mm_d_rp             = free_variables[11]
-                            [2.5,   6] ]                                                        # mm_d_rs             = free_variables[12]
-        index_not_included = [idx for idx, el in enumerate(self.bound_filter) if el==0]
-        self.filtered_template_neighbor_bounds = [bound for idx, bound in enumerate(self.original_template_neighbor_bounds) if idx not in index_not_included]
-        return self.filtered_template_neighbor_bounds
+        # Get Analytical Design
+        self.Bianchi2006(fea_config_dict, SD)
+
+        # 定义搜索空间，determine bounds
+        original_template_neighbor_bounds = self.get_template_neighbor_bounds()
+        self.bounds_denorm = []
+        for key, val in original_template_neighbor_bounds.items():
+            self.d['GP'][key].bounds = val
+            self.bounds_denorm.append(val)
+        print('BOUNDS_denorm', self.bounds_denorm)
+
+        # debug
+        # from pprint import pprint
+        # for key, val in self.d['GP'].items():
+        #     if val.type=='free':
+        #         print(key, '\t', val)
+        # print('--------------------')
+        # for key, val in self.d['GP'].items():
+        #     if val.type!='free':
+        #         print(key, '\t', val)
+        # quit()
+
+        # Template's Other Properties (Shared by the swarm)
+        OP = OrderedDict()
+        if True:
+            # WINDING Layout
+            OP['wily'] = wily = winding_layout.winding_layout_v2(SD['DPNV_or_SEPA'], SD['Qs'], SD['p'], SD['ps'], SD['coil_pitch_y'])
+            # STACK LENGTH
+            OP['mm_stack_length'] = pyrhonen_procedure_as_function.get_mm_stack_length(SD) # mm TODO:
+            OP['mm_mechanical_air_gap_length'] = SD['minimum_mechanical_air_gap_length_mm']
+            # THERMAL Properties
+            OP['Js']                = SD['Js'] # Arms/mm^2 im_OP['Js'] 
+            OP['fill_factor']       = SD['space_factor_kCu'] # im_OP['fill_factor'] 
+            # MOTOR Winding Excitation Properties
+            OP['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SD, self.d['GP']['mm_r_si'].value*2*1e-3, self.d['GP']['mm_r_or'].value*2*1e-3) # TODO:
+            OP['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SD) # TODO:
+            OP['DriveW_Freq']       = SD['ExcitationFreqSimulated']
+            OP['DriveW_Rs']         = 1.0 # TODO: Must be greater than zero to let JMAG work
+            OP['DriveW_poles']      = SD['p']*2
+            # BEARING Winding Excitation Properties
+            OP['BeariW_zQ']         = OP['DriveW_zQ']
+            OP['BeariW_CurrentAmp'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (OP['DriveW_CurrentAmp'] / fea_config_dict['TORQUE_CURRENT_RATIO'])
+            OP['BeariW_Freq']       = OP['DriveW_Freq']
+            OP['BeariW_Rs']         = OP['DriveW_Rs'] * OP['BeariW_zQ'] / OP['DriveW_zQ']
+            OP['BeariW_poles']      = SD['ps']*2
+            OP['slot_current_utilizing_ratio'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] + fea_config_dict['TORQUE_CURRENT_RATIO'] # will be less than 1 for separate winding
+        self.d.update( {"OP": OP} )
+
+    def Bianchi2006(self, fea_config_dict, spec_input_dict):
+        # ease of writing
+        template = self
+        GP = self.d['GP']
+        SD = spec_input_dict
+
+        air_gap_flux_density_B = SD['guess_air_gap_flux_density_B']
+        # air_gap_flux_density_B = 0.9
+        stator_tooth_flux_density_B_ds = SD['guess_stator_tooth_flux_density_B_ds']
+        # stator_tooth_flux_density_B_ds = 1.5
+
+        stator_yoke_flux_density_Bys = SD['guess_stator_yoke_flux_density_Bys']
+
+        if SD['p'] >= 2:
+            ROTOR_STATOR_YOKE_HEIGHT_RATIO = 0.75
+            alpha_rm_over_alpha_rp = 1.0
+            # stator_yoke_flux_density_Bys = 1.2
+        else:
+            # penalty for p=1 motor, i.e., large yoke height
+            ROTOR_STATOR_YOKE_HEIGHT_RATIO = 0.5
+            alpha_rm_over_alpha_rp = 0.75
+            # stator_yoke_flux_density_Bys = 1.5
+
+        stator_outer_diameter_Dse = 0.225 # m
+
+        speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
+
+        rotor_outer_radius_r_or = pyrhonen_procedure_as_function.eric_specify_tip_speed_get_radius(SD['tip_speed'], speed_rpm)
+        rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
+        sleeve_length = 3
+        stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SD['minimum_mechanical_air_gap_length_mm'])*1e-3 # m (sleeve 3 mm, air gap 0.75 mm)
+        stator_inner_diameter_Dis = stator_inner_radius_r_is*2
+        split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
+
+        stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*SD['p'])
+        stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
+        stator_slot_height_h_ss = stator_tooth_height_h_ds
+        stator_tooth_width_b_ds = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* SD['Qs'])
+
+        stator_slot_area = np.pi/(4*SD['Qs']) * ((stator_outer_diameter_Dse - 2*stator_yoke_height_h_ys)**2 - stator_inner_diameter_Dis**2) - stator_tooth_width_b_ds * stator_tooth_height_h_ds
+
+        slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / SD['Qs']
+        kov = 1.8 # \in [1.6, 2.0]
+        end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (SD['coil_pitch_y'] - 1)
+
+        Q = SD['Qs']
+        p = SD['p']
+        GP['deg_alpha_st'].value         = 360/Q - 2 # deg
+        GP['deg_alpha_so'].value         = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
+        GP['mm_r_si'].value              = 1e3*stator_inner_radius_r_is # mm
+        GP['mm_r_os'].value              = 1e3*stator_outer_diameter_Dse/2 # mm
+        GP['mm_d_so'].value              = 1 # mm
+        GP['mm_d_sp'].value              = 1.5*GP['mm_d_so'].value
+        GP['mm_d_st'].value              = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - GP['mm_r_si'].value - GP['mm_d_sp'].value  # mm
+        GP['mm_d_sy'].value              = 1e3*stator_yoke_height_h_ys # mm
+        GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
+        GP['mm_d_sleeve'].value          = 2 # 3 # mm
+        GP['mm_d_fixed_air_gap'].value   = SD['minimum_mechanical_air_gap_length_mm']
+        GP['split_ratio'].value          = split_ratio
+        GP['mm_r_or'].value              = 1e3*rotor_outer_radius_r_or
+        GP['mm_d_pm'].value              = 4  # mm
+        GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
+        GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SD['no_segmented_magnets']
+        GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is randomly specified
+        GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_fixed_air_gap'].value
+        GP['mm_d_rp'].value              = 3  # mm
+        GP['mm_d_rs'].value              = 0.20*GP['mm_d_rp'].value # d_pm > d_rp and d_pm > d_rs
+
+        # Those are some obsolete variables that are convenient to have.
+        # template.Radius_OuterStatorYoke = spec_geometry_dict['Radius_OuterStatorYoke'] = 1e3*0.5*stator_outer_diameter_Dse # mm
+        # template.Radius_OuterRotor      = spec_geometry_dict['Radius_OuterRotor'] = 1e3*rotor_outer_radius_r_or # mm
+
+        # Those variables are for PMSM convenience
+        # template.rotor_steel_outer_radius = spec_geometry_dict['rotor_steel_outer_radius'] = template.Radius_OuterRotor
+
+        # required_torque = SD['mec_power']/(2*np.pi*speed_rpm)*60
+        # rotor_volume_Vr = required_torque/(2*SD['TangentialStress'])
+        # template.required_torque = required_torque
+
+    def get_template_neighbor_bounds(self):
+        Q = self.SD['Qs']
+        p = self.SD['p']
+        s = self.SD['no_segmented_magnets']
+
+        GP = self.d['GP']
+
+        original_template_neighbor_bounds = {
+            "deg_alpha_st": [ 0.35*360/Q, 0.9*360/Q],
+            "mm_d_so":      [  0.5,   5],                                                       
+            "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.2*GP['mm_d_st'].value],                
+            "mm_r_os":      [1.0*GP['mm_r_os'].value, 1.2*GP['mm_r_os'].value], 
+            "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],                
+            "mm_d_sleeve":  [3,   6],
+            "mm_d_pm":      [2.5, 7],
+            "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],                                     
+            "deg_alpha_rs": [0.8*360/(2*p)/s,        0.975*360/(2*p)/s],                               
+            "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],                              
+            "split_ratio":  [0.2, 0.6], # Binder-2020-MLMS-0953@Fig.7
+            "mm_d_rp":      [2.5,   6],                                                         
+            "mm_d_rs":      [2.5,   6]
+        }
+        return original_template_neighbor_bounds
 
     def get_rotor_volume(self, stack_length=None):
         if stack_length is None:
-            return np.pi*(self.Radius_OuterRotor*1e-3)**2 * (self.stack_length*1e-3)
+            return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (self.d['OP']['mm_stack_length']*1e-3)
         else:
-            return np.pi*(self.Radius_OuterRotor*1e-3)**2 * (stack_length*1e-3)
+            return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (stack_length*1e-3)
 
     def get_rotor_weight(self, gravity=9.8, stack_length=None):
         material_density_rho = pyrhonen_procedure_as_function.get_material_data()[0]
@@ -107,125 +230,113 @@ class bearingless_spmsm_template(object):
             return gravity * self.get_rotor_volume(stack_length=stack_length) * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
 
     def build_x_denorm(self):
+        # design_parameters = build_design_parameters_list(GP, SD) # those member variables are defined in Pyrhonen's procedure
 
-        if self.bound_filter is None:
-            self.get_classic_bounds(which_filter=self.fea_config_dict['which_filter'])
+        GP = self.d['GP']
 
-        design_parameters = self.build_design_parameters_list() # those member variables are defined in Pyrhonen's procedure
-        x_denorm = self.get_x_denorm_from_design_parameters(design_parameters, bound_filter=self.bound_filter)
+        self.x_denorm_dict = self.get_x_denorm_dict_from_geometric_parameters(GP)
 
+        x_denorm = [val for key, val in self.x_denorm_dict.items()]
+        if False:
+            from pprint import pprint
+            pprint(x_denorm_dict)
+            pprint(x_denorm)
+            pprint(GP)
+            quit()
         return x_denorm
 
-    def get_x_denorm_from_design_parameters(self, design_parameters, bound_filter=None):
-        if bound_filter is None:
-            x_denorm = design_parameters
-            return x_denorm
+    def build_design_parameters_list(self):
+        GP = self.d['GP']
+        SD = self.SD
+        # obsolete feature
+        design_parameters = [
+            GP['deg_alpha_st'].value,
+            GP['deg_alpha_so'].value,
+            GP['mm_r_si'].value,
+            GP['mm_d_so'].value,
+            GP['mm_d_sp'].value,
+            GP['mm_d_st'].value,
+            GP['mm_d_sy'].value,
+            GP['mm_w_st'].value,
+            0.0, #'mm_r_st',
+            0.0, #'mm_r_sf',
+            0.0, #'mm_r_sb',
+            SD['Qs'],
+            GP['mm_d_sleeve'].value,
+            GP['mm_d_fixed_air_gap'].value,
+            GP['mm_d_pm'].value,
+            GP['deg_alpha_rm'].value,
+            GP['deg_alpha_rs'].value,
+            GP['mm_d_ri'].value,
+            GP['mm_r_ri'].value,
+            GP['mm_d_rp'].value,
+            GP['mm_d_rs'].value,
+            SD['p'],
+            SD['no_segmented_magnets']
+            ]
+        return design_parameters
 
-        if len(bound_filter) == 13:
-            # step 1: get free_variables from design_parameters
-            free_variables = [None]*13
-            free_variables[0]  = design_parameters[0] # spmsm_template.deg_alpha_st 
-            free_variables[1]  = design_parameters[3] # spmsm_template.mm_d_so         
-            free_variables[2]  = design_parameters[5] # spmsm_template.mm_d_st
-            free_variables[3]  = sum([design_parameters[i] for i in (2,4,5,6)]) # spmsm_template.mm_r_si + spmsm_template.mm_d_sp + spmsm_template.mm_d_st + spmsm_template.mm_d_sy # stator outer radius
-            free_variables[4]  = design_parameters[7] # spmsm_template.mm_w_st         
-            free_variables[5]  = design_parameters[12] # spmsm_template.sleeve_length   
-            free_variables[6]  = design_parameters[14] # spmsm_template.mm_d_pm         
-            free_variables[7]  = design_parameters[15] # spmsm_template.deg_alpha_rm    
-            free_variables[8]  = design_parameters[16] # spmsm_template.deg_alpha_rs    
-            free_variables[9]  = design_parameters[17] # spmsm_template.mm_d_ri         
-            free_variables[10] = sum([design_parameters[i] for i in (18,17,19)]) # spmsm_template.mm_r_ri + spmsm_template.mm_d_ri + spmsm_template.mm_d_rp -> rotor_outer_steel_radius
-            free_variables[11] = design_parameters[19] # spmsm_template.mm_d_rp         
-            free_variables[12] = design_parameters[20] # spmsm_template.mm_d_rs         
-        elif len(bound_filter) == 9:
-            free_variables = design_parameters # For IM, free_variables are design_parameters (even always having the same length)
+    def get_x_denorm_dict_from_geometric_parameters(self, GP):
+        x_denorm_dict = OrderedDict()
+        for key, parameter in GP.items():
+            if parameter.type == 'free':
+                x_denorm_dict[key] = parameter.value
+        return x_denorm_dict
+    def get_x_denorm_dict_from_x_denorm_list(self, x_denorm):
+        # 先拿个模板来，但是几何尺寸的变量值是旧的
+        x_denorm_dict = self.get_x_denorm_dict_from_geometric_parameters(self.d['GP'])
 
-        # step 2: get x_denorm from free_variables
-        x_denorm = []
-        for idx, boo in enumerate(bound_filter):
-            if boo == 1:
-                x_denorm.append( free_variables[idx] )
-        return x_denorm
+        # 对模板进行遍历，挨个把新的几何尺寸的值从x_denorm中读取出来并更新x_denorm_dict
+        for key, new_val in zip(x_denorm_dict.keys(), x_denorm):
+            x_denorm_dict[key] = new_val
+        return x_denorm_dict
 
-class bearingless_spmsm_design(bearingless_spmsm_template):
+    def update_geometric_parametes_using_x_denorm_dict(self, x_denorm_dict):
+        for key, val in x_denorm_dict.items():
+            self.d['GP'][key].value = val
+        return self.d['GP']
+
+class bearingless_spmsm_design_variant(object):
 
     def __init__(self, spmsm_template=None, x_denorm=None, counter=None, counter_loop=None):
-        self.machine_type = spmsm_template.machine_type
+
+        self.template = spmsm_template
 
         #00 Settings
-        super(bearingless_spmsm_design, self).__init__()
-        self.fea_config_dict = spmsm_template.fea_config_dict
-        self.spec_input_dict = spmsm_template.spec_input_dict
-        self.spec_geometry_dict = spmsm_template.spec_geometry_dict
+        # self.template.fea_config_dict = spmsm_template.fea_config_dict
+        # self.template.spec_input_dict = spmsm_template.spec_input_dict
+        # self.spec_geometry_dict = spmsm_template.spec_geometry_dict
 
         #01 Model ID
-        self.model_name_prefix
+        # self.model_name_prefix
         self.counter = counter
         self.counter_loop = counter_loop
         if counter is not None:
             if counter_loop == 1:
-                self.name = f"p{self.spec_input_dict['p']}ps{self.spec_input_dict['ps']}-Q{self.spec_input_dict['Qs']}y{self.spec_input_dict['coil_pitch_y']}-{counter:04d}"
+                self.name = f"p{self.template.spec_input_dict['p']}ps{self.template.spec_input_dict['ps']}-Q{self.template.spec_input_dict['Qs']}y{self.template.spec_input_dict['coil_pitch_y']}-{counter:04d}"
             else:
-                self.name = f"p{self.spec_input_dict['p']}ps{self.spec_input_dict['ps']}-Q{self.spec_input_dict['Qs']}y{self.spec_input_dict['coil_pitch_y']}-{counter:04d}-redo{counter_loop}"
+                self.name = f"p{self.template.spec_input_dict['p']}ps{self.template.spec_input_dict['ps']}-Q{self.template.spec_input_dict['Qs']}y{self.template.spec_input_dict['coil_pitch_y']}-{counter:04d}-redo{counter_loop}"
         else:
-            self.name = 'SPMSM Template'
+            self.name = 'SPMSM_InitialDesign'
+        self.ID = 'Q%dp%ds%d'%(self.template.SD['Qs'], self.template.SD['p'],self.template.SD['no_segmented_magnets'])
 
         #02 Geometry Data
         if x_denorm is None:
-            free_variables = [0,0,0,0,0, 0,0,0,0,0, 0,0,0]
-            free_variables[0]  = spmsm_template.deg_alpha_st    
-            free_variables[1]  = spmsm_template.mm_d_so         
-            free_variables[2]  = spmsm_template.mm_d_st
-            free_variables[3]  = spmsm_template.mm_r_si + spmsm_template.mm_d_sp + spmsm_template.mm_d_st + spmsm_template.mm_d_sy
-            free_variables[4]  = spmsm_template.mm_w_st         
-            free_variables[5]  = spmsm_template.sleeve_length   
-            free_variables[6]  = spmsm_template.mm_d_pm         
-            free_variables[7]  = spmsm_template.deg_alpha_rm    
-            free_variables[8]  = spmsm_template.deg_alpha_rs    
-            free_variables[9]  = spmsm_template.mm_d_ri         
-            free_variables[10] = spmsm_template.mm_r_ri + spmsm_template.mm_d_ri + spmsm_template.mm_d_rp
-            free_variables[11] = spmsm_template.mm_d_rp         
-            free_variables[12] = spmsm_template.mm_d_rs         
-            # use bound_filter to get x_denorm from free_variables
-            # raise Exception('Not implemented')
+            GP = self.template.d['GP'] # do nothing, use template's GP
         else:
-            # build free_variables from x_denorm
-            free_variables = [None]*13
-            idx_x_denorm = 0
-            for idx, boo in enumerate(spmsm_template.bound_filter):
-                if boo == 1: # to be optimized
-                    free_variables[idx] = x_denorm[idx_x_denorm]
-                    idx_x_denorm += 1
-                else: # fixed geometric parameters
-                    if idx == 5: # sleeve_length
-                        free_variables[idx] = spmsm_template.sleeve_length
-                        print('TIA ITEC: Sleeve length is fixed to %g mm'%(spmsm_template.sleeve_length))
-                    elif idx == 8: # deg_alpha_rs
-                        free_variables[idx] = free_variables[idx-1]
-                    elif idx == 12: # mm_d_rs
-                        free_variables[idx] = spmsm_template.mm_d_rs
-                    elif idx == 7: # deg_alpha_rm
-                        free_variables[idx] = spmsm_template.deg_alpha_rm
-                    else:
-                        raise Exception('Not tested feature. Add your referece for this free variable.')
+            x_denorm_dict = self.template.get_x_denorm_dict(x_denorm)
+            GP = self.template.update_geometric_parametes_using_x_denorm_dict(x_denorm_dict)
 
-        deg_alpha_st                = free_variables[0]  # if self.filter[0]  else spmsm_template.deg_alpha_st            
-        mm_d_so                     = free_variables[1]  # if self.filter[1]  else spmsm_template.mm_d_so                 
-        mm_d_st                     = free_variables[2]  # if self.filter[2]  else spmsm_template.mm_d_st                 
-        stator_outer_radius         = free_variables[3]  # if self.filter[3]  else spmsm_template.stator_outer_radius     
-        mm_w_st                     = free_variables[4]  # if self.filter[4]  else spmsm_template.mm_w_st                 
-        sleeve_length               = free_variables[5]  # if self.filter[5]  else spmsm_template.sleeve_length           
-        mm_d_pm                     = free_variables[6]  # if self.filter[6]  else spmsm_template.mm_d_pm                 
-        deg_alpha_rm                = free_variables[7]  # if self.filter[7]  else spmsm_template.deg_alpha_rm            
-        deg_alpha_rs                = free_variables[8]  # if self.filter[8]  else deg_alpha_rm
-        mm_d_ri                     = free_variables[9]  # if self.filter[9]  else spmsm_template.mm_d_ri                 
-        mm_rotor_steel_outer_radius = free_variables[10] # if self.filter[10] else spmsm_template.mm_rotor_steel_outer_radius
-        mm_d_rp                     = free_variables[11] # if self.filter[11] else spmsm_template.mm_d_rp                 
-        mm_d_rs                     = free_variables[12] # if self.filter[12] else spmsm_template.mm_d_rs                 
+
+        #test: yes, it is by reference!
+        # print(self.template.d['GP'])
+        # GP['aaaaaa'] = 1239129
+        # print(self.template.d['GP'])
+        # quit()
 
         # 不合理的变量选择（mm_d_rp）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
-        if mm_d_rp > mm_d_pm:
-            mm_d_rp            = mm_d_pm
+        if GP['mm_d_rp'].value > GP['mm_d_pm'].value:
+            GP['mm_d_rp'].value            = GP['mm_d_pm'].value
             free_variables[11] = free_variables[6]
 
             msg = '[Warning from bearingless_spmsm_design.py]: Inter-pole notch depth mm_d_rp cannot be larger than mm_d_pm or else the sleeve cannot really hold or even touch the PM. So mm_d_rp is set to mm_d_pm.'
@@ -233,8 +344,8 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             logger = logging.getLogger(__name__).warn(msg)
 
         # 不合理的变量选择（mm_d_rs）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
-        if mm_d_rs > mm_d_pm:
-            mm_d_rs            = mm_d_pm
+        if GP['mm_d_rs'].value > GP['mm_d_pm'].value:
+            GP['mm_d_rs'].value            = GP['mm_d_pm'].value
             free_variables[12] = free_variables[6]
 
             msg = '[Warning from bearingless_spmsm_design.py]: Inter-segment notch depth mm_d_rs cannot be larger than mm_d_pm or else the sleeve cannot really hold or even touch the PM. So mm_d_rs is set to mm_d_pm.'
@@ -242,92 +353,32 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             logger = logging.getLogger(__name__).warn(msg)
 
         # 不合理的变量选择（deg_alpha_rs）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
-        if not (deg_alpha_rs<=deg_alpha_rm/spmsm_template.s):
-            deg_alpha_rs      = deg_alpha_rm/spmsm_template.s
-            free_variables[8] = deg_alpha_rs
-
+        if not (GP['deg_alpha_rs'].value > GP['deg_alpha_rm'].value/spmsm_template.SD['no_segmented_magnets']):
+            GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value/spmsm_template.SD['no_segmented_magnets']
             msg = '[Warning from bearingless_spmsm_design.py]: deg_alpha_rs cannot be larger than deg_alpha_rm/s deg_alpha_rs is set to deg_alpha_rm/s.'
             print(msg)
             logger = logging.getLogger(__name__).warn(msg)
 
-        # design parameter list
-        self.spec_geometry_dict['deg_alpha_st']         = self.deg_alpha_st = free_variables[0]
-        self.spec_geometry_dict['deg_alpha_so']         = self.deg_alpha_so = self.deg_alpha_st/2
-        self.spec_geometry_dict['mm_r_si']              = self.mm_r_si      = mm_rotor_steel_outer_radius + (mm_d_pm - mm_d_rp) + sleeve_length + spmsm_template.fixed_air_gap_length
-        self.spec_geometry_dict['mm_d_so']              = self.mm_d_so      = free_variables[1]
-        self.spec_geometry_dict['mm_d_sp']              = self.mm_d_sp      = 1.5*self.mm_d_so # The neck is 0.5 of the head as IM's geometry.
-        self.spec_geometry_dict['mm_d_st']              = self.mm_d_st      = free_variables[2]; stator_outer_radius = free_variables[3]
-        self.spec_geometry_dict['mm_d_sy']              = self.mm_d_sy      = stator_outer_radius - self.mm_d_sp - mm_d_st - self.mm_r_si
-        self.spec_geometry_dict['mm_w_st']              = self.mm_w_st      = free_variables[4]
-        self.spec_geometry_dict['mm_r_st']              = self.mm_r_st      = spmsm_template.mm_r_st
-        self.spec_geometry_dict['mm_r_sf']              = self.mm_r_sf      = spmsm_template.mm_r_sf
-        self.spec_geometry_dict['mm_r_sb']              = self.mm_r_sb      = spmsm_template.mm_r_sb
-        self.spec_geometry_dict['Q']                    = self.Q            = spmsm_template.Q
-        self.spec_geometry_dict['sleeve_length']        = self.sleeve_length = free_variables[5]
-        self.spec_geometry_dict['fixed_air_gap_length'] = self.fixed_air_gap_length = spmsm_template.fixed_air_gap_length
-        self.spec_geometry_dict['mm_d_pm']              = self.mm_d_pm      = free_variables[6]
-        self.spec_geometry_dict['deg_alpha_rm']         = self.deg_alpha_rm = free_variables[7]
-        self.spec_geometry_dict['deg_alpha_rs']         = self.deg_alpha_rs = free_variables[8]
-        self.spec_geometry_dict['mm_d_ri']              = self.mm_d_ri      = free_variables[9]; mm_rotor_steel_outer_radius = free_variables[10]
-        self.spec_geometry_dict['mm_r_ri']              = self.mm_r_ri      = mm_rotor_steel_outer_radius - mm_d_rp - mm_d_ri
-        self.spec_geometry_dict['mm_d_rp']              = self.mm_d_rp      = free_variables[11]
-        self.spec_geometry_dict['mm_d_rs']              = self.mm_d_rs      = free_variables[12]
-        self.spec_geometry_dict['p']                    = self.p = spmsm_template.p
-        self.spec_geometry_dict['s']                    = self.s = spmsm_template.s
-        if self.s == 1:
-            self.deg_alpha_rs = self.deg_alpha_rm # raise Exception('Invalid alpha_rs. Check that it is equal to alpha_rm for s=1')
-            self.mm_d_rs = 0 # raise Exception('Invalid d_rs. Check that it is equal to 0 for s =1')
+        # 如果没有永磁体分段，那么alpha_rs应该等于alpha_rm。
+        if spmsm_template.SD['no_segmented_magnets'] == 1:
+            GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value # raise Exception('Invalid alpha_rs. Check that it is equal to alpha_rm for s=1')
+            GP['mm_d_rs'].value = 0 # raise Exception('Invalid d_rs. Check that it is equal to 0 for s =1')
         # This is all we need
-        design_parameters = self.build_design_parameters_list()
-        # spmsm_template.design_parameters = [
-        #                                   0 spmsm_template.deg_alpha_st 
-        #                                   1 spmsm_template.deg_alpha_so 
-        #                                   2 spmsm_template.mm_r_si      
-        #                                   3 spmsm_template.mm_d_so      
-        #                                   4 spmsm_template.mm_d_sp      
-        #                                   5 spmsm_template.mm_d_st      
-        #                                   6 spmsm_template.mm_d_sy      
-        #                                   7 spmsm_template.mm_w_st      
-        #                                   8 spmsm_template.mm_r_st      
-        #                                   9 spmsm_template.mm_r_sf      
-        #                                  10 spmsm_template.mm_r_sb      
-        #                                  11 spmsm_template.Q            
-        #                                  12 spmsm_template.sleeve_length
-        #                                  13 spmsm_template.fixed_air_gap_length
-        #                                  14 spmsm_template.mm_d_pm      
-        #                                  15 spmsm_template.deg_alpha_rm 
-        #                                  16 spmsm_template.deg_alpha_rs 
-        #                                  17 spmsm_template.mm_d_ri      
-        #                                  18 spmsm_template.mm_r_ri      
-        #                                  19 spmsm_template.mm_d_rp      
-        #                                  20 spmsm_template.mm_d_rs      
-        #                                  21 spmsm_template.p
-        #                                  22 spmsm_template.s
-        #                                 ]
 
-        # obsolete variable from IM
-        self.spec_geometry_dict['rotor_steel_outer_radius'] = self.Radius_OuterRotorSteel = mm_rotor_steel_outer_radius
-        self.spec_geometry_dict['Radius_OuterRotor']        = self.Radius_OuterRotor = mm_rotor_steel_outer_radius  + (mm_d_pm - mm_d_rp) # the outer radius of the rotor with magnet / the magnet
-        self.Radius_InnerRotor = mm_rotor_steel_outer_radius - mm_d_rp - mm_d_ri
-        self.Length_AirGap = self.fixed_air_gap_length + self.sleeve_length
-        self.ID = 'Q%dp%ds%d'%(self.Q, self.p,self.s)
-        self.number_current_generation = 0
-        self.individual_index = counter
-        self.spec_geometry_dict['Radius_OuterStatorYoke']   = self.Radius_OuterStatorYoke = stator_outer_radius
-        self.stator_yoke_diameter_Dsyi = 1e-3 * 2*(stator_outer_radius - self.mm_d_sy)
+
 
         # Parts
         self.rotorCore = CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
                             name = 'NotchedRotor',
-                            mm_d_pm      = design_parameters[-9],
-                            deg_alpha_rm = design_parameters[-8], # angular span of the pole: class type DimAngular
-                            deg_alpha_rs = design_parameters[-7], # segment span: class type DimAngular
-                            mm_d_ri      = design_parameters[-6], # inner radius of rotor: class type DimLinear
-                            mm_r_ri      = design_parameters[-5], # rotor iron thickness: class type DimLinear
-                            mm_d_rp      = design_parameters[-4], # interpolar iron thickness: class type DimLinear
-                            mm_d_rs      = design_parameters[-3], # inter segment iron thickness: class type DimLinear
-                            p = design_parameters[-2], # Set pole-pairs to 2
-                            s = design_parameters[-1], # Set magnet segments/pole to 4
+                            mm_d_pm      = GP['mm_d_pm'].value,
+                            deg_alpha_rm = GP['deg_alpha_rm'].value, # angular span of the pole: class type DimAngular
+                            deg_alpha_rs = GP['deg_alpha_rs'].value, # segment span: class type DimAngular
+                            mm_d_ri      = GP['mm_d_ri'].value, # rotor iron thickness: class type DimLinear
+                            mm_r_ri      = GP['mm_r_ri'].value, # inner radius of rotor: class type DimLinear
+                            mm_d_rp      = GP['mm_d_rp'].value, # interpolar iron thickness: class type DimLinear
+                            mm_d_rs      = GP['mm_d_rs'].value, # inter segment iron thickness: class type DimLinear
+                            p = spmsm_template.SD['p'], # Set pole-pairs to 2
+                            s = spmsm_template.SD['no_segmented_magnets'], # Set magnet segments/pole to 4
                             location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0))
 
         self.shaft = CrossSectInnerNotchedRotor.CrossSectShaft(name = 'Shaft',
@@ -339,99 +390,63 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
                                                     )
 
         self.stator_core = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
-                                            deg_alpha_st = design_parameters[0], #40,
-                                            deg_alpha_so = design_parameters[1], #20,
-                                            mm_r_si = design_parameters[2],
-                                            mm_d_so = design_parameters[3],
-                                            mm_d_sp = design_parameters[4],
-                                            mm_d_st = design_parameters[5],
-                                            mm_d_sy = design_parameters[6],
-                                            mm_w_st = design_parameters[7],
-                                            mm_r_st = design_parameters[8], # =0
-                                            mm_r_sf = design_parameters[9], # =0
-                                            mm_r_sb = design_parameters[10], # =0
-                                            Q = design_parameters[11],
+                                            deg_alpha_st = GP['deg_alpha_st'].value, #40,
+                                            deg_alpha_so = GP['deg_alpha_so'].value, #20,
+                                            mm_r_si = GP['mm_r_si'].value,
+                                            mm_d_so = GP['mm_d_so'].value,
+                                            mm_d_sp = GP['mm_d_sp'].value,
+                                            mm_d_st = GP['mm_d_st'].value,
+                                            mm_d_sy = GP['mm_d_sy'].value,
+                                            mm_w_st = GP['mm_w_st'].value,
+                                            mm_r_st = 0.0, # =0
+                                            mm_r_sf = 0.0, # =0
+                                            mm_r_sb = 0.0, # =0
+                                            Q = spmsm_template.SD['Qs'],
                                             location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
                                             )
 
         self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
                                                     stator_core = self.stator_core)
-        self.design_parameters = design_parameters
+
+        self.sleeve = CrossSectInnerNotchedRotor.CrossSectSleeve(
+                            name = 'Sleeve',
+                            notched_magnet = self.rotorMagnet,
+                            d_sleeve = GP['mm_d_sleeve'].value
+                            )
 
         #03 Inherit properties
-        self.spec_geometry_dict['DriveW_Freq'] = self.DriveW_Freq       = spmsm_template.DriveW_Freq      
-        self.spec_geometry_dict['DriveW_Rs']   = self.DriveW_Rs         = spmsm_template.DriveW_Rs        
-        self.spec_geometry_dict['DriveW_zQ']   = self.DriveW_zQ         = spmsm_template.DriveW_zQ
-        print('---DriveW_zQ:', self.DriveW_zQ)
-        print('---Template CurrentAmp:', spmsm_template.DriveW_CurrentAmp)
-        self.DriveW_CurrentAmp = None ########### will be assisned when drawing the coils
-        self.DriveW_poles      = spmsm_template.DriveW_poles
+        self.template.d['OP']
+            # self.DriveW_CurrentAmp = None ########### will be assisned when drawing the coils
+            # self.DriveW_poles      = spmsm_template.DriveW_poles
 
-        self.Js                = spmsm_template.Js 
-        self.fill_factor       = spmsm_template.fill_factor 
+            # self.Js                = spmsm_template.Js 
+            # self.fill_factor       = spmsm_template.fill_factor 
 
-        self.stack_length      = spmsm_template.stack_length 
-
-        # self.TORQUE_CURRENT_RATIO = spmsm_template.TORQUE_CURRENT_RATIO
-        # self.SUSPENSION_CURRENT_RATIO = spmsm_template.SUSPENSION_CURRENT_RATIO
+            # self.template.d['OP']['mm_stack_length']      = spmsm_template.stack_length 
 
         #03 Mechanical Parameters
         self.update_mechanical_parameters()
 
         # #04 Material Condutivity Properties
-        # if self.fea_config_dict is not None:
+        # if self.template.fea_config_dict is not None:
         #     self.End_Ring_Resistance = fea_config_dict['End_Ring_Resistance']
         #     self.Bar_Conductivity = fea_config_dict['Bar_Conductivity']
         # self.Copper_Loss = self.DriveW_CurrentAmp**2 / 2 * self.DriveW_Rs * 3
         # # self.Resistance_per_Turn = 0.01 # TODO
 
-
-        #05 Windings & Excitation
-        self.wily = spmsm_template.wily
-
-        self.DriveW_poles = spmsm_template.spec.p * 2
-        self.BeariW_poles = spmsm_template.spec.ps * 2
-        print('2p =', self.DriveW_poles, '| 2ps =', self.BeariW_poles)
-
-        # if self.DriveW_poles == 2:
-        #     self.BeariW_poles = 4
-        #     if self.DriveW_zQ % 2 != 0:
-        #         print('zQ=', self.DriveW_zQ)
-        #         raise Exception('This zQ does not suit for two layer winding.')
-        # elif self.DriveW_poles == 4:
-        #     self.BeariW_poles = 2
-        # elif self.DriveW_poles == 8:
-        #     self.BeariW_poles = 10
-        # else:
-        #     raise Exception('Not implemented error.')
-        # print('2p =', self.DriveW_poles, '| 2ps =', self.BeariW_poles)
-
-        self.BeariW_zQ      = self.DriveW_zQ
-        self.BeariW_Rs         = self.DriveW_Rs * self.BeariW_zQ / self.DriveW_zQ
-        if self.DriveW_CurrentAmp is None:
-            self.BeariW_CurrentAmp = None
-        else:
-            self.BeariW_CurrentAmp = self.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (self.DriveW_CurrentAmp / self.fea_config_dict['TORQUE_CURRENT_RATIO'])
-        self.BeariW_Freq       = self.DriveW_Freq
-
+        #05 Winidng Excitation
         self.CurrentAmp_per_phase = None # will be used in copper loss calculation
-        self.slot_area_utilizing_ratio = self.fea_config_dict['SUSPENSION_CURRENT_RATIO'] + self.fea_config_dict['TORQUE_CURRENT_RATIO']
-        print('[Separate winding?] self.slot_area_utilizing_ratio:', self.slot_area_utilizing_ratio)
 
-        if self.fea_config_dict is not None:
-            self.dict_coil_connection = {'layer X phases': self.wily.layer_X_phases, 'layer X signs':self.wily.layer_X_signs,       # 这里的命名规则是按照seprate winding的情况来的。
-                                         'layer Y phases': self.wily.layer_Y_phases, 'layer Y signs':self.wily.layer_Y_signs}   # 这里的命名规则是按照seprate winding的情况来的。
-            # self.dict_coil_connection = {41:self.wily.l41, 42:self.wily.l42, 21:self.wily.l21, 22:self.wily.l22} # 这里的2和4等价于leftlayer和rightlayer。
-
-        # #06 Meshing & Solver Properties
+        #06 Meshing & Solver Properties
         self.max_nonlinear_iteration = 50 # 30 for transient solve
         self.meshSize_Magnet = 2 # mm
 
     def update_mechanical_parameters(self, syn_freq=None):
+        OP = self.template.d['OP']
         if syn_freq is None:
-            self.the_speed = self.DriveW_Freq*60. / (0.5*self.DriveW_poles) # rpm
-            self.Omega = + self.the_speed / 60. * 2*np.pi
-            self.omega = None # This variable name is devil! you can't tell its electrical or mechanical! #+ self.DriveW_Freq * (1-self.the_slip) * 2*pi
+            OP['the_speed'] = OP['DriveW_Freq']*60. / (0.5*OP['DriveW_poles']) # rpm
+            OP['Omega']     = OP['the_speed'] / 60. * 2*np.pi
+            # self.omega = None # This variable name is devil! you can't tell its electrical or mechanical! #+ self.DriveW_Freq * (1-self.the_slip) * 2*pi
         else:
             raise Exception('Not implemented.')
 
@@ -475,12 +490,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
 
         # Sleeve
         if not bool_pyx:
-            sleeve = CrossSectInnerNotchedRotor.CrossSectSleeve(
-                            name = 'Sleeve',
-                            notched_magnet = self.rotorMagnet,
-                            d_sleeve = self.sleeve_length
-                            )
-            list_regions = sleeve.draw(toolJd)
+            list_regions = self.sleeve.draw(toolJd)
             toolJd.bMirror = False
             toolJd.iRotateCopy = self.rotorMagnet.notched_rotor.p*2
             regionS = toolJd.prepareSection(list_regions)
@@ -498,27 +508,29 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             toolJd.iRotateCopy = self.coils.stator_core.Q
             region4 = toolJd.prepareSection(list_regions)
 
-            CurrentAmp_in_the_slot = self.coils.mm2_slot_area * self.fill_factor * self.Js*1e-6 * np.sqrt(2) #/2.2*2.8
-            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / self.DriveW_zQ
-            CurrentAmp_per_phase = CurrentAmp_per_conductor * self.wily.number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+            # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
+            OP = self.template.d['OP']
+            CurrentAmp_in_the_slot = self.coils.mm2_slot_area * OP['fill_factor'] * OP['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / OP['DriveW_zQ']
+            CurrentAmp_per_phase = CurrentAmp_per_conductor * OP['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
             # Maybe there is a bug here... regarding the excitation for suspension winding...
             variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
             variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
-            self.CurrentAmp_per_phase = CurrentAmp_per_phase
-            self.DriveW_CurrentAmp = self.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
-            self.BeariW_CurrentAmp = self.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+            OP['CurrentAmp_per_phase'] = CurrentAmp_per_phase
+            OP['DriveW_CurrentAmp'] = self.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+            OP['BeariW_CurrentAmp'] = self.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
 
-            self.spec_geometry_dict['DriveW_CurrentAmp'] = self.DriveW_CurrentAmp
+            # self.spec_geometry_dict['DriveW_CurrentAmp'] = self.DriveW_CurrentAmp
 
-            slot_area_utilizing_ratio = (self.DriveW_CurrentAmp + self.BeariW_CurrentAmp) / self.CurrentAmp_per_phase
-            print('---Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio)
+            slot_current_utilizing_ratio = (OP['DriveW_CurrentAmp'] + OP['BeariW_CurrentAmp']) / OP['CurrentAmp_per_phase']
+            print('---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio)
 
-            print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
-            print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
-            print('---self.DriveW_CurrentAmp =', self.DriveW_CurrentAmp)
-            print('---self.BeariW_CurrentAmp =', self.BeariW_CurrentAmp)
-            print('---TORQUE_CURRENT_RATIO:', self.fea_config_dict['TORQUE_CURRENT_RATIO'])
-            print('---SUSPENSION_CURRENT_RATIO:', self.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
+            # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
+            # print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
+            # print('---self.DriveW_CurrentAmp =', self.DriveW_CurrentAmp)
+            # print('---self.BeariW_CurrentAmp =', self.BeariW_CurrentAmp)
+            # print('---TORQUE_CURRENT_RATIO:', self.template.fea_config_dict['TORQUE_CURRENT_RATIO'])
+            # print('---SUSPENSION_CURRENT_RATIO:', self.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
 
             # Import Model into Designer
             toolJd.save(self.name, self.show(toString=True))
@@ -544,25 +556,30 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         # sel.SelectPart(123)
         # sel.SetBlockUpdateView(False)
                                 #  轴 转子    永磁体         套 定子      绕组
-        if len(part_ID_list) != int(1 + 1 + self.p*2*self.s + 1 + 1 + self.Q*2):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + self.p*2*self.s + 1 + 1 + self.Q*2), len(part_ID_list)) + self.show(toString=True)
+        SD = self.template.SD
+        p = SD['p']
+        s = SD['no_segmented_magnets']
+        Q = SD['Qs']
+        if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
+            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
             logger = logging.getLogger(__name__)
             logger.error(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
 
         self.id_backiron = id_backiron = part_ID_list[0]
         id_shaft = part_ID_list[1]
-        partIDRange_Magnet = part_ID_list[2:int(2+self.p*self.s*2)]
-        id_sleeve = part_ID_list[int(2+self.p*self.s*2)]
-        id_statorCore = part_ID_list[int(2+self.p*self.s*2)+1]
-        partIDRange_Coil = part_ID_list[int(2+self.p*self.s*2)+2 : int(2+self.p*self.s*2)+2 + int(self.Q*2)]
+        partIDRange_Magnet = part_ID_list[2:int(2+p*s*2)]
+        id_sleeve = part_ID_list[int(2+p*s*2)]
+        id_statorCore = part_ID_list[int(2+p*s*2)+1]
+        partIDRange_Coil = part_ID_list[int(2+p*s*2)+2 : int(2+p*s*2)+2 + int(Q*2)]
 
-        print(id_backiron)
-        print(id_shaft)
-        print(partIDRange_Magnet)
-        print(id_sleeve)
-        print(id_statorCore)
-        print(partIDRange_Coil)
+        # debug
+        # print(id_backiron)
+        # print(id_shaft)
+        # print(partIDRange_Magnet)
+        # print(id_sleeve)
+        # print(id_statorCore)
+        # print(partIDRange_Coil)
 
         model.SuppressPart(id_sleeve, 1)
 
@@ -589,13 +606,13 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         #     sel = model.GetSetList().GetSet(name).GetSelection()
         #     sel.SelectEdgeByPosition(x,y,0) # sel.SelectEdge(741)
         #     model.GetSetList().GetSet(name).AddSelected(sel)
-        # edge_set(u"AirGapCoast", 0, self.Radius_OuterRotor+0.5*self.Length_AirGap)
+        # edge_set(u"AirGapCoast", 0, self.template.d['GP']['mm_r_or'].value+0.5*self.Length_AirGap)
 
         # Shaft
         add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
 
         # Create Set for 4 poles Winding
-        Angle_StatorSlotSpan = 360/self.Q
+        Angle_StatorSlotSpan = 360/Q
         # R = self.mm_r_si + self.mm_d_sp + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
         # THETA = 0.25*(Angle_StatorSlotSpan)/180.*np.pi
         R = np.sqrt(self.coils.PCoil[0]**2 + self.coils.PCoil[1]**2)
@@ -603,7 +620,8 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         X = R*np.cos(THETA)
         Y = R*np.sin(THETA)
         countXL = 0
-        for UVW, UpDown in zip(self.wily.layer_X_phases,self.wily.layer_X_signs):
+        wily = self.template.d['OP']['wily']
+        for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
             countXL += 1 
             add_part_to_set("CoilLX%s%s %d"%(UVW,UpDown,countXL), X, Y)
 
@@ -614,11 +632,11 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
 
         # Create Set for 2 poles Winding
         # THETA = 0.75*(Angle_StatorSlotSpan)/180.*np.pi # 这里这个角度的选择，决定了悬浮绕组产生悬浮力的方向！！！！！
-        THETA = np.arctan(-self.coils.PCoil[1]/self.coils.PCoil[0]) + (2*np.pi)/self.Q
+        THETA = np.arctan(-self.coils.PCoil[1]/self.coils.PCoil[0]) + (2*np.pi)/Q
         X = R*np.cos(THETA)
         Y = R*np.sin(THETA)
         countYL = 0
-        for UVW, UpDown in zip(self.wily.layer_Y_phases,self.wily.layer_Y_signs):
+        for UVW, UpDown in zip(wily.layer_Y_phases,wily.layer_Y_signs):
             countYL += 1 
             add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
 
@@ -627,31 +645,32 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             Y = R*np.sin(THETA)
 
         # Create Set for Magnets
-        R = self.mm_r_si - self.sleeve_length - self.fixed_air_gap_length - 0.5*self.mm_d_pm
-        alpha_rs = self.deg_alpha_rs /180*np.pi
-        deg_pole_span = 360 / (self.p*2)
+        GP = self.template.d['GP']
+        R = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_fixed_air_gap'].value - 0.5*GP['mm_d_pm'].value
+        alpha_rs = GP['deg_alpha_rs'].value /180*np.pi
+        deg_pole_span = 360 / (p*2)
 
-        if self.s>1:
-            deg_alpha_notch  = (self.deg_alpha_rm - self.s*self.deg_alpha_rs) / (self.s-1) # inter-segment notch占的角度
+        if s>1:
+            deg_alpha_notch  = (GP['deg_alpha_rm'].value - s*GP['deg_alpha_rs'].value) / (s-1) # inter-segment notch占的角度
             alpha_notch = deg_alpha_notch /180*np.pi
 
         list_xy_magnets = []
         # list_xy_airWithinRotorSlot = []
-        for ind in range(int(self.p*2)):
+        for ind in range(int(p*2)):
             natural_ind = ind + 1
 
-            if self.s==1:
+            if s==1:
                       # v---This negative sign means we walk CCW to assign sets.
-                THETA = - (180/self.p-self.deg_alpha_rm + 0.5*self.deg_alpha_rm + deg_pole_span*ind) /180.*np.pi
+                THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*np.pi
                 X = R*np.cos(THETA)
                 Y = R*np.sin(THETA)
 
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
             else:     # v---This negative sign means we walk CCW to assign sets.
-                THETA = - ( 180/self.p-self.deg_alpha_rm + 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*np.pi # initial position
+                THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*np.pi # initial position
                 # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*np.pi # initial position
-                for s in range(self.s):
+                for s in range(s):
                     X = R*np.cos(THETA)
                     Y = R*np.sin(THETA)
                     add_part_to_set("Magnet %d s%d"%(natural_ind, s), X, Y)
@@ -691,26 +710,30 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         # study.GetStudyProperties().SetValue(u"TimePeriodicType", 2) # This is for TP-EEC but is not effective
 
         # misc
+        GP = self.template.d['GP']
+        OP = self.template.d['OP']
+        wily = OP['wily']
         study.GetStudyProperties().SetValue("ConversionType", 0)
         study.GetStudyProperties().SetValue("NonlinearMaxIteration", self.max_nonlinear_iteration)
-        study.GetStudyProperties().SetValue("ModelThickness", self.stack_length) # [mm] Stack Length
+        study.GetStudyProperties().SetValue("ModelThickness", OP['mm_stack_length']) # [mm] Stack Length
 
         # Material
         self.add_material(study)
 
         # Conditions - Motion
         study.CreateCondition("RotationMotion", "RotCon") # study.GetCondition(u"RotCon").SetXYZPoint(u"", 0, 0, 1) # megbox warning
-        print('the_speed:', self.the_speed)
-        study.GetCondition("RotCon").SetValue("AngularVelocity", int(self.the_speed))
+        # print('the_speed:', self.the_speed)
+        study.GetCondition("RotCon").SetValue("AngularVelocity", int(OP['the_speed']))
         study.GetCondition("RotCon").ClearParts()
         study.GetCondition("RotCon").AddSet(model.GetSetList().GetSet("Motion_Region"), 0)
         # Implementation of id=0 control:
         #   After rotate the rotor by half the inter-pole notch span, The d-axis initial position is at pole pitch angle divided by 2.
         #   The U-phase current is sin(omega_syn*t) = 0 at t=0 and requires the d-axis to be at the winding phase axis (to obtain id=0 control)
-        deg_pole_span = 180/self.p
+        deg_pole_span = 180/self.template.SD['p']
         #                                                              inter-pole notch (0.5 for half)         rotate to x-axis    winding placing bias (half adjacent slot angle)      reverse north and south pole to make torque positive.
-        print('[PMSM JMAG] InitialRotationAngle =', (deg_pole_span-self.deg_alpha_rm)*0.5, - deg_pole_span*0.5, + self.wily.deg_winding_U_phase_phase_axis_angle,     + deg_pole_span)
-        study.GetCondition("RotCon").SetValue(u"InitialRotationAngle", (deg_pole_span-self.deg_alpha_rm)*0.5 - deg_pole_span*0.5 + self.wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span) 
+        print(                     '[PMSM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,     + deg_pole_span)
+        print(                     '[PMSM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span, 'deg')
+        study.GetCondition("RotCon").SetValue(u"InitialRotationAngle",  (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span) 
 
 
         study.CreateCondition("Torque", "TorCon") # study.GetCondition(u"TorCon").SetXYZPoint(u"", 0, 0, 0) # megbox warning
@@ -725,11 +748,11 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
 
 
         # Conditions - FEM Coils & Conductors (i.e. stator/rotor winding)
-        self.add_circuit(app, model, study, bool_3PhaseCurrentSource=self.wily.bool_3PhaseCurrentSource)
+        self.add_circuit(app, model, study, bool_3PhaseCurrentSource=wily.bool_3PhaseCurrentSource)
 
 
         # True: no mesh or field results are needed
-        study.GetStudyProperties().SetValue("OnlyTableResults", self.fea_config_dict['designer.OnlyTableResults'])
+        study.GetStudyProperties().SetValue("OnlyTableResults", self.template.fea_config_dict['designer.OnlyTableResults'])
 
         # Linear Solver
         if False:
@@ -741,7 +764,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             # https://www2.jmag-international.com/support/en/pdf/JMAG-Designer_Ver.17.1_ENv3.pdf
             study.GetStudyProperties().SetValue("DirectSolverType", 1)
 
-        if self.fea_config_dict['designer.MultipleCPUs'] == True:
+        if self.template.fea_config_dict['designer.MultipleCPUs'] == True:
             # This SMP(shared memory process) is effective only if there are tons of elements. e.g., over 100,000.
             # too many threads will in turn make them compete with each other and slow down the solve. 2 is good enough for eddy current solve. 6~8 is enough for transient solve.
             study.GetStudyProperties().SetValue("UseMultiCPU", True)
@@ -753,13 +776,13 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
 
         # two sections of different time step
         if True:
-            number_cycles_in_1stTSS = self.fea_config_dict['designer.number_cycles_in_1stTSS']
-            number_cycles_in_2ndTSS = self.fea_config_dict['designer.number_cycles_in_2ndTSS']
-            number_cycles_in_3rdTSS = self.fea_config_dict['designer.number_cycles_in_3rdTSS']
-            number_cycles_prolonged = self.fea_config_dict['designer.number_cycles_prolonged']
-            number_of_steps_1stTSS = self.fea_config_dict['designer.number_of_steps_1stTSS'] 
-            number_of_steps_2ndTSS = self.fea_config_dict['designer.number_of_steps_2ndTSS'] 
-            number_of_steps_3rdTSS = number_cycles_in_3rdTSS*self.fea_config_dict['designer.StepPerCycle_3rdTSS']
+            number_cycles_in_1stTSS = self.template.fea_config_dict['designer.number_cycles_in_1stTSS']
+            number_cycles_in_2ndTSS = self.template.fea_config_dict['designer.number_cycles_in_2ndTSS']
+            number_cycles_in_3rdTSS = self.template.fea_config_dict['designer.number_cycles_in_3rdTSS']
+            number_cycles_prolonged = self.template.fea_config_dict['designer.number_cycles_prolonged']
+            number_of_steps_1stTSS = self.template.fea_config_dict['designer.number_of_steps_1stTSS'] 
+            number_of_steps_2ndTSS = self.template.fea_config_dict['designer.number_of_steps_2ndTSS'] 
+            number_of_steps_3rdTSS = number_cycles_in_3rdTSS*self.template.fea_config_dict['designer.StepPerCycle_3rdTSS']
             DM = app.GetDataManager()
             DM.CreatePointArray("point_array/timevsdivision", "SectionStepTable")
             if number_cycles_prolonged == 0:
@@ -768,10 +791,10 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
                     refarray[0][0] = 0
                     refarray[0][1] =    1
                     refarray[0][2] =        50
-                    refarray[1][0] = number_cycles_in_1stTSS/self.DriveW_Freq
+                    refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_poles']
                     refarray[1][1] =    number_of_steps_1stTSS
                     refarray[1][2] =        50
-                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/self.DriveW_Freq
+                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_poles']
                     refarray[2][1] =    number_of_steps_2ndTSS # 最后的number_of_steps_2ndTSS（32）步，必须对应半个周期，从而和后面的铁耗计算相对应。
                     refarray[2][2] =        50
                 else:
@@ -779,13 +802,13 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
                     refarray[0][0] = 0
                     refarray[0][1] =    1
                     refarray[0][2] =        50
-                    refarray[1][0] = number_cycles_in_1stTSS/self.DriveW_Freq
+                    refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_poles']
                     refarray[1][1] =    number_of_steps_1stTSS
                     refarray[1][2] =        50
-                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/self.DriveW_Freq
+                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_poles']
                     refarray[2][1] =    number_of_steps_2ndTSS # 最后的number_of_steps_2ndTSS（32）步，必须对应半个周期，从而和后面的铁耗计算相对应。
                     refarray[2][2] =        50
-                    refarray[3][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS+number_cycles_in_3rdTSS)/self.DriveW_Freq
+                    refarray[3][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS+number_cycles_in_3rdTSS)/OP['DriveW_poles']
                     refarray[3][1] =    number_of_steps_3rdTSS
                     refarray[3][2] =        50
             else:
@@ -793,19 +816,19 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
                 refarray[0][0] = 0
                 refarray[0][1] =    1
                 refarray[0][2] =        50
-                refarray[1][0] = number_cycles_in_1stTSS/self.DriveW_Freq
+                refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_poles']
                 refarray[1][1] =    number_of_steps_1stTSS
                 refarray[1][2] =        50
-                refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/self.DriveW_Freq
+                refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_poles']
                 refarray[2][1] =    number_of_steps_2ndTSS # 最后的number_of_steps_2ndTSS（32）步，必须对应半个周期，从而和后面的铁耗计算相对应。
                 refarray[2][2] =        50
-                refarray[3][0] = refarray[2][0] + number_cycles_prolonged/self.DriveW_Freq 
-                refarray[3][1] =    number_cycles_prolonged*self.fea_config_dict['designer.TranRef-StepPerCycle'] 
+                refarray[3][0] = refarray[2][0] + number_cycles_prolonged/OP['DriveW_poles'] 
+                refarray[3][1] =    number_cycles_prolonged*self.template.fea_config_dict['designer.TranRef-StepPerCycle'] 
                 refarray[3][2] =        50
-                # refarray[4][0] = refarray[3][0] + 0.5/self.DriveW_Freq # 最后来一个超密的半周期400步
+                # refarray[4][0] = refarray[3][0] + 0.5/OP['DriveW_poles'] # 最后来一个超密的半周期400步
                 # refarray[4][1] =    400
                 # refarray[4][2] =        50
-            number_of_total_steps = 1 + number_of_steps_1stTSS + number_of_steps_2ndTSS + number_of_steps_3rdTSS + number_cycles_prolonged*self.fea_config_dict['designer.TranRef-StepPerCycle'] # [Double Check] don't forget to modify here!
+            number_of_total_steps = 1 + number_of_steps_1stTSS + number_of_steps_2ndTSS + number_of_steps_3rdTSS + number_cycles_prolonged*self.template.fea_config_dict['designer.TranRef-StepPerCycle'] # [Double Check] don't forget to modify here!
             DM.GetDataSet("SectionStepTable").SetTable(refarray)
             study.GetStep().SetValue("Step", number_of_total_steps)
             study.GetStep().SetValue("StepType", 3)
@@ -815,15 +838,15 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         study.GetDesignTable().AddEquation("freq")
         study.GetDesignTable().AddEquation("speed")
         study.GetDesignTable().GetEquation("freq").SetType(0)
-        study.GetDesignTable().GetEquation("freq").SetExpression("%g"%((spmsm_variant.DriveW_Freq)))
+        study.GetDesignTable().GetEquation("freq").SetExpression("%g"%((OP['DriveW_Freq'])))
         study.GetDesignTable().GetEquation("freq").SetDescription("Excitation Frequency")
         study.GetDesignTable().GetEquation("speed").SetType(1)
-        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %d"%(60/(spmsm_variant.DriveW_poles/2)))
+        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %d"%(60/(OP['DriveW_poles']/2)))
         study.GetDesignTable().GetEquation("speed").SetDescription("mechanical speed of four pole")
 
         # speed, freq, slip
         study.GetCondition("RotCon").SetValue("AngularVelocity", 'speed')
-        if self.spec_input_dict['DPNV_or_SEPA']==False:
+        if self.template.spec_input_dict['DPNV_or_SEPA']==False:
             app.ShowCircuitGrid(True)
             study.GetCircuit().GetComponent("CS4").SetValue("Frequency", "freq")
             study.GetCircuit().GetComponent("CS2").SetValue("Frequency", "freq")
@@ -848,10 +871,10 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         # Stator 
         if True:
             cond = study.CreateCondition("Ironloss", "IronLossConStator")
-            cond.SetValue("RevolutionSpeed", "freq*60/%d"%(0.5*(spmsm_variant.DriveW_poles)))
+            cond.SetValue("RevolutionSpeed", "freq*60/%d"%(0.5*(OP['DriveW_poles'])))
             cond.ClearParts()
             sel = cond.GetSelection()
-            sel.SelectPartByPosition(self.mm_r_si + EPS, 0 ,0)
+            sel.SelectPartByPosition(self.template.d['GP']['mm_r_si'].value + EPS, 0 ,0)
             cond.AddSelected(sel)
             # Use FFT for hysteresis to be consistent with FEMM's results and to have a FFT plot
             cond.SetValue("HysteresisLossCalcType", 1)
@@ -867,7 +890,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         # Check CSV reults for iron loss (You cannot check this for Freq study) # CSV and save space
         study.GetStudyProperties().SetValue("CsvOutputPath", dir_csv_output_folder) # it's folder rather than file!
         study.GetStudyProperties().SetValue("CsvResultTypes", "Torque;Force;LineCurrent;TerminalVoltage;JouleLoss;TotalDisplacementAngle;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss")
-        study.GetStudyProperties().SetValue("DeleteResultFiles", self.fea_config_dict['delete_results_after_calculation'])
+        study.GetStudyProperties().SetValue("DeleteResultFiles", self.template.fea_config_dict['delete_results_after_calculation'])
         # Terminal Voltage/Circuit Voltage: Check for outputing CSV results 
         study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 8, -13)
         study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 8, -11)
@@ -954,7 +977,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
 
     # TranFEAwi2TSS
     def add_material(self, study):
-        if 'M19' in self.spec_input_dict['Steel']:
+        if 'M19' in self.template.spec_input_dict['Steel']:
             study.SetMaterialByName("StatorCore", "M-19 Steel Gauge-29")
             study.GetMaterial("StatorCore").SetValue("Laminated", 1)
             study.GetMaterial("StatorCore").SetValue("LaminationFactor", 95)
@@ -964,7 +987,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             study.GetMaterial("NotchedRotor").SetValue("Laminated", 1)
             study.GetMaterial("NotchedRotor").SetValue("LaminationFactor", 95)
 
-        elif 'M15' in self.spec_input_dict['Steel']:
+        elif 'M15' in self.template.spec_input_dict['Steel']:
             study.SetMaterialByName("StatorCore", "M-15 Steel")
             study.GetMaterial("StatorCore").SetValue("Laminated", 1)
             study.GetMaterial("StatorCore").SetValue("LaminationFactor", 98)
@@ -973,7 +996,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             study.GetMaterial("NotchedRotor").SetValue("Laminated", 1)
             study.GetMaterial("NotchedRotor").SetValue("LaminationFactor", 98)
 
-        elif self.spec_input_dict['Steel'] == 'Arnon5':
+        elif self.template.spec_input_dict['Steel'] == 'Arnon5':
             study.SetMaterialByName("StatorCore", "Arnon5-final")
             study.GetMaterial("StatorCore").SetValue("Laminated", 1)
             study.GetMaterial("StatorCore").SetValue("LaminationFactor", 96)
@@ -1003,16 +1026,16 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         study.SetMaterialByName(u"Magnet", u"Arnold/Reversible/N40H")
         study.GetMaterial(u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
         available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220] # according to JMAG
-        magnet_temperature = min(available_temperature_list, key=lambda x:abs(x-self.spec_input_dict['Temperature']))        
+        magnet_temperature = min(available_temperature_list, key=lambda x:abs(x-self.template.spec_input_dict['Temperature']))        
         print('magnet_temperature is', magnet_temperature, 'deg C.')
         study.GetMaterial(u"Magnet").SetValue(u"Temperature", magnet_temperature) # 80 deg TEMPERATURE (There is no 75 deg C option)
-        study.GetMaterial(u"Magnet").SetValue(u"Poles", self.DriveW_poles)
+        study.GetMaterial(u"Magnet").SetValue(u"Poles", self.template.d['OP']['DriveW_poles'])
 
         study.GetMaterial(u"Magnet").SetDirectionXYZ(1, 0, 0)
         study.GetMaterial(u"Magnet").SetAxisXYZ(0, 0, 1)
         study.GetMaterial(u"Magnet").SetOriginXYZ(0, 0, 0)
         study.GetMaterial(u"Magnet").SetPattern(u"RadialCircular")
-        study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*self.p) ) # 半个极距
+        study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*self.template.SD['p']) ) # 半个极距
 
 
         # add_carbon_fiber_material(app)
@@ -1086,36 +1109,39 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         # 这里电流幅值中的0.5因子源自DPNV导致的等于2的平行支路数。没有考虑到这一点，是否会对initial design的有效性产生影响？
         # 仔细看DPNV的接线，对于转矩逆变器，绕组的并联支路数为2，而对于悬浮逆变器，绕组的并联支路数为1。
 
-        npb = self.wily.number_parallel_branch
-        nwl = self.wily.number_winding_layer # number of windign layers 
-        # if self.fea_config_dict['DPNV_separate_winding_implementation'] == True or self.spec_input_dict['DPNV_or_SEPA'] == False:
-        if self.spec_input_dict['DPNV_or_SEPA'] == False:
+        OP = self.template.d['OP']
+        wily = OP['wily']
+
+        npb = wily.number_parallel_branch
+        nwl = wily.number_winding_layer # number of windign layers 
+        # if self.template.fea_config_dict['DPNV_separate_winding_implementation'] == True or self.template.spec_input_dict['DPNV_or_SEPA'] == False:
+        if self.template.spec_input_dict['DPNV_or_SEPA'] == False:
             # either a separate winding or a DPNV winding implemented as a separate winding
-            ampD =  0.5 * (self.DriveW_CurrentAmp/npb + self.BeariW_CurrentAmp) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
-            ampB = -0.5 * (self.DriveW_CurrentAmp/npb - self.BeariW_CurrentAmp) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
+            ampD =  0.5 * (OP['DriveW_CurrentAmp']/npb + self.BeariW_CurrentAmp) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
+            ampB = -0.5 * (OP['DriveW_CurrentAmp']/npb - self.BeariW_CurrentAmp) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
             if bool_3PhaseCurrentSource != True:
                 raise Exception('Logic Error Detected.')
         else:
             # case: DPNV as an actual two layer winding
-            ampD = self.DriveW_CurrentAmp/npb
-            ampB = self.BeariW_CurrentAmp
+            ampD = OP['DriveW_CurrentAmp']/npb
+            ampB = OP['BeariW_CurrentAmp']
             if bool_3PhaseCurrentSource != False:
                 raise Exception('Logic Error Detected.')
 
-        circuit('GroupAC',  self.DriveW_zQ/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
-            Rs=self.DriveW_Rs,ampD= ampD,
-                              ampB=-ampB, freq=self.DriveW_Freq, phase=0,
-                              CommutatingSequenceD=self.wily.CommutatingSequenceD,
-                              CommutatingSequenceB=self.wily.CommutatingSequenceB)
-        circuit('GroupBD',  self.BeariW_zQ/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
-            Rs=self.BeariW_Rs,ampD= ampD,
-                              ampB=+ampB, freq=self.BeariW_Freq, phase=0,
-                              CommutatingSequenceD=self.wily.CommutatingSequenceD,
-                              CommutatingSequenceB=self.wily.CommutatingSequenceB,x=25) # CS4 corresponds to uauc (conflict with following codes but it does not matter.)
+        circuit('GroupAC',  OP['DriveW_zQ']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
+            Rs=OP['DriveW_Rs'],ampD= ampD,
+                              ampB=-ampB, freq=self.template.d['OP']['DriveW_Freq'], phase=0,
+                              CommutatingSequenceD=wily.CommutatingSequenceD,
+                              CommutatingSequenceB=wily.CommutatingSequenceB)
+        circuit('GroupBD',  OP['BeariW_zQ']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
+            Rs=OP['BeariW_Rs'],ampD= ampD,
+                              ampB=+ampB, freq=self.template.d['OP']['BeariW_Freq'], phase=0,
+                              CommutatingSequenceD=wily.CommutatingSequenceD,
+                              CommutatingSequenceB=wily.CommutatingSequenceB,x=25) # CS4 corresponds to uauc (conflict with following codes but it does not matter.)
 
         # Link FEM Coils to Coil Set     
-        # if self.fea_config_dict['DPNV_separate_winding_implementation'] == True or self.spec_input_dict['DPNV_or_SEPA'] == False:
-        if self.spec_input_dict['DPNV_or_SEPA'] == False:
+        # if self.template.fea_config_dict['DPNV_separate_winding_implementation'] == True or self.template.spec_input_dict['DPNV_or_SEPA'] == False:
+        if self.template.spec_input_dict['DPNV_or_SEPA'] == False:
             def link_FEMCoils_2_CoilSet(Grouping,l1,l2):
                 # link between FEM Coil Condition and Circuit FEM Coil
                 for UVW in ['U','V','W']:
@@ -1146,11 +1172,11 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
                     condition = study.GetCondition(which_phase)
                     condition.RemoveSubCondition("delete")
             link_FEMCoils_2_CoilSet('GroupAC', # 这边还是古老的，还未修改啊。。。
-                                    self.dict_coil_connection['layer X phases'], # 40 for 4 poles, +1 for UVW, 
-                                    self.dict_coil_connection['layer X signs'])                 # +2 for up or down, 
+                                    wily.dict_coil_connection['layer X phases'], # 40 for 4 poles, +1 for UVW, 
+                                    wily.dict_coil_connection['layer X signs'])                 # +2 for up or down, 
             link_FEMCoils_2_CoilSet('GroupBD', 
-                                    self.dict_coil_connection['layer Y phases'], # 20 for 2 poles, +1 for UVW, .
-                                    self.dict_coil_connection['layer Y signs'])                 # +2 for up or down,  这里的2和4等价于leftlayer和rightlayer。
+                                    wily.dict_coil_connection['layer Y phases'], # 20 for 2 poles, +1 for UVW, .
+                                    wily.dict_coil_connection['layer Y signs'])                 # +2 for up or down,  这里的2和4等价于leftlayer和rightlayer。
         else:
             # 两个改变，一个是激励大小的改变（本来是200A 和 5A，现在是205A和195A），
             # 另一个绕组分组的改变，现在的A相是上层加下层为一相，以前是用俩单层绕组等效的。
@@ -1159,7 +1185,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             # Create FEM Coil Condition
             # here we map circuit component `Coil2A' to FEM Coil Condition 'phaseAuauc
             # here we map circuit component `Coil4A' to FEM Coil Condition 'phaseAubud
-            for suffix, poles in zip(['GroupAC', 'GroupBD'], [self.DriveW_poles, self.BeariW_poles]): # 仍然需要考虑poles，是因为为Coil设置Set那里的代码还没有更新。这里的2(self.DriveW_poles)和4(self.BeariW_poles)等价于leftlayer和rightlayer。
+            for suffix, poles in zip(['GroupAC', 'GroupBD'], [OP['DriveW_poles'], OP['BeariW_poles']]): # 仍然需要考虑poles，是因为为Coil设置Set那里的代码还没有更新。这里的2(self.DriveW_poles)和4(self.BeariW_poles)等价于leftlayer和rightlayer。
                 for UVW in ['U','V','W']:
                     study.CreateCondition("FEMCoil", 'phase'+UVW+suffix)
                     # link between FEM Coil Condition and Circuit FEM Coil
@@ -1169,12 +1195,12 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             countXL = 0 # countXL indicates which slot the current rightlayer is in.
             index = 0
             dict_dir = {'+':1, '-':0}
-            coil_pitch = self.wily.coil_pitch_y #self.dict_coil_connection[0]
+            coil_pitch = wily.coil_pitch_y #wily.dict_coil_connection[0]
             # select the part (via `Set') to assign the FEM Coil condition
-            for UVW, UpDown in zip(self.wily.layer_X_phases, self.wily.layer_X_signs):
+            for UVW, UpDown in zip(wily.layer_X_phases, wily.layer_X_signs):
 
                 countXL += 1 
-                if self.wily.grouping_AC[index] == 1:
+                if wily.grouping_AC[index] == 1:
                     suffix = 'GroupAC'
                 else:
                     suffix = 'GroupBD'
@@ -1189,29 +1215,30 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
                 subcondition.SetValue("Direction2D", dict_dir[UpDown])
 
                 # left layer
+                Q = self.template.SD['Qs']
                 if coil_pitch > 0:
-                    if countXL+coil_pitch <= self.Q:
+                    if countXL+coil_pitch <= Q:
                         count_leftlayer = countXL+coil_pitch
                         index_leftlayer = index+coil_pitch
                     else:
-                        count_leftlayer = int(countXL+coil_pitch - self.Q)
-                        index_leftlayer = int(index+coil_pitch - self.Q)
+                        count_leftlayer = int(countXL+coil_pitch - Q)
+                        index_leftlayer = int(index+coil_pitch - Q)
                 else:
                     if countXL+coil_pitch > 0:
                         count_leftlayer = countXL+coil_pitch
                         index_leftlayer = index+coil_pitch
                     else:
-                        count_leftlayer = int(countXL+coil_pitch + self.Q)
-                        index_leftlayer = int(index+coil_pitch + self.Q)
+                        count_leftlayer = int(countXL+coil_pitch + Q)
+                        index_leftlayer = int(index+coil_pitch + Q)
 
                 # Check if it is a distributed windg???
-                if self.wily.distributed_or_concentrated == False:
+                if wily.distributed_or_concentrated == False:
                     print('Concentrated winding!')
-                    UVW    = self.wily.layer_Y_phases[index_leftlayer]
-                    UpDown = self.wily.layer_Y_signs[index_leftlayer]
+                    UVW    = wily.layer_Y_phases[index_leftlayer]
+                    UpDown = wily.layer_Y_signs[index_leftlayer]
                 else:
                     # print('Distributed winding.')
-                    if self.wily.layer_Y_phases[index_leftlayer] != UVW:
+                    if wily.layer_Y_phases[index_leftlayer] != UVW:
                         print('[Warn] Potential bug in your winding layout detected.')
                         raise Exception('Bug in winding layout detected.')
                     # 右层导体的电流方向是正，那么与其串联的一个coil_pitch之处的左层导体就是负！不需要再检查l_leftlayer2了~
@@ -1238,25 +1265,34 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
                     condition.RemoveSubCondition("delete")
             # raise Exception('Test DPNV PE.')
 
+    ''' JMAG Description
+    '''
     def show(self, toString=False):
-        attrs = list(vars(self).items())
-        key_list = [el[0] for el in attrs]
-        val_list = [el[1] for el in attrs]
-        the_dict = dict(list(zip(key_list, val_list)))
-        sorted_key = sorted(key_list, key=lambda item: (int(item.partition(' ')[0]) if item[0].isdigit() else float('inf'), item)) # this is also useful for string beginning with digiterations '15 Steel'.
-        tuple_list = [(key, the_dict[key]) for key in sorted_key]
+        def get_tuple_list(object):
+            attrs = list(vars(object).items())
+            key_list = [el[0] for el in attrs]
+            val_list = [el[1] for el in attrs]
+            the_dict = dict(list(zip(key_list, val_list)))
+            sorted_key = sorted(key_list, key=lambda item: (int(item.partition(' ')[0]) if item[0].isdigit() else float('inf'), item)) # this is also useful for string beginning with digiterations '15 Steel'.
+            tuple_list = [(key, the_dict[key]) for key in sorted_key]
+            return tuple_list
+        variant_tuple_list = get_tuple_list(self)
+        template_tuple_list = get_tuple_list(self.template)
         if toString==False:
             print('- Bearingless PMSM Individual #%s\n\t' % (self.name), end=' ')
             print(', \n\t'.join("%s = %s" % item for item in tuple_list))
             return ''
         else:
-            return '\n- Bearingless PMSM Individual #%s\n\t' % (self.name) + ', \n\t'.join("%s = %s" % item for item in tuple_list)
+            return '\n- Bearingless PMSM Individual #%s\n\t' % (self.name) \
+                    + ', \n\t'.join("%s = %s" % item for item in variant_tuple_list) \
+                    + '\n' + '--'*10 + '\n- Template:\n\t' \
+                    + ', \n\t'.join("%s = %s" % item for item in template_tuple_list)
 
     def get_individual_name(self):
-        if self.fea_config_dict['flag_optimization'] == True:
+        if self.template.fea_config_dict['flag_optimization'] == True:
             return "ID%s" % (self.ID)
         else:
-            return "%s_ID%s" % (self.model_name_prefix, self.ID)
+            return "%s_ID%s" % (self.name, self.ID)
 
     # Produce JMAG Project
     def build_jmag_project(self, project_meta_data=None, bool_re_evaluate=False):
@@ -1279,7 +1315,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
 
             # def draw_jmag_bpmsm():
             import JMAG
-            toolJd = JMAG.JMAG(self.fea_config_dict, self.spec_input_dict)
+            toolJd = JMAG.JMAG(self.template.fea_config_dict, self.template.spec_input_dict)
 
             toolJd.open(expected_project_file)
             DRAW_SUCCESS = spmsm_variant.draw_spmsm(toolJd)
@@ -1299,11 +1335,11 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             study = spmsm_variant.add_magnetic_transient_study(app, model, dir_csv_output_folder, study_name) # Change here and there 
             self.mesh_study(spmsm_variant, app, model, study, output_dir=output_dir)
             # raise KeyboardInterrupt
-            self.run_study(spmsm_variant, app, study, self.fea_config_dict, clock_time())
+            self.run_study(spmsm_variant, app, study, self.template.fea_config_dict, clock_time())
 
 
             # export Voltage if field data exists.
-            if self.fea_config_dict['delete_results_after_calculation'] == False:
+            if self.template.fea_config_dict['delete_results_after_calculation'] == False:
                 # Export Circuit Voltage
                 ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                 app.GetDataManager().CreateGraphModel(ref1)
@@ -1314,8 +1350,8 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
             THE_mm2_slot_area = self.spmsm_variant.coils.draw(None, bool_re_evaluate=True)
 
             CurrentAmp_in_the_slot = THE_mm2_slot_area * spmsm_variant.fill_factor * spmsm_variant.Js*1e-6 * np.sqrt(2) #/2.2*2.8
-            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / spmsm_variant.DriveW_zQ
-            CurrentAmp_per_phase = CurrentAmp_per_conductor * spmsm_variant.wily.number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / spmsm_variant.template.d['OP']['DriveW_zQ']
+            CurrentAmp_per_phase = CurrentAmp_per_conductor * spmsm_variant.template.d['OP']['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
             variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
             spmsm_variant.CurrentAmp_per_phase = CurrentAmp_per_phase
             spmsm_variant.DriveW_CurrentAmp = spmsm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
@@ -1359,7 +1395,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         # study.WriteAllMeshJcf(self.dir_jcf, im_variant.model_name+study.GetName()+'Mesh', True)
 
         # # run
-        # if self.fea_config_dict['JMAG_Scheduler'] == False:
+        # if self.template.fea_config_dict['JMAG_Scheduler'] == False:
         #     study.RunAllCases()
         #     app.Save()
         # else:
@@ -1384,7 +1420,7 @@ class bearingless_spmsm_design(bearingless_spmsm_template):
         # app.View().ShowMeshGeometry() # 2nd btn
         app.View().ShowMesh() # 3rn btn
         app.View().Zoom(3)
-        app.View().Pan(-im_variant.Radius_OuterRotor, 0)
+        app.View().Pan(-im_variant.template.d['GP']['mm_r_or'].value, 0)
         app.ExportImageWithSize(output_dir + model.GetName() + '.png', 2000, 2000)
         app.View().ShowModel() # 1st btn. close mesh view, and note that mesh data will be deleted if only ouput table results are selected.
 
@@ -1427,14 +1463,14 @@ if __name__ == '__main__':
     spmsm_template.mm_d_pm      = 6      # mm_d_pm          # manget depth
     spmsm_template.deg_alpha_rm = 60     # deg_alpha_rm     # angular span of the pole: class type DimAngular
     spmsm_template.deg_alpha_rs = 10     # deg_alpha_rs     # segment span: class type DimAngular
-    spmsm_template.mm_d_ri      = 8      # mm_d_ri          # inner radius of rotor: class type DimLinear
-    spmsm_template.mm_r_ri      = 40     # mm_r_ri          # rotor iron thickness: class type DimLinear
+    spmsm_template.mm_d_ri      = 8      # mm_d_ri          # rotor iron thickness: class type DimLinear
+    spmsm_template.mm_r_ri      = 40     # mm_r_ri          # inner radius of rotor: class type DimLinear
     spmsm_template.mm_d_rp      = 5      # mm_d_rp          # interpolar iron thickness: class type DimLinear
     spmsm_template.mm_d_rs      = 3      # mm_d_rs          # inter segment iron thickness: class type DimLinear
     spmsm_template.p = 2     # p     # number of pole pairs
     spmsm_template.s = 3     # s     # number of segments  
 
-    spmsm_template.build_design_parameters_list()
+    build_design_parameters_list(spmsm_template)
 
     spmsm_template.DriveWinding_Freq       = 1000
     spmsm_template.DriveWinding_Rs         = 0.1 # TODO
@@ -1520,7 +1556,7 @@ if __name__ == '__main__':
     spmsm_template.p = 2     # p     # number of pole pairs
     spmsm_template.s = 1     # s     # number of segments  
 
-    spmsm_template.build_design_parameters_list()
+    build_design_parameters_list(spmsm_template)
 
     spmsm_template.DriveWinding_Freq       = 1000
     spmsm_template.DriveWinding_Rs         = 0.1 # TODO

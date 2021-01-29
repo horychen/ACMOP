@@ -1,12 +1,12 @@
 import builtins
 if hasattr(builtins, 'ad'):
-    print('Global variables are shared between modules...')
+    print('[Problem_BlessSyn] Global variables are shared between modules...')
 else:
     raise Exception('Please add global variable (address) "ad" to module __builtins__.')
-print(builtins.ad)
-print(ad)
-print(ad.counter_fitness_called)
-print(ad.counter_fitness_return)
+print('[Problem_BlessSyn]', builtins.ad)
+print('[Problem_BlessSyn]', ad)
+print('[Problem_BlessSyn]', ad.counter_fitness_called)
+print('[Problem_BlessSyn]', ad.counter_fitness_return)
 
 import logging, os, shutil
 import numpy as np
@@ -26,7 +26,7 @@ class Problem_BearinglessSynchronousDesign(object):
         else:
             # This is not reachable
             raise Exception('ad.counter_fitness_called')
-        print('Call fitness: %d, %d'%(ad.counter_fitness_called, ad.counter_fitness_return))
+        print('[Problem_BlessSyn] Call fitness: %d, %d'%(ad.counter_fitness_called, ad.counter_fitness_return))
 
         # 不要标幺化了！统一用真的bounds，见get_bounds()
         x_denorm = x
@@ -39,7 +39,7 @@ class Problem_BearinglessSynchronousDesign(object):
                 if ad.counter_fitness_return >= len(ad.solver.swarm_data):
                     quit()
                 x_denorm = ad.solver.swarm_data[ad.counter_fitness_return][:-3]
-                print(ad.solver.swarm_data[ad.counter_fitness_return])
+                print('[Problem_BlessSyn]', ad.solver.swarm_data[ad.counter_fitness_return])
 
             if stuck_at < ad.counter_fitness_called:
                 stuck_at = ad.counter_fitness_called
@@ -166,7 +166,7 @@ class Problem_BearinglessSynchronousDesign(object):
                     # if abs(normalized_torque_ripple)>=0.2 or abs(normalized_force_error_magnitude) >= 0.2 or abs(force_error_angle) > 10 or FRW < 1:
                     # if abs(normalized_torque_ripple)>=0.2 or abs(normalized_force_error_magnitude) >= 0.2 or abs(force_error_angle) > 10:
                     if abs(normalized_torque_ripple)>=0.3 or abs(normalized_force_error_magnitude) >= 0.35 or abs(force_error_angle) > 20 or FRW < 0.5:
-                        print('Constraints are violated:')
+                        print('[Problem_BlessSyn] Constraints are violated:')
                         if abs(normalized_torque_ripple)>=0.3:
                             print('\tabs(normalized_torque_ripple)>=0.3 | (=%f)' % (normalized_torque_ripple))
                         if abs(normalized_force_error_magnitude) >= 0.35:
@@ -186,7 +186,7 @@ class Problem_BearinglessSynchronousDesign(object):
                 break
 
         ad.counter_fitness_return += 1
-        print('Fitness: %d, %d\n----------------'%(ad.counter_fitness_called, ad.counter_fitness_return))
+        print('[Problem_BlessSyn] Fitness: %d, %d\n----------------'%(ad.counter_fitness_called, ad.counter_fitness_return))
         # raise KeyboardInterrupt
         return [f1, f2, f3]
 
@@ -197,8 +197,8 @@ class Problem_BearinglessSynchronousDesign(object):
     # Return bounds of decision variables (a.k.a. chromosome)
     def get_bounds(self):
         global ad
-        print('Problem_BearinglessSynchronousDesign.get_bounds:', ad.bounds_denorm)
-        min_b, max_b = np.asarray(ad.bounds_denorm).T 
+        print('[Problem_BlessSyn] Problem_BearinglessSynchronousDesign.get_bounds:', ad.acm_template.bounds_denorm)
+        min_b, max_b = np.asarray(ad.acm_template.bounds_denorm).T 
         return ( min_b.tolist(), max_b.tolist() )
 
     # Return function name

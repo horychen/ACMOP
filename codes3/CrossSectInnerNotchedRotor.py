@@ -33,8 +33,8 @@ class CrossSectInnerNotchedRotor(object):
         self.mm_d_pm = mm_d_pm # depth of the permanent magnet
         self.deg_alpha_rm = deg_alpha_rm # angular span of the pole: class type DimAngular
         self.deg_alpha_rs = deg_alpha_rs # segment span: class type DimAngular
-        self.mm_d_ri = mm_d_ri           # inner radius of rotor: class type DimLinear
-        self.mm_r_ri = mm_r_ri           # rotor iron thickness: class type DimLinear
+        self.mm_d_ri = mm_d_ri           # rotor iron thickness: class type DimLinear
+        self.mm_r_ri = mm_r_ri           # inner radius of rotor: class type DimLinear
         self.mm_d_rp = mm_d_rp           # interpolar iron thickness: class type DimLinear
         self.mm_d_rs = mm_d_rs           # inter segment iron thickness: class type DimLinear
         self.p = p                       # number of pole pairs
@@ -56,7 +56,7 @@ class CrossSectInnerNotchedRotor(object):
         elif self.s==1:
             # Validate that alpha_rs and alpha_rm are set equal for s =1 
             if not (self.deg_alpha_rs==(self.deg_alpha_rm/self.s)):
-                raise Exception('Invalid alpha_rs. Check that it is equal to alpha_rm for s=1')
+                raise Exception('Invalid alpha_rs. Check that it is equal to alpha_rm for s=1', self.deg_alpha_rs, self.deg_alpha_rm, self.s)
 
             # Validate that d_rs is set zero for s=1
             if not (self.mm_d_rs==0):

@@ -310,10 +310,10 @@ class Pyrhonen_design(object):
             self.Angle_StatorSlotOpen            = design_parameters[5]      # mm       # stator slot opening [deg]
             self.Width_StatorTeethHeadThickness  = design_parameters[6]      # mm       # stator tooth head length [mm]
         '''
-        # rotor_slot_radius = (2*pi*(Radius_OuterRotor - Length_HeadNeckRotorSlot)*1e-3 - rotor_tooth_width_b_dr*Qr) / (2*Qr+2*pi)
-        # => rotor_tooth_width_b_dr = ( 2*pi*(Radius_OuterRotor - Length_HeadNeckRotorSlot)*1e-3  - rotor_slot_radius * (2*Qr+2*pi) ) / Qr
+        # rotor_slot_radius = (2*pi*(template.d['GP']['mm_r_or'].value - Length_HeadNeckRotorSlot)*1e-3 - rotor_tooth_width_b_dr*Qr) / (2*Qr+2*pi)
+        # => rotor_tooth_width_b_dr = ( 2*pi*(template.d['GP']['mm_r_or'].value - Length_HeadNeckRotorSlot)*1e-3  - rotor_slot_radius * (2*Qr+2*pi) ) / Qr
         # Verified in Tran2TSS_PS_Opti.xlsx.
-            # ( 2*pi*(im.Radius_OuterRotor - im.Length_HeadNeckRotorSlot)  - im.Radius_of_RotorSlot * (2*Qr+2*pi) ) / Qr
+            # ( 2*pi*(im.template.d['GP']['mm_r_or'].value - im.Length_HeadNeckRotorSlot)  - im.Radius_of_RotorSlot * (2*Qr+2*pi) ) / Qr
             # = ( 2*PI()*(G4 - I4) - J4 * (2*C4+2*PI()) ) / C4
         from math import pi
         Qr = im.Qr
@@ -321,7 +321,7 @@ class Pyrhonen_design(object):
         # unit: mm 
         self.air_gap_length_delta           = im.Length_AirGap
         self.stator_tooth_width_b_ds        = im.Width_StatorTeethBody
-        self.rotor_tooth_width_b_dr         = ( 2*pi*(im.Radius_OuterRotor - im.Length_HeadNeckRotorSlot)  - im.Radius_of_RotorSlot * (2*Qr+2*pi) ) / Qr
+        self.rotor_tooth_width_b_dr         = ( 2*pi*(im.template.d['GP']['mm_r_or'].value - im.Length_HeadNeckRotorSlot)  - im.Radius_of_RotorSlot * (2*Qr+2*pi) ) / Qr
         self.Angle_StatorSlotOpen           = im.Angle_StatorSlotOpen # deg
         self.b1                             = im.Width_RotorSlotOpen
         self.Width_StatorTeethHeadThickness = im.Width_StatorTeethHeadThickness
@@ -408,9 +408,9 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     nu_0_Air  = 13.3e-6#;  %[m^2/s] kinematic viscosity of air at 0
     rho_0_Air = 1.29#;     %[kg/m^3] Air density at 0
     Shaft = [mm_stack_length,                               #1;         %End position of the sections mm (Absolut)
-             im_variant.Radius_OuterRotor+im_variant.Length_AirGap, #1;         %Inner Radius in mm
+             im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['OP']['mm_mechanical_air_gap_length'], #1;         %Inner Radius in mm
              1,                                                     #0;         %Shrouded (1) or free surface (0)
-             im_variant.Length_AirGap]                              #0];        %Airgap in mm
+             im_variant.template.d['OP']['mm_mechanical_air_gap_length']]                              #0];        %Airgap in mm
     Num_shaft_section = 1
     T_Air = TEMPERATURE_OF_AIR #20:(120-20)/((SpeedMax-SpeedMin)/SpeedStep):120         #; % Air temperature []
     
@@ -423,11 +423,11 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     R     = Shaft[1]*1e-3 # radius of air gap
     delta = Shaft[3]*1e-3 # length of air gap
     
-    Omega = 2*np.pi*im_variant.the_speed/60.
-    if abs(Omega - im_variant.Omega) < 0.1:
+    Omega = 2*np.pi*im_variant.template.d['OP']['the_speed']/60.
+    if abs(Omega - im_variant.template.d['OP']['Omega']) < 0.1:
         pass
     else:
-        print(Omega, im_variant.Omega, im_variant.the_speed)
+        print(Omega, im_variant.template.d['OP']['Omega'], im_variant.template.d['OP']['the_speed'])
         raise Exception('Check speed calc. resutls.')
 
     # Reynolds number
@@ -455,7 +455,7 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
         
     # end friction loss added - 05192018.yegu
     # the friction coefficients from <Rotor Design of a High-Speed Permanent Magnet Synchronous Machine rating 100,000 rpm at 10 kW>
-    Rer = rho_Air * (im_variant.Radius_OuterRotor * 1e-3)**2 * Omega/nu_Air
+    Rer = rho_Air * (im_variant.template.d['GP']['mm_r_or'].value * 1e-3)**2 * Omega/nu_Air
     if Rer <= 30:
         c_f = 64/3. / Rer
     elif Rer>30 and Rer<3*10**5:
@@ -463,7 +463,7 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     else:
         c_f = 0.146 * Rer**(-0.2)
 
-    windage_loss_axial = 0.5 * c_f * rho_Air * Omega**3 * (im_variant.Radius_OuterRotor*1e-3)**5
+    windage_loss_axial = 0.5 * c_f * rho_Air * Omega**3 * (im_variant.template.d['GP']['mm_r_or'].value*1e-3)**5
     
     windage_loss_total = windage_loss_radial + windage_loss_axial
     return windage_loss_total
@@ -523,11 +523,13 @@ def add_plots(axeses, dm, title=None, label=None, zorder=None, time_list=None, s
 
     return info, torque_average, normalized_torque_ripple, sfv.ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle
 
-def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver=None, machine_type=None):
+def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver=None):
     # originate from fobj
 
+    machine_type = acm_variant.template.machine_type
+
     try:
-        dm = read_csv_results_4_general_purpose(tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver, machine_type=machine_type, acm_variant=acm_variant)
+        dm = read_csv_results_4_general_purpose(tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver, acm_variant=acm_variant)
     except Exception as e:
         print(e)
         logging.getLogger(__name__).error('Error when loading csv results for Tran2TSS. Check the Report of JMAG Designer. (Maybe Material is not added.)', exc_info=True)
@@ -563,15 +565,15 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
     str_results += '\n\tfemm loss info: '  + ', '.join(['%g'%(el) for el in dm.femm_loss_list])
 
     if fea_config_dict['delete_results_after_calculation'] == False:
-        power_factor = dm.power_factor(number_of_steps_at_steady_state, targetFreq=acm_variant.DriveW_Freq)
+        power_factor = dm.power_factor(number_of_steps_at_steady_state, targetFreq=acm_variant.template.d['OP']['DriveW_Freq'])
         str_results += '\n\tPF: %g' % (power_factor)
 
     # compute the fitness 
-    rotor_volume = acm_variant.get_rotor_volume() 
-    rotor_weight = acm_variant.get_rotor_weight()
-    shaft_power  = acm_variant.Omega * torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
+    rotor_volume = acm_variant.template.get_rotor_volume() 
+    rotor_weight = acm_variant.template.get_rotor_weight()
+    shaft_power  = acm_variant.template.d['OP']['Omega'] * torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
 
-    if 'IM' in variant.machine_type:
+    if 'IM' in acm_variant.template.machine_type:
         if False: # fea_config_dict['jmag_run_list'][0] == 0
             # by JMAG only
             copper_loss  = dm.jmag_loss_list[0] + dm.jmag_loss_list[1] 
@@ -583,16 +585,16 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
             else:
                 copper_loss  = dm.femm_loss_list[0] + dm.femm_loss_list[1]
             iron_loss = dm.jmag_loss_list[2] 
-    elif 'PM' in variant.machine_type:
+    elif 'PM' in acm_variant.template.machine_type:
         # Rotor magnet loss by JMAG
         magnet_Joule_loss = dm.jmag_loss_list[1]
                       # Stator copper loss by Binder and Bolognani 2006
         copper_loss = dm.femm_loss_list[0] + magnet_Joule_loss
         iron_loss = dm.jmag_loss_list[2] 
     else:
-        raise Exception('Unknown machine type:', variant.machine_type)
+        raise Exception('Unknown machine type:', acm_variant.template.machine_type)
 
-    windage_loss = get_windage_loss(acm_variant, acm_variant.stack_length)
+    windage_loss = get_windage_loss(acm_variant, acm_variant.template.d['OP']['mm_stack_length'])
 
     # 这样计算效率，输出转矩大的，铁耗大一倍也没关系了，总之就是气隙变得最小。。。要不就不要优化气隙了。。。
     total_loss   = copper_loss + iron_loss + windage_loss
@@ -634,11 +636,11 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
         stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack 
         rotor_copper_loss_in_end_turn  = 0
 
-    speed_rpm       = acm_variant.spec_input_dict['ExcitationFreqSimulated'] * 60 / acm_variant.spec_input_dict['p'] # rpm
-    required_torque = acm_variant.spec_input_dict['mec_power'] / (2*np.pi*speed_rpm)*60
+    speed_rpm       = acm_variant.template.SD['ExcitationFreqSimulated'] * 60 / acm_variant.template.SD['p'] # rpm
+    required_torque = acm_variant.template.SD['mec_power'] / (2*np.pi*speed_rpm)*60
 
     rated_ratio                          = required_torque / torque_average 
-    rated_stack_length_mm                = rated_ratio * acm_variant.stack_length
+    rated_stack_length_mm                = rated_ratio * acm_variant.template.d['OP']['mm_stack_length']
     rated_stator_copper_loss_along_stack = rated_ratio * stator_copper_loss_along_stack
     rated_rotor_copper_loss_along_stack  = rated_ratio * rotor_copper_loss_along_stack
     rated_iron_loss                      = rated_ratio * dm.jmag_loss_list[2]
@@ -662,16 +664,16 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
         #     print('rotor_current_density is over 8e6 Arms/m^2')
     else:
                                  # 基波电流幅值（在一根导体里的电流，六相逆变器中的GroupBDW相的电流，所以相当于已经考虑了并联支路数了）
-        stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.coils.mm2_slot_area*1e-6/acm_variant.DriveW_zQ)
+        stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.coils.mm2_slot_area*1e-6/acm_variant.template.d['OP']['DriveW_zQ'])
         print('Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2'%(stator_current_density))
         rotor_current_density = 0
 
     print('Required torque: %g Nm'%(required_torque))
-    print('acm_variant.Omega: %g rad/s'%(acm_variant.Omega))
-    rated_shaft_power  = acm_variant.Omega * required_torque
+    print("acm_variant.template.d['OP']['Omega']: %g rad/s"%(acm_variant.template.d['OP']['Omega']))
+    rated_shaft_power  = acm_variant.template.d['OP']['Omega'] * required_torque
     rated_efficiency   = rated_shaft_power / (rated_total_loss + rated_shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
 
-    rated_rotor_volume = np.pi*(acm_variant.Radius_OuterRotor*1e-3)**2 * (rated_stack_length_mm*1e-3)
+    rated_rotor_volume = np.pi*(acm_variant.template.d['GP']['mm_r_or'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
     print('rated_stack_length_mm =', rated_stack_length_mm)
 
     # This weighted list suggests that peak-to-peak torque ripple of 5% is comparable with Em of 5% or Ea of 1 deg. Ref: Ye gu ECCE 2018
@@ -689,12 +691,12 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
         price_per_volume_magnet   = 11.61 * 61023.744 # $/in^3 NdFeB PM
         # price_per_volume_aluminum = 0.88  / 16387.064 # $/in^3 wire or cast Al
 
-        # Vol_Fe = (2*acm_variant.Radius_OuterStatorYoke*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
-        Vol_Fe = ( np.pi*(acm_variant.Radius_OuterStatorYoke*1e-3)**2 - np.pi*(acm_variant.Radius_InnerRotor*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
+        # Vol_Fe = (2*acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
+        Vol_Fe = ( np.pi*(acm_variant.template.d['GP']['mm_r_os'].value*1e-3)**2 - np.pi*(acm_variant.template.d['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
 
         Vol_PM = (acm_variant.rotorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
 
-        print('Area_Fe', (acm_variant.Radius_OuterStatorYoke*1e-3) ** 2)
+        print('Area_Fe', (acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2)
         print('Area_Cu (est.)', dm.Vol_Cu/(rated_stack_length_mm*1e-3))
         print('Area_PM', (acm_variant.rotorMagnet.mm2_magnet_area*1e-6))
         print('Volume_Fe',    Vol_Fe)
@@ -714,9 +716,9 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
     f3 = sum(list_weighted_ripples)
 
     FRW = ss_avg_force_magnitude / rotor_weight
-    print('FRW:', FRW, 'Rotor weight:', rotor_weight, 'Stack length:', acm_variant.stack_length, 'Rated stack length:', rated_stack_length_mm)
-    rated_rotor_volume = acm_variant.get_rotor_volume(stack_length=rated_stack_length_mm) 
-    rated_rotor_weight = acm_variant.get_rotor_weight(stack_length=rated_stack_length_mm)
+    print('FRW:', FRW, 'Rotor weight:', rotor_weight, 'Stack length:', acm_variant.template.d['OP']['mm_stack_length'], 'Rated stack length:', rated_stack_length_mm)
+    rated_rotor_volume = acm_variant.template.get_rotor_volume(stack_length=rated_stack_length_mm) 
+    rated_rotor_weight = acm_variant.template.get_rotor_weight(stack_length=rated_stack_length_mm)
     print('rated_rotor_volume:', rated_rotor_volume, 'rated_rotor_weight:', rated_rotor_weight)
 
     rated_results = [   rated_shaft_power, 
@@ -730,14 +732,14 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
                         rated_windage_loss,
                         rated_rotor_volume,
                         rated_stack_length_mm,  # new!
-                        acm_variant.stack_length]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
+                        acm_variant.template.d['OP']['mm_stack_length']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
 
     str_results = '\n-------\n%s-%s\n%d,%d,O1=%g,O2=%g,f1=%g,f2=%g,f3=%g\n%s\n%s\n%s\n' % (
                     project_name, acm_variant.get_individual_name(), 
-                    acm_variant.number_current_generation, acm_variant.individual_index, cost_function_O1, cost_function_O2, f1, f2, f3,
+                    int(acm_variant.counter//78), acm_variant.counter, cost_function_O1, cost_function_O2, f1, f2, f3,
                     str_machine_results,
                     ','.join(['%g'%(el) for el in rated_results]), # 改为输出 rated_results
-                    ','.join(['%g'%(el) for el in acm_variant.design_parameters]) ) + str_results
+                    ','.join(['%g'%(el) for el in acm_variant.template.build_design_parameters_list()]) ) + str_results
  
     # str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, jmag_loss_list, femm_loss_list, power_factor, total_loss, cost_function = results_to_be_unpacked
 
@@ -754,7 +756,7 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
 
     return (cost_function_O1, cost_function_O2), f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle, \
             project_name, acm_variant.get_individual_name(), \
-            acm_variant.number_current_generation, acm_variant.individual_index,\
+            int(acm_variant.counter//78), acm_variant.counter,\
             power_factor, \
             rated_ratio, \
             rated_stack_length_mm, \
@@ -1005,7 +1007,7 @@ def collect_jmag_Tran2TSSProlong_results(im_variant, path_prefix, fea_config_dic
     if femm_solver_data is not None:
         study_name = 'FEMM'
         rotor_position_in_deg = femm_solver_data[0]*0.1 
-        time_list = rotor_position_in_deg/180.*math.pi / im_variant.Omega
+        time_list = rotor_position_in_deg/180.*math.pi / im_variant.template.d['OP']['Omega']
         number_of_repeat = int(end_time / time_list[-1]) + 2
         femm_force_x = femm_solver_data[2].tolist()
         femm_force_y = femm_solver_data[3].tolist()        
@@ -1185,7 +1187,7 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
         zQ                       = 1
         coil_pitch_yq            = self.im.Qr/self.im.DriveW_poles
         Q                        = self.im.Qr
-        # the_radius_m             = 1e-3*(self.im.Radius_OuterRotor - self.im.Radius_of_RotorSlot)
+        # the_radius_m             = 1e-3*(self.im.template.d['GP']['mm_r_or'].value - self.im.Radius_of_RotorSlot)
         stack_length_m           = 1e-3*self.im.stack_length
         # number_of_phase          = self.im.Qr/self.im.DriveW_poles
         # Ns                       = zQ * self.im.Qr / (2 * number_of_phase * a) # turns in series = 2 for 4 pole winding; = 1 for 2 pole winding
@@ -1196,7 +1198,7 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
         Jr = (current_rms_value/a) * zQ / area_copper_S_Cu # 逆变器电流current_rms_value在流入电机时，
 
 
-        rotor_outer_diameter_Dor = 2*(self.im.Radius_OuterRotor*1e-3)
+        rotor_outer_diameter_Dor = 2*(self.im.template.d['GP']['mm_r_or'].value*1e-3)
         slot_height_h_t = self.im.rotor_slot_height_h_sr
         slot_pitch_pps = np.pi * (rotor_outer_diameter_Dor - slot_height_h_t) / Q
         kov = 1.6 
@@ -1216,7 +1218,10 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
 
 
 
-def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict, femm_solver, machine_type=None, acm_variant=None):
+def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict, femm_solver, acm_variant=None):
+
+    machine_type = acm_variant.template.machine_type
+
     # Read TranFEAwi2TSS results
     
     # logging.getLogger(__name__).debug('Look into: ' + path_prefix)
@@ -1436,22 +1441,26 @@ def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict,
             raise e
         # enablePrint()
     else:
-        copper_loss_parameters = [acm_variant.sleeve_length + acm_variant.fixed_air_gap_length,
-                             acm_variant.mm_w_st,
-                             acm_variant.wily.number_parallel_branch,
-                             acm_variant.DriveW_zQ,
-                             acm_variant.wily.coil_pitch_y,
-                             acm_variant.Q,
-                             acm_variant.stack_length,
-                             acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp, # total current amplitude
-                             acm_variant.Radius_OuterRotor,
-                             acm_variant.stator_yoke_diameter_Dsyi
+        SD = acm_variant.template.SD
+        GP = acm_variant.template.d['GP']
+        OP = acm_variant.template.d['OP']
+        wily = OP['wily']
+        copper_loss_parameters = [GP['mm_d_sleeve'].value + GP['mm_d_fixed_air_gap'].value,
+                             GP['mm_w_st'].value,
+                             wily.number_parallel_branch,
+                             OP['DriveW_zQ'],
+                             wily.coil_pitch_y,
+                             acm_variant.template.SD['Qs'],
+                             OP['mm_stack_length'],
+                             OP['DriveW_CurrentAmp'] + OP['BeariW_CurrentAmp'], # total current amplitude
+                             GP['mm_r_or'].value,       # mm
+                             GP['mm_r_os'].value*2*1e-3 # m, stator_yoke_diameter_Dsyi
                              ]
         # slot_area_utilizing_ratio = (acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp) / acm_variant.CurrentAmp_per_phase
         # if slot_area_utilizing_ratio < 1:
         #     print('Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio, 'which means you are simulating a separate winding? If not, contrats--you found a bug...')
         #     print('DW, BW, Total:', acm_variant.DriveW_CurrentAmp, acm_variant.BeariW_CurrentAmp, acm_variant.CurrentAmp_per_phase)
-        s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = get_copper_loss_Bolognani(acm_variant.slot_area_utilizing_ratio*acm_variant.coils.mm2_slot_area*1e-6, copper_loss_parameters=copper_loss_parameters)
+        s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = get_copper_loss_Bolognani(OP['slot_current_utilizing_ratio']*acm_variant.coils.mm2_slot_area*1e-6, copper_loss_parameters=copper_loss_parameters)
         # s, r, sAlongStack, rAlongStack, Js, Jr = 0, 0, 0, 0, 0, 0
 
     dm = data_manager()
@@ -2037,7 +2046,7 @@ class SwarmDataAnalyzer(object):
                 self.Omega            
                 self.mec_power        
                 self.required_torque  
-                self.Radius_OuterRotor
+                self.template.d['GP']['mm_r_or'].value
                 self.stack_length     
                 self.Qs               
                 self.Qr               
@@ -2068,7 +2077,7 @@ class SwarmDataAnalyzer(object):
                       Efficiency at rated load (include windage loss) [\\%] & {eta*100                                :.1f} \\\\
                       Power Factor at rated load                            & {PF                                     :.2f} \\\\
                       Stator OD [mm]                                        & {2*self.sw.im.Radius_OuterStatorYoke    :.1f} \\\\
-                      Rotor OD [mm]                                         & {2*self.sw.im.Radius_OuterRotor         :.1f} \\\\
+                      Rotor OD [mm]                                         & {2*self.sw.im.template.d['GP']['mm_r_or'].value         :.1f} \\\\
                       Stack length [mm]                                     & {rated_stack_length                     :.1f} \\\\
                       Rotor volume [$\\rm m^3$]                             & {self.rotor_volume                        :g} \\\\
                       Weight of the rotor [N]                               & {self.rotor_weight                        :g} \\\\
@@ -2680,7 +2689,7 @@ class SwarmDataAnalyzer(object):
         self.Omega             = self.speed_rpm / 60. * 2*np.pi
         self.mec_power         = spec.mec_power / spec.ExcitationFreq * self.ExcitationFreqSimulated
         self.required_torque   = self.mec_power / self.Omega # Nm
-        self.Radius_OuterRotor = sw.im.Radius_OuterRotor
+        self.template.d['GP']['mm_r_or'].value = sw.im.template.d['GP']['mm_r_or'].value
         self.stack_length      = sw.im.stack_length
         self.Qs                = sw.im.Qs
         self.Qr                = sw.im.Qr

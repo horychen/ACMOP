@@ -3,7 +3,7 @@ import pygmo as pg
 import utility_moo
 import json
 def load_settings(select_spec, select_fea_config_dict, project_loc, bool_post_processing=False):
-    print(__file__[:-len('main_utility.py')]+'machine_specifications.json')
+    # print(__file__[:-len('main_utility.py')]+'machine_specifications.json')
     with open(__file__[:-len('main_utility.py')]+'machine_specifications.json', 'r') as f:
         raw_specs = json.load(f)
     with open(__file__[:-len('main_utility.py')]+'machine_simulation.json', 'r') as f:

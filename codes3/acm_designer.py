@@ -15,7 +15,7 @@ import JMAG
 import json
 
 class swarm_data_container(object):
-    def __init__(self, swarm_data_raw, fea_config_dict, bound_filter):
+    def __init__(self, swarm_data_raw, fea_config_dict):
 
         self.swarm_data_raw = swarm_data_raw
         self.fea_config_dict = fea_config_dict
@@ -33,50 +33,50 @@ class swarm_data_container(object):
         self.RatedWeight = []
         self.RatedStkLen = []
 
-        if len(bound_filter) == 9: # This is induction motor
-            for raw in swarm_data_raw:
+        # if len(bound_filter) == 9: # This is induction motor
+        #     for raw in swarm_data_raw:
 
-                design_parameters_denorm = [float(x) for x in raw[5].split(',')]
-                # print(design_parameters_denorm, len(design_parameters_denorm))
-                # quit()
+        #         design_parameters_denorm = [float(x) for x in raw[5].split(',')]
+        #         # print(design_parameters_denorm, len(design_parameters_denorm))
+        #         # quit()
 
-                loc1 = raw[2].find('f1')
-                loc2 = raw[2].find('f2')
-                loc3 = raw[2].find('f3')
-                f1 = float(raw[2][loc1+3:loc2-1])
-                f2 = float(raw[2][loc2+3:loc3-1])
-                f3 = float(raw[2][loc3+3:])
+        #         loc1 = raw[2].find('f1')
+        #         loc2 = raw[2].find('f2')
+        #         loc3 = raw[2].find('f3')
+        #         f1 = float(raw[2][loc1+3:loc2-1])
+        #         f2 = float(raw[2][loc2+3:loc3-1])
+        #         f3 = float(raw[2][loc3+3:])
 
-                x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
-                self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
-                # print(self.swarm_data_xf)
-                # quit()
+        #         x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
+        #         self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
+        #         # print(self.swarm_data_xf)
+        #         # quit()
 
-                self.project_names.append(raw[1][:-1])
-                self.machine_data.append([float(x) for x in raw[3].split(',')])
-                self.rated_data.append(  [float(x) for x in raw[4].split(',')])
+        #         self.project_names.append(raw[1][:-1])
+        #         self.machine_data.append([float(x) for x in raw[3].split(',')])
+        #         self.rated_data.append(  [float(x) for x in raw[4].split(',')])
 
-                individual_Trip = [float(x) for x in raw[3].split(',')][3]
-                self.Trip.append(individual_Trip)
+        #         individual_Trip = [float(x) for x in raw[3].split(',')][3]
+        #         self.Trip.append(individual_Trip)
 
-                # Get FRW
-                individual_ss_avg_force_magnitude = [float(x) for x in raw[3].split(',')][4]
-                individual_Em                     = [float(x) for x in raw[3].split(',')][5]
-                individual_Ea                     = [float(x) for x in raw[3].split(',')][6]
-                individual_rated_rotor_volume     = [float(x) for x in raw[4].split(',')][9]
-                individual_rated_rotor_weight     = (individual_rated_rotor_volume*8050*9.8)
-                individual_rated_stack_length     = [float(x) for x in raw[4].split(',')][10]
-                individual_original_stack_length  = [float(x) for x in raw[4].split(',')][11]
-                individual_original_rotor_weight  = individual_rated_rotor_weight/individual_rated_stack_length*individual_original_stack_length
-                individual_FRW = individual_ss_avg_force_magnitude/individual_original_rotor_weight
-                self.FRW.append(individual_FRW)
-                self.Em.append(individual_Em)
-                self.Ea.append(individual_Ea)
-                self.RatedVol.append(individual_rated_rotor_volume)
-                self.RatedWeight.append(individual_rated_rotor_weight)
-                self.RatedStkLen.append(individual_rated_stack_length)
-        else: # This is PM motor
-
+        #         # Get FRW
+        #         individual_ss_avg_force_magnitude = [float(x) for x in raw[3].split(',')][4]
+        #         individual_Em                     = [float(x) for x in raw[3].split(',')][5]
+        #         individual_Ea                     = [float(x) for x in raw[3].split(',')][6]
+        #         individual_rated_rotor_volume     = [float(x) for x in raw[4].split(',')][9]
+        #         individual_rated_rotor_weight     = (individual_rated_rotor_volume*8050*9.8)
+        #         individual_rated_stack_length     = [float(x) for x in raw[4].split(',')][10]
+        #         individual_original_stack_length  = [float(x) for x in raw[4].split(',')][11]
+        #         individual_original_rotor_weight  = individual_rated_rotor_weight/individual_rated_stack_length*individual_original_stack_length
+        #         individual_FRW = individual_ss_avg_force_magnitude/individual_original_rotor_weight
+        #         self.FRW.append(individual_FRW)
+        #         self.Em.append(individual_Em)
+        #         self.Ea.append(individual_Ea)
+        #         self.RatedVol.append(individual_rated_rotor_volume)
+        #         self.RatedWeight.append(individual_rated_rotor_weight)
+        #         self.RatedStkLen.append(individual_rated_stack_length)
+        # else: # This is PM motor
+        if True:
             # self.swarm_data_raw = swarm_data_raw
             # self.fea_config_dict = fea_config_dict
 
@@ -207,6 +207,7 @@ class swarm_data_container(object):
         self.l_original_stack_length                = [raw[11] for raw in self.rated_data] # new!
         self.l_original_rotor_weight                = [weight/rated*ori for weight, rated, ori in zip(self.l_rated_rotor_weight, self.l_rated_stack_length, self.l_original_stack_length)]
 
+        # TODO: change to OP['mec_power'] and OP['the_speed']
         required_torque = 50e3 / (30000/60*2*np.pi)         # TODO: should use rated stack length and torque average to compute this
         self.l_TRV = [required_torque/raw for raw in self.l_rated_rotor_volume]
         self.l_FRW = [F/W for W, F in zip(self.l_original_rotor_weight, self.l_ss_avg_force_magnitude)] # FRW
@@ -751,7 +752,7 @@ class FEA_Solver:
             f.write('\n---------%d\n'%(counter_fitness_return) \
                     + '\n'.join(','.join('%.16f'%(x) for x in el[0].tolist() + el[1].tolist() ) for el in zip(pop.get_x(), pop.get_f()) )) # convert 2d array to string
 
-    def read_swarm_data(self, bound_filter=None, read_from_here=None):
+    def read_swarm_data(self, read_from_here=None):
         if read_from_here is not None:
             self.output_dir = read_from_here
         print(self.output_dir + 'swarm_data.txt')
@@ -777,7 +778,7 @@ class FEA_Solver:
                 return None
 
             self.swarm_data_raw = [buf[i:i+21] for i in range(0, len(buf), 21)]
-            self.swarm_data_container = swarm_data_container(self.swarm_data_raw, self.fea_config_dict, bound_filter)
+            self.swarm_data_container = swarm_data_container(self.swarm_data_raw, self.fea_config_dict)
             self.swarm_data = self.swarm_data_container.swarm_data_xf
             # for el in self.swarm_data:
             #     print(el)
@@ -806,20 +807,20 @@ class FEA_Solver:
 
         # get local design variant
         if 'SPMSM' in template.machine_type:
-            function = bearingless_spmsm_design.bearingless_spmsm_design
+            function = bearingless_spmsm_design.bearingless_spmsm_design_variant
         elif 'PMVM' in template.machine_type:
-            function = vernier_motor_design.vernier_motor_VShapePM_design
+            function = vernier_motor_design.vernier_motor_VShapePM_design_variant
         else:
-            raise Exception('Unknown machine_type:', template.machine_type)
+            raise Exception('Not supported machine_type:', template.machine_type)
         self.variant = variant = function(
                         spmsm_template=template,
-                        x_denorm=x_denorm,
+                        x_denorm=None,
                         counter=counter,
                         counter_loop=counter_loop
                     )
 
         # 传递模板的爸爸给孙子（考虑移除）
-        variant.spec = template.spec
+        # variant.spec = template.spec
 
         # project name
         self.project_name = variant.name
@@ -857,77 +858,6 @@ class FEA_Solver:
             return variant 
         else:
             raise Exception('[acm_designer] results_to_be_unpacked is None.')
-
-    def fea_bearingless_spmsm(self, spmsm_template, x_denorm, counter, counter_loop, bool_re_evaluate=False):
-        logger = logging.getLogger(__name__)
-        msg = 'SPMSM: Run FEA for individual #%d'%(counter)
-        logger.info(msg)
-        print(msg)
-
-        # get local design variant
-        print('#', counter, 'x_denorm', x_denorm)
-        spmsm_variant = bearingless_spmsm_design.bearingless_spmsm_design(
-                                            spmsm_template=spmsm_template,
-                                            x_denorm=x_denorm,
-                                            counter=counter,
-                                            counter_loop=counter_loop
-                                            )
-
-        spmsm_variant.spec = spmsm_template.spec
-        self.spmsm_variant = spmsm_variant
-
-
-        # debug to json (obsolete, use jsonpickle instead)
-        # if True:
-        #     import utility_json
-        #     fname = '__'+'2020-bpmsm'+'-PreEval-'+spmsm_variant.name+'.json'
-        #     print('\n'*10, 'To json recursively:')
-        #     utility_json.to_json_recursively(spmsm_variant, fname)
-        #     quit()
-
-        # print('------------------Js = %g'%(spmsm_variant.Js))
-
-        # project name
-        spec = spmsm_template.spec
-        # if counter_loop == 1:
-        #     self.project_name          = f'p{spec.p}ps{spec.ps}-Q{spec.Qs}y{spec.coil_pitch_y}-{counter}'
-        # else:
-        #     self.project_name          = f'p{spec.p}ps{spec.ps}-Q{spec.Qs}y{spec.coil_pitch_y}-{counter}-redo{counter_loop}'
-        self.project_name = spmsm_variant.name
-        self.expected_project_file = self.output_dir + "%s.jproj"%(self.project_name)
-
-        # study name
-        study_name = spmsm_variant.name + "-Transient" # Change here and there 
-        # ind1Tran_torque
-
-        # Leave the solving task to JMAG
-        project_meta_data = {
-            "expected_project_file": self.expected_project_file,
-            "project_name": self.project_name,
-            "study_name": study_name,
-            "dir_csv_output_folder": self.dir_csv_output_folder,
-            "output_dir": self.output_dir
-        }
-        spmsm_variant.build_jmag_project(project_meta_data, bool_re_evaluate=bool_re_evaluate)
-
-        ################################################################
-        # Load data for cost function evaluation
-        ################################################################
-        spmsm_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, spmsm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None, machine_type='PMSM')
-        #spmsm_variant === spmsm_variant.stack_length, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, jmag_loss_list, femm_loss_list, power_factor, total_loss        
-        if results_to_be_unpacked is not None:
-            if self.fig_main is not None:
-                try:
-                    self.fig_main.savefig(self.output_dir + spmsm_variant.name + 'results.png', dpi=150)
-                except Exception as e:
-                    print(e)
-                    print('\n\n\nIgnore error and continue.')
-                finally:
-                    utility.pyplot_clear(self.axeses)
-            # show()
-            return spmsm_variant 
-        else:
-            raise Exception('results_to_be_unpacked is None.')
 
     def fea_bearingless_induction(self, im_template, x_denorm, counter, counter_loop):
         logger = logging.getLogger(__name__)
@@ -1436,7 +1366,7 @@ class FEA_Solver:
         ################################################################
         # Load data for cost function evaluation
         ################################################################
-        im_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, im_variant, self.project_name, tran2tss_study_name, self.dir_csv_output_folder, self.fea_config_dict, self.femm_solver, machine_type='IM')
+        im_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, im_variant, self.project_name, tran2tss_study_name, self.dir_csv_output_folder, self.fea_config_dict, self.femm_solver)
         if results_to_be_unpacked is not None:
             if self.fig_main is not None:
                 try:
@@ -1607,9 +1537,11 @@ class FEA_Solver:
         app.View().ShowModel() # 1st btn. close mesh view, and note that mesh data will be deleted if only ouput table results are selected.
 
 class acm_designer(object):
-    def __init__(self, fea_config_dict, spec_input_dict, spec, output_dir, select_spec, select_fea_config_dict):
+    def __init__(self, fea_config_dict, spec_input_dict, output_dir, select_spec, select_fea_config_dict, acm_template=None, spec=None):
 
         self.spec = spec
+        self.acm_template = acm_template
+
         self.solver = FEA_Solver(fea_config_dict, spec_input_dict)
         self.fea_config_dict = fea_config_dict
 
@@ -1625,7 +1557,8 @@ class acm_designer(object):
     # Automatic Performance Evaluation (This is just a wraper)
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def evaluate_design(self, acm_template, x_denorm, counter=999, counter_loop=1):
-        # print(dir(acm_template))
+        # print(acm_template.name)
+        # quit()
         if 'SM' in acm_template.name:
             # function = self.solver.fea_bearingless_spmsm
             function = self.solver.fea_wrapper
@@ -1657,7 +1590,7 @@ class acm_designer(object):
         rated_windage_loss, \
         str_results = motor_design_variant.results_to_be_unpacked
 
-        motor_design_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
+        # motor_design_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
         spec_performance_dict = dict()
         spec_performance_dict['cost_function'] = cost_function
@@ -1684,13 +1617,22 @@ class acm_designer(object):
         spec_performance_dict['rated_windage_loss'] = rated_windage_loss
         spec_performance_dict['str_results'] = str_results
 
+        GP = motor_design_variant.template.d['GP']
+        OP = motor_design_variant.template.d['OP']
+
+        OP['wily'] = None # wily is not json serilizable, so is recordtype type acmop_parameters
+        GP_as_dict = [val._asdict() for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
+
         big_dict = dict()
         with open(self.output_dir + self.select_spec + '.json', 'a') as f:
             big_dict[self.select_spec+f'-gen{number_current_generation}-ind{individual_index}'] = {
-                'Inputs'      :         acm_template.spec_input_dict,
-                'Derived'     :            self.spec.spec_derive_dict,
-                'Geometry'    : motor_design_variant.spec_geometry_dict,
-                'Performance' :                      spec_performance_dict
+                'Inputs'       :         motor_design_variant.template.spec_input_dict,
+                'x_denorm_dict':         motor_design_variant.template.get_x_denorm_dict_from_geometric_parameters(GP),
+                'Geometric Parameters':  GP_as_dict,
+                'Other Properties':      OP,
+                'Performance' :          spec_performance_dict
+                # 'Derived'     :            self.spec.spec_derive_dict,
+                # 'Geometry'    : motor_design_variant.spec_geometry_dict,
             }
             f.write(',\n')
             json.dump(big_dict, f, indent=4)
