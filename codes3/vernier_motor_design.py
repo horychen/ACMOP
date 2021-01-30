@@ -1,19 +1,23 @@
 import inner_rotor_motor, pyrhonen_procedure_as_function
+import logging
 from collections import OrderedDict
 from utility import acmop_parameter
 from pylab import np
-import logging
+from pprint import pprint
 
 import CrossSectVShapeConsequentPoleRotor
 import CrossSectStator
 import Location2D
 
 def derive_mm_w_pm(GP,SD):
-    GP["mm_w_pm"].value = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(['deg_alpha_vspm']) - GP['mm_d_pm'].value * np.tan(['deg_alpha_vspm'])
+    GP["mm_w_pm"].value = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(GP['deg_alpha_vspm'].value) - GP['mm_d_pm'].value * np.tan(GP['deg_alpha_vspm'].value)
     return GP["mm_w_pm"].value
 
 class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numbers):
     def __init__(self, fea_config_dict=None, spec_input_dict=None):
+        # 初始化父类
+        super(vernier_motor_VShapePM_template, self).__init__(fea_config_dict, spec_input_dict)
+
         # 基本信息
         self.machine_type = 'PMVM'
         self.name = '__PMVM'
@@ -29,17 +33,19 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
             "mm_d_bg_magnet"    : acmop_parameter("free",     "magnet_bridge_depth_to_magnet", None, [None, None], lambda GP,SD:None),
             "mm_w_pm"           : acmop_parameter("derived",  "magnet_width",                  None, [None, None], lambda GP,SD:derive_mm_w_pm(GP,SD)),
         })
-        self.d.update( {"GP": childGP} )
+        # self.d.update( {"GP": childGP} ) # this will cause issue of different passed GP and self.d['GP']. See !!!pass or !!!self
         GP.update(childGP)
 
         # Get Analytical Design
         self.ModifiedBianchi2006(fea_config_dict, SD, GP, OP)
 
         # 定义搜索空间，determine bounds
-        self.bounds_denorm = self.define_search_space(GP)
+        original_template_neighbor_bounds = self.get_template_neighbor_bounds(GP, SD)        
+        self.bounds_denorm = self.define_search_space(GP, original_template_neighbor_bounds)
 
         # Template's Other Properties (Shared by the swarm)
         OP = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SD)
+
 
     def ModifiedBianchi2006(self, fea_config_dict, SD, GP, OP):
 
@@ -66,20 +72,25 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
 
         split_ratio = 0.5 # refer to 2020-MLMS-0953@Fig. 5
-        rotor_outer_radius_r_or = pyrhonen_procedure_as_function.eric_specify_tip_speed_get_radius(SD['tip_speed'], speed_rpm)
-        rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
-        sleeve_length = 0.5
-        stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SD['minimum_mechanical_air_gap_length_mm'])*1e-3 # m (sleeve 3 mm, air gap 0.75 mm)
+        stator_inner_radius_r_is = stator_outer_radius_r_os * split_ratio
         stator_inner_diameter_Dis = stator_inner_radius_r_is*2
-        split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
 
+        mm_sleeve_length = 0.5
+        mm_airgap_plus_sleeve_length = SD['minimum_mechanical_air_gap_length_mm'] + mm_sleeve_length
+
+        rotor_outer_radius_r_or = stator_inner_radius_r_is  - mm_airgap_plus_sleeve_length*1e-3 # m 
+        rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
+
+        # Bianchi2006@(1)--(3)
         stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*SD['p'])
         stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
         stator_slot_height_h_ss = stator_tooth_height_h_ds
         stator_tooth_width_b_ds = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* SD['Qs'])
 
+        # Bianchi2006@(4)
         OP['stator_slot_area'] = stator_slot_area = np.pi/(4*SD['Qs']) * ((stator_outer_diameter_Dse - 2*stator_yoke_height_h_ys)**2 - stator_inner_diameter_Dis**2) - stator_tooth_width_b_ds * stator_tooth_height_h_ds
 
+        # Bianchi2006@(5)
         slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / SD['Qs']
         kov = 1.8 # \in [1.6, 2.0]
         OP['end_winding_length_Lew'] = end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (SD['coil_pitch_y'] - 1)
@@ -97,7 +108,7 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         GP['mm_d_sy'].value              = 1e3*stator_yoke_height_h_ys # mm
         GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
         # ROTOR
-        GP['mm_d_sleeve'].value          = sleeve_length
+        GP['mm_d_sleeve'].value          = mm_sleeve_length
         GP['mm_d_fixed_air_gap'].value   = SD['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
         GP['mm_d_pm'].value              = 4  # mm
@@ -108,15 +119,16 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         GP["deg_alpha_vspm"].value       = 20.3
         GP["mm_d_bg_air"].value          = 1.5
         GP["mm_d_bg_magnet"].value       = 1.5
-        GP["mm_w_pm"].value              = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(['deg_alpha_vspm']) - GP['mm_d_pm'].value * np.tan(['deg_alpha_vspm'])
+        GP["mm_w_pm"].value              = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(GP['deg_alpha_vspm'].value) - GP['mm_d_pm'].value * np.tan(GP['deg_alpha_vspm'].value)
 
-    def get_template_neighbor_bounds(self):
-        Q = self.SD['Qs']
-        p = self.SD['p']
-        pr = self.SD['pr']
+    def get_template_neighbor_bounds(self, GP, SD):
+        # # these two are different, why?
+        # print('!!!pass:', GP)
+        # print('!!!self:', self.d['GP'])
 
-        GP = self.d['GP']
-
+        Q = SD['Qs']
+        p = SD['p']
+        pr = SD['pr']
         original_template_neighbor_bounds = {
             # STATOR
             "deg_alpha_st": [ 0.35*360/Q, 0.9*360/Q],

@@ -1498,20 +1498,20 @@ class desgin_specification(object):
         rotor_outer_radius_r_or = stator_inner_radius_r_is  - 0.75*1e-3 # m (sleeve 0 mm, air gap 0.75 mm)
         rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
 
-        # Binder06@(1)--(3)
+        # Bianchi2006@(1)--(3)
         stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*self.p)
         stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
         stator_slot_height_h_ss = stator_tooth_height_h_ds
         stator_tooth_width_b_ds = air_gap_flux_density_B *pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* self.Qs)
 
-        # Binder06@(4)
+        # Bianchi2006@(4)
         stator_slot_area = pi/(4*self.Qs) * ((stator_outer_diameter_Dse - 2*stator_yoke_height_h_ys)**2 - stator_inner_diameter_Dis**2) - stator_tooth_width_b_ds * stator_tooth_height_h_ds
         print('stator_slot_area [mm^2]:', stator_slot_area*1e6)
 
         if fea_config_dict is not None:
             wily = winding_layout_v2(spec_input_dict['DPNV_or_SEPA'], self.Qs, self.p, self.ps, self.coil_pitch_y)
 
-        # Binder06@(5)
+        # Bianchi2006@(5)
         slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / self.Qs
         kov = 1.8 # \in [1.6, 2.0]
         end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (wily.coil_pitch_y - 1)
@@ -1701,26 +1701,33 @@ def get_stator_phase_current_rms(SD):
     stator_phase_current_rms = SD['mec_power'] / (no_phase_m*SD['guess_efficiency']*stator_phase_voltage_rms*SD['guess_power_factor'])
     return stator_phase_current_rms
 
-def get_mm_stack_length(SD):
+def get_mm_template_stack_length(SD, rotor_outer_radius_r_or):
+
+    if SD['TangentialStress'] is None:
+        print('[pyrhonen_procedure_as_function.py] TangentialStress is not specified, so the stack length of the tempalte is not estimated. Return 100 mm instead.')
+        return 100 # 100 mm
 
     speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
-    rotor_outer_radius_r_or = eric_specify_tip_speed_get_radius(SD['tip_speed'], speed_rpm)
+    # rotor_outer_radius_r_or = eric_specify_tip_speed_get_radius(SD['tip_speed'], speed_rpm)
     required_torque = SD['mec_power']/(2*np.pi*speed_rpm)*60
     rotor_volume_Vr = required_torque/(2*SD['TangentialStress'])
     m_stack_length = rotor_volume_Vr / (np.pi * rotor_outer_radius_r_or**2)
     return 1e3*m_stack_length # m -> mm
 
-def get_zQ(SD, number_winding_layer, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
+def get_zQ(SD, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
 
     stator_phase_voltage_rms = SD['VoltageRating'] / np.sqrt(3)
     desired_emf_Em = 0.95 * stator_phase_voltage_rms 
 
     if SD['DPNV_or_SEPA'] is None:
-        number_parallel_branch = SD['number_parallel_branch']
+        # Regular Motor Winding
+        number_parallel_branch = wily.number_parallel_branch
     else:
         if SD['DPNV_or_SEPA']:
+            # DPNV
             number_parallel_branch = 2
         else:
+            # Separate
             number_parallel_branch = 1
     speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
 
@@ -1730,7 +1737,7 @@ def get_zQ(SD, number_winding_layer, stator_inner_diameter_Dis, rotor_outer_diam
         kw1 = 1
         print(f'[zQ] coil_pitch_y={SD["coil_pitch_y"]}, kw1={kw1}')
     else:
-        if number_winding_layer == 1:
+        if wily.number_winding_layer == 1:
             # full pitch - easy
             coil_span_W = pole_pitch_tau_p
         else: 
@@ -1750,7 +1757,7 @@ def get_zQ(SD, number_winding_layer, stator_inner_diameter_Dis, rotor_outer_diam
     # guess_air_gap_flux_density_B = 0.9 # T
     guess_air_gap_flux_density_B = SD['guess_air_gap_flux_density_B']
 
-    mm_stack_length = get_mm_stack_length(SD)
+    mm_stack_length = get_mm_template_stack_length(SD, rotor_outer_diameter_Dr/2)
     air_gap_length_delta = 0.5*(stator_inner_diameter_Dis - rotor_outer_diameter_Dr)
     # print(stator_inner_diameter_Dis, rotor_outer_diameter_Dr, air_gap_length_delta)
     # quit()

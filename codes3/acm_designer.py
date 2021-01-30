@@ -1,18 +1,11 @@
 from time import time as clock_time
 from pylab import plt, np
-import os
-import win32com.client
-import logging
+import os, logging, win32com.client, json
 import utility, utility_json
-import pyrhonen_procedure_as_function
-import population
-import FEMM_Solver
+import population, FEMM_Solver, pyrhonen_procedure_as_function
 
 # BPMSM codes
-import bearingless_spmsm_design
-import JMAG
-
-import json
+import JMAG, bearingless_spmsm_design, vernier_motor_design
 
 class swarm_data_container(object):
     def __init__(self, swarm_data_raw, fea_config_dict, swarm_data_json):
@@ -1576,11 +1569,13 @@ class acm_designer(object):
     def evaluate_design(self, acm_template, x_denorm, counter=999, counter_loop=1):
         # print(acm_template.name)
         # quit()
-        if 'SM' in acm_template.name:
+        if 'PM' in acm_template.name:
             # function = self.solver.fea_bearingless_spmsm
             function = self.solver.fea_wrapper
-        else:
+        elif 'IM' in acm_template.name:
             function = self.solver.fea_bearingless_induction
+        else:
+            raise Exception(f'{acm_template.name} is not regognized as a valid machine type.')
 
         return function(acm_template, x_denorm, counter, counter_loop)
 
@@ -1646,6 +1641,7 @@ class acm_designer(object):
             'p': wily.p,
             'ps': wily.ps,
             'pr': wily.pr,
+            'SPP': wily.SPP,
         }
         list_of_GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
         for parameter_key_val_pair in list_of_GP_as_dict:

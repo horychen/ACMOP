@@ -102,9 +102,8 @@ class template_machine_as_numbers(object):
 
     ''' 初始化，定义优化
     '''
-    def define_search_space(self, GP):
+    def define_search_space(self, GP, original_template_neighbor_bounds):
         # 定义搜索空间，determine bounds
-        original_template_neighbor_bounds = self.get_template_neighbor_bounds()
         self.bounds_denorm = []
         for key, val in original_template_neighbor_bounds.items():
             parameter = GP[key]
@@ -121,13 +120,13 @@ class template_machine_as_numbers(object):
             # WINDING Layout
             OP['wily'] = wily = winding_layout.winding_layout_v2(SD['DPNV_or_SEPA'], SD['Qs'], SD['p'], SD['ps'], SD['coil_pitch_y'])
             # STACK LENGTH
-            OP['mm_stack_length'] = pyrhonen_procedure_as_function.get_mm_stack_length(SD) # mm TODO:
+            OP['mm_template_stack_length'] = pyrhonen_procedure_as_function.get_mm_template_stack_length(SD, GP['mm_r_or'].value*1e03) # mm TODO:
             OP['mm_mechanical_air_gap_length'] = SD['minimum_mechanical_air_gap_length_mm']
             # THERMAL Properties
             OP['Js']                = SD['Js'] # Arms/mm^2 im_OP['Js'] 
             OP['fill_factor']       = SD['space_factor_kCu'] # im_OP['fill_factor'] 
             # MOTOR Winding Excitation Properties
-            OP['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SD, wily.number_winding_layer, GP['mm_r_si'].value*2*1e-3, GP['mm_r_or'].value*2*1e-3) # TODO:
+            OP['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SD, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_or'].value*2*1e-3) # TODO:
             OP['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SD) # TODO:
             OP['DriveW_Freq']       = SD['ExcitationFreqSimulated']
             OP['DriveW_Rs']         = 1.0 # TODO: Must be greater than zero to let JMAG work
@@ -139,7 +138,7 @@ class template_machine_as_numbers(object):
     '''
     def get_rotor_volume(self, stack_length=None):
         if stack_length is None:
-            return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (self.d['OP']['mm_stack_length']*1e-3)
+            return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (self.d['OP']['mm_template_stack_length']*1e-3)
         else:
             return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (stack_length*1e-3)
     def get_rotor_weight(self, gravity=9.8, stack_length=None):
@@ -247,7 +246,7 @@ class variant_machine_as_objects(object):
             # self.Js                = spmsm_template.Js 
             # self.fill_factor       = spmsm_template.fill_factor 
 
-            # self.template.d['OP']['mm_stack_length']      = spmsm_template.stack_length 
+            # self.template.d['OP']['mm_template_stack_length']      = spmsm_template.stack_length 
 
         # #04 Material Condutivity Properties
         # if self.template.fea_config_dict is not None:
@@ -536,7 +535,7 @@ class variant_machine_as_objects(object):
         wily = OP['wily']
         study.GetStudyProperties().SetValue("ConversionType", 0)
         study.GetStudyProperties().SetValue("NonlinearMaxIteration", self.template.fea_config_dict['designer.max_nonlinear_iteration'])
-        study.GetStudyProperties().SetValue("ModelThickness", OP['mm_stack_length']) # [mm] Stack Length
+        study.GetStudyProperties().SetValue("ModelThickness", OP['mm_template_stack_length']) # [mm] Stack Length
 
         # Material
         self.add_material(study)

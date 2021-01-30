@@ -1,3 +1,4 @@
+import pywintypes
 import builtins
 if hasattr(builtins, 'ad'):
     print('[Problem_BlessSyn] Global variable ad is shared between modules as we cannot pass new argument to udp class.')
@@ -82,6 +83,11 @@ class Problem_BearinglessSynchronousDesign(object):
                 f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
                 # utility.send_notification(ad.solver.fea_config_dict['pc_name'] + '\n\nExceptionBadNumberOfParts:' + str(error) + '\n'*3)
                 break
+
+            except pywintypes.com_error as error:
+                print(error)
+                print('The call to JMAG has failed. Restart?')
+                raise error
 
             except Exception as error:
                 # if ad.bool_re_evaluate == True:

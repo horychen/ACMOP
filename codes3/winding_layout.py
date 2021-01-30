@@ -19,7 +19,7 @@ class winding_layout_v2(object):
 
         # number of phase
         m = 3
-        if p % m == 0 or ps % m == 0:
+        if p % m == 0 or (ps is not None and ps % m == 0):
             if DPNV_or_SEPA is not None:
                 print('Warning: asymmetric suspension winding for DPNV.')
 
@@ -416,49 +416,49 @@ class winding_layout_v2(object):
                                      'layer Y phases': self.layer_Y_phases, 'layer Y signs':self.layer_Y_signs}   # 这里的命名规则是按照seprate winding的情况来的。
 
 
-        # ACMDM: motor mode and suspension mode
-        if self.number_winding_layer == 1: # this is equivalent to separate winding for now
-            self.list_layer_motor_phases      = [self.layer_X_phases]
-            self.list_layer_motor_signs       = [self.layer_X_signs]
-            self.list_layer_suspension_phases = [self.layer_Y_phases]
-            self.list_layer_suspension_signs  = [self.layer_Y_signs]
-
-        elif self.number_winding_layer == 2: # this is equivalent to combined winding for now
-            self.list_layer_motor_phases      = [self.layer_X_phases, self.layer_Y_phases] #??? 这有啥用？？？
-            self.list_layer_motor_signs       = [self.layer_X_signs, self.layer_Y_signs]
-            self.list_layer_suspension_phases = self.list_layer_motor_phases[::]
-            suspension_layer_X_signs = [(el if ac==0 else ('-' if el == '+' else '+')) for el, ac in zip(self.layer_X_signs, self.grouping_AC)]
-            self.list_layer_suspension_signs  = [ suspension_layer_X_signs, 
-                                                  infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(suspension_layer_X_signs, self.coil_pitch_y)]
-        else:
-            raise Exception('Invalid number_winding_layer.')
-
-        # save for winding function analysis
+        # ACMDM: motor mode and suspension mode (ACMDM is the initiative my first try to clean up the code, which has been aborted)
         self.DPNV_or_SEPA = DPNV_or_SEPA
         self.Qs = Qs
         self.p = p
         self.m = 3
         self.SPP = self.Qs / (2*self.p * self.m)
-        self.ox_distribution_three_phase = []
-        for phases, signs in zip(self.list_layer_motor_phases, self.list_layer_motor_signs):
-            temp = [phase+sign for phase, sign in zip(phases, signs)]
-            self.ox_distribution_three_phase = temp if self.ox_distribution_three_phase == [] else [a+b for a,b in zip(self.ox_distribution_three_phase, temp)]
-        def replace_uvw_with_ox(string, UVW):
-            string = string.replace(UVW+'+', 'x')
-            string = string.replace(UVW+'-', 'o')
-            return string
-        def replace_uvw_with_empty_string(string, UVW):
-            string = string.replace(UVW+'+', '')
-            string = string.replace(UVW+'-', '')
-            return string
-        self.ox_distribution_phase_U = [replace_uvw_with_ox(el, 'U') for el in self.ox_distribution_three_phase]
-        self.ox_distribution_phase_U = [replace_uvw_with_empty_string(el, 'V') for el in self.ox_distribution_phase_U]
-        self.ox_distribution_phase_U = [replace_uvw_with_empty_string(el, 'W') for el in self.ox_distribution_phase_U]
-        # print(self.ox_distribution_three_phase)
-        # print(self.ox_distribution_phase_U)
-
         self.ps = ps
         self.pr = pr
+        if DPNV_or_SEPA is not None:
+            if self.number_winding_layer == 1: # this is equivalent to separate winding for now
+                self.list_layer_motor_phases      = [self.layer_X_phases]
+                self.list_layer_motor_signs       = [self.layer_X_signs]
+                self.list_layer_suspension_phases = [self.layer_Y_phases]
+                self.list_layer_suspension_signs  = [self.layer_Y_signs]
+
+            elif self.number_winding_layer == 2: # this is equivalent to combined winding for now
+                self.list_layer_motor_phases      = [self.layer_X_phases, self.layer_Y_phases] #??? 这有啥用？？？
+                self.list_layer_motor_signs       = [self.layer_X_signs, self.layer_Y_signs]
+                self.list_layer_suspension_phases = self.list_layer_motor_phases[::]
+                suspension_layer_X_signs = [(el if ac==0 else ('-' if el == '+' else '+')) for el, ac in zip(self.layer_X_signs, self.grouping_AC)]
+                self.list_layer_suspension_signs  = [ suspension_layer_X_signs, 
+                                                      infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(suspension_layer_X_signs, self.coil_pitch_y)]
+            else:
+                raise Exception('Invalid number_winding_layer.')
+
+            # save for winding function analysis
+            self.ox_distribution_three_phase = []
+            for phases, signs in zip(self.list_layer_motor_phases, self.list_layer_motor_signs):
+                temp = [phase+sign for phase, sign in zip(phases, signs)]
+                self.ox_distribution_three_phase = temp if self.ox_distribution_three_phase == [] else [a+b for a,b in zip(self.ox_distribution_three_phase, temp)]
+            def replace_uvw_with_ox(string, UVW):
+                string = string.replace(UVW+'+', 'x')
+                string = string.replace(UVW+'-', 'o')
+                return string
+            def replace_uvw_with_empty_string(string, UVW):
+                string = string.replace(UVW+'+', '')
+                string = string.replace(UVW+'-', '')
+                return string
+            self.ox_distribution_phase_U = [replace_uvw_with_ox(el, 'U') for el in self.ox_distribution_three_phase]
+            self.ox_distribution_phase_U = [replace_uvw_with_empty_string(el, 'V') for el in self.ox_distribution_phase_U]
+            self.ox_distribution_phase_U = [replace_uvw_with_empty_string(el, 'W') for el in self.ox_distribution_phase_U]
+            # print(self.ox_distribution_three_phase)
+            # print(self.ox_distribution_phase_U)
 
 # if __name__ == '__main__':
 #     wily = winding_layout_v2(DPNV_or_SEPA=True, Qs=24, p=2, ps=1, coil_pitch=6)

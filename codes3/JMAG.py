@@ -60,7 +60,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                     app = win32com.client.Dispatch('designer.Application.181')
                     # app = win32com.client.gencache.EnsureDispatch('designer.Application.171')
                 except:
-                    raise Exception('No JMAG Designer is found.')
+                    raise Exception('No JMAG Designer 17 or 18 is found in this PC.')
             if self.fea_config_dict['designer.Show'] == True:
                 if self.hide_or_show == True:
                     app.Show()
