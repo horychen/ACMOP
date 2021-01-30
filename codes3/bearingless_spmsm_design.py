@@ -27,10 +27,10 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         SD = self.SD
         childGP = OrderedDict({
             # SPMSM Peculiar
-            "deg_alpha_rm"      : acmop_parameter("free",      "magnet_pole_span_angle",        None, [None, None], lambda :None),
-            "mm_d_rp"           : acmop_parameter("free",      "inter_polar_iron_thickness",    None, [None, None], lambda :None),
-            "deg_alpha_rs"      : acmop_parameter("free" if SD['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None], lambda :None),
-            "mm_d_rs"           : acmop_parameter("free" if SD['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None], lambda :None),
+            "deg_alpha_rm"      : acmop_parameter("free",      "magnet_pole_span_angle",        None, [None, None], lambda GP,SD:None),
+            "mm_d_rp"           : acmop_parameter("free",      "inter_polar_iron_thickness",    None, [None, None], lambda GP,SD:None),
+            "deg_alpha_rs"      : acmop_parameter("free" if SD['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None], lambda GP,SD:None),
+            "mm_d_rs"           : acmop_parameter("free" if SD['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None], lambda GP,SD:None),
         })
         GP.update(childGP)
 
@@ -145,7 +145,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],                
             # ROTOR
             "mm_d_sleeve":  [3,   6],
-            "split_ratio":  [0.2, 0.6], # Binder-2020-MLMS-0953@Fig.7
+            "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             "mm_d_pm":      [2.5, 7],
             "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],                              
             # SPMSM specific
@@ -256,7 +256,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
         # 不合理的变量选择（mm_d_rp）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
         if GP['mm_d_rp'].value > GP['mm_d_pm'].value:
             GP['mm_d_rp'].value            = GP['mm_d_pm'].value
-            free_variables[11] = free_variables[6]
+            # free_variables[11] = free_variables[6]
 
             msg = '[Warning from bearingless_spmsm_design.py]: Inter-pole notch depth mm_d_rp cannot be larger than mm_d_pm or else the sleeve cannot really hold or even touch the PM. So mm_d_rp is set to mm_d_pm.'
             print(msg)
@@ -265,7 +265,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
         # 不合理的变量选择（mm_d_rs）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
         if GP['mm_d_rs'].value > GP['mm_d_pm'].value:
             GP['mm_d_rs'].value            = GP['mm_d_pm'].value
-            free_variables[12] = free_variables[6]
+            # free_variables[12] = free_variables[6]
 
             msg = '[Warning from bearingless_spmsm_design.py]: Inter-segment notch depth mm_d_rs cannot be larger than mm_d_pm or else the sleeve cannot really hold or even touch the PM. So mm_d_rs is set to mm_d_pm.'
             print(msg)

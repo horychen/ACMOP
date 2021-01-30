@@ -1647,21 +1647,29 @@ class acm_designer(object):
             'ps': wily.ps,
             'pr': wily.pr,
         }
-        GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
+        list_of_GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
+        for parameter_key_val_pair in list_of_GP_as_dict:
+            print('DEBUG', parameter_key_val_pair)
+            for key, val in parameter_key_val_pair.items():
+                val['calc'] = None # function .calc cannot be serialized 
 
         big_dict = dict()
         with open(self.output_dir + self.select_spec + '.json', 'a') as f:
             big_dict[self.select_spec+f'-gen{number_current_generation}-ind{individual_index}'] = {
                 'Inputs'       :         motor_design_variant.template.spec_input_dict,
                 'x_denorm_dict':         motor_design_variant.template.get_x_denorm_dict_from_geometric_parameters(GP),
-                'Geometric Parameters':  GP_as_dict,
+                'Geometric Parameters':  list_of_GP_as_dict,
                 'Other Properties':      OP,
                 'Performance' :          spec_performance_dict
                 # 'Derived'     :            self.spec.spec_derive_dict,
                 # 'Geometry'    : motor_design_variant.spec_geometry_dict,
             }
             f.write(f',\n"{counter}":')
-            json.dump(big_dict, f, indent=4)
+            try:
+                json.dump(big_dict, f, indent=4)
+            except Exception as e:
+                print(f'[Warning] You might need to clean up .json data file yourself at {self.output_dir}\n'*3)
+                raise e
 
         utility_json.to_json_recursively(motor_design_variant, motor_design_variant.name, save_here=self.output_dir+'jsonpickle/')
 

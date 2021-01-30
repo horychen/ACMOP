@@ -347,7 +347,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                     for i in range(popsize):
                         # print(path_to_archive, ':', swarm_data_on_pareto_front[i][::-1])
                         pop.set_xf(i, swarm_data_on_pareto_front[i][:-3], swarm_data_on_pareto_front[i][-3:])
-                    print('Old pop:')
+                    print('[acmop.py] Old pop:')
                     print(pop)
 
                 # Restarting feature related codes
@@ -359,10 +359,10 @@ class AC_Machine_Optiomization_Wrapper(object):
                             if i < number_of_chromosome: #number_of_finished_chromosome_in_current_generation:
                                 pop.set_xf(i, ad.solver.swarm_data[i][:-3], ad.solver.swarm_data[i][-3:])
                             else:
-                                print('Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
+                                print('[acmop.py] Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
                                 ad.flag_do_not_evaluate_when_init_pop = False
-                                print('Calling pop.set_x()---this is a restart for individual#%d during pop initialization.'%(i))
-                                print(i, 'get_fevals:', prob.get_fevals())
+                                print('[acmop.py] Calling pop.set_x()---this is a restart for individual#%d during pop initialization.'%(i))
+                                print('[acmop.py]', i, 'get_fevals:', prob.get_fevals())
                                 pop.set_x(i, pop_array[i]) # evaluate this guy
 
                     else:
@@ -382,13 +382,13 @@ class AC_Machine_Optiomization_Wrapper(object):
 
                 # case 2-A: swarm_data.txt does not exist and this is a whole new run.
                 if not self.fea_config_dict['bool_re_evaluate_wo_csv']:
-                    print('Nothing exists in swarm_data.txt.\nThis is a whole new run.')
+                    print('[acmop.py] Nothing exists in swarm_data.txt.\nThis is a whole new run.')
                     ad.flag_do_not_evaluate_when_init_pop = False
                     pop = pg.population(prob, size=popsize)
 
                 # case 2-B: swarm_data.txt does not exist and this is a re-evalation run (without csv)
                 else:
-                    print('Nothing exists in swarm_data.txt.\nRe-start from %s'%(path_to_archive))
+                    print('[acmop.py] Nothing exists in swarm_data.txt.\nRe-start from %s'%(path_to_archive))
                     ad.flag_do_not_evaluate_when_init_pop = True
                     pop = pg.population(prob, size=popsize)
                     # read in swarm data from another older run's archive and start from it!

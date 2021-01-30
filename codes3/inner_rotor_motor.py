@@ -7,21 +7,39 @@ from time import time as clock_time
 from collections import OrderedDict
 
 def derive_mm_r_si(GP,SD):
-    # depends on d_sy and r_os
-    # GP['mm_r_si'].value = GP['mm_r_os'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_sp'].value; return GP['mm_r_si'].value
-    # depends on r_or and r_os
-    GP['mm_r_si'].value = GP['mm_r_os'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_sp'].value; return GP['mm_r_si'].value
+    # (option 1) depends on split_ratio and r_os
+    GP       ['mm_r_si'].value = GP['mm_r_os'].value * GP['split_ratio'].value
+    return GP['mm_r_si'].value
+        # (option 2) depends on d_sy (which is bad, as d_sy is also derived) and r_os
+        # GP['mm_r_si'].value = GP['mm_r_os'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_sp'].value
+        # return GP['mm_r_si'].value
+
 def derive_deg_alpha_so(GP,SD):
     # this allows a square tooth tip, or else the tooth tip might be pointy
-    GP['deg_alpha_so'].value = GP['deg_alpha_st'].value/2; return GP['deg_alpha_so'].value
+    GP       ['deg_alpha_so'].value = GP['deg_alpha_st'].value/2
+    return GP['deg_alpha_so'].value
+
 def derive_mm_d_sp(GP,SD):
-    GP['mm_d_sp'].value = 1.5*GP['mm_d_so'].value; return GP['mm_d_sp'].value
+    GP       ['mm_d_sp'].value = 1.5*GP['mm_d_so'].value
+    return GP['mm_d_sp'].value
+
 def derive_mm_d_sy(GP,SD):
-    return mm_d_sy
+    GP       ['mm_d_sy'].value = GP['mm_r_os'].value - GP['mm_r_si'].value - GP['mm_d_st'].value - GP['mm_d_sp'].value
+    return GP['mm_d_sy'].value
+
 def derive_mm_r_or(GP,SD):
-    return mm_r_or
+    GP       ['mm_r_or'].value = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_fixed_air_gap'].value
+    return GP['mm_r_or'].value
+
 def derive_mm_r_ri(GP,SD):
-    return mm_r_ri
+    GP       ['mm_r_ri'].value = GP['mm_r_or'].value - GP['mm_d_pm'].value - GP['mm_d_ri'].value
+    if GP    ['mm_r_ri'].value<=0:
+        print()
+        print(GP       ['mm_r_ri'].value, GP['mm_r_or'].value , GP['mm_d_pm'].value , GP['mm_d_ri'].value)
+        print('背铁太厚了！split_ration太小了！')
+        print()
+    return GP['mm_r_ri'].value 
+
 class template_machine_as_numbers(object):
     ''' # template 有点类似analytical的电机（由几何尺寸组成）
     '''
@@ -170,14 +188,15 @@ class template_machine_as_numbers(object):
         # Update Derived Parameters
         for key, parameter in self.d['GP'].items():
             if parameter.type == 'derived':
-                parameter.value = None # 防止搞错依赖项，先全部清空
-                print(parameter)
-        print()
+                # print(parameter)
+                parameter.value = None # 先全部清空，防止编写derive时搞错依赖项关系，更新顺序是有先后的，后面的derived parameter 可以利用前面的derived parameter的值。
+        # print()
         for key, parameter in self.d['GP'].items():
             if parameter.type == 'derived':
                 parameter.value = parameter.calc(self.d['GP'], self.SD)
-                print(parameter)
-        quit()
+                # print(parameter)
+                if parameter.value<=0:
+                    raise Exception('Error: Negative derived parameter', str(parameter))
         return self.d['GP']
 
 class variant_machine_as_objects(object):

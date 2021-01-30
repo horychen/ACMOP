@@ -8,8 +8,9 @@ import CrossSectVShapeConsequentPoleRotor
 import CrossSectStator
 import Location2D
 
-# template 有点类似analytical的电机（由几何尺寸组成）
-# variant则有点像是具体的电机实现类（由各个局部类，比如转子、定子等组成）
+def derive_mm_w_pm(GP,SD):
+    GP["mm_w_pm"].value = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(['deg_alpha_vspm']) - GP['mm_d_pm'].value * np.tan(['deg_alpha_vspm'])
+    return GP["mm_w_pm"].value
 
 class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numbers):
     def __init__(self, fea_config_dict=None, spec_input_dict=None):
@@ -23,10 +24,10 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         SD = self.SD
         childGP = OrderedDict({
             # Vernier specific
-            "deg_alpha_vspm"    : acmop_parameter("free",     "v-shape_magnet_tilt_angle",     None, [None, None], lambda :None),
-            "mm_d_bg_air"       : acmop_parameter("free",     "magnet_bridge_depth_to_air",    None, [None, None], lambda :None),
-            "mm_d_bg_magnet"    : acmop_parameter("free",     "magnet_bridge_depth_to_magnet", None, [None, None], lambda :None),
-            "mm_w_pm"           : acmop_parameter("derived",  "magnet_width",                  None, [None, None], lambda :None),
+            "deg_alpha_vspm"    : acmop_parameter("free",     "v-shape_magnet_tilt_angle",     None, [None, None], lambda GP,SD:None),
+            "mm_d_bg_air"       : acmop_parameter("free",     "magnet_bridge_depth_to_air",    None, [None, None], lambda GP,SD:None),
+            "mm_d_bg_magnet"    : acmop_parameter("free",     "magnet_bridge_depth_to_magnet", None, [None, None], lambda GP,SD:None),
+            "mm_w_pm"           : acmop_parameter("derived",  "magnet_width",                  None, [None, None], lambda GP,SD:derive_mm_w_pm(GP,SD)),
         })
         self.d.update( {"GP": childGP} )
         GP.update(childGP)
@@ -107,7 +108,7 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         GP["deg_alpha_vspm"].value       = 20.3
         GP["mm_d_bg_air"].value          = 1.5
         GP["mm_d_bg_magnet"].value       = 1.5
-        GP["mm_w_pm"].value              = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / cos(alpha_pm) - GP['mm_d_pm'].value * tan(alpha_pm)
+        GP["mm_w_pm"].value              = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(['deg_alpha_vspm']) - GP['mm_d_pm'].value * np.tan(['deg_alpha_vspm'])
 
     def get_template_neighbor_bounds(self):
         Q = self.SD['Qs']
