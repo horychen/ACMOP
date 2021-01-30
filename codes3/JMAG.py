@@ -43,6 +43,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         #     os.rename(self.output_dir+'swarm_MOO_log.txt', self.output_dir+'swarm_MOO_log_backup.txt')
         # open(self.output_dir+'swarm_MOO_log.txt', 'a').close()
 
+
+        #   File "C:\Users\horyc\Anaconda3\lib\site-packages\win32com\client\dynamic.py", line 527, in __getattr__
+        #     raise AttributeError("%s.%s" % (self._username_, attr))
+        # AttributeError: designer.Application.171.Hide
+        # 减少对app.Hide的调用，初始默认是Hide
+        self.hide_or_show = True
+
     def open(self, expected_project_file_path):
         if self.app is None:
             try:
@@ -55,9 +62,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 except:
                     raise Exception('No JMAG Designer is found.')
             if self.fea_config_dict['designer.Show'] == True:
-                app.Show()
+                if self.hide_or_show == True:
+                    app.Show()
+                    self.hide_or_show = False
             else:
-                app.Hide()
+                if self.hide_or_show == False:
+                    app.Hide()
+                    self.hide_or_show = True
             # app.Quit()
             self.app = app # means that the JMAG Designer is turned ON now.
 

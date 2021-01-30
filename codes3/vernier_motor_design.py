@@ -147,6 +147,8 @@ class vernier_motor_VShapePM_design_variant(inner_rotor_motor.variant_machine_as
         SD = self.template.SD
         self.check_invalid_design(GP, SD)
 
+        quit()
+
         # Parts
         self.rotorCore = CrossSectVShapeConsequentPoleRotor.CrossSectVShapeConsequentPoleRotor(
                             name = 'NotchedRotor',
