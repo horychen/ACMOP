@@ -1,5 +1,5 @@
 from pylab import np, cos, sin
-EPS = 1e-3 # [mm]
+from utility import EPS
 
 # pole_slot_combinations = {
 #     0: ("fixed", "p",   "torque_pole_pair_number", None),
@@ -349,8 +349,8 @@ if __name__ == '__main__':
     expected_project_file_path = f"./{project_name}.jproj"
     toolJd.open(expected_project_file_path)
 
-    # %% Define cross sections
-    notched_rotor = CrossSectInnerNotchedRotor( name = 'NotchedRotor',
+    # Rotor core
+    notched_rotor = CrossSectVShapeConsequentPoleRotor( name = 'NotchedRotor',
                                                 color = '#FE840E',
                                                 deg_alpha_rm = 60,
                                                 deg_alpha_rs = 10,
@@ -362,7 +362,6 @@ if __name__ == '__main__':
                                                 s = 4, # Set magnet segments/pole to 4
                                                 location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
                                                 )
-
     list_regions = notched_rotor.draw(toolJd)
     toolJd.bMirror = False
     toolJd.iRotateCopy = notched_rotor.pr*2
@@ -373,7 +372,6 @@ if __name__ == '__main__':
     #                                               color = '#0E001E',
     #                                               notched_rotor = notched_rotor
     #                                             )
-
     # list_regions = notched_magnet.draw(toolJd)
     # toolJd.bMirror = False
     # toolJd.iRotateCopy = notched_rotor.p*2
