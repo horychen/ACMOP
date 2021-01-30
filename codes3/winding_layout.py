@@ -11,18 +11,40 @@ def infer_Y_layer_grpAC_from_X_layer_and_coil_pitch_y(grouping_AC, coil_pitch):
     # [3, 4, 5, 6, 7, 8, 0, 1, 2]
 
 class winding_layout_v2(object):
-    def __init__(self, DPNV_or_SEPA, Qs, p, ps, coil_pitch_y=None):
-
-        # Naming convention:
+    def __init__(self, DPNV_or_SEPA, Qs, p, ps=None, coil_pitch_y=None, pr=None):
+        ''' Naming convention:
         # right layer = 1st layer = X layer = torque layer for separate winding
         # left layer  = 2nd layer = Y layer = suspension layer for separate winding
-        m = 3 # number of phase
-        if p % 3 == 0 or ps % m == 0:
-            print('Warning: asymmetric suspension winding for DPNV.')
+        '''
 
-        #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-        # separate winding
-        #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+        # number of phase
+        m = 3
+        if p % m == 0 or ps % m == 0:
+            if DPNV_or_SEPA is not None:
+                print('Warning: asymmetric suspension winding for DPNV.')
+
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    # Regular Motor Winding
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+        if DPNV_or_SEPA is None \
+        and Qs == 12 \
+        and p == 2 \
+        and coil_pitch_y == 3:
+
+            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
+            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
+            self.coil_pitch_y   = coil_pitch_y
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+            self.number_parallel_branch = 1
+            self.number_winding_layer   = 2
+
+            self.bool_3PhaseCurrentSource = True
+
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    # Separate Winding for Bearingless Motor
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         if DPNV_or_SEPA == False \
         and Qs == 24 \
         and p == 2 \
@@ -67,9 +89,9 @@ class winding_layout_v2(object):
             self.CommutatingSequenceD = 0 # D stands for Drive winding (i.e., torque winding)
             self.CommutatingSequenceB = 0 # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
 
-        #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-        # combined winding
-        #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    # Combined Winding for Bearingless Motor
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 
         if DPNV_or_SEPA == True \
         and Qs == 36 \
@@ -434,6 +456,9 @@ class winding_layout_v2(object):
         self.ox_distribution_phase_U = [replace_uvw_with_empty_string(el, 'W') for el in self.ox_distribution_phase_U]
         # print(self.ox_distribution_three_phase)
         # print(self.ox_distribution_phase_U)
+
+        self.ps = ps
+        self.pr = pr
 
 # if __name__ == '__main__':
 #     wily = winding_layout_v2(DPNV_or_SEPA=True, Qs=24, p=2, ps=1, coil_pitch=6)

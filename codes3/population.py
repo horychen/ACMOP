@@ -5893,9 +5893,9 @@ class TrimDrawer(object):
 def add_M1xSteel(app, dir_parent, steel_name="M-19 Steel Gauge-29"):
 
     if '19' in steel_name:
-        BH = np.loadtxt(dir_parent + './M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1)) # after JMAG smooth, it beomces HB rather than BH
+        BH = np.loadtxt(dir_parent + '../BH/M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1)) # after JMAG smooth, it beomces HB rather than BH
     elif '15' in steel_name:
-        BH = np.loadtxt(dir_parent + './M-15-Steel-BH-Curve.txt', unpack=True, usecols=(0,1))
+        BH = np.loadtxt(dir_parent + '../BH/M-15-Steel-BH-Curve.txt', unpack=True, usecols=(0,1))
 
 
     app.GetMaterialLibrary().CreateCustomMaterial(steel_name, "Custom Materials")

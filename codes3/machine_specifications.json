@@ -6,9 +6,7 @@
         {
             "machine_type":                        "PMVM",
             "DPNV_or_SEPA":                            null,
-            "number_parallel_branch":              1,
-            "number_winding_layer":                2,
-            "minimum_mechanical_air_gap_length_mm": 0.75,
+            "minimum_mechanical_air_gap_length_mm": 0.10,
             "m":                                   3,
             "Qs":                                  12,
             "p":                                   2,
@@ -44,7 +42,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -83,7 +80,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -122,7 +118,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -160,7 +155,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -200,7 +194,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -240,7 +233,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -278,7 +270,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -316,7 +307,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -355,7 +345,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -393,7 +382,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -432,7 +420,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -470,7 +457,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -508,7 +494,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -546,7 +531,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -584,7 +568,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -622,7 +605,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -661,7 +643,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,
@@ -700,7 +681,6 @@
     {
         "Inputs":
         {
-                        "number_winding_layer":                2,
                         "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_B":          0.9,
             "guess_stator_tooth_flux_density_B_ds":1.5,

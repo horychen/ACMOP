@@ -78,7 +78,7 @@ import main_utility
 # import winding_layout, PyX_Utility, math
 
 # part_initialDesign
-import pyrhonen_procedure_as_function, acm_designer, bearingless_spmsm_design
+import pyrhonen_procedure_as_function, acm_designer, bearingless_spmsm_design, vernier_motor_design
 global ad
 
 @dataclass
@@ -106,6 +106,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         4. Update this file with new "select_spec".
         '''
         self.output_dir, self.spec_input_dict, self.fea_config_dict = main_utility.load_settings(self.select_spec, self.select_fea_config_dict, self.project_loc)
+        self.fea_config_dict['designer.Show']=False
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[1] Winding Part (Can be skipped)'
@@ -181,9 +182,9 @@ class AC_Machine_Optiomization_Wrapper(object):
     # '[2] Initial Design Part'
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def part_initialDesign(self):
-        if 'PM' in self.select_spec:
+        if 'PMSM' in self.select_spec:
             function = bearingless_spmsm_design.bearingless_spmsm_template
-        elif 'VM' in self.select_spec:
+        elif 'PMVM' in self.select_spec:
             function = vernier_motor_design.vernier_motor_VShapePM_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
@@ -257,7 +258,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         ad.counter_fitness_return = 0
         __builtins__.ad = ad # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable
         import codes3.Problem_BearinglessSynchronousDesign # must import this after __builtins__.ad = ad
-        print('[acmop.py]', __builtins__.ad)
+        # print('[acmop.py]', __builtins__.ad)
 
         ################################################################
         # MOO Step 1:
@@ -289,7 +290,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
             # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
             print('[acmop.py] Check swarm_data.txt...')
-            number_of_chromosome = ad.solver.read_swarm_data()
+            number_of_chromosome = ad.solver.read_swarm_data(self.select_spec)
 
             # case 1: swarm_data.txt exists
             if number_of_chromosome is not None:
@@ -398,15 +399,15 @@ class AC_Machine_Optiomization_Wrapper(object):
             # this flag must be false to move on
             ad.flag_do_not_evaluate_when_init_pop = False
 
-        print('-'*40, '\nPop is initialized:\n', pop)
+        print('[acmop.py]', '-'*40, '\nPop is initialized:\n', pop)
         hv = pg.hypervolume(pop)
         quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
-        print('quality_measure: %g'%(quality_measure))
+        print('[acmop.py] quality_measure: %g'%(quality_measure))
         # raise KeyboardInterrupt
 
         # 初始化以后，pop.problem.get_fevals()就是popsize，但是如果大于popsize，说明“pop.set_x(i, pop_array[i]) # evaluate this guy”被调用了，说明还没输出过 survivors 数据，那么就写一下。
         if pop.problem.get_fevals() > popsize:
-            print('Write survivors.')
+            print('[acmop.py] Write survivors.')
             ad.solver.write_swarm_survivor(pop, ad.counter_fitness_return)
 
 
@@ -421,7 +422,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                                      CR=1, F=0.5, eta_m=20, 
                                      realb=0.9, 
                                      limit=2, preserve_diversity=True)) # https://esa.github.io/pagmo2/docs/python/algorithms/py_algorithms.html#pygmo.moead
-        print('-'*40, '\n', algo)
+        print('[acmop.py]', '-'*40, '\n', algo)
         # quit()
 
         ################################################################
@@ -429,7 +430,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         #   Begin optimization
         ################################################################
         # [4.3.4] Begin optimization
-        number_of_chromosome = ad.solver.read_swarm_data(ad.bound_filter)
+        number_of_chromosome = ad.solver.read_swarm_data(self.select_spec)
         number_of_finished_iterations = number_of_chromosome // popsize
         number_of_iterations = 20
         logger = logging.getLogger(__name__)
@@ -437,7 +438,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         if True:
             for _ in range(number_of_finished_iterations, number_of_iterations):
                 ad.number_of
-                msg = 'This is iteration #%d. '%(_)
+                msg = '[acmop.py] This is iteration #%d. '%(_)
                 print(msg)
                 logger.info(msg)
                 pop = algo.evolve(pop)
@@ -448,7 +449,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                 hv = pg.hypervolume(pop)
                 quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
                 msg += 'Quality measure by hyper-volume: %g'% (quality_measure)
-                print(msg)
+                print('[acmop.py]', msg)
                 logger.info(msg)
                 
                 utility_moo.my_print(ad, pop, _)

@@ -53,7 +53,7 @@ class Problem_BearinglessSynchronousDesign(object):
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \
                 force_error_angle = \
-                    ad.evaluate_design_json_wrapper(ad.spec.acm_template, x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
+                    ad.evaluate_design_json_wrapper(ad.acm_template, x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
 
                 # remove folder .jfiles to save space (we have to generate it first in JMAG Designer to have field data and voltage profiles)
                 if ad.solver.folder_to_be_deleted is not None and os.path.isdir(ad.solver.folder_to_be_deleted):

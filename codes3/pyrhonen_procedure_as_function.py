@@ -1710,7 +1710,7 @@ def get_mm_stack_length(SD):
     m_stack_length = rotor_volume_Vr / (np.pi * rotor_outer_radius_r_or**2)
     return 1e3*m_stack_length # m -> mm
 
-def get_zQ(SD, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
+def get_zQ(SD, number_winding_layer, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
 
     stator_phase_voltage_rms = SD['VoltageRating'] / np.sqrt(3)
     desired_emf_Em = 0.95 * stator_phase_voltage_rms 
@@ -1730,7 +1730,7 @@ def get_zQ(SD, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
         kw1 = 1
         print(f'[zQ] coil_pitch_y={SD["coil_pitch_y"]}, kw1={kw1}')
     else:
-        if SD['number_winding_layer'] == 1:
+        if number_winding_layer == 1:
             # full pitch - easy
             coil_span_W = pole_pitch_tau_p
         else: 

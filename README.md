@@ -1,11 +1,11 @@
-# bopt-python
+# ACMOP
 
-> bearingless optimization python
+> Alternating Current Machine Optimization Project
 
 ## Requirements:
 
 - anaconda3 (Anaconda3-2020.02-Windows-x86_64.exe with python 3.7.6)
-> If using newer version of anaconda3 after 2020.02, pacakge pygmo might not work, as far as I know.
+> If you use newer version of anaconda3 after 2020.02, pacakge pygmo might not work, as far as I know.
 
 - pygmo:
     - conda config --add channels conda-forge
@@ -17,6 +17,15 @@
 
 ## Features
 - Restartable. Upon interrupts, this program is able to re-start from the file "swarm_data.txt" of the current run (or even from a different run).
+
+- Obtian the machine_design_variant python object after the optimization.
+```
+# Recover a design from its jsonpickle-object file
+# cd to where __p2ps1-Q12y3-0001.json is located.
+import sys; sys.path.insert(0, r'D:\DrH\acmop\codes3')
+import utility_json; variant = utility_json.from_json_recursively('p2ps1-Q12y3-0001')
+variant.build_jmag_project(variant.project_meta_data)
+```
 
 ## TODO
 
@@ -70,3 +79,10 @@
 
 - More raw data should be added to json file. For example, the cost of steel, cost of PM and cost of copper.
 - There is a bug when building x_denorm of the initial design of induction motor, where the stator yoke depth is negative (the original stator outer radius is smaller than the computed one).
+
+- [TODO] Iron loss must use half cycle FFT as one fourth cycle could be wrong.
+
+- [TODO] Restarting optimziation with constaints applied.
+
+- [TODO] Double check winding's initial excitation position.
+

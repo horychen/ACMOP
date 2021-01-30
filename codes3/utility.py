@@ -4,6 +4,10 @@ import datetime
 import itertools
 import angle_error_nick
 
+from recordtype import recordtype
+acmop_parameter = recordtype('acmop_parameter', 'type, name, value, bounds')
+EPS = 1e-2 # unit: mm
+
 def my_execfile(filename, g=None, l=None):
     # g=globals(), l=locals()
     exec(compile(open(filename, "rb").read(), filename, 'exec'), g, l)

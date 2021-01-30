@@ -15,7 +15,7 @@ import JMAG
 import json
 
 class swarm_data_container(object):
-    def __init__(self, swarm_data_raw, fea_config_dict):
+    def __init__(self, swarm_data_raw, fea_config_dict, swarm_data_json):
 
         self.swarm_data_raw = swarm_data_raw
         self.fea_config_dict = fea_config_dict
@@ -32,49 +32,49 @@ class swarm_data_container(object):
         self.RatedVol = []
         self.RatedWeight = []
         self.RatedStkLen = []
+        #IM 
+            # if len(bound_filter) == 9: # This is induction motor
+            #     for raw in swarm_data_raw:
 
-        # if len(bound_filter) == 9: # This is induction motor
-        #     for raw in swarm_data_raw:
+            #         design_parameters_denorm = [float(x) for x in raw[5].split(',')]
+            #         # print(design_parameters_denorm, len(design_parameters_denorm))
+            #         # quit()
 
-        #         design_parameters_denorm = [float(x) for x in raw[5].split(',')]
-        #         # print(design_parameters_denorm, len(design_parameters_denorm))
-        #         # quit()
+            #         loc1 = raw[2].find('f1')
+            #         loc2 = raw[2].find('f2')
+            #         loc3 = raw[2].find('f3')
+            #         f1 = float(raw[2][loc1+3:loc2-1])
+            #         f2 = float(raw[2][loc2+3:loc3-1])
+            #         f3 = float(raw[2][loc3+3:])
 
-        #         loc1 = raw[2].find('f1')
-        #         loc2 = raw[2].find('f2')
-        #         loc3 = raw[2].find('f3')
-        #         f1 = float(raw[2][loc1+3:loc2-1])
-        #         f2 = float(raw[2][loc2+3:loc3-1])
-        #         f3 = float(raw[2][loc3+3:])
+            #         x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
+            #         self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
+            #         # print(self.swarm_data_xf)
+            #         # quit()
 
-        #         x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
-        #         self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
-        #         # print(self.swarm_data_xf)
-        #         # quit()
+            #         self.project_names.append(raw[1][:-1])
+            #         self.machine_data.append([float(x) for x in raw[3].split(',')])
+            #         self.rated_data.append(  [float(x) for x in raw[4].split(',')])
 
-        #         self.project_names.append(raw[1][:-1])
-        #         self.machine_data.append([float(x) for x in raw[3].split(',')])
-        #         self.rated_data.append(  [float(x) for x in raw[4].split(',')])
+            #         individual_Trip = [float(x) for x in raw[3].split(',')][3]
+            #         self.Trip.append(individual_Trip)
 
-        #         individual_Trip = [float(x) for x in raw[3].split(',')][3]
-        #         self.Trip.append(individual_Trip)
-
-        #         # Get FRW
-        #         individual_ss_avg_force_magnitude = [float(x) for x in raw[3].split(',')][4]
-        #         individual_Em                     = [float(x) for x in raw[3].split(',')][5]
-        #         individual_Ea                     = [float(x) for x in raw[3].split(',')][6]
-        #         individual_rated_rotor_volume     = [float(x) for x in raw[4].split(',')][9]
-        #         individual_rated_rotor_weight     = (individual_rated_rotor_volume*8050*9.8)
-        #         individual_rated_stack_length     = [float(x) for x in raw[4].split(',')][10]
-        #         individual_original_stack_length  = [float(x) for x in raw[4].split(',')][11]
-        #         individual_original_rotor_weight  = individual_rated_rotor_weight/individual_rated_stack_length*individual_original_stack_length
-        #         individual_FRW = individual_ss_avg_force_magnitude/individual_original_rotor_weight
-        #         self.FRW.append(individual_FRW)
-        #         self.Em.append(individual_Em)
-        #         self.Ea.append(individual_Ea)
-        #         self.RatedVol.append(individual_rated_rotor_volume)
-        #         self.RatedWeight.append(individual_rated_rotor_weight)
-        #         self.RatedStkLen.append(individual_rated_stack_length)
+            #         # Get FRW
+            #         individual_ss_avg_force_magnitude = [float(x) for x in raw[3].split(',')][4]
+            #         individual_Em                     = [float(x) for x in raw[3].split(',')][5]
+            #         individual_Ea                     = [float(x) for x in raw[3].split(',')][6]
+            #         individual_rated_rotor_volume     = [float(x) for x in raw[4].split(',')][9]
+            #         individual_rated_rotor_weight     = (individual_rated_rotor_volume*8050*9.8)
+            #         individual_rated_stack_length     = [float(x) for x in raw[4].split(',')][10]
+            #         individual_original_stack_length  = [float(x) for x in raw[4].split(',')][11]
+            #         individual_original_rotor_weight  = individual_rated_rotor_weight/individual_rated_stack_length*individual_original_stack_length
+            #         individual_FRW = individual_ss_avg_force_magnitude/individual_original_rotor_weight
+            #         self.FRW.append(individual_FRW)
+            #         self.Em.append(individual_Em)
+            #         self.Ea.append(individual_Ea)
+            #         self.RatedVol.append(individual_rated_rotor_volume)
+            #         self.RatedWeight.append(individual_rated_rotor_weight)
+            #         self.RatedStkLen.append(individual_rated_stack_length)
         # else: # This is PM motor
         if True:
             # self.swarm_data_raw = swarm_data_raw
@@ -96,7 +96,7 @@ class swarm_data_container(object):
             self.deg_alpha_st = []
             self.mm_w_st = []
             self.mm_r_si = []
-            for raw in self.swarm_data_raw:
+            for raw, key in zip(self.swarm_data_raw, swarm_data_json.keys()):
 
                 # spmsm_template.design_parameters = [
                 #                                   0 spmsm_template.deg_alpha_st 
@@ -128,7 +128,6 @@ class swarm_data_container(object):
                 self.mm_w_st.append(     design_parameters_denorm[7] )
                 self.mm_r_si.append(   design_parameters_denorm[2])
 
-
                 loc1 = raw[2].find('f1')
                 loc2 = raw[2].find('f2')
                 loc3 = raw[2].find('f3')
@@ -136,7 +135,18 @@ class swarm_data_container(object):
                 f2 = float(raw[2][loc2+3:loc3-1])
                 f3 = float(raw[2][loc3+3:])
 
-                x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
+                # print(swarm_data_json[key])
+                # print('DBU', list(swarm_data_json[key].keys()))
+                # print('DBU', list(swarm_data_json[key].values()))
+
+                the_variant_dict = list(swarm_data_json[key].values())
+                x_denorm = list( the_variant_dict[0]['x_denorm_dict'].values() )
+                # x_denorm = [val for val in list(swarm_data_json[key].values())['x_denorm_dict'].items()]
+                # print(x_denorm)
+                # quit()
+
+                # x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm)
+
                 # print(design_parameters_denorm, f1, f2, f3)
                 # THERE IS A BUT HERE: slot_tip_open_ratio is less than 0.2---Not possible
                     # free_variables[0]  = design_parameters[0] # spmsm_template.deg_alpha_st 
@@ -752,17 +762,17 @@ class FEA_Solver:
             f.write('\n---------%d\n'%(counter_fitness_return) \
                     + '\n'.join(','.join('%.16f'%(x) for x in el[0].tolist() + el[1].tolist() ) for el in zip(pop.get_x(), pop.get_f()) )) # convert 2d array to string
 
-    def read_swarm_data(self, read_from_here=None):
+    def read_swarm_data(self, select_spec, read_from_here=None):
         if read_from_here is not None:
             self.output_dir = read_from_here
-        print(self.output_dir + 'swarm_data.txt')
+        print('[acm_designer.py]', self.output_dir + 'swarm_data.txt')
         if not os.path.exists(self.output_dir + 'swarm_data.txt'):
             msg = '\tNo file @ ' + self.output_dir + 'swarm_data.txt'
             print(msg)
             # raise Exception(msg)
             return None
 
-        print('\tRead in', self.output_dir + 'swarm_data.txt')
+        print('[acm_designer.py]', '\tRead in', self.output_dir + 'swarm_data.txt')
         with open(self.output_dir + 'swarm_data.txt', 'r') as f:
             buf = f.readlines()
             buf = buf[1:]
@@ -778,12 +788,19 @@ class FEA_Solver:
                 return None
 
             self.swarm_data_raw = [buf[i:i+21] for i in range(0, len(buf), 21)]
-            self.swarm_data_container = swarm_data_container(self.swarm_data_raw, self.fea_config_dict)
-            self.swarm_data = self.swarm_data_container.swarm_data_xf
-            # for el in self.swarm_data:
-            #     print(el)
-            # quit()
-            return int(number_of_chromosome)
+
+        with open(self.output_dir + select_spec+'.json', 'r') as f:
+            # skip the first line
+            for _ in range(1): next(f)
+            buf = f.read()
+            self.swarm_data_json = json.loads('{\n' + buf + '\n}')
+
+        self.swarm_data_container = swarm_data_container(self.swarm_data_raw, self.fea_config_dict, self.swarm_data_json)
+        self.swarm_data = self.swarm_data_container.swarm_data_xf
+        # for el in self.swarm_data:
+        #     print(el)
+        # quit()
+        return int(number_of_chromosome)
 
             # while True:
             #     try:
@@ -1620,8 +1637,17 @@ class acm_designer(object):
         GP = motor_design_variant.template.d['GP']
         OP = motor_design_variant.template.d['OP']
 
-        OP['wily'] = None # wily is not json serilizable, so is recordtype type acmop_parameters
-        GP_as_dict = [val._asdict() for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
+        # wily is not json serilizable, so is recordtype type acmop_parameters
+        wily = OP['wily']
+        OP['wily'] = {
+            'dict_coil_connection': wily.dict_coil_connection,
+            'Qs': wily.Qs,
+            'coil_pitch_y': wily.coil_pitch_y,
+            'p': wily.p,
+            'ps': wily.ps,
+            'pr': wily.pr,
+        }
+        GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
 
         big_dict = dict()
         with open(self.output_dir + self.select_spec + '.json', 'a') as f:
@@ -1634,10 +1660,12 @@ class acm_designer(object):
                 # 'Derived'     :            self.spec.spec_derive_dict,
                 # 'Geometry'    : motor_design_variant.spec_geometry_dict,
             }
-            f.write(',\n')
+            f.write(f',\n"{counter}":')
             json.dump(big_dict, f, indent=4)
 
         utility_json.to_json_recursively(motor_design_variant, motor_design_variant.name, save_here=self.output_dir+'jsonpickle/')
+
+        OP['wily'] = wily
 
         # return motor_design_variant
 
