@@ -1,5 +1,12 @@
-import inner_rotor_motor
+import inner_rotor_motor, pyrhonen_procedure_as_function
 from collections import OrderedDict
+from utility import acmop_parameter
+from pylab import np
+import logging
+
+import CrossSectVShapeConsequentPoleRotor
+import CrossSectStator
+import Location2D
 
 # template 有点类似analytical的电机（由几何尺寸组成）
 # variant则有点像是具体的电机实现类（由各个局部类，比如转子、定子等组成）
@@ -10,83 +17,30 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         self.machine_type = 'PMVM'
         self.name = '__PMVM'
 
-        # 仿真输入
-        self.fea_config_dict = fea_config_dict
-        self.spec_input_dict = spec_input_dict
-        self.SD = SD = spec_input_dict # short name
-
         # 初始化搜索空间
-        childGP = OrderedDict({
-            # Vernier specific
-            "deg_alpha_vspm"    : acmop_parameter("free",     "v-shape_magnet_tilt_angle",     None, [None, None]),
-            "mm_d_bg_air"       : acmop_parameter("free",     "magnet_bridge_depth_to_air",    None, [None, None]),
-            "mm_d_bg_magnet"    : acmop_parameter("free",     "magnet_bridge_depth_to_magnet", None, [None, None]),
-        })
-        self.d.update( {"GP": childGP} )
-
-        # all in one place
-        self.d = {
-            "which_filter": fea_config_dict['which_filter'],
-            "GP": geometric_parameters,
-            "OP": OrderedDict()
-        }
-
-        if 'FixedSleeveLength' in self.d['which_filter']:
-            self.d['GP']['mm_d_sleeve'].type = "fixed"
-        elif 'VariableSleeveLength' in self.d['which_filter']:
-            self.d['GP']['mm_d_sleeve'].type = "free"
-        else:
-            raise Exception('Not defined', self.d['which_filter'])
-
-        # Get Analytical Design
-        self.ModifiedBianchi2006(fea_config_dict, SD)
-
-        # 定义搜索空间，determine bounds
-        original_template_neighbor_bounds = self.get_template_neighbor_bounds()
-        self.bounds_denorm = []
-        for key, val in original_template_neighbor_bounds.items():
-            parameter = self.d['GP'][key]
-            parameter.bounds = val
-            if parameter.type == 'free':
-                self.bounds_denorm.append(val)
-        print(f'[template] BOUNDS_denorm {len(self.bounds_denorm)}', self.bounds_denorm)
-
-        # debug
-        # from pprint import pprint
-        # for key, val in self.d['GP'].items():
-        #     if val.type=='free':
-        #         print(key, '\t', val)
-        # print('--------------------')
-        # for key, val in self.d['GP'].items():
-        #     if val.type!='free':
-        #         print(key, '\t', val)
-        # quit()
-
-        # Template's Other Properties (Shared by the swarm)
-        OP = self.d['OP']
-        if True:
-            # WINDING Layout
-            OP['wily'] = wily = winding_layout.winding_layout_v2(SD['DPNV_or_SEPA'], SD['Qs'], SD['p'], SD['ps'], SD['coil_pitch_y'])
-            # STACK LENGTH
-            OP['mm_stack_length'] = pyrhonen_procedure_as_function.get_mm_stack_length(SD) # mm TODO:
-            OP['mm_mechanical_air_gap_length'] = SD['minimum_mechanical_air_gap_length_mm']
-            # THERMAL Properties
-            OP['Js']                = SD['Js'] # Arms/mm^2 im_OP['Js'] 
-            OP['fill_factor']       = SD['space_factor_kCu'] # im_OP['fill_factor'] 
-            # MOTOR Winding Excitation Properties
-            OP['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SD, self.d['GP']['mm_r_si'].value*2*1e-3, self.d['GP']['mm_r_or'].value*2*1e-3) # TODO:
-            OP['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SD) # TODO:
-            OP['DriveW_Freq']       = SD['ExcitationFreqSimulated']
-            OP['DriveW_Rs']         = 1.0 # TODO: Must be greater than zero to let JMAG work
-            OP['DriveW_poles']      = SD['p']*2
-        # self.d.update( {"OP": OP} )
-
-    def ModifiedBianchi2006(self, fea_config_dict, spec_input_dict):
-        # ease of writing
-        template = self
         GP = self.d['GP']
         OP = self.d['OP']
-        SD = spec_input_dict
+        SD = self.SD
+        childGP = OrderedDict({
+            # Vernier specific
+            "deg_alpha_vspm"    : acmop_parameter("free",     "v-shape_magnet_tilt_angle",     None, [None, None], lambda :None),
+            "mm_d_bg_air"       : acmop_parameter("free",     "magnet_bridge_depth_to_air",    None, [None, None], lambda :None),
+            "mm_d_bg_magnet"    : acmop_parameter("free",     "magnet_bridge_depth_to_magnet", None, [None, None], lambda :None),
+            "mm_w_pm"           : acmop_parameter("derived",  "magnet_width",                  None, [None, None], lambda :None),
+        })
+        self.d.update( {"GP": childGP} )
+        GP.update(childGP)
+
+        # Get Analytical Design
+        self.ModifiedBianchi2006(fea_config_dict, SD, GP, OP)
+
+        # 定义搜索空间，determine bounds
+        self.bounds_denorm = self.define_search_space(GP)
+
+        # Template's Other Properties (Shared by the swarm)
+        OP = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SD)
+
+    def ModifiedBianchi2006(self, fea_config_dict, SD, GP, OP):
 
         air_gap_flux_density_B = SD['guess_air_gap_flux_density_B']
         # air_gap_flux_density_B = 0.9
@@ -142,7 +96,7 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         GP['mm_d_sy'].value              = 1e3*stator_yoke_height_h_ys # mm
         GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
         # ROTOR
-        GP['mm_d_sleeve'].value          = 2 # 3 # mm
+        GP['mm_d_sleeve'].value          = sleeve_length
         GP['mm_d_fixed_air_gap'].value   = SD['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
         GP['mm_d_pm'].value              = 4  # mm
@@ -153,7 +107,7 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         GP["deg_alpha_vspm"].value       = 20.3
         GP["mm_d_bg_air"].value          = 1.5
         GP["mm_d_bg_magnet"].value       = 1.5
-
+        GP["mm_w_pm"].value              = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / cos(alpha_pm) - GP['mm_d_pm'].value * tan(alpha_pm)
 
     def get_template_neighbor_bounds(self):
         Q = self.SD['Qs']
@@ -175,89 +129,67 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
             "mm_d_pm":      [2.5, 7],
             "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],                              
             # Vernier Specific
-            "deg_alpha_vspm"    : [10, 40],
+            "deg_alpha_vspm"    : [10, 40], # TODO Should be related to pr
             "mm_d_bg_air"       : [1, 5],
             "mm_d_bg_magnet"    : [1, 5],
         }
         return original_template_neighbor_bounds
 
-    def get_rotor_volume(self, stack_length=None):
-        if stack_length is None:
-            return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (self.d['OP']['mm_stack_length']*1e-3)
-        else:
-            return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (stack_length*1e-3)
+class vernier_motor_VShapePM_design_variant(inner_rotor_motor.variant_machine_as_objects):
 
-    def get_rotor_weight(self, gravity=9.8, stack_length=None):
-        material_density_rho = pyrhonen_procedure_as_function.get_material_data()[0]
-        if stack_length is None:
-            return gravity * self.get_rotor_volume() * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
-        else:
-            return gravity * self.get_rotor_volume(stack_length=stack_length) * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
+    def __init__(self, template=None, x_denorm=None, counter=None, counter_loop=None):
+        # 初始化父类
+        super(vernier_motor_VShapePM_design_variant, self).__init__(template, x_denorm, counter, counter_loop)
 
-    def build_x_denorm(self):
-        # design_parameters = build_design_parameters_list(GP, SD) # those member variables are defined in Pyrhonen's procedure
+        # 检查几何变量之间是否有冲突
+        GP = self.template.d['GP']
+        SD = self.template.SD
+        self.check_invalid_design(GP, SD)
 
-        GP = self.d['GP']
+        # Parts
+        self.rotorCore = CrossSectVShapeConsequentPoleRotor.CrossSectVShapeConsequentPoleRotor(
+                            name = 'NotchedRotor',
+                            mm_d_pm      = GP['mm_d_pm'].value,
+                            deg_alpha_rm = GP['deg_alpha_rm'].value, # angular span of the pole: class type DimAngular
+                            deg_alpha_rs = GP['deg_alpha_rs'].value, # segment span: class type DimAngular
+                            mm_d_ri      = GP['mm_d_ri'].value, # rotor iron thickness: class type DimLinear
+                            mm_r_ri      = GP['mm_r_ri'].value, # inner radius of rotor: class type DimLinear
+                            mm_d_rp      = GP['mm_d_rp'].value, # interpolar iron thickness: class type DimLinear
+                            mm_d_rs      = GP['mm_d_rs'].value, # inter segment iron thickness: class type DimLinear
+                            p = template.SD['p'], # Set pole-pairs to 2
+                            s = template.SD['no_segmented_magnets'], # Set magnet segments/pole to 4
+                            location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0))
 
-        self.x_denorm_dict = self.get_x_denorm_dict_from_geometric_parameters(GP)
+        self.shaft = CrossSectVShapeConsequentPoleRotor.CrossSectShaft(name = 'Shaft',
+                                                      notched_rotor = self.rotorCore
+                                                    )
 
-        x_denorm = [val for key, val in self.x_denorm_dict.items()]
-        if False:
-            from pprint import pprint
-            pprint(x_denorm_dict)
-            pprint(x_denorm)
-            pprint(GP)
-            quit()
-        return x_denorm
+        self.rotorMagnet = CrossSectVShapeConsequentPoleRotor.CrossSectInnerNotchedMagnet( name = 'RotorMagnet',
+                                                      notched_rotor = self.rotorCore
+                                                    )
 
-    def build_design_parameters_list(self):
-        GP = self.d['GP']
-        SD = self.SD
-        # obsolete feature
-        design_parameters = [
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0, #'mm_r_st',
-            0.0, #'mm_r_sf',
-            0.0, #'mm_r_sb',
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
-            ]
-        return design_parameters
+        self.stator_core = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
+                                            deg_alpha_st = GP['deg_alpha_st'].value, #40,
+                                            deg_alpha_so = GP['deg_alpha_so'].value, #20,
+                                            mm_r_si = GP['mm_r_si'].value,
+                                            mm_d_so = GP['mm_d_so'].value,
+                                            mm_d_sp = GP['mm_d_sp'].value,
+                                            mm_d_st = GP['mm_d_st'].value,
+                                            mm_d_sy = GP['mm_d_sy'].value,
+                                            mm_w_st = GP['mm_w_st'].value,
+                                            mm_r_st = 0.0, # =0
+                                            mm_r_sf = 0.0, # =0
+                                            mm_r_sb = 0.0, # =0
+                                            Q = template.SD['Qs'],
+                                            location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
+                                            )
 
-    def get_x_denorm_dict_from_geometric_parameters(self, GP):
-        x_denorm_dict = OrderedDict()
-        for key, parameter in GP.items():
-            if parameter.type == 'free':
-                x_denorm_dict[key] = parameter.value
-        return x_denorm_dict
-    def get_x_denorm_dict_from_x_denorm_list(self, x_denorm):
-        # 先拿个模板来，但是几何尺寸的变量值是旧的
-        x_denorm_dict = self.get_x_denorm_dict_from_geometric_parameters(self.d['GP'])
+        self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
+                                                    stator_core = self.stator_core)
 
-        # 对模板进行遍历，挨个把新的几何尺寸的值从x_denorm中读取出来并更新x_denorm_dict
-        for key, new_val in zip(x_denorm_dict.keys(), x_denorm):
-            x_denorm_dict[key] = new_val
-        return x_denorm_dict
+        #03 Mechanical Parameters
+        self.update_mechanical_parameters()
 
-    def update_geometric_parametes_using_x_denorm_dict(self, x_denorm_dict):
-        for key, val in x_denorm_dict.items():
-            self.d['GP'][key].value = val
-        return self.d['GP']
+    def check_invalid_design(self, GP, SD):
+        pass
 

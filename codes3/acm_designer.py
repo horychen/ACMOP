@@ -830,8 +830,8 @@ class FEA_Solver:
         else:
             raise Exception('Not supported machine_type:', template.machine_type)
         self.variant = variant = function(
-                        spmsm_template=template,
-                        x_denorm=None,
+                        template=template,
+                        x_denorm=x_denorm,
                         counter=counter,
                         counter_loop=counter_loop
                     )

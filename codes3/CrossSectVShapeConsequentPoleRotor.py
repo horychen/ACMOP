@@ -1,24 +1,24 @@
 from pylab import np, cos, sin
 EPS = 1e-3 # [mm]
 
-pole_slot_combinations = {
-    0: ("fixed", "p",   "torque_pole_pair_number", None),
-    1: ("fixed", "ps",  "suspension_pole_pair_number", None),
-    2: ("fixed", "pr",  "rotor_pole_pair_number", None),
-}
-rotor_geometric_parameters = {
-    "pr": ("fixed", "rotor_pole_pair_number",              "pr",           10),
-    0: ("free",  "air_bridge_depth",                    "mm_d_bg_air",  1.5),
-    1: ("free",  "magnet_bridge_depth",                 "mm_d_bg_magnet", 5),
-    2: ("free",  "magnet_depth",                        "mm_d_pm",      9.4),
-    3: ("free",  "magnet_rotation",                     "deg_alpha_pm", 20.3),
-    4: ("free",  "rotor_outer_radius",                  "mm_r_or",      129.8),
-    5: ("free",  "rotor_inter_radius",                  "mm_r_ir",      84.6),    
-    6: ("free",  "rotor_inner_depth (back-iron depth)", "mm_d_ri",      15.86),
-    7: ("derived", "magnet_width"                     , "mm_w_pm",      None)
-}
+# pole_slot_combinations = {
+#     0: ("fixed", "p",   "torque_pole_pair_number", None),
+#     1: ("fixed", "ps",  "suspension_pole_pair_number", None),
+#     2: ("fixed", "pr",  "rotor_pole_pair_number", None),
+# }
+# rotor_geometric_parameters = {
+#     "pr": ("fixed", "rotor_pole_pair_number",              "pr",           10),
+#     0: ("free",  "air_bridge_depth",                    "mm_d_bg_air",  1.5),
+#     1: ("free",  "magnet_bridge_depth",                 "mm_d_bg_magnet", 5),
+#     2: ("free",  "magnet_depth",                        "mm_d_pm",      9.4),
+#     3: ("free",  "magnet_rotation",                     "deg_alpha_pm", 20.3),
+#     4: ("free",  "rotor_outer_radius",                  "mm_r_or",      129.8),
+#     5: ("free",  "rotor_inter_radius",                  "mm_r_ir",      84.6),    
+#     6: ("free",  "rotor_inner_depth (back-iron depth)", "mm_d_ri",      15.86),
+#     7: ("derived", "magnet_width"                     , "mm_w_pm",      None)
+# }
 # "D:\DrH\[00]GetWorking\118 VernierMotor\导出永磁体宽度w_pm.afx"
-magnet_width = rotor_geometric_parameters[8] = ( r_os - d_bg_air - (r_ir + d_ir) ) / cos(alpha_pm) - d_pm * tan(alpha_pm)
+# magnet_width = rotor_geometric_parameters[8] = ( r_os - d_bg_air - (r_ir + d_ir) ) / cos(alpha_pm) - d_pm * tan(alpha_pm)
 
 class CrossSectVShapeConsequentPoleRotor(object):
     # CrossSectInnerNotchedRotor Describes the inner notched rotor.

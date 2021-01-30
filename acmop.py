@@ -91,6 +91,8 @@ class AC_Machine_Optiomization_Wrapper(object):
     select_spec: str
     # C. decide output directory 20210127
     project_loc: str
+    # D. this is up to you
+    bool_show_jmag: bool = False
 
     ''' Derived
     '''
@@ -106,7 +108,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         4. Update this file with new "select_spec".
         '''
         self.output_dir, self.spec_input_dict, self.fea_config_dict = main_utility.load_settings(self.select_spec, self.select_fea_config_dict, self.project_loc)
-        self.fea_config_dict['designer.Show']=False
+        self.fea_config_dict['designer.Show'] = self.bool_show_jmag
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[1] Winding Part (Can be skipped)'

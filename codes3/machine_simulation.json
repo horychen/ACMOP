@@ -1,6 +1,9 @@
 {
     "#03 JMAG Non-Nearingless Motor Evaluation Setting": {
 
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
+
         "which_filter": "VariableSleeveLength",
 
         "local_sensitivity_analysis":false,
@@ -35,6 +38,9 @@
 
         "TORQUE_CURRENT_RATIO" : 0.975,
         "SUSPENSION_CURRENT_RATIO" : 0.025,
+
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
 
         "which_filter": "VariableStatorSlotDepth",
         "End_Ring_Resistance": 0.0,
@@ -71,6 +77,9 @@
         "TORQUE_CURRENT_RATIO" : 0.975,
         "SUSPENSION_CURRENT_RATIO" : 0.025,
 
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
+
         "which_filter": "VariableStatorSlotDepth",
         "End_Ring_Resistance": 0.0,
 
@@ -105,6 +114,9 @@
 
         "TORQUE_CURRENT_RATIO" : 0.975,
         "SUSPENSION_CURRENT_RATIO" : 0.025,
+
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
 
         "which_filter": "VariableStatorSlotDepth_VariableStatorYokeDepth",
         "End_Ring_Resistance": 0.0,
@@ -144,6 +156,9 @@
         "TORQUE_CURRENT_RATIO" : 0.975,
         "SUSPENSION_CURRENT_RATIO" : 0.025,
 
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
+
         "which_filter": "VariableStatorSlotDepth_VariableStatorYokeDepth",
         "End_Ring_Resistance": 0.0,
 
@@ -178,6 +193,9 @@
 
         "TORQUE_CURRENT_RATIO" : 0.975,
         "SUSPENSION_CURRENT_RATIO" : 0.025,
+
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
 
         "which_filter": "FixedStatorSlotDepth",
         "End_Ring_Resistance": 0.0,
@@ -219,6 +237,9 @@
         "TORQUE_CURRENT_RATIO" : 0.95,
         "SUSPENSION_CURRENT_RATIO" : 0.05,
 
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
+
         "which_filter": "VariableSleeveLength",
         "End_Ring_Resistance": 0.0,
 
@@ -254,6 +275,9 @@
 
         "TORQUE_CURRENT_RATIO" : 0.95,
         "SUSPENSION_CURRENT_RATIO" : 0.05,
+
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
 
         "which_filter": "VariableSleeveLength",
         "End_Ring_Resistance": 0.0,
@@ -291,6 +315,9 @@
         "TORQUE_CURRENT_RATIO" : 0.95,
         "SUSPENSION_CURRENT_RATIO" : 0.05,
 
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
+
         "which_filter": "VariableSleeveLength",
         "End_Ring_Resistance": 0.0,
 
@@ -327,6 +354,9 @@
         "TORQUE_CURRENT_RATIO" : 0.95,
         "SUSPENSION_CURRENT_RATIO" : 0.05,
 
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
+
         "which_filter": "VariableSleeveLength",
         "End_Ring_Resistance": 0.0,
 
@@ -362,6 +392,9 @@
 
         "TORQUE_CURRENT_RATIO" : 0.95,
         "SUSPENSION_CURRENT_RATIO" : 0.05,
+
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
 
         "which_filter": "VariableSleeveLength",
         "End_Ring_Resistance": 0.0,

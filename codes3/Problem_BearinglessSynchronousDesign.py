@@ -1,12 +1,12 @@
 import builtins
 if hasattr(builtins, 'ad'):
-    print('[Problem_BlessSyn] Global variables are shared between modules...')
+    print('[Problem_BlessSyn] Global variable ad is shared between modules as we cannot pass new argument to udp class.')
 else:
-    raise Exception('Please add global variable (address) "ad" to module __builtins__.')
-print('[Problem_BlessSyn]', builtins.ad)
-print('[Problem_BlessSyn]', ad)
-print('[Problem_BlessSyn]', ad.counter_fitness_called)
-print('[Problem_BlessSyn]', ad.counter_fitness_return)
+    raise Exception('[Problem_BlessSyn] Please add global variable (address) "ad" to module __builtins__.')
+# print('[Problem_BlessSyn]', builtins.ad)
+# print('[Problem_BlessSyn]', ad)
+# print('[Problem_BlessSyn]', ad.counter_fitness_called)
+# print('[Problem_BlessSyn]', ad.counter_fitness_return)
 
 import logging, os, shutil
 import numpy as np
