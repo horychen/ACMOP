@@ -10,8 +10,12 @@ import CrossSectStator
 import Location2D
 
 def derive_mm_w_pm(GP,SD):
-    GP["mm_w_pm"].value = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(GP['deg_alpha_vspm'].value) - GP['mm_d_pm'].value * np.tan(GP['deg_alpha_vspm'].value)
+    GP["mm_w_pm"].value          = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(GP['deg_alpha_vspm'].value) - GP['mm_d_pm'].value * np.tan(GP['deg_alpha_vspm'].value)
     return GP["mm_w_pm"].value
+
+def derive_mm_parallelogram(GP,SD):
+    GP["mm_parallelogram"].value = ( GP['mm_r_os'].value - GP['mm_d_bg_air'].value - (GP['mm_d_ri'].value + GP['mm_r_ri'].value) )
+    return GP["mm_parallelogram"].value
 
 class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numbers):
     def __init__(self, fea_config_dict=None, spec_input_dict=None):
@@ -28,10 +32,11 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         SD = self.SD
         childGP = OrderedDict({
             # Vernier specific
-            "deg_alpha_vspm"    : acmop_parameter("free",     "v-shape_magnet_tilt_angle",     None, [None, None], lambda GP,SD:None),
-            "mm_d_bg_air"       : acmop_parameter("free",     "magnet_bridge_depth_to_air",    None, [None, None], lambda GP,SD:None),
-            "mm_d_bg_magnet"    : acmop_parameter("free",     "magnet_bridge_depth_to_magnet", None, [None, None], lambda GP,SD:None),
-            "mm_w_pm"           : acmop_parameter("derived",  "magnet_width",                  None, [None, None], lambda GP,SD:derive_mm_w_pm(GP,SD)),
+            "deg_alpha_vspm"    : acmop_parameter("free",     "v-shape_magnet_tilt_angle",       None, [None, None], lambda GP,SD:None),
+            "mm_d_bg_air"       : acmop_parameter("free",     "magnet_bridge_depth_to_air",      None, [None, None], lambda GP,SD:None),
+            "mm_d_bg_magnet"    : acmop_parameter("free",     "magnet_bridge_depth_to_magnet",   None, [None, None], lambda GP,SD:None),
+            "mm_w_pm"           : acmop_parameter("derived",  "magnet_width",                    None, [None, None], lambda GP,SD:derive_mm_w_pm(GP,SD)),
+            "mm_parallelogram"  : acmop_parameter("derived",  "parallelogram_slot_side_length",  None, [None, None], lambda GP,SD:derive_mm_parallelogram(GP,SD)),
         })
         # self.d.update( {"GP": childGP} ) # this will cause issue of different passed GP and self.d['GP']. See !!!pass or !!!self
         GP.update(childGP)
@@ -45,7 +50,6 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
 
         # Template's Other Properties (Shared by the swarm)
         OP = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SD)
-
 
     def ModifiedBianchi2006(self, fea_config_dict, SD, GP, OP):
 
@@ -138,7 +142,7 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],                
             # ROTOR
             "mm_d_sleeve":  [0.4,   2], # this is air gap length for vernier (note min. mech. air gap length is 0.1mm)
-            "split_ratio":  [0.2, 0.6], # Binder-2020-MLMS-0953@Fig.7
+            "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             "mm_d_pm":      [2.5, 7],
             "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],                              
             # Vernier Specific
@@ -159,8 +163,6 @@ class vernier_motor_VShapePM_design_variant(inner_rotor_motor.variant_machine_as
         SD = self.template.SD
         self.check_invalid_design(GP, SD)
 
-        quit()
-
         # Parts
         self.rotorCore = CrossSectVShapeConsequentPoleRotor.CrossSectVShapeConsequentPoleRotor(
                             name = 'NotchedRotor',
@@ -174,7 +176,7 @@ class vernier_motor_VShapePM_design_variant(inner_rotor_motor.variant_machine_as
                             p = template.SD['p'], # Set pole-pairs to 2
                             s = template.SD['no_segmented_magnets'], # Set magnet segments/pole to 4
                             location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0))
-
+        quit()
         self.shaft = CrossSectVShapeConsequentPoleRotor.CrossSectShaft(name = 'Shaft',
                                                       notched_rotor = self.rotorCore
                                                     )

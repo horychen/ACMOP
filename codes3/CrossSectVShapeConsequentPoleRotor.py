@@ -26,17 +26,17 @@ class CrossSectVShapeConsequentPoleRotor(object):
     #    The anchor point for this is the center of the rotor,
     #    with the x-axis directed along the center of one of the rotor poles
     def __init__(self, 
-                    name = 'Notched Rotor',
-                    color = '#FE840E',
-                    mm_d_pm = 6,
-                    deg_alpha_rm = 60,
-                    deg_alpha_rs = 10,
-                    mm_d_ri = 8,
-                    mm_r_ri = 40,
-                    mm_d_rp = 5,
-                    mm_d_rs = 3,
+                    name = 'V-Shape Consequent Pole Rotor',
+                    color = '#677781', #FE840E', # https://www.color-hex.com/ or https://htmlcolorcodes.com/
+                    # mm_d_pm = 6,
+                    # deg_alpha_rm = 60,
+                    # deg_alpha_rs = 10,
+                    # mm_d_ri = 8,
+                    # mm_r_ri = 40,
+                    # mm_d_rp = 5,
+                    # mm_d_rs = 3,
                     p = 2, # Set pole-pairs to 2
-                    s = 4, # Set magnet segments/pole to 4
+                    # s = 4, # Set magnet segments/pole to 4
                     location = None
                     ):
         self.name = name
@@ -52,26 +52,8 @@ class CrossSectVShapeConsequentPoleRotor(object):
         self.s = s                       # number of segments  
         self.location = location         # move this part to another location other than origin (not supported yet)
 
-        # Validate that magnet spans only one pole pitch  
-        if self.deg_alpha_rm>(180/self.p):
-            raise Exception('Invalid alpha_rm. Check that it is less than 180/p')
-
-        if self.s>1:
-            # Validate that d_rs is non zero if there are segments  
-            if self.mm_d_rs==0:
-                raise Exception('Invalid d_rs. Check that it is positive for s>1')
-
-            # Validate that segment span is legitimate
-            if not (self.deg_alpha_rs<=self.deg_alpha_rm/self.s):
-                raise Exception('Invalid deg_alpha_rs=%g. Check that it is less than alpha_rm/s=%g'%(self.deg_alpha_rs, self.deg_alpha_rm/self.s))
-        elif self.s==1:
-            # Validate that alpha_rs and alpha_rm are set equal for s =1 
-            if not (self.deg_alpha_rs==(self.deg_alpha_rm/self.s)):
-                raise Exception('Invalid alpha_rs. Check that it is equal to alpha_rm for s=1')
-
-            # Validate that d_rs is set zero for s=1
-            if not (self.mm_d_rs==0):
-                raise Exception('Invalid d_rs. Check that it is equal to 0 for s =1')
+        # Validate parameters
+        # TODO
 
     def draw(self, drawer):
 
@@ -88,19 +70,7 @@ class CrossSectVShapeConsequentPoleRotor(object):
         s        = self.s
         alpha_rp = 2*np.pi/(2*p) # pole span
 
-        # if abs(d_pm - d_rp) < 2*EPS: # d_pm is not defined
-        #     print('Warn: [class CrossSectInnerNotchedRotor] Detect d_rp is too close to d_pm. To avoid small line entity error in JMAG, will set d_pm equal to d_rp in CrossSectInnerNotchedMagnet.') # d_pm is not defined here so we cannot set d_rp to d_pm.
-        if abs(alpha_rp - alpha_rm) <= 2 * np.pi/180: # if alpha_rm and alpha_rp has a difference smaller than 2 deg, then let alpha_rm equal to alpha_rp.
-            alpha_rm = alpha_rp
-            if s == 1:
-                alpha_rs = alpha_rm # alpha_rs is the variable actually being used in the following...
-            else:
-                print('DEBUG s>1 notched rotor')
-            #     print('s=%d: This is not tested. For now it simply assumes the iron notch between poles becomes the iron notch between the segments of one pole.' % (s))
-            # print('[class CrossSectInnerNotchedRotor] Rotor has no notch, i.e., there is no P2 or P3.')
-            # print('alpha_rp is', alpha_rp)
-            # print('alpha_rm is', alpha_rm)
-            # print('alpha_rs is', alpha_rs)
+
 
         P1 = [r_ri, 0]
 
@@ -342,16 +312,7 @@ class CrossSectShaft(object):
 
         drawer.getSketch(self.name, self.color)
 
-        d_pm     = self.notched_rotor.mm_d_pm
-        alpha_rm = self.notched_rotor.deg_alpha_rm * np.pi/180
-        alpha_rs = self.notched_rotor.deg_alpha_rs * np.pi/180
         r_ri     = self.notched_rotor.mm_r_ri
-        d_ri     = self.notched_rotor.mm_d_ri
-        d_rp     = self.notched_rotor.mm_d_rp
-        d_rs     = self.notched_rotor.mm_d_rs
-        p        = self.notched_rotor.p
-        s        = self.notched_rotor.s
-        alpha_rp = 2*np.pi/(2*p) # pole span
 
         P1 = [r_ri, 0]
         NP1 = [-r_ri, 0]
@@ -373,9 +334,9 @@ class CrossSectShaft(object):
 if __name__ == '__main__':
     import JMAG
     import Location2D
-
     import sys; sys.path.insert(0, '../')
     import acmop
+
     mop = acmop.AC_Machine_Optiomization_Wrapper(
             select_fea_config_dict = "#03 JMAG Non-Nearingless Motor Evaluation Setting",
             select_spec            = "PMVM p2pr10-Q12y3 Wenbo",
@@ -404,25 +365,25 @@ if __name__ == '__main__':
 
     list_regions = notched_rotor.draw(toolJd)
     toolJd.bMirror = False
-    toolJd.iRotateCopy = notched_rotor.p*2
+    toolJd.iRotateCopy = notched_rotor.pr*2
     region1 = toolJd.prepareSection(list_regions)
     
-    if True:
-        notched_magnet = CrossSectInnerNotchedMagnet( name = 'RotorMagnet',
-                                                      color = '#0E001E',
-                                                      notched_rotor = notched_rotor
-                                                    )
+    # Magnet
+    # notched_magnet = CrossSectInnerNotchedMagnet( name = 'RotorMagnet',
+    #                                               color = '#0E001E',
+    #                                               notched_rotor = notched_rotor
+    #                                             )
 
-    list_regions = notched_magnet.draw(toolJd)
-    toolJd.bMirror = False
-    toolJd.iRotateCopy = notched_rotor.p*2
-    region2 = toolJd.prepareSection(list_regions)
+    # list_regions = notched_magnet.draw(toolJd)
+    # toolJd.bMirror = False
+    # toolJd.iRotateCopy = notched_rotor.p*2
+    # region2 = toolJd.prepareSection(list_regions)
 
     # Import Model into Designer
     toolJd.doc.SaveModel(False) # True: Project is also saved. 
     model = toolJd.app.GetCurrentModel()
-    model.SetName('BPMSM Modeling')
-    model.SetDescription('BPMSM Test')
+    model.SetName('PMVM Modeling')
+    model.SetDescription('PMVM Test')
 
     # Pre-process
     # toolJd.preProcess(makeToken)

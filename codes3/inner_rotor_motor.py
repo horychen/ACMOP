@@ -36,7 +36,7 @@ def derive_mm_r_ri(GP,SD):
     if GP    ['mm_r_ri'].value<=0:
         print()
         print(GP       ['mm_r_ri'].value, GP['mm_r_or'].value , GP['mm_d_pm'].value , GP['mm_d_ri'].value)
-        print('背铁太厚了！split_ration太小了！')
+        print('背铁太厚了 或 split_ration太小了！建议增大split_ratio是下限')
         print()
     return GP['mm_r_ri'].value 
 
