@@ -4,7 +4,10 @@
 
 ## Requirements:
 
-- anaconda3 (Anaconda3-2020.02-Windows-x86_64.exe with python 3.7.6)
+- JMAG Designer 17.1.05i
+> Higher version might not work as the invoking method names might be changed.
+
+- Anaconda3-2020.02-Windows-x86_64.exe with python 3.7.6
 > If you use newer version of anaconda3 after 2020.02, pacakge pygmo might not work, as far as I know.
 
 - pygmo:
