@@ -130,7 +130,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # rotor_volume_Vr = required_torque/(2*SD['TangentialStress'])
         # template.required_torque = required_torque
 
-    def get_template_neighbor_bounds(self):
+    def get_template_neighbor_bounds(self, GP, SD):
         Q = self.SD['Qs']
         p = self.SD['p']
         s = self.SD['no_segmented_magnets']

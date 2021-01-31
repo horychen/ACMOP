@@ -598,7 +598,7 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
     else:
         raise Exception('Unknown machine type:', acm_variant.template.machine_type)
 
-    windage_loss = get_windage_loss(acm_variant, acm_variant.template.d['OP']['mm_stack_length'])
+    windage_loss = get_windage_loss(acm_variant, acm_variant.template.d['OP']['mm_template_stack_length'])
 
     # 这样计算效率，输出转矩大的，铁耗大一倍也没关系了，总之就是气隙变得最小。。。要不就不要优化气隙了。。。
     total_loss   = copper_loss + iron_loss + windage_loss
@@ -644,7 +644,7 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
     required_torque = acm_variant.template.SD['mec_power'] / (2*np.pi*speed_rpm)*60
 
     rated_ratio                          = required_torque / torque_average 
-    rated_stack_length_mm                = rated_ratio * acm_variant.template.d['OP']['mm_stack_length']
+    rated_stack_length_mm                = rated_ratio * acm_variant.template.d['OP']['mm_template_stack_length']
     rated_stator_copper_loss_along_stack = rated_ratio * stator_copper_loss_along_stack
     rated_rotor_copper_loss_along_stack  = rated_ratio * rotor_copper_loss_along_stack
     rated_iron_loss                      = rated_ratio * dm.jmag_loss_list[2]
@@ -720,7 +720,7 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
     f3 = sum(list_weighted_ripples)
 
     FRW = ss_avg_force_magnitude / rotor_weight
-    print('FRW:', FRW, 'Rotor weight:', rotor_weight, 'Stack length:', acm_variant.template.d['OP']['mm_stack_length'], 'Rated stack length:', rated_stack_length_mm)
+    print('FRW:', FRW, 'Rotor weight:', rotor_weight, 'Stack length:', acm_variant.template.d['OP']['mm_template_stack_length'], 'Rated stack length:', rated_stack_length_mm)
     rated_rotor_volume = acm_variant.template.get_rotor_volume(stack_length=rated_stack_length_mm) 
     rated_rotor_weight = acm_variant.template.get_rotor_weight(stack_length=rated_stack_length_mm)
     print('rated_rotor_volume:', rated_rotor_volume, 'rated_rotor_weight:', rated_rotor_weight)
@@ -736,7 +736,7 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
                         rated_windage_loss,
                         rated_rotor_volume,
                         rated_stack_length_mm,  # new!
-                        acm_variant.template.d['OP']['mm_stack_length']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
+                        acm_variant.template.d['OP']['mm_template_stack_length']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
 
     str_results = '\n-------\n%s-%s\n%d,%d,O1=%g,O2=%g,f1=%g,f2=%g,f3=%g\n%s\n%s\n%s\n' % (
                     project_name, acm_variant.get_individual_name(), 
@@ -1455,7 +1455,7 @@ def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict,
                              OP['DriveW_zQ'],
                              wily.coil_pitch_y,
                              acm_variant.template.SD['Qs'],
-                             OP['mm_stack_length'],
+                             OP['mm_template_stack_length'],
                              OP['DriveW_CurrentAmp'] + OP['BeariW_CurrentAmp'], # total current amplitude
                              GP['mm_r_or'].value,       # mm
                              GP['mm_r_os'].value*2*1e-3 # m, stator_yoke_diameter_Dsyi

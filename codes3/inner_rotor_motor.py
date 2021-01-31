@@ -120,7 +120,7 @@ class template_machine_as_numbers(object):
             # WINDING Layout
             OP['wily'] = wily = winding_layout.winding_layout_v2(SD['DPNV_or_SEPA'], SD['Qs'], SD['p'], SD['ps'], SD['coil_pitch_y'])
             # STACK LENGTH
-            OP['mm_template_stack_length'] = pyrhonen_procedure_as_function.get_mm_template_stack_length(SD, GP['mm_r_or'].value*1e03) # mm TODO:
+            OP['mm_template_stack_length'] = pyrhonen_procedure_as_function.get_mm_template_stack_length(SD, GP['mm_r_or'].value*1e-3) # mm TODO:
             OP['mm_mechanical_air_gap_length'] = SD['minimum_mechanical_air_gap_length_mm']
             # THERMAL Properties
             OP['Js']                = SD['Js'] # Arms/mm^2 im_OP['Js'] 
@@ -1146,6 +1146,7 @@ class variant_machine_as_objects(object):
             if app.NumModels()>=1:
                 model = app.GetModel(spmsm_variant.name)
             else:
+                logger = logging.getLogger(__name__)
                 logger.error('there is no model yet for %s'%(spmsm_variant.name))
                 raise Exception('why is there no model yet? %s'%(spmsm_variant.name))
 

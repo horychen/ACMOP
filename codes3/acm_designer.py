@@ -946,9 +946,9 @@ class FEA_Solver:
             else:
                 app = self.app
 
-            print(expected_project_file_path)
+            print('[acm_designer.py]', expected_project_file_path)
             if os.path.exists(expected_project_file_path):
-                print('JMAG project exists already. I learned my lessions. I will NOT delete it but create a new one with a different name instead.')
+                print('[acm_designer.py] JMAG project exists already. I learned my lessions. I will NOT delete it but create a new one with a different name instead.')
                 # os.remove(expected_project_file_path)
                 attempts = 2
                 temp_path = expected_project_file_path[:-len('.jproj')] + 'attempts%d.jproj'%(attempts)
@@ -1645,7 +1645,7 @@ class acm_designer(object):
         }
         list_of_GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
         for parameter_key_val_pair in list_of_GP_as_dict:
-            print('DEBUG', parameter_key_val_pair)
+            # print('DEBUG', parameter_key_val_pair)
             for key, val in parameter_key_val_pair.items():
                 val['calc'] = None # function .calc cannot be serialized 
 

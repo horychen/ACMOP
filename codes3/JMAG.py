@@ -232,7 +232,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
     def prepareSection(self, token, bMirrorMerge=True, bRotateMerge=True, **kwarg): # csToken is a list of cross section's token
 
         list_regions = token['list_regions']
-        list_regions_to_remove = token['list_regions_to_remove']
 
         list_region_objects = []
         for idx, list_segments in enumerate(list_regions):
@@ -254,11 +253,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             list_region_objects.append(region_object)
 
         # remove region
-        for region_object, boo in zip(list_region_objects, list_regions_to_remove):
-            if boo:
-                self.doc.GetSelection().Clear()
-                self.doc.GetSelection().Add(region_object)
-                self.doc.GetSelection().Delete()
+        if 'list_regions_to_remove' in token.keys():
+            list_regions_to_remove = token['list_regions_to_remove']        
+            for region_object, boo in zip(list_region_objects, list_regions_to_remove):
+                if boo:
+                    self.doc.GetSelection().Clear()
+                    self.doc.GetSelection().Add(region_object)
+                    self.doc.GetSelection().Delete()
 
         for idx, region_object in enumerate(list_region_objects):
             # Mirror
