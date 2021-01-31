@@ -213,7 +213,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             return self.sketch
         else:
             self.sketchNameList.append(sketchName)
-        
+
         self.geomApp = self.checkGeomApp()
         self.doc = self.geomApp.GetDocument()
         self.ass = self.doc.GetAssembly()
@@ -232,6 +232,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
     def prepareSection(self, token, bMirrorMerge=True, bRotateMerge=True, **kwarg): # csToken is a list of cross section's token
 
         list_regions = token['list_regions']
+        list_regions_to_remove = token['list_regions_to_remove']
 
         list_region_objects = []
         for idx, list_segments in enumerate(list_regions):
@@ -240,18 +241,24 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             # Region
             self.doc.GetSelection().Clear()
             for segment in list_segments:
+                # print(segment)
                 # debugging = list_segments(i).GetName()
                 self.doc.GetSelection().Add(self.sketch.GetItem(segment.GetName()))
 
             self.sketch.CreateRegions()
             # self.sketch.CreateRegionsWithCleanup(EPS, True) # StatorCore will fail
-
             if idx == 0:
                 region_object = self.sketch.GetItem('Region') # This is how you get access to the region you create.
             else:
                 region_object = self.sketch.GetItem('Region.%d'%(idx+1)) # This is how you get access to the region you create.
             list_region_objects.append(region_object)
-        # raise
+
+        # remove region
+        for region_object, boo in zip(list_region_objects, list_regions_to_remove):
+            if boo:
+                self.doc.GetSelection().Clear()
+                self.doc.GetSelection().Add(region_object)
+                self.doc.GetSelection().Delete()
 
         for idx, region_object in enumerate(list_region_objects):
             # Mirror
@@ -265,6 +272,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             if self.iRotateCopy != 0:
                 # print('Copy', self.iRotateCopy)
                 self.regionCircularPattern360Origin(region_object, self.iRotateCopy, bMerge=bRotateMerge)
+
 
         self.sketch.CloseSketch()
         return list_region_objects
