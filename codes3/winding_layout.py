@@ -1,3 +1,6 @@
+    #禁止在cache时打印
+def print(*arg, **kwarg):
+    pass
 
 def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(layer_X_phases, coil_pitch):
     return layer_X_phases[-coil_pitch:] + layer_X_phases[:-coil_pitch]

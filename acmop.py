@@ -1,7 +1,7 @@
 def main(bool_post_processing=False):
     # Vernier Machine
     # mop = AC_Machine_Optiomization_Wrapper(
-    #         select_fea_config_dict = "#03 JMAG Non-Nearingless Motor Evaluation Setting",
+    #         select_fea_config_dict = "#03 JMAG Non-Bearingless Motor Evaluation Setting",
     #         select_spec            = "PMVM p2pr10-Q12y3 Wenbo",
     #         project_loc            = r'D:/DrH/acmop/_WenboVShapeVernier/'
     #     )
@@ -43,10 +43,10 @@ def main(bool_post_processing=False):
         # select_spec =  "PMSM Q12p4y1 A"            #   './spec_PEMD_BPMSM_Q12p4.py',
         # select_spec =  "PMSM Q24p1y9 A"            #   './spec_PEMD_BPMSM_Q24p1.py'],
     mop = AC_Machine_Optiomization_Wrapper(
-            select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-            select_spec            = 'PMSM Q12p2y3 A',
+            select_fea_config_dict = '#0211 JMAG PMSM Q12p4ps5 Sub-hamonics',
+            select_spec            = 'PMSM Q12p4y1 A',
             project_loc            = r'D:/DrH/acmop/_default/',
-            bool_show_jmag         = False
+            bool_show_jmag         = True
         )
 
 
@@ -54,13 +54,13 @@ def main(bool_post_processing=False):
     # Call the five modules
     #########################
 
-    # mop.part_winding()
-    acm_template = mop.part_initialDesign()
+    # mop.part_winding() # Module 1
+    acm_template = mop.part_initialDesign() # Module 2
 
     if not bool_post_processing:
-        # mop.part_evaluation()
-        mop.part_optimization(acm_template)
-        # mop.part_reportWithStreamlit()
+        mop.part_evaluation() # Module 3
+        # mop.part_optimization(acm_template) # Module 4
+        # mop.part_reportWithStreamlit() # Module 5
     else:
         # Recover a design from its jsonpickle-object file
         import utility_json
@@ -466,6 +466,11 @@ class AC_Machine_Optiomization_Wrapper(object):
     # '[5] Report Part'
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def part_reportWithStreamlit(self):
+
+        # see D:\DrH\Codes\visualize
+        # see D:\DrH\Codes\visualize
+        # see D:\DrH\Codes\visualize
+
         # bool_post_processing
         # best desigh?
 

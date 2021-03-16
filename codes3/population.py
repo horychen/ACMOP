@@ -1,3 +1,7 @@
+#禁止在cache时打印
+def print(*arg, **kwarg):
+    pass
+
 # -*- coding: utf-8 -*-
 # execfile(r'D:\Users\horyc\OneDrive - UW-Madison\ec_rotate.py') # , {'__name__': 'load'})
 
@@ -1579,12 +1583,12 @@ class swarm(object):
                 study.GetStudyProperties().SetValue("CsvResultTypes", "Torque;Force;LineCurrent;TerminalVoltage;JouleLoss;TotalDisplacementAngle;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss")
                 study.GetStudyProperties().SetValue("DeleteResultFiles", self.fea_config_dict['delete_results_after_calculation'])
                 # Terminal Voltage/Circuit Voltage: Check for outputing CSV results 
-                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDU", 8, -13)
-                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDV", 8, -11)
-                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDW", 8, -9)
-                study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 23, -13)
-                study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 23, -11)
-                study.GetCircuit().CreateTerminalLabel("TerminalGroupACW", 23, -9)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDU", 8, -13   + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDV", 8, -11   + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDW", 8, -9    + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 23, -13  + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 23, -11  + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupACW", 23, -9   + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
                 # Export Stator Core's field results only for iron loss calculation (the csv file of iron loss will be clean with this setting)
                     # study.GetMaterial(u"Rotor Core").SetValue(u"OutputResult", 0) # at least one part on the rotor should be output or else a warning "the jplot file does not contains displacement results when you try to calc. iron loss on the moving part." will pop up, even though I don't add iron loss condition on the rotor.
                 # study.GetMeshControl().SetValue(u"AirRegionOutputResult", 0)
@@ -2629,12 +2633,12 @@ class swarm(object):
             study.GetStudyProperties().SetValue("CsvResultTypes", "Torque;Force;LineCurrent;TerminalVoltage;JouleLoss;TotalDisplacementAngle;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss")
             study.GetStudyProperties().SetValue("DeleteResultFiles", self.fea_config_dict['delete_results_after_calculation'])
             # Terminal Voltage/Circuit Voltage: Check for outputing CSV results 
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupBDU", 8, -13)
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupBDV", 8, -11)
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupBDW", 8, -9)
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 23, -13)
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 23, -11)
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupACW", 23, -9)
+            study.GetCircuit().CreateTerminalLabel("TerminalGroupBDU", 8, -13   + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+            study.GetCircuit().CreateTerminalLabel("TerminalGroupBDV", 8, -11   + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+            study.GetCircuit().CreateTerminalLabel("TerminalGroupBDW", 8, -9    + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+            study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 23, -13  + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+            study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 23, -11  + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+            study.GetCircuit().CreateTerminalLabel("TerminalGroupACW", 23, -9   + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
             # Export Stator Core's field results only for iron loss calculation (the csv file of iron loss will be clean with this setting)
                 # study.GetMaterial(u"Rotor Core").SetValue(u"OutputResult", 0) # at least one part on the rotor should be output or else a warning "the jplot file does not contains displacement results when you try to calc. iron loss on the moving part." will pop up, even though I don't add iron loss condition on the rotor.
             # study.GetMeshControl().SetValue(u"AirRegionOutputResult", 0)
@@ -3935,7 +3939,7 @@ class bearingless_induction_motor_design(object):
         study.CreateCircuit()
 
         # 4 pole motor Qs=24 dpnv implemented by two layer winding (6 coils). In this case, drive winding has the same slot turns as bearing winding
-        def circuit(Grouping,turns,Rs,ampD,ampB,freq,phase=0, CommutatingSequenceD=0, CommutatingSequenceB=0, x=10,y=10, bool_3PhaseCurrentSource=True):
+        def circuit(Grouping,turns,Rs,ampD,ampB,freq,phase=0, CommutatingSequenceD=0, CommutatingSequenceB=0, x=10,y=10+JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE, bool_3PhaseCurrentSource=True):
             study.GetCircuit().CreateSubCircuit("Star Connection", "Star Connection %s"%(Grouping), x, y) 
             study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil1").SetValue("Turn", turns)
             study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil1").SetValue("Resistance", Rs)
@@ -4166,7 +4170,7 @@ class bearingless_induction_motor_design(object):
             study.GetCircuit().CreateInstance(name, x, y)
             study.GetCircuit().GetComponent(name).SetValue("Resistance", end_ring_resistance)
         rotor_phase_name_list = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        X = 40; Y = 40;
+        X = 40; Y = 60;
         #
         if self.spec_input_dict['PoleSpecificNeutral'] == True: # Our proposed pole-specific winding with a neutral plate
 
@@ -4500,12 +4504,12 @@ class bearingless_induction_motor_design(object):
         study.GetStudyProperties().SetValue("CsvResultTypes", "Torque;Force;LineCurrent;TerminalVoltage;JouleLoss;TotalDisplacementAngle;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss")
         study.GetStudyProperties().SetValue("DeleteResultFiles", self.fea_config_dict['delete_results_after_calculation'])
         # Terminal Voltage/Circuit Voltage: Check for outputing CSV results 
-        study.GetCircuit().CreateTerminalLabel("TerminalGroupBDU", 8, -13)
-        study.GetCircuit().CreateTerminalLabel("TerminalGroupBDV", 8, -11)
-        study.GetCircuit().CreateTerminalLabel("TerminalGroupBDW", 8, -9)
-        study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 23, -13)
-        study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 23, -11)
-        study.GetCircuit().CreateTerminalLabel("TerminalGroupACW", 23, -9)
+        study.GetCircuit().CreateTerminalLabel("TerminalGroupBDU", 8, -13  + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+        study.GetCircuit().CreateTerminalLabel("TerminalGroupBDV", 8, -11  + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+        study.GetCircuit().CreateTerminalLabel("TerminalGroupBDW", 8, -9   + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+        study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 23, -13 + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+        study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 23, -11 + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
+        study.GetCircuit().CreateTerminalLabel("TerminalGroupACW", 23, -9  + JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE)
         # Export Stator Core's field results only for iron loss calculation (the csv file of iron loss will be clean with this setting)
             # study.GetMaterial(u"Rotor Core").SetValue(u"OutputResult", 0) # at least one part on the rotor should be output or else a warning "the jplot file does not contains displacement results when you try to calc. iron loss on the moving part." will pop up, even though I don't add iron loss condition on the rotor.
         # study.GetMeshControl().SetValue(u"AirRegionOutputResult", 0)

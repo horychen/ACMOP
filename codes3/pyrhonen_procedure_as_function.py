@@ -1,3 +1,7 @@
+#禁止在cache时打印
+def print(*arg, **kwarg):
+    pass
+
 from pylab import *
 import sys
 import os
@@ -1314,7 +1318,7 @@ class desgin_specification(object):
             self.pmsm_template.mm_r_st              = 0
             self.pmsm_template.mm_r_sf              = 0
             self.pmsm_template.mm_r_sb              = 0
-            self.pmsm_template.Q                    = Q
+            self.pmsm_template.Qs=self.pmsm_template.Q=Q
             self.pmsm_template.sleeve_length        = 3  # mm
             self.pmsm_template.fixed_air_gap_length = 0.75 # mm
             self.pmsm_template.mm_d_pm              = 5  # mm
@@ -1419,7 +1423,7 @@ class desgin_specification(object):
             self.pmsm_template.mm_r_st              = spec_geometry_dict['mm_r_st'] = 0
             self.pmsm_template.mm_r_sf              = spec_geometry_dict['mm_r_sf'] = 0
             self.pmsm_template.mm_r_sb              = spec_geometry_dict['mm_r_sb'] = 0
-            self.pmsm_template.Q                    = spec_geometry_dict['Q'] = Q
+            self.pmsm_template.Qs = self.pmsm_template.Q = spec_geometry_dict['Q'] = Q
             self.pmsm_template.sleeve_length        = spec_geometry_dict['sleeve_length'] = 2 # 3 # mm
             self.pmsm_template.fixed_air_gap_length = spec_geometry_dict['fixed_air_gap_length'] = 0.75 # mm
             self.pmsm_template.mm_d_pm              = spec_geometry_dict['mm_d_pm'] = 4  # mm
