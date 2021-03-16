@@ -4,6 +4,7 @@ if hasattr(builtins, 'ad'):
     print('[Problem_BlessSyn] Global variable ad is shared between modules as we cannot pass new argument to udp class.')
 else:
     raise Exception('[Problem_BlessSyn] Please add global variable (address) "ad" to module __builtins__.')
+
 # print('[Problem_BlessSyn]', builtins.ad)
 # print('[Problem_BlessSyn]', ad)
 # print('[Problem_BlessSyn]', ad.counter_fitness_called)
@@ -26,7 +27,7 @@ class Problem_BearinglessSynchronousDesign(object):
             ad.counter_fitness_called += 1
         else:
             # This is not reachable
-            raise Exception('ad.counter_fitness_called')
+            raise Exception(f'ad.counter_fitness_called = {ad.counter_fitness_called} != ad.counter_fitness_return = {ad.counter_fitness_return}!!!')
         print('[Problem_BlessSyn] Call fitness: %d, %d'%(ad.counter_fitness_called, ad.counter_fitness_return))
 
         # 不要标幺化了！统一用真的bounds，见get_bounds()

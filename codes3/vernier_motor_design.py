@@ -126,6 +126,8 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         GP["mm_w_pm"].value              = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(GP['deg_alpha_vspm'].value) - GP['mm_d_pm'].value * np.tan(GP['deg_alpha_vspm'].value)
 
     def get_template_neighbor_bounds(self, GP, SD):
+        ''' The bounds are determined around the template design.
+        '''
         # # these two are different, why?
         # print('!!!pass:', GP)
         # print('!!!self:', self.d['GP'])

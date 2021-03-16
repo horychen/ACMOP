@@ -93,7 +93,7 @@ class desgin_specification(object):
             self.rotor_tooth_flux_density_B_dr = kwarg['rotor_tooth_flux_density_B_dr']
             self.stator_yoke_flux_density_Bys = kwarg['stator_yoke_flux_density_Bys']
             self.rotor_yoke_flux_density_Byr = kwarg['rotor_yoke_flux_density_Byr']
-            self.guess_air_gap_flux_density = kwarg['guess_air_gap_flux_density']
+            self.guess_air_gap_flux_density = kwarg['guess_air_gap_flux_density_B']
 
             # Obsolete ./pop/initial_design.txt
             # if not os.path.isdir('../' + 'pop/'):

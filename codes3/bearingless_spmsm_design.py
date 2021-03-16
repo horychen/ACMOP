@@ -10,7 +10,7 @@ import CrossSectStator
 import Location2D
 
 class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
-    ''' This is a surface mounted PM motor but it might have saliency if alpha_rm is less than 180/p.
+    ''' This is a surface mounted PM motor but it might have saliency on q-axis if alpha_rm is less than 180/p.
         就是说，允许永磁体陷入转子铁芯，只是永磁体外没有铁包裹防止永磁体飞出，而是需要额外增加碳纤维套。
     '''
     def __init__(self, fea_config_dict, spec_input_dict):
@@ -131,6 +131,9 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # template.required_torque = required_torque
 
     def get_template_neighbor_bounds(self, GP, SD):
+        ''' The bounds are determined around the template design.
+        '''
+
         Q = self.SD['Qs']
         p = self.SD['p']
         s = self.SD['no_segmented_magnets']

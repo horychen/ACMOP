@@ -8,7 +8,7 @@ import population, FEMM_Solver, pyrhonen_procedure_as_function
 import JMAG, bearingless_spmsm_design, vernier_motor_design
 
 class swarm_data_container(object):
-    def __init__(self, swarm_data_raw, fea_config_dict, swarm_data_json):
+    def __init__(self, swarm_data_raw, fea_config_dict, swarm_data_json=None):
 
         self.swarm_data_raw = swarm_data_raw
         self.fea_config_dict = fea_config_dict
@@ -89,7 +89,11 @@ class swarm_data_container(object):
             self.deg_alpha_st = []
             self.mm_w_st = []
             self.mm_r_si = []
-            for raw, key in zip(self.swarm_data_raw, swarm_data_json.keys()):
+            if swarm_data_json is not None:
+                keys = swarm_data_json.keys()
+            else:
+                keys = [1] * len(self.swarm_data_raw)
+            for raw, key in zip(self.swarm_data_raw, keys):
 
                 # spmsm_template.design_parameters = [
                 #                                   0 spmsm_template.deg_alpha_st 
@@ -128,17 +132,31 @@ class swarm_data_container(object):
                 f2 = float(raw[2][loc2+3:loc3-1])
                 f3 = float(raw[2][loc3+3:])
 
-                # print(swarm_data_json[key])
-                # print('DBU', list(swarm_data_json[key].keys()))
-                # print('DBU', list(swarm_data_json[key].values()))
+                if swarm_data_json is not None:
+                    # print(swarm_data_json[key])
+                    # print('DBU', list(swarm_data_json[key].keys()))
+                    # print('DBU', list(swarm_data_json[key].values()))
 
-                the_variant_dict = list(swarm_data_json[key].values())
-                x_denorm = list( the_variant_dict[0]['x_denorm_dict'].values() )
-                # x_denorm = [val for val in list(swarm_data_json[key].values())['x_denorm_dict'].items()]
-                # print(x_denorm)
-                # quit()
-
-                # x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm)
+                    the_variant_dict = list(swarm_data_json[key].values())
+                    x_denorm = list( the_variant_dict[0]['x_denorm_dict'].values() )
+                    # x_denorm = [val for val in list(swarm_data_json[key].values())['x_denorm_dict'].items()]
+                    # print(x_denorm)
+                    # quit()
+                else:
+                    # 在 acmop 里，我们已经放弃了使用 bound_filter 的概念。
+                    # x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
+                    x_denorm = [None]*11
+                    x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
+                    x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_so         
+                    x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
+                    x_denorm[3]  = design_parameters_denorm[7] # spmsm_template.mm_w_st         
+                    x_denorm[4]  = design_parameters_denorm[12] # spmsm_template.sleeve_length   
+                    x_denorm[5]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm         
+                    x_denorm[6]  = design_parameters_denorm[15] # spmsm_template.deg_alpha_rm    
+                    x_denorm[7]  = design_parameters_denorm[16] # spmsm_template.deg_alpha_rs    
+                    x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
+                    x_denorm[9]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
+                    x_denorm[10] = design_parameters_denorm[20] # spmsm_template.mm_d_rs         
 
                 # print(design_parameters_denorm, f1, f2, f3)
                 # THERE IS A BUT HERE: slot_tip_open_ratio is less than 0.2---Not possible
@@ -703,7 +721,6 @@ class swarm_data_container(object):
         # plt.show()
         return results_for_refining_bounds
 
-
 class FEA_Solver:
     def __init__(self, fea_config_dict, spec_input_dict):
         self.fea_config_dict = fea_config_dict
@@ -755,6 +772,39 @@ class FEA_Solver:
             f.write('\n---------%d\n'%(counter_fitness_return) \
                     + '\n'.join(','.join('%.16f'%(x) for x in el[0].tolist() + el[1].tolist() ) for el in zip(pop.get_x(), pop.get_f()) )) # convert 2d array to string
 
+    def read_swarm_data_old(self, bound_filter=None, read_from_here=None):
+        if read_from_here is not None:
+            self.output_dir = read_from_here
+        print('\t', self.output_dir + 'swarm_data.txt')
+        if not os.path.exists(self.output_dir + 'swarm_data.txt'):
+            msg = '\tNo file @ ' + self.output_dir + 'swarm_data.txt'
+            print(msg)
+            # raise Exception(msg)
+            return None
+
+        print('\t\tRead in', self.output_dir + 'swarm_data.txt')
+        with open(self.output_dir + 'swarm_data.txt', 'r') as f:
+            buf = f.readlines()
+            buf = buf[1:]
+            length_buf = len(buf) 
+
+            if length_buf % 21 == 0:
+                pass
+            else:
+                raise Exception('Invalid swarm_data.txt!')
+
+            number_of_chromosome = length_buf / 21
+            if number_of_chromosome == 0:
+                return None
+
+            self.swarm_data_raw = [buf[i:i+21] for i in range(0, len(buf), 21)]
+            self.swarm_data_container = swarm_data_container(self.swarm_data_raw, self.fea_config_dict, bound_filter)
+            self.swarm_data = self.swarm_data_container.swarm_data_xf
+            # for el in self.swarm_data:
+            #     print(el)
+            # quit()
+            return int(number_of_chromosome)
+
     def read_swarm_data(self, select_spec, read_from_here=None):
         if read_from_here is not None:
             self.output_dir = read_from_here
@@ -782,11 +832,16 @@ class FEA_Solver:
 
             self.swarm_data_raw = [buf[i:i+21] for i in range(0, len(buf), 21)]
 
-        with open(self.output_dir + select_spec+'.json', 'r') as f:
-            # skip the first line
-            for _ in range(1): next(f)
-            buf = f.read()
-            self.swarm_data_json = json.loads('{\n' + buf + '\n}')
+        print('|||||||||||||', self.output_dir, select_spec)
+
+        if os.path.exists(self.output_dir + select_spec+'.json'):
+            with open(self.output_dir + select_spec+'.json', 'r') as f:
+                # skip the first line
+                for _ in range(1): next(f)
+                buf = f.read()
+                self.swarm_data_json = json.loads('{\n' + buf + '\n}')
+        else:
+            self.swarm_data_json = None
 
         self.swarm_data_container = swarm_data_container(self.swarm_data_raw, self.fea_config_dict, self.swarm_data_json)
         self.swarm_data = self.swarm_data_container.swarm_data_xf
@@ -1548,16 +1603,18 @@ class FEA_Solver:
 
 class acm_designer(object):
     def __init__(self, fea_config_dict, spec_input_dict, output_dir, select_spec, select_fea_config_dict, acm_template=None, spec=None):
-
+        # spec and acm_template are objects
         self.spec = spec
         self.acm_template = acm_template
 
-        self.solver = FEA_Solver(fea_config_dict, spec_input_dict)
+        self.solver = FEA_Solver(fea_config_dict, spec_input_dict) # The two json inputs are used here
         self.fea_config_dict = fea_config_dict
-
-        self.flag_do_not_evaluate_when_init_pop = False
-
         self.output_dir, self.select_spec, self.select_fea_config_dict = output_dir, select_spec, select_fea_config_dict
+
+        # to be used with PYGMO
+        self.flag_do_not_evaluate_when_init_pop = False
+        self.counter_fitness_called = 0
+        self.counter_fitness_return = 0
 
     def init_logger(self, prefix='pygmo_'):
         # self.logger = utility.myLogger(self.output_dir+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
@@ -2097,7 +2154,6 @@ class acm_designer(object):
 
         from pylab import show
         show()
-
 
 def get_bad_fintess_values(machine_type='IM', ref=False):
     if ref == False:

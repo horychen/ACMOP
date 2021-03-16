@@ -6,6 +6,11 @@ from utility import acmop_parameter, EPS
 from time import time as clock_time
 from collections import OrderedDict
 
+# Nomenclature:
+# GP = Geometric Parameters
+# OP = Other Properties
+# 
+
 def derive_mm_r_si(GP,SD):
     # (option 1) depends on split_ratio and r_os
     GP       ['mm_r_si'].value = GP['mm_r_os'].value * GP['split_ratio'].value

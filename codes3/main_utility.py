@@ -1,12 +1,15 @@
 from pylab import np
 import pygmo as pg
 import utility_moo
-import json
+import json, os
 def load_settings(select_spec, select_fea_config_dict, project_loc, bool_post_processing=False):
-    # print(__file__[:-len('main_utility.py')]+'machine_specifications.json')
-    with open(__file__[:-len('main_utility.py')]+'machine_specifications.json', 'r') as f:
+    print('-'*40, '[main_utility.py] load_settings()')
+    __file__dirname_as_in_python39 = os.path.dirname(os.path.abspath(__file__))
+    # print(__file__dirname_as_in_python39)
+
+    with open((__file__dirname_as_in_python39)+'/machine_specifications.json', 'r') as f:
         raw_specs = json.load(f)
-    with open(__file__[:-len('main_utility.py')]+'machine_simulation.json', 'r') as f:
+    with open((__file__dirname_as_in_python39)+'/machine_simulation.json', 'r') as f:
         raw_fea_config_dicts = json.load(f)
 
     def decode_raw_specs(raw_specs, select_spec=None):
@@ -36,7 +39,6 @@ def load_settings(select_spec, select_fea_config_dict, project_loc, bool_post_pr
     output_dir = fea_config_dict['run_folder'] #[:-1] + r'_json_files/'
 
     # create output folder only when not post-processing? No, sometimes in post-processing we run FEA simulation.
-    import os
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     print('[main_utility.py]', output_dir)
@@ -70,6 +72,7 @@ def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dic
     import utility_moo
 
     from Problem_BearinglessSynchronousDesign import Problem_BearinglessSynchronousDesign
+    ad.flag_do_not_evaluate_when_init_pop = True # this is very important, or else Problem_BearinglessSynchronousDesign.fitness() will invoke JMAG Designer as unexpected.
     udp = Problem_BearinglessSynchronousDesign()
     import pygmo as pg
     prob = pg.problem(udp)

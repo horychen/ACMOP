@@ -55,31 +55,28 @@ def main(bool_post_processing=False):
     #########################
 
     # mop.part_winding() # Module 1
-    acm_template = mop.part_initialDesign() # Module 2
+    # acm_template = mop.part_initialDesign() # Module 2 (moved to __post_init__)
 
     if not bool_post_processing:
         mop.part_evaluation() # Module 3
         # mop.part_optimization(acm_template) # Module 4
-        # mop.part_reportWithStreamlit() # Module 5
     else:
-        # Recover a design from its jsonpickle-object file
-        import utility_json
-        try:
-            motor_design_variant = utility_json.from_json_recursively('p2ps1-Q12y3-0999', load_here=mop.ad.output_dir+'jsonpickle/')
-            motor_design_variant.build_jmag_project(motor_design_variant.project_meta_data)
-        except FileNotFoundError as e:
-            print(e)
-            print("你有没有搞错啊？json文件找不到啊，忘记把bool_post_processing改回来了？")
+        if True:
+            mop.reproduce_design_from_jsonpickle('p2ps1-Q12y3-0999')
+        else:
+            mop.part_reportWithStreamlit() # Module 5
 
 from dataclasses import dataclass
-import sys; sys.path.insert(0, './codes3/')
+import os, sys; sys.path.insert(0, os.path.dirname(__file__)+'/codes3/')
+# import sys; sys.path.insert(0, './codes3/')
 import main_utility
 
 # part_winding
 # import winding_layout, PyX_Utility, math
 
 # part_initialDesign
-import pyrhonen_procedure_as_function, acm_designer, bearingless_spmsm_design, vernier_motor_design
+import pyrhonen_procedure_as_function, acm_designer
+import bearingless_spmsm_design, vernier_motor_design
 global ad
 
 @dataclass
@@ -110,6 +107,8 @@ class AC_Machine_Optiomization_Wrapper(object):
         '''
         self.output_dir, self.spec_input_dict, self.fea_config_dict = main_utility.load_settings(self.select_spec, self.select_fea_config_dict, self.project_loc)
         self.fea_config_dict['designer.Show'] = self.bool_show_jmag
+
+        self.acm_template = self.part_initialDesign() # Module 2 (mop.ad is available now)
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[1] Winding Part (Can be skipped)'
@@ -252,16 +251,16 @@ class AC_Machine_Optiomization_Wrapper(object):
         #     one_script_pm_post_processing.post_processing(ad, self.fea_config_dict)
         #     quit()
 
-        # [4.3] MOO
+        # [4.3] MOO (need to share global variables to the Problem class)
         from acm_designer import get_bad_fintess_values
-        import logging
+        import logging, builtins
         import utility_moo
         import pygmo as pg
         ad.counter_fitness_called = 0
         ad.counter_fitness_return = 0
-        __builtins__.ad = ad # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable
+        builtins.ad = ad # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable
         import codes3.Problem_BearinglessSynchronousDesign # must import this after __builtins__.ad = ad
-        # print('[acmop.py]', __builtins__.ad)
+        # print('[acmop.py]', builtins.ad)
 
         ################################################################
         # MOO Step 1:
@@ -465,19 +464,24 @@ class AC_Machine_Optiomization_Wrapper(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[5] Report Part'
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    def reproduce_design_from_jsonpickle(self, fname):
+        # 从json重构JMAG模型（x_denorm）
+        # Recover a design from its jsonpickle-object file
+        import utility_json
+        try:
+            motor_design_variant = utility_json.from_json_recursively(fname, load_here=mop.ad.output_dir+'jsonpickle/')
+            motor_design_variant.build_jmag_project(motor_design_variant.project_meta_data)
+        except FileNotFoundError as e:
+            print(e)
+            print("你有没有搞错啊？json文件找不到啊，忘记把bool_post_processing改回来了？")
+
     def part_reportWithStreamlit(self):
-
-        # see D:\DrH\Codes\visualize
-        # see D:\DrH\Codes\visualize
-        # see D:\DrH\Codes\visualize
-
-        # bool_post_processing
-        # best desigh?
 
         # Status report: Generation, individuals, geometry as input, fea tools, performance as output (based on JSON files)
         # Do not show every step, but only those key steps showing how this population is built 
+        # refer to D:\DrH\Codes\visualize
 
-        # 从json重构JMAG模型（x_denorm）
+        # import utility_postprocess
         pass
 
 if __name__ == '__main__':
