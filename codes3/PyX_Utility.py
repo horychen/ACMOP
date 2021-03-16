@@ -1,43 +1,73 @@
 import pyx
-pyx.unit.set(wscale=1) # 同时修改VanGogh.py，搜索本行代码，减小画的点的size（其实可以用线cap属性处理而不需要额外画点的）
+global_settings = {
+    'wscale': 1,
+    'xscale': 1.5,
+    'linewidth': pyx.style.linewidth.Thick, #THICK,
+    'linecolor': pyx.color.rgb.black,
+    'linestyle': pyx.style.linestyle.solid,
+}
+
+mapping_dict = { # introduce the mapping dict for pyx 
+                'dashed': pyx.style.dash([0,4]),
+                'dense-dashed': pyx.style.dash([0,1]),
+                'my-thick-line': pyx.style.linewidth(0.2),
+                'red': pyx.color.rgb.red,
+                'blue': pyx.color.rgb.blue,
+                'RawSienna': pyx.color.cmyk.RawSienna,
+                'darkgreen': pyx.color.rgbfromhexstring('#006400'),
+                'tint-red': pyx.color.rgbfromhexstring('#FFBDAD'),
+                'tint-blue': pyx.color.rgbfromhexstring('#B3F5FF'),
+                'tint-yellow': pyx.color.rgbfromhexstring('#FFF0B3'),
+                'warm-grey': pyx.color.rgbfromhexstring('#FAF9F7'),
+                'night-blue': pyx.color.rgbfromhexstring('#23395d'),
+                'purple-blue': pyx.color.rgbfromhexstring('#666699'),
+                'earrow':    pyx.deco.earrow([ pyx.deco.stroked([pyx.color.rgb.black, pyx.style.linejoin.round]), 
+                                               pyx.deco.filled( [pyx.color.rgb.black]) 
+                                            ], size=0.5)
+               }
+                # '#B3F5FF', # dark-theme-bright-blue
+                # '#FFF0B3', # dark-theme-bright-yellow
+                # '#E1C7E0', # dark-theme-bright-violet(purple)
+                # '#ABF5D1', # dark-theme-bright-green
+                # '#FFBDAD', # dark-theme-bright-red
+
+pyx.unit.set(xscale=global_settings['xscale'],
+             wscale=global_settings['wscale']) # 同时修改VanGogh.py，搜索本行代码，减小画的点的size（其实可以用线cap属性处理而不需要额外画点的）
 # pyx.unit.set(wscale=7) # 同时修改VanGogh.py，搜索本行代码，减小画的点的size（其实可以用线cap属性处理而不需要额外画点的）
 pyx.text.set(pyx.text.LatexEngine)  # https://pyx-project.org/examples/text/textengine.html
                                     # https://tex.stackexchange.com/questions/406790/mathbb-plot-label-in-pyx
                                     # obsolete
                                     # pyx.text.set(mode="latex")
                                     # pyx.text.preamble(r"\usepackage{amssymb}") # for mathbb # https://tex.stackexchange.com/questions/406790/mathbb-plot-label-in-pyx
-pyx.unit.set(xscale=1.5)
-
-
-mapping_dict = { 
-                'dashed': pyx.style.dash([0,4]),
-                'dense-dashed': pyx.style.dash([0,1]),
-                'my-thick-line': pyx.style.linewidth(0.2),
-               } # introduce the mapping dict for pyx
 
 import math
+
+from pyx import attr, style, graph
+from pyx.graph import axis
 class PyX_Utility:
     def __init__(self):
         self.cvs = pyx.canvas.canvas()
         self.trace_l = [] # all the line path you have been drawn
         self.trace_a = [] # all the arc path you have been drawn
 
-    def pyx_line(self, p1, p2, bool_track=False, arg=[], **kwarg):
-
-        settings = [mapping_dict[setting] for setting in arg]
+    def pyx_line(self, p1, p2, bool_track=False, settings=[], **kwarg):
+        settings = [mapping_dict[setting] for setting in settings]
 
         # PyX （必须有pyx.style.linecap.round，才能在Overleaf上显现虚线，否则你在Samantrapdf里看到的，overleaf编译以后没了。)
-        self.cvs.stroke(pyx.path.line(p1[0], p1[1], p2[0], p2[1]), [pyx.color.rgb.black, pyx.style.linewidth.THICK, pyx.style.linecap.round]+settings)
-        self.cvs.fill(pyx.path.circle(p1[0], p1[1], 0.075)) # use this if THICK is used.
-        self.cvs.fill(pyx.path.circle(p2[0], p2[1], 0.075)) # use this if THICK is used.
+        self.cvs.stroke(pyx.path.line(p1[0], p1[1], p2[0], p2[1]), [global_settings['linecolor'], 
+                                                                    global_settings['linewidth'], 
+                                                                    global_settings['linestyle'], 
+                                                                    pyx.style.linecap.round
+                                                                   ]+settings)
+        # self.cvs.fill(pyx.path.circle(p1[0], p1[1], global_settings['wscale']*0.075)) # use this if THICK is used. 这里前面乘的7是和pyx.unit.set(wscale=7)一致的。按照官方manual，如果用的join，就不用担心连接处断裂，但是咱们默认都是用的add。
+        # self.cvs.fill(pyx.path.circle(p2[0], p2[1], global_settings['wscale']*0.075))
 
         if bool_track:
             self.trace_l.append( [*p1, *p2] )
             return self.trace_l[-1]
 
-    def pyx_arc(self, startxy, endxy, centerxy=(0,0), bool_track=False, arg=[], **kwarg):
-
-        settings = [mapping_dict[setting] for setting in arg]
+    def pyx_arc(self, startxy, endxy, centerxy=(0,0), bool_track=False, settings=[], **kwarg):
+        settings = [mapping_dict[setting] for setting in settings]
 
         angle_between_points = math.atan2(endxy[1], endxy[0]) - math.atan2(startxy[1], startxy[0])
         relative_angle = -0.5 * angle_between_points # simple math: https://pyx-project.org/manual/connector.html?highlight=relangle
@@ -46,40 +76,100 @@ class PyX_Utility:
         textattrs = [pyx.text.halign.center, pyx.text.vshift.middlezero]
         X = pyx.text.text(startxy[0], startxy[1], r"", textattrs) # must have textattrs or else you will have normsubpath cannot close error: AssertionError: normsubpathitems do not match
         Y = pyx.text.text(endxy[0], endxy[1], r"", textattrs)
-        self.cvs.stroke(pyx.connector.arc(X, Y, boxdists=[0.0, 0.0], relangle=relative_angle/pi*180), [pyx.color.rgb.black, pyx.style.linewidth.THICK]+settings) # https://pyx-project.org/manual/connector.html?highlight=relangle
+        self.cvs.stroke(pyx.connector.arc(X, Y, boxdists=[0.0, 0.0], relangle=relative_angle/np.pi*180), 
+                        [global_settings['linewidth'], global_settings['linestyle'], global_settings['linecolor']]+settings) # https://pyx-project.org/manual/connector.html?highlight=relangle
 
         if bool_track:
             self.trace_a.append([*startxy, *endxy, *centerxy, relative_angle])
             return self.trace_a[-1]
 
-    def pyx_text(self, loc, text, size=5, scale=1.0):
+    def pyx_text(self, loc, text, size=5, scale=1.0, BoxColor=None, settings=[]):
+        settings = [mapping_dict[setting] for setting in settings]
+
         # method 1: insert
         textattrs = [pyx.text.halign.center, # left, center, right
                      pyx.text.vshift.middlezero, 
                      pyx.text.size(size), 
-                     pyx.trafo.scale(scale)]
+                     pyx.trafo.scale(scale)]+settings
         handle = pyx.text.text(*loc, text, textattrs)
-        self.cvs.insert(handle)
-
+        if BoxColor is not None:
+            tbox = handle
+            tpath = tbox.bbox().enlarged(3*pyx.unit.x_pt).path()
+            self.cvs.draw(tpath, [pyx.deco.filled([mapping_dict[BoxColor]]), pyx.deco.stroked()])
+        self.cvs.insert(handle) # 要放到最后
         return handle
 
         # method 2: direct
         # self.cvs.text(*loc, text)
 
-    def pyx_arrow(self, PA, PB=None):
+    def pyx_arrow(self, PA, PB=None, settings=[]):
+        settings = [mapping_dict[setting] for setting in settings]
+
         if PB is None:
             PB = PA
             PA = [0,0]
         self.cvs.stroke(pyx.path.line(PA[0], PA[1], PB[0], PB[1]),
-                      [ pyx.style.linewidth.Thick, pyx.style.linestyle.solid, pyx.color.rgb.black,
+                      [ global_settings['linewidth'], global_settings['linestyle'], global_settings['linecolor'],
+                        pyx.deco.earrow([ pyx.deco.stroked([pyx.color.rgb.black, pyx.style.linejoin.round]+settings), 
+                                          pyx.deco.filled( [pyx.color.rgb.black]+settings) 
+                                        ], size=0.5)
+                      ]+settings)
+
+    def pyx_arrow_both_ends(self, PA, PB=None, settings=[]):
+        settings = [mapping_dict[setting] for setting in settings]
+
+        if PB is None:
+            PB = PA
+            PA = [0,0]
+        self.cvs.stroke(pyx.path.line(PA[0], PA[1], PB[0], PB[1]),
+                      [ global_settings['linewidth'], global_settings['linestyle'], global_settings['linecolor'],
                         pyx.deco.earrow([ pyx.deco.stroked([pyx.color.rgb.black, pyx.style.linejoin.round]), 
                                           pyx.deco.filled([pyx.color.rgb.black]) 
+                                        ] , size=0.5),
+                        pyx.deco.barrow([ pyx.deco.stroked([pyx.color.rgb.black, pyx.style.linejoin.round]), 
+                                          pyx.deco.filled([pyx.color.rgb.black]) 
                                         ] , size=0.5)
-                      ])
+                      ]+settings)
 
-    def pyx_marker(self, loc, size=0.25, rgb=[0,0,0]):
+    def pyx_horizental_arrow_both_ends_with_text_inside(self, text, PA, PB=None, BoxColor=None, size=5, scale=1.0, settings=[]):
+        settings = [mapping_dict[setting] for setting in settings]
+
+        manual_factor_depending_on_plot_size = 0.52 # 越大，则写字的空间越大
+
+        if PB is None:
+            PB = PA
+            PA = [0,0]
+        PMiddle = [(PA[0] + PB[0])/2, (PA[1] + PB[1])/2]
+        PTextLeft  = [PMiddle[0]-len(text)/2*manual_factor_depending_on_plot_size, PMiddle[1]]
+        PTextRight = [PMiddle[0]+len(text)/2*manual_factor_depending_on_plot_size, PMiddle[1]]
+        textattrs = [pyx.text.halign.center, # left, center, right
+                     pyx.text.vshift.middlezero, 
+                     pyx.text.size(size),
+                     pyx.trafo.scale(scale)]+settings
+        handle = pyx.text.text(*PMiddle, text, textattrs)
+        if BoxColor is not None:
+            tbox = handle
+            tpath = tbox.bbox().enlarged(3*pyx.unit.x_pt).path()
+            self.cvs.draw(tpath, [pyx.deco.filled([mapping_dict[BoxColor]]), pyx.deco.stroked()])
+        self.cvs.insert(handle)
+        self.cvs.stroke(pyx.path.line(PA[0], PA[1], PTextLeft[0], PTextLeft[1]),
+                      [ global_settings['linewidth'], global_settings['linestyle'], global_settings['linecolor'],
+                        pyx.deco.barrow([ pyx.deco.stroked([pyx.color.rgb.black, pyx.style.linejoin.round]), 
+                                          pyx.deco.filled([pyx.color.rgb.black]) 
+                                        ] , size=0.5)
+                      ]+settings)
+        self.cvs.stroke(pyx.path.line(PTextRight[0], PTextRight[1], PB[0], PB[1]),
+                      [ global_settings['linewidth'], global_settings['linestyle'], global_settings['linecolor'],
+                        pyx.deco.earrow([ pyx.deco.stroked([pyx.color.rgb.black, pyx.style.linejoin.round]), 
+                                          pyx.deco.filled([pyx.color.rgb.black]) 
+                                        ] , size=0.5),
+                      ]+settings)
+
+    def pyx_marker(self, loc, size=0.15, rgb=[0,0,0], settings=[]):
+        settings = [mapping_dict[setting] for setting in settings]
+
         r,g,b = rgb[0], rgb[1], rgb[2]
-        self.cvs.fill(pyx.path.circle(*loc, size), [pyx.color.rgb(r,g,b)])
+        self.cvs.fill(pyx.path.circle(*loc, size), [pyx.color.rgb(r,g,b)]+settings)
 
     def pyx_marker_minus(self, loc, size=1, rgb=[0,0,0]):
         r,g,b = rgb[0], rgb[1], rgb[2]
@@ -109,15 +199,19 @@ class PyX_Utility:
         if bool_stroke:
             self.cvs.stroke(p, [pyx.style.linewidth.thin]) # comment this for no outline
 
-    def pyx_circle(self, radius, center=[0,0], bool_dashed=False, dash_list=[0,4], linewidth=0.035):
+    def pyx_circle(self, radius, center=[0,0], bool_dashed=False, dash_list=[0,4], linewidth=0.035, settings=[]):
+        settings = [mapping_dict[setting] for setting in settings]
+
         p = pyx.path.circle(*center, radius)
         if bool_dashed:
             # self.cvs.stroke(p, [pyx.style.linewidth.thin, pyx.style.linestyle.dashed])
-            self.cvs.stroke(p, [pyx.style.linecap.round, pyx.style.dash(dash_list), pyx.style.linewidth(linewidth)]) # [0,2] is default # https://stackoverflow.com/questions/50621257/python-pyx-plot-changing-spacing-between-dots-in-dotted-line
+            self.cvs.stroke(p, [pyx.style.linecap.round, pyx.style.dash(dash_list), pyx.style.linewidth(linewidth)]+settings) # [0,2] is default # https://stackoverflow.com/questions/50621257/python-pyx-plot-changing-spacing-between-dots-in-dotted-line
             # self.cvs.stroke(p, [pyx.style.linecap.round, pyx.style.dash([0,5]), pyx.style.linestyle.dashdotted, pyx.style.linewidth(0.02)])  # https://pyx-project.org/manual/pathstyles.html
         else:
-            self.cvs.stroke(p, [pyx.style.linewidth.thin]) 
-
+            self.cvs.stroke(p, [pyx.style.linewidth.thin, 
+                                global_settings['linecolor'],
+                                global_settings['linewidth'],
+                                global_settings['linestyle']]+settings) 
 
 
 if __name__ == '__main__':
