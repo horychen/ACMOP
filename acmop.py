@@ -43,12 +43,18 @@ def main(bool_post_processing=True):
         # select_spec =  "PMSM Q12p4y1 A"            #   './spec_PEMD_BPMSM_Q12p4.py',
         # select_spec =  "PMSM Q24p1y9 A"            #   './spec_PEMD_BPMSM_Q24p1.py'],
     mop = AC_Machine_Optiomization_Wrapper(
-            select_fea_config_dict = '#0211 JMAG PMSM Q12p4ps5 Sub-hamonics',
-            select_spec            = 'PMSM Q12p4y1 A',
-            # project_loc            = fr'{os.path.dirname(__file__)}/_default/',
-            project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/',
+            select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+            select_spec            = 'PMSM Q12p1y5 A',
+            project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p1y5_restart_from_optimal_and_reevaluate_wo_csv/',
             bool_show_jmag         = True
         )
+    # mop = AC_Machine_Optiomization_Wrapper(
+    #         select_fea_config_dict = '#0211 JMAG PMSM Q12p4ps5 Sub-hamonics',
+    #         select_spec            = 'PMSM Q12p4y1 A',
+    #         # project_loc            = fr'{os.path.dirname(__file__)}/_default/',
+    #         project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/',
+    #         bool_show_jmag         = True
+    #     )
 
 
     #########################
@@ -65,7 +71,9 @@ def main(bool_post_processing=True):
         if False:
             mop.reproduce_design_from_jsonpickle('p2ps1-Q12y3-0999')
         else:
-            mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5
+            # mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5
+            mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
+
 
 import os, sys; sys.path.insert(0, os.path.dirname(__file__)+'/codes3/')
 import main_utility

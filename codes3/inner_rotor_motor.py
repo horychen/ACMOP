@@ -622,10 +622,10 @@ class variant_machine_as_objects(object):
                     refarray[0][0] = 0
                     refarray[0][1] =    1
                     refarray[0][2] =        50
-                    refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_poles']
+                    refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_Freq']
                     refarray[1][1] =    number_of_steps_1stTSS
                     refarray[1][2] =        50
-                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_poles']
+                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_Freq']
                     refarray[2][1] =    number_of_steps_2ndTSS # 最后的number_of_steps_2ndTSS（32）步，必须对应半个周期，从而和后面的铁耗计算相对应。
                     refarray[2][2] =        50
                 else:
@@ -633,13 +633,13 @@ class variant_machine_as_objects(object):
                     refarray[0][0] = 0
                     refarray[0][1] =    1
                     refarray[0][2] =        50
-                    refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_poles']
+                    refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_Freq']
                     refarray[1][1] =    number_of_steps_1stTSS
                     refarray[1][2] =        50
-                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_poles']
+                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_Freq']
                     refarray[2][1] =    number_of_steps_2ndTSS # 最后的number_of_steps_2ndTSS（32）步，必须对应半个周期，从而和后面的铁耗计算相对应。
                     refarray[2][2] =        50
-                    refarray[3][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS+number_cycles_in_3rdTSS)/OP['DriveW_poles']
+                    refarray[3][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS+number_cycles_in_3rdTSS)/OP['DriveW_Freq']
                     refarray[3][1] =    number_of_steps_3rdTSS
                     refarray[3][2] =        50
             else:
@@ -647,19 +647,20 @@ class variant_machine_as_objects(object):
                 refarray[0][0] = 0
                 refarray[0][1] =    1
                 refarray[0][2] =        50
-                refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_poles']
+                refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_Freq']
                 refarray[1][1] =    number_of_steps_1stTSS
                 refarray[1][2] =        50
-                refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_poles']
+                refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_Freq']
                 refarray[2][1] =    number_of_steps_2ndTSS # 最后的number_of_steps_2ndTSS（32）步，必须对应半个周期，从而和后面的铁耗计算相对应。
                 refarray[2][2] =        50
-                refarray[3][0] = refarray[2][0] + number_cycles_prolonged/OP['DriveW_poles'] 
+                refarray[3][0] = refarray[2][0] + number_cycles_prolonged/OP['DriveW_Freq'] 
                 refarray[3][1] =    number_cycles_prolonged*self.template.fea_config_dict['designer.TranRef-StepPerCycle'] 
                 refarray[3][2] =        50
-                # refarray[4][0] = refarray[3][0] + 0.5/OP['DriveW_poles'] # 最后来一个超密的半周期400步
+                # refarray[4][0] = refarray[3][0] + 0.5/OP['DriveW_Freq'] # 最后来一个超密的半周期400步
                 # refarray[4][1] =    400
                 # refarray[4][2] =        50
             number_of_total_steps = 1 + number_of_steps_1stTSS + number_of_steps_2ndTSS + number_of_steps_3rdTSS + number_cycles_prolonged*self.template.fea_config_dict['designer.TranRef-StepPerCycle'] # [Double Check] don't forget to modify here!
+            print('[inner_rotor_motor.py]: refarray:', refarray)
             DM.GetDataSet("SectionStepTable").SetTable(refarray)
             study.GetStep().SetValue("Step", number_of_total_steps)
             study.GetStep().SetValue("StepType", 3)
@@ -702,7 +703,7 @@ class variant_machine_as_objects(object):
         # Stator 
         if True:
             cond = study.CreateCondition("Ironloss", "IronLossConStator")
-            cond.SetValue("RevolutionSpeed", "freq*60/%d"%(0.5*(OP['DriveW_poles'])))
+            cond.SetValue("RevolutionSpeed", "freq*60/%d"%(0.5*OP['DriveW_poles']))
             cond.ClearParts()
             sel = cond.GetSelection()
             sel.SelectPartByPosition(self.template.d['GP']['mm_r_si'].value + EPS, 0 ,0)
@@ -711,7 +712,8 @@ class variant_machine_as_objects(object):
             cond.SetValue("HysteresisLossCalcType", 1)
             cond.SetValue("PresetType", 3) # 3:Custom
             # Specify the reference steps yourself because you don't really know what JMAG is doing behind you
-            cond.SetValue("StartReferenceStep", number_of_total_steps+1-number_of_steps_2ndTSS*0.5) # 1/4 period <=> number_of_steps_2ndTSS*0.5
+            cond.SetValue("StartReferenceStep", number_of_total_steps+1 - 0.5*int(number_of_steps_2ndTSS/number_cycles_in_2ndTSS)) # 1/2 period <=> number_of_steps_2ndTSS
+                # cond.SetValue("StartReferenceStep", number_of_total_steps+1-number_of_steps_2ndTSS*0.5) # 1/4 period <=> number_of_steps_2ndTSS*0.5
             cond.SetValue("EndReferenceStep", number_of_total_steps)
             cond.SetValue("UseStartReferenceStep", 1)
             cond.SetValue("UseEndReferenceStep", 1)
@@ -751,11 +753,11 @@ class variant_machine_as_objects(object):
             cond.SetValue("HysteresisLossCalcType", 1)
             cond.SetValue("PresetType", 3)
             # Specify the reference steps yourself because you don't really know what JMAG is doing behind you
-            cond.SetValue("StartReferenceStep", number_of_total_steps+1-int(number_of_steps_2ndTSS/number_cycles_in_2ndTSS)) # 1/2 period <=> number_of_steps_2ndTSS
+            cond.SetValue("StartReferenceStep", number_of_total_steps+1 - 0.5*int(number_of_steps_2ndTSS/number_cycles_in_2ndTSS)) # 1/2 period <=> number_of_steps_2ndTSS
             cond.SetValue("EndReferenceStep", number_of_total_steps)
             cond.SetValue("UseStartReferenceStep", 1)
             cond.SetValue("UseEndReferenceStep", 1)
-            cond.SetValue("Cyclicity", 4) # specify reference steps for 1/4 period and extend it to whole period
+            cond.SetValue("Cyclicity", 2) # specify reference steps for 1/2 or 1/4 period and extend it to whole period (2 means 1/2 peirodicity; 4 means 1/4 peirodicity)
             cond.SetValue("UseFrequencyOrder", 1)
             cond.SetValue("FrequencyOrder", "1-50") # Harmonics up to 50th orders 
         self.study_name = study_name
