@@ -1,4 +1,4 @@
-def main(bool_post_processing=False):
+def main(bool_post_processing=True):
     # Vernier Machine
     # mop = AC_Machine_Optiomization_Wrapper(
     #         select_fea_config_dict = "#03 JMAG Non-Bearingless Motor Evaluation Setting",
@@ -45,7 +45,8 @@ def main(bool_post_processing=False):
     mop = AC_Machine_Optiomization_Wrapper(
             select_fea_config_dict = '#0211 JMAG PMSM Q12p4ps5 Sub-hamonics',
             select_spec            = 'PMSM Q12p4y1 A',
-            project_loc            = r'D:/DrH/acmop/_default/',
+            # project_loc            = fr'{os.path.dirname(__file__)}/_default/',
+            project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/',
             bool_show_jmag         = True
         )
 
@@ -61,24 +62,17 @@ def main(bool_post_processing=False):
         mop.part_evaluation() # Module 3
         # mop.part_optimization(acm_template) # Module 4
     else:
-        if True:
+        if False:
             mop.reproduce_design_from_jsonpickle('p2ps1-Q12y3-0999')
         else:
-            mop.part_reportWithStreamlit() # Module 5
+            mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5
+
+import os, sys; sys.path.insert(0, os.path.dirname(__file__)+'/codes3/')
+import main_utility
+# import winding_layout, PyX_Utility, math # part_winding
+import acm_designer, bearingless_spmsm_design, vernier_motor_design # part_initialDesign
 
 from dataclasses import dataclass
-import os, sys; sys.path.insert(0, os.path.dirname(__file__)+'/codes3/')
-# import sys; sys.path.insert(0, './codes3/')
-import main_utility
-
-# part_winding
-# import winding_layout, PyX_Utility, math
-
-# part_initialDesign
-import pyrhonen_procedure_as_function, acm_designer
-import bearingless_spmsm_design, vernier_motor_design
-global ad
-
 @dataclass
 class AC_Machine_Optiomization_Wrapper(object):
     ''' Inputs
@@ -87,8 +81,9 @@ class AC_Machine_Optiomization_Wrapper(object):
     select_fea_config_dict: str
     # B. select design specification
     select_spec: str
-    # C. decide output directory 20210127
-    project_loc: str
+    # C. decide output directory (initialize either one)
+    project_loc: str = None
+    path2SwarmData: str = None
     # D. this is up to you
     bool_show_jmag: bool = False
 
@@ -99,14 +94,33 @@ class AC_Machine_Optiomization_Wrapper(object):
     fea_config_dict: dict = None
 
     def __post_init__(self):
-        Help = r'''[Steps for adding a new slot pole combination for IM]
+        self.Help = r'''[Steps for adding a new slot pole combination for IM]
         1. Update machine_specifications.json
         2. Run winding_layout_derivation_ismb2020.py to get a new stator winding layout and paste the code into winding_layout.py
         3. Run Pole-specific_winding_with_neutral_plate_the_design_table_generator.py to get a new rotor winding layout and paste the code into winding_layout.py
         4. Update this file with new "select_spec".
         '''
-        self.output_dir, self.spec_input_dict, self.fea_config_dict = main_utility.load_settings(self.select_spec, self.select_fea_config_dict, self.project_loc)
+        self.output_dir, self.spec_input_dict, self.fea_config_dict = \
+                main_utility.load_settings(self.select_spec, self.select_fea_config_dict, 
+                                            project_loc=self.project_loc, 
+                                            path2SwarmData=self.path2SwarmData)
         self.fea_config_dict['designer.Show'] = self.bool_show_jmag
+        if self.path2SwarmData is None:
+            self.path2SwarmData = self.project_loc + self.select_spec.replace(' ', '_') + '/'
+        if self.project_loc is None:
+            self.project_loc = os.path.abspath(os.path.join(self.path2SwarmData, '..',))
+
+        print(self.project_loc)
+        print(self.path2SwarmData)
+        print(self.output_dir)
+
+        r""" <ACMOP parent dir> = D:/DrH/acmop/
+             <Data folder name> = <ACMOP parent dir>/_default/, /_WenboVShapeVernier/, or /_PEMD_2020_swarm_data_collected/_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/
+             <Project location> = <Data folder name>
+             <path2SwarmData>   = <Project location>/PMSM_Q12p4y1_A/(swarm_data.txt)
+             <fea_config_dict['run_folder']> = <path2SwarmData>
+             <output_dir> = <path2SwarmData>
+        """
 
         self.acm_template = self.part_initialDesign() # Module 2 (mop.ad is available now)
 
@@ -475,14 +489,36 @@ class AC_Machine_Optiomization_Wrapper(object):
             print(e)
             print("你有没有搞错啊？json文件找不到啊，忘记把bool_post_processing改回来了？")
 
-    def part_reportWithStreamlit(self):
-
+    def part_post_optimization_analysis(self, project_name):
         # Status report: Generation, individuals, geometry as input, fea tools, performance as output (based on JSON files)
         # Do not show every step, but only those key steps showing how this population is built 
         # refer to D:\DrH\Codes\visualize
 
-        # import utility_postprocess
-        pass
+        ## Do `streamlit run visualize.py` and find an optimal design first
+        self.ad.solver.output_dir = self.path2SwarmData
+        number_of_chromosome = self.ad.solver.read_swarm_data(self.select_spec) # ad.solver.swarm_data 在此处被赋值
 
+        _swarm_data          = self.ad.solver.swarm_data
+        _swarm_project_names = self.ad.solver.swarm_data_container.project_names
+
+        best_index = _swarm_project_names.index(project_name)
+        best_chromosome = _swarm_data[best_index]
+
+        print('---Module 5')
+        print(project_name, best_index, best_chromosome)
+
+        self.reproduce_design_from_x_denorm_and_acm_template(best_chromosome)
+
+    def reproduce_design_from_x_denorm_and_acm_template(self, best_chromosome):
+        # re-build the jmag project
+        x_denorm = np.array(best_chromosome[:-3]) 
+
+        # evaluate design (with json output)
+        cost_function, f1, f2, f3, FRW, \
+            normalized_torque_ripple, \
+            normalized_force_error_magnitude, \
+            force_error_angle = self.ad.evaluate_design_json_wrapper(self.acm_template, x_denorm, counter=self.ad.counter_fitness_called)
+
+from pylab import np
 if __name__ == '__main__':
     main()

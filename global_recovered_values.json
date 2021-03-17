@@ -8,8 +8,8 @@
     "Input upper bounds of objectives as [$O_C$, $O_B$, $O_A$] for filtering IM Q36p3y5 ps4 Qr20 Round Bar:": "[11, -0.92, -20000]",
     "Input upper bounds of objectives as [$O_C$, $O_B$, $O_A$] for filtering PMSM Q06p1y2 A:": "[13.7, -0.94, 400]",
     "Input upper bounds of objectives as [$O_C$, $O_B$, $O_A$] for filtering PMSM Q06p2y1 A:": "[0,0,0]",
-    "Input upper bounds of objectives as [$O_C$, $O_B$, $O_A$] for filtering PMSM Q12p1y5 A:": "[0,0,0]",
+    "Input upper bounds of objectives as [$O_C$, $O_B$, $O_A$] for filtering PMSM Q12p1y5 A:": "[13.7, -0.97, 400]",
     "Input upper bounds of objectives as [$O_C$, $O_B$, $O_A$] for filtering PMSM Q12p2y3 A:": "[0,0,0]",
-    "Input upper bounds of objectives as [$O_C$, $O_B$, $O_A$] for filtering PMSM Q12p4y1 A:": "[0,0,0]",
+    "Input upper bounds of objectives as [$O_C$, $O_B$, $O_A$] for filtering PMSM Q12p4y1 A:": "[13.7, -0.9567, 400]",
     "Input upper bounds of objectives as [$O_C$, $O_B$, $O_A$] for filtering PMSM Q24p1y9 A:": "[0,0,0]"
 }

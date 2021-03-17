@@ -156,12 +156,10 @@ class template_machine_as_numbers(object):
     ''' 玩弄几何变量
     '''
     def build_x_denorm(self):
+        """ This is core function """
         # this is used in part_evaluation
-
         GP = self.d['GP']
-
         self.x_denorm_dict = self.get_x_denorm_dict_from_geometric_parameters(GP)
-
         x_denorm = [val for key, val in self.x_denorm_dict.items()]
         if False:
             from pprint import pprint
@@ -179,6 +177,8 @@ class template_machine_as_numbers(object):
     def get_x_denorm_dict_from_x_denorm_list(self, x_denorm):
         # 先拿个模板来，但是几何尺寸的变量值是旧的
         x_denorm_dict = self.get_x_denorm_dict_from_geometric_parameters(self.d['GP'])
+
+        print('DEBUG [inner_rotor_motor.py]', x_denorm_dict.keys())
 
         # 对模板进行遍历，挨个把新的几何尺寸的值从x_denorm中读取出来并更新x_denorm_dict
         for key, new_val in zip(x_denorm_dict.keys(), x_denorm):
@@ -206,7 +206,8 @@ class template_machine_as_numbers(object):
 class variant_machine_as_objects(object):
     ''' # variant则有点像是具体的电机实现类（由各个局部类，比如转子、定子等组成）
     '''
-    def __init__(self, spmsm_template=None, x_denorm=None, counter=None, counter_loop=None):
+    def __init__(self, spmsm_template=None, x_denorm=None, counter=None, counter_loop=None, 
+                verbose=True):
 
         self.template = spmsm_template
 
@@ -234,8 +235,13 @@ class variant_machine_as_objects(object):
             GP = self.template.d['GP'] # do nothing, use template's GP
         else:
             x_denorm_dict = self.template.get_x_denorm_dict_from_x_denorm_list(x_denorm)
+            if verbose:
+                for k,v in x_denorm_dict.items():
+                    print('\t', k,v)
             GP = self.template.update_geometric_parametes_using_x_denorm_dict(x_denorm_dict)
 
+
+        print('DEBUG [inner_rotor_motor.py] x_denorm length', len(x_denorm), x_denorm)
 
         #test: yes, it is by reference!
         # print(self.template.d['GP'])
@@ -599,7 +605,7 @@ class variant_machine_as_objects(object):
         # 我们的情况是：0.33 sec 分成了32步，每步的时间大概在0.01秒，0.01秒乘以0.5*497 Hz = 2.485 revolution...
         # study.GetStudyProperties().SetValue(u"NonlinearSpeedup", 0) # JMAG17.1以后默认使用。现在后面密集的步长还多一点（32步），前面16步慢一点就慢一点呗！
 
-        # two sections of different time step
+        # two sections of different time step size
         if True:
             number_cycles_in_1stTSS = self.template.fea_config_dict['designer.number_cycles_in_1stTSS']
             number_cycles_in_2ndTSS = self.template.fea_config_dict['designer.number_cycles_in_2ndTSS']
@@ -745,7 +751,7 @@ class variant_machine_as_objects(object):
             cond.SetValue("HysteresisLossCalcType", 1)
             cond.SetValue("PresetType", 3)
             # Specify the reference steps yourself because you don't really know what JMAG is doing behind you
-            cond.SetValue("StartReferenceStep", number_of_total_steps+1-number_of_steps_2ndTSS*0.5) # 1/4 period <=> number_of_steps_2ndTSS*0.5
+            cond.SetValue("StartReferenceStep", number_of_total_steps+1-int(number_of_steps_2ndTSS/number_cycles_in_2ndTSS)) # 1/2 period <=> number_of_steps_2ndTSS
             cond.SetValue("EndReferenceStep", number_of_total_steps)
             cond.SetValue("UseStartReferenceStep", 1)
             cond.SetValue("UseEndReferenceStep", 1)

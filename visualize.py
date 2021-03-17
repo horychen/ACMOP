@@ -24,27 +24,20 @@ import builtins
 
 _=""" Streamlit Packages """
 import streamlit as st
-from bokeh.plotting import figure
-from bokeh.palettes import Dark2_5 as palette
-import itertools; colors = itertools.cycle(palette) # bokeh colors has a list of colors which can be used in plots 
+# from bokeh.plotting import figure
+# from bokeh.palettes import Dark2_5 as palette
+# import itertools; colors = itertools.cycle(palette) # bokeh colors has a list of colors which can be used in plots 
 
-_=""" Should not load ACMOP/codes3 Modules """
-import acmop
+_=""" Visualize Modules """
 import utility_postprocess
 
+_=""" Should not load ACMOP/codes3 Modules """
+
 if __name__ == '__main__':
-    mop = acmop.AC_Machine_Optiomization_Wrapper(
-            select_fea_config_dict = '#0211 JMAG PMSM Q12p4ps5 Sub-hamonics',
-            select_spec            = 'PMSM Q12p4y1 A',
-            project_loc            = r'D:/DrH/acmop/_default/',
-            bool_show_jmag         = True
-        )
-    mop.part_reportWithStreamlit()
 
     ## 标题
-    builtins.title = 'Swarm Analyzer and Visualization'
-    builtins.order  = [4,3,5,6,2,1,7] # [1,2,3,4,5,6] # 只影响帕累托图里的marker顺序
-    st.title(builtins.title)
+    builtins.order = [4,3,5,6,2,1,7] # [1,2,3,4,5,6] # 只影响帕累托图里的marker顺序
+    st.title('Swarm Analyzer and Visualization')
     st.write(r'''### 2021-03-16''')
 
     ## 选择优化集合
@@ -55,6 +48,7 @@ if __name__ == '__main__':
     folder_of_collection = st.selectbox(
         "Choose a collection:", SA.folders_of_collections, 0
     )
+    builtins.folder_of_collection = folder_of_collection[:-len('_swarm_data_collected')]
 
     ## 多项选择电机规格
     list_specifications, dict_path2SwarmDataOfTheSpecification, dict_settingsOfTheSpecification \
@@ -79,6 +73,7 @@ if __name__ == '__main__':
     else:
 
         ## 读入 ad_list 并保存到 session_state
+        # 优点是后面选最优设计的时候快，但是缺点是一旦ad_list或ad代码有变动，由于不是用的st.cache，不会自动刷新，需要重启Streamlit，有时候会忘记，debug不方便。
         if session_state.ad_list is None or session_state.folder_of_collection != folder_of_collection:
             session_state.ad_list = ad_list = SA.get_ad_list(selected_specifications)
             session_state.folder_of_collection = folder_of_collection

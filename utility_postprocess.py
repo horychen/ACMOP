@@ -289,20 +289,19 @@ class SwarmAnalyzer(object):
 
     # @st.cache # (hash_funcs={0:get_ad})
     def get_ad_list(self, selected_specifications):
-        global the_time
         print('[get_ad_list] for cache')
         def get_ad(specification):
             """ 醉翁之意不在酒，要的不是ad，而是ad.solver.swarm_data """
             mop = acmop.AC_Machine_Optiomization_Wrapper(
                 select_fea_config_dict = self.dict_settingsOfTheSpecification[specification], 
-                select_spec            = specification,
-                project_loc            = self.dict_path2SwarmDataOfTheSpecification[specification],
-                bool_show_jmag         = True
+                select_spec    = specification,
+                path2SwarmData = self.dict_path2SwarmDataOfTheSpecification[specification],
+                bool_show_jmag = True
             )
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
             # Collect all swarm data from optimization results
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-            mop.ad.solver.output_dir = mop.project_loc
+            mop.ad.solver.output_dir = mop.path2SwarmData # tell solver where to load swarm_data.txt
             number_of_chromosome = mop.ad.solver.read_swarm_data(specification) # ad.solver.swarm_data 在此处被赋值
             return mop.ad
         ad_list = []
@@ -357,7 +356,7 @@ class SwarmAnalyzer(object):
 
         # 绘制 Pareto front 的纵轴
         fig = main_utility.pareto_front_plot_color_bar_etc(scatter_handle, fig, ax, font, settings=None)
-        fname = f'{os.path.dirname(__file__)}/ParetoFrontOverlapped-{builtins.title}.pdf'
+        fname = f'{os.path.dirname(__file__)}/ParetoFrontOverlapped-{builtins.folder_of_collection}.pdf'
         print('save to ', fname)
         fig.savefig(fname, format='pdf', dpi=400, transparent=True) # 不能用bbox_inches='tight'，否则colorbar 会偏
         return df, fig
@@ -423,6 +422,7 @@ class SwarmAnalyzer(object):
         import matplotlib as mpl
         mpl.rcParams['font.size'] = 15.0
         mpl.rcParams['font.family'] = ['Times New Roman']
+        mpl.rcParams['font.family'] = 'sans-serif'
         font = {'family' : 'Times New Roman', #'serif',
             'color' : 'darkblue',
             'weight' : 'normal',
@@ -431,7 +431,7 @@ class SwarmAnalyzer(object):
         ax1 = plt.gca()
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5, edgecolor='white')
         ax1.text(-0.30, 0, r'Total: $%.0f$ W'%(total_loss), color='tomato', bbox=props, fontsize=20)
-        patches, texts, autotexts = ax1.pie(sizes, colors = colors, labels=labels, autopct='%1.0f%%', startangle=0, pctdistance=0.50, explode = explode)
+        patches, texts, autotexts = ax1.pie(sizes, colors = colors, labels=labels, autopct='%1.0f%%', startangle=0, pctdistance=0.50, explode = explode, normalize=True) # MatplotlibDeprecationWarning: normalize=None does not normalize if the sum is less than 1 but this behavior is deprecated since 3.3 until two minor releases later. After the deprecation period the default value will be normalize=True. To prevent normalization pass normalize=False
         [ _.set_fontsize(20) for _ in texts]
         [ _.set_fontsize(20) for _ in autotexts]
         #draw circle
@@ -443,9 +443,9 @@ class SwarmAnalyzer(object):
         # plt.tight_layout()
         # fig.tight_layout()
         if Qr is not None:
-            figname = f'{os.path.dirname(__file__)}/Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}Qr{Qr}-{builtins.title}.pdf'
+            figname = f'{os.path.dirname(__file__)}/Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}Qr{Qr}-{builtins.folder_of_collection}.pdf'
         else:
-            figname = f'{os.path.dirname(__file__)}/Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}-{builtins.title}.pdf'
+            figname = f'{os.path.dirname(__file__)}/Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}-{builtins.folder_of_collection}.pdf'
         fig.savefig(figname, format='pdf', dpi=600, bbox_inches='tight', pad_inches=0.0, transparent=True)
         print('\tSave donuts loss chart to', figname, '\n')
         # https://medium.com/@kvnamipara/a-better-visualisation-of-pie-charts-by-matplotlib-935b7667d77f
@@ -582,6 +582,10 @@ class SwarmAnalyzer(object):
                     print(performance, end=r' & ')
                 print()
 
-        df = pd.DataFrame(data=df_dict, index=['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'TRV', 'PF']).T
+        if 'PMSM' in selected_specifications[0]:
+            df = pd.DataFrame(data=df_dict, index=['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'Cost', 'disp.PF']).T
+        elif 'IM' in selected_specifications[0]:
+            df = pd.DataFrame(data=df_dict, index=['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'TRV', 'disp.PF']).T
+        elif 'PMVM' in selected_specifications[0]:
+            raise Exception('not implemented')
         return df
-

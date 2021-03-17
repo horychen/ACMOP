@@ -143,20 +143,61 @@ class swarm_data_container(object):
                     # print(x_denorm)
                     # quit()
                 else:
-                    # 在 acmop 里，我们已经放弃了使用 bound_filter 的概念。
-                    # x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
-                    x_denorm = [None]*11
-                    x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
-                    x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_so         
-                    x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
-                    x_denorm[3]  = design_parameters_denorm[7] # spmsm_template.mm_w_st         
-                    x_denorm[4]  = design_parameters_denorm[12] # spmsm_template.sleeve_length   
-                    x_denorm[5]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm         
-                    x_denorm[6]  = design_parameters_denorm[15] # spmsm_template.deg_alpha_rm    
-                    x_denorm[7]  = design_parameters_denorm[16] # spmsm_template.deg_alpha_rs    
-                    x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
-                    x_denorm[9]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
-                    x_denorm[10] = design_parameters_denorm[20] # spmsm_template.mm_d_rs         
+                    if len(design_parameters_denorm) > 20:
+                        ''' 永磁电机 复古 '''
+
+                        # 在 acmop 里，我们已经放弃了使用 bound_filter 的概念。
+                        # x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
+
+                        """ This is consistent with bopt-python """
+                        # x_denorm = [None]*11
+                        # x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
+                        # x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_so         
+                        # x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
+                        # x_denorm[3]  = design_parameters_denorm[7] # spmsm_template.mm_w_st         
+                        # x_denorm[4]  = design_parameters_denorm[12] # spmsm_template.sleeve_length   
+                        # x_denorm[5]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm         
+                        # x_denorm[6]  = design_parameters_denorm[15] # spmsm_template.deg_alpha_rm    
+                        # x_denorm[7]  = design_parameters_denorm[16] # spmsm_template.deg_alpha_rs    
+                        # x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
+                        # x_denorm[9]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
+                        # x_denorm[10] = design_parameters_denorm[20] # spmsm_template.mm_d_rs         
+
+                        """ This is consistent with ACMOP """
+                        x_denorm = [None]*11
+                        x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
+                        x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_so         
+                        x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
+                        x_denorm[3]  = sum([design_parameters_denorm[i] for i in (2,4,5,6)]) # outer_stator_radius mm_r_os
+                        x_denorm[4]  = design_parameters_denorm[7] # spmsm_template.mm_w_st   
+                        x_denorm[5]  = design_parameters_denorm[12] #            mm_d_sleeve
+                        r_si = design_parameters_denorm[2] # 2 spmsm_template.mm_r_si      
+                        x_denorm[6]  = r_si /  x_denorm[3] # split_ratio     r_is_slash_r_os 
+                        x_denorm[7]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm      
+                        x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
+                        # childGP
+                        x_denorm[9]  = design_parameters_denorm[15] # spmsm_template.deg_alpha_rm    
+                        x_denorm[10]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
+                        # x_denorm[11]  = design_parameters_denorm[16] # spmsm_template.deg_alpha_rs    
+                        # x_denorm[12] = design_parameters_denorm[20] # spmsm_template.mm_d_rs         
+
+                        # DEBUG
+                        # odict_keys(['deg_alpha_st', 'mm_d_so', 'mm_d_st', 'mm_r_os', 'mm_w_st', 'mm_d_sleeve', 'split_ratio', 'mm_d_pm', 'mm_d_ri', 'deg_alpha_rm', 'mm_d_rp'])
+                        # deg_alpha_st 11.1183
+                        # mm_d_so 1.50079
+                        # mm_d_st 42.9701
+                        # mm_r_os 16.099
+                        # mm_w_st 5.89091
+                        # mm_d_sleeve 5.19948
+                        # split_ratio 44.9638
+                        # mm_d_pm 44.9638
+                        # mm_d_ri 3.67901
+                        # deg_alpha_rm 5.19948
+                        # mm_d_rp 0.0
+
+                    else:
+                        '''感应电机 复古 '''
+                        raise Exception('not implemented')
 
                 # print(design_parameters_denorm, f1, f2, f3)
                 # THERE IS A BUT HERE: slot_tip_open_ratio is less than 0.2---Not possible
@@ -832,7 +873,7 @@ class FEA_Solver:
 
             self.swarm_data_raw = [buf[i:i+21] for i in range(0, len(buf), 21)]
 
-        print('|||||||||||||', self.output_dir, select_spec)
+        print('[acm_designer.py]', self.output_dir, select_spec)
 
         if os.path.exists(self.output_dir + select_spec+'.json'):
             with open(self.output_dir + select_spec+'.json', 'r') as f:
@@ -840,8 +881,11 @@ class FEA_Solver:
                 for _ in range(1): next(f)
                 buf = f.read()
                 self.swarm_data_json = json.loads('{\n' + buf + '\n}')
+                print('[acm_designer.py] ACMOP: read in swarm_data_json...', self.output_dir + select_spec+'.json')
+                # print(buf) # debug
         else:
             self.swarm_data_json = None
+            print('[acm_designer.py] These are bopt-python results. No swarm_data_json available.')
 
         self.swarm_data_container = swarm_data_container(self.swarm_data_raw, self.fea_config_dict, self.swarm_data_json)
         self.swarm_data = self.swarm_data_container.swarm_data_xf
@@ -849,20 +893,6 @@ class FEA_Solver:
         #     print(el)
         # quit()
         return int(number_of_chromosome)
-
-            # while True:
-            #     try:
-            #         if 'Extra Info:' in buf.pop():
-            #             info_is_at_this_line = buf[-10]
-            #             loc_first_comma = info_is_at_this_line.find(',') + 1
-            #             loc_second_comma = info_is_at_this_line.find(',', loc_first_comma+1)
-            #             counter = int(info_is_at_this_line[loc_first_comma+1, loc_second_comma])
-            #             print(counter)
-            #             quit()
-            #             break
-            #     except:
-            #         print('swarm_data.txt is empty')
-            #         return None
 
     def fea_wrapper(self, template, x_denorm, counter, counter_loop, bool_re_evaluate=False):
         logger = logging.getLogger(__name__)

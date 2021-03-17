@@ -2,7 +2,7 @@ from pylab import np
 import pygmo as pg
 import utility_moo
 import json, os
-def load_settings(select_spec, select_fea_config_dict, project_loc, bool_post_processing=False):
+def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2SwarmData=None, bool_post_processing=False):
     print('-'*40, '[main_utility.py] load_settings()')
     __file__dirname_as_in_python39 = os.path.dirname(os.path.abspath(__file__))
     # print(__file__dirname_as_in_python39)
@@ -33,8 +33,12 @@ def load_settings(select_spec, select_fea_config_dict, project_loc, bool_post_pr
 
     import where_am_i
     where_am_i.where_am_i_v2(fea_config_dict, bool_post_processing)
-    path2swarmData = project_loc + select_spec.replace(' ', '_')+'/'
-    fea_config_dict['run_folder'] = path2swarmData
+    if path2SwarmData is None:
+        path2SwarmData = project_loc + select_spec.replace(' ', '_')+'/'
+    if project_loc is None:
+        project_loc = os.path.abspath(os.path.join(path2SwarmData, '..',))
+
+    fea_config_dict['run_folder'] = path2SwarmData
 
     output_dir = fea_config_dict['run_folder'] #[:-1] + r'_json_files/'
 
