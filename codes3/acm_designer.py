@@ -89,60 +89,59 @@ class swarm_data_container(object):
             self.deg_alpha_st = []
             self.mm_w_st = []
             self.mm_r_si = []
+
+            # TODO: use swarm_data_json over raw
             if swarm_data_json is not None:
-                keys = swarm_data_json.keys()
-            else:
-                keys = [1] * len(self.swarm_data_raw)
-            for raw, key in zip(self.swarm_data_raw, keys):
-
-                # spmsm_template.design_parameters = [
-                #                                   0 spmsm_template.deg_alpha_st 
-                #                                   1 spmsm_template.deg_alpha_so 
-                #                                   2 spmsm_template.mm_r_si      
-                #                                   3 spmsm_template.mm_d_so      
-                #                                   4 spmsm_template.mm_d_sp      
-                #                                   5 spmsm_template.mm_d_st      
-                #                                   6 spmsm_template.mm_d_sy      
-                #                                   7 spmsm_template.mm_w_st      
-                #                                   8 spmsm_template.mm_r_st      
-                #                                   9 spmsm_template.mm_r_sf      
-                #                                  10 spmsm_template.mm_r_sb      
-                #                                  11 spmsm_template.Q            
-                #                                  12 spmsm_template.sleeve_length
-                #                                  13 spmsm_template.fixed_air_gap_length
-                #                                  14 spmsm_template.mm_d_pm      
-                #                                  15 spmsm_template.deg_alpha_rm 
-                #                                  16 spmsm_template.deg_alpha_rs 
-                #                                  17 spmsm_template.mm_d_ri      
-                #                                  18 spmsm_template.mm_r_ri      
-                #                                  19 spmsm_template.mm_d_rp      
-                #                                  20 spmsm_template.mm_d_rs      
-                #                                  21 spmsm_template.p
-                #                                  22 spmsm_template.s
-                #                                 ]
-                design_parameters_denorm = [float(x) for x in raw[5].split(',')]
-                self.deg_alpha_st.append(design_parameters_denorm[0] )
-                self.mm_w_st.append(     design_parameters_denorm[7] )
-                self.mm_r_si.append(   design_parameters_denorm[2])
-
-                loc1 = raw[2].find('f1')
-                loc2 = raw[2].find('f2')
-                loc3 = raw[2].find('f3')
-                f1 = float(raw[2][loc1+3:loc2-1])
-                f2 = float(raw[2][loc2+3:loc3-1])
-                f3 = float(raw[2][loc3+3:])
-
-                if swarm_data_json is not None:
+                for key in swarm_data_json.keys():
                     # print(swarm_data_json[key])
-                    # print('DBU', list(swarm_data_json[key].keys()))
-                    # print('DBU', list(swarm_data_json[key].values()))
+                    print('[acm_designer.py] DEBUG (swarm_data_json)', list(swarm_data_json[key].keys()))
+                    # print('DEBUG', list(swarm_data_json[key].values()))
 
                     the_variant_dict = list(swarm_data_json[key].values())
                     x_denorm = list( the_variant_dict[0]['x_denorm_dict'].values() )
                     # x_denorm = [val for val in list(swarm_data_json[key].values())['x_denorm_dict'].items()]
                     # print(x_denorm)
                     # quit()
-                else:
+            if True:
+                for raw in self.swarm_data_raw:
+
+                    # spmsm_template.design_parameters = [
+                    #                                   0 spmsm_template.deg_alpha_st 
+                    #                                   1 spmsm_template.deg_alpha_so 
+                    #                                   2 spmsm_template.mm_r_si      
+                    #                                   3 spmsm_template.mm_d_so      
+                    #                                   4 spmsm_template.mm_d_sp      
+                    #                                   5 spmsm_template.mm_d_st      
+                    #                                   6 spmsm_template.mm_d_sy      
+                    #                                   7 spmsm_template.mm_w_st      
+                    #                                   8 spmsm_template.mm_r_st      
+                    #                                   9 spmsm_template.mm_r_sf      
+                    #                                  10 spmsm_template.mm_r_sb      
+                    #                                  11 spmsm_template.Q            
+                    #                                  12 spmsm_template.sleeve_length
+                    #                                  13 spmsm_template.fixed_air_gap_length
+                    #                                  14 spmsm_template.mm_d_pm      
+                    #                                  15 spmsm_template.deg_alpha_rm 
+                    #                                  16 spmsm_template.deg_alpha_rs 
+                    #                                  17 spmsm_template.mm_d_ri      
+                    #                                  18 spmsm_template.mm_r_ri      
+                    #                                  19 spmsm_template.mm_d_rp      
+                    #                                  20 spmsm_template.mm_d_rs      
+                    #                                  21 spmsm_template.p
+                    #                                  22 spmsm_template.s
+                    #                                 ]
+                    design_parameters_denorm = [float(x) for x in raw[5].split(',')]
+                    self.deg_alpha_st.append(design_parameters_denorm[0] )
+                    self.mm_w_st.append(     design_parameters_denorm[7] )
+                    self.mm_r_si.append(   design_parameters_denorm[2])
+
+                    loc1 = raw[2].find('f1')
+                    loc2 = raw[2].find('f2')
+                    loc3 = raw[2].find('f3')
+                    f1 = float(raw[2][loc1+3:loc2-1])
+                    f2 = float(raw[2][loc2+3:loc3-1])
+                    f3 = float(raw[2][loc3+3:])
+
                     if len(design_parameters_denorm) > 20:
                         ''' 永磁电机 复古 '''
 
@@ -199,43 +198,43 @@ class swarm_data_container(object):
                         '''感应电机 复古 '''
                         raise Exception('not implemented')
 
-                # print(design_parameters_denorm, f1, f2, f3)
-                # THERE IS A BUT HERE: slot_tip_open_ratio is less than 0.2---Not possible
-                    # free_variables[0]  = design_parameters[0] # spmsm_template.deg_alpha_st 
-                    # free_variables[4]  = design_parameters[7] # spmsm_template.mm_w_st         
-                    # free_variables[10] = sum([design_parameters[i] for i in (18,17,19)]) # spmsm_template.mm_r_ri + spmsm_template.mm_d_ri + spmsm_template.mm_d_rp
-                    # self.deg_alpha_st.append(x_denorm[0] ) 
-                    # self.mm_w_st.append(x_denorm[4] ) 
-                    # self.mm_radius.append(x_denorm[10]) 
+                    # print(design_parameters_denorm, f1, f2, f3)
+                    # THERE IS A BUT HERE: slot_tip_open_ratio is less than 0.2---Not possible
+                        # free_variables[0]  = design_parameters[0] # spmsm_template.deg_alpha_st 
+                        # free_variables[4]  = design_parameters[7] # spmsm_template.mm_w_st         
+                        # free_variables[10] = sum([design_parameters[i] for i in (18,17,19)]) # spmsm_template.mm_r_ri + spmsm_template.mm_d_ri + spmsm_template.mm_d_rp
+                        # self.deg_alpha_st.append(x_denorm[0] ) 
+                        # self.mm_w_st.append(x_denorm[4] ) 
+                        # self.mm_radius.append(x_denorm[10]) 
 
-                self.project_names.append(raw[1][:-1])
-                self.machine_data.append([float(x) for x in raw[3].split(',')])
-                self.rated_data.append(  [float(x) for x in raw[4].split(',')])
+                    self.project_names.append(raw[1][:-1])
+                    self.machine_data.append([float(x) for x in raw[3].split(',')])
+                    self.rated_data.append(  [float(x) for x in raw[4].split(',')])
 
-                individual_Trip = [float(x) for x in raw[3].split(',')][3]
-                self.Trip.append(individual_Trip)
+                    individual_Trip = [float(x) for x in raw[3].split(',')][3]
+                    self.Trip.append(individual_Trip)
 
-                # Get FRW
-                individual_ss_avg_force_magnitude = [float(x) for x in raw[3].split(',')][4]
-                individual_Em                     = [float(x) for x in raw[3].split(',')][5]
-                individual_Ea                     = [float(x) for x in raw[3].split(',')][6]
-                individual_rated_rotor_volume     = [float(x) for x in raw[4].split(',')][9]
-                individual_rated_rotor_weight     = (individual_rated_rotor_volume*8050*9.8)
-                individual_rated_stack_length     = [float(x) for x in raw[4].split(',')][10]
-                individual_original_stack_length  = [float(x) for x in raw[4].split(',')][11]
-                individual_original_rotor_weight  = individual_rated_rotor_weight/individual_rated_stack_length*individual_original_stack_length
-                individual_FRW = individual_ss_avg_force_magnitude/individual_original_rotor_weight
-                self.FRW.append(individual_FRW)
-                self.Em.append(individual_Em)
-                self.Ea.append(individual_Ea)
-                self.RatedVol.append(individual_rated_rotor_volume)
-                self.RatedWeight.append(individual_rated_rotor_weight)
-                self.RatedStkLen.append(individual_rated_stack_length)
+                    # Get FRW
+                    individual_ss_avg_force_magnitude = [float(x) for x in raw[3].split(',')][4]
+                    individual_Em                     = [float(x) for x in raw[3].split(',')][5]
+                    individual_Ea                     = [float(x) for x in raw[3].split(',')][6]
+                    individual_rated_rotor_volume     = [float(x) for x in raw[4].split(',')][9]
+                    individual_rated_rotor_weight     = (individual_rated_rotor_volume*8050*9.8)
+                    individual_rated_stack_length     = [float(x) for x in raw[4].split(',')][10]
+                    individual_original_stack_length  = [float(x) for x in raw[4].split(',')][11]
+                    individual_original_rotor_weight  = individual_rated_rotor_weight/individual_rated_stack_length*individual_original_stack_length
+                    individual_FRW = individual_ss_avg_force_magnitude/individual_original_rotor_weight
+                    self.FRW.append(individual_FRW)
+                    self.Em.append(individual_Em)
+                    self.Ea.append(individual_Ea)
+                    self.RatedVol.append(individual_rated_rotor_volume)
+                    self.RatedWeight.append(individual_rated_rotor_weight)
+                    self.RatedStkLen.append(individual_rated_stack_length)
 
-                # Add FRW to xf (This will cause re-starting error)
-                # self.swarm_data_xf.append(x_denorm + [individual_FRW, f1, f2, f3])
+                    # Add FRW to xf (This will cause re-starting error)
+                    # self.swarm_data_xf.append(x_denorm + [individual_FRW, f1, f2, f3])
 
-                self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
+                    self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
 
         self.number_of_free_variables = len(x_denorm)
         print('\tCount of individuals:', len(self.swarm_data_raw))

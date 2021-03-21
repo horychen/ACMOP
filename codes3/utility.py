@@ -1151,8 +1151,8 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
     tooth_width_w_t          = copper_loss_parameters[1]*1e-3 # m
     Area_S_slot              = stator_slot_area
     area_copper_S_Cu         = STATOR_SLOT_FILL_FACTOR * Area_S_slot
-    a                        = copper_loss_parameters[2]
-    zQ                       = copper_loss_parameters[3]
+    a                        = copper_loss_parameters[2] # number of parallel path of stator winding
+    zQ                       = copper_loss_parameters[3] # number of conductors in a slot
     coil_pitch_yq            = abs(copper_loss_parameters[4]) # coil pitch is -1 for concentrated winding so an abs() is required.
     Q                        = copper_loss_parameters[5]
     stack_length_m           = 1e-3*copper_loss_parameters[6]
@@ -1168,7 +1168,9 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
     slot_height_h_t = 0.5*(copper_loss_parameters[9] - stator_inner_diameter_D)
     slot_pitch_pps = np.pi * (stator_inner_diameter_D + slot_height_h_t) / Q
     kov = 1.8 # \in [1.6, 2.0]
-    end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + tooth_width_w_t) + slot_pitch_pps*kov * (coil_pitch_yq - 1)
+    # On 2021-03-20, Imthiaz Ahmed: there should be additional 0.5 in here:
+    end_winding_length_Lew = np.pi*0.5* 0.5*(slot_pitch_pps + tooth_width_w_t) + slot_pitch_pps*kov * (coil_pitch_yq - 1)
+        # end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + tooth_width_w_t) + slot_pitch_pps*kov * (coil_pitch_yq - 1) # wrong
 
     Vol_Cu = area_copper_S_Cu * (stack_length_m + end_winding_length_Lew) * Q
     stator_copper_loss = rho_Copper * Vol_Cu * Js**2
