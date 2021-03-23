@@ -354,10 +354,10 @@ class SwarmAnalyzer(object):
         df = pd.DataFrame(data=df_dict, index=['label', 'archive size', 'Rank 1 PF size', 'Low Cost Design', 'High Efficiency Design', 'Low Ripple Design']).T
         # st.table(df) #  df.style.format("{:.2%}")
 
-        # 绘制 Pareto front 的纵轴
+        # 绘制 Pareto front 的Z轴（云图色彩）
         fig = main_utility.pareto_front_plot_color_bar_etc(scatter_handle, fig, ax, font, settings=None)
         fname = f'{os.path.dirname(__file__)}/ParetoFrontOverlapped-{builtins.folder_of_collection}.pdf'
-        print('save to ', fname)
+        print('[utility_postprocess.py] save to ', fname)
         fig.savefig(fname, format='pdf', dpi=400, transparent=True) # 不能用bbox_inches='tight'，否则colorbar 会偏
         return df, fig
 

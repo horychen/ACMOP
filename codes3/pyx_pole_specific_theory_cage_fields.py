@@ -26,9 +26,10 @@ if __name__ == '__main__':
     def fblue(t):
         return  - hat_B_delta_ps*np.sin(2*np.pi*(freq) * t )
     def fgreen(t):
-        return  - hat_B_delta_p*np.sin(2*np.pi*(freq/2) * t )
+        return  - hat_B_delta_p*np.sin(2*np.pi*(freq*3/4) * t )
     graph.draw( pu, [(t, fblue(t)) for t in np.arange( 0, 4*period+.01, period/40)], settings=['blue'] )
-    PyX_Utility.global_settings['linestyle'] = pyx.style.linestyle.dashed
+    PyX_Utility.global_settings['linestyle'] = pyx.style.linestyle.dashdotted
+    PyX_Utility.global_settings['linewidth'] = pyx.style.linewidth.THick
     graph.draw( pu, [(t, fgreen(t)) for t in np.arange( 0, 4*period+.01, period/20)], settings=['darkgreen'] )
 
 
@@ -68,6 +69,8 @@ if __name__ == '__main__':
     pu.cvs.writePDFfile(fname)
     # pu.cvs.writePDFfile(fname)
     # pu.cvs.writeSVGfile(fname)
+
+    print('save to:', fname)
 
     ## 裁切、打开文件
     # os.system(f'sumatraPDF2 {fname}.pdf')

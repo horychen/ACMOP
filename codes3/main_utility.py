@@ -154,8 +154,15 @@ def pareto_front_plot_color_bar_etc(scatter_handle, fig, ax, font, bool_no_limit
             ax.legend(loc='best')
             ax.grid(True)
             ax.set_xlabel(r'$\rm {-TRV}$ [$\rm Nm/m^3$]')
-    from pylab import plt
 
+
+    # Eric asked about non-transparent legend
+    from pylab import mpl
+    mpl.rcParams["legend.framealpha"] = None # default is 0.8 # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.legend.html
+    mpl.rcParams["legend.shadow"] = True
+    ax.legend().set_zorder(555)
+
+    # from pylab import plt
         # fig.tight_layout() # not compatable to use with color bar
         # fig.savefig(r'./Figure_Combined_Pareto_Front.eps', format='eps', dpi=1000)
         # fig.savefig(r'./Figure_Combined_Pareto_Front.png', format='png', dpi=600)
