@@ -412,7 +412,10 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     nu_0_Air  = 13.3e-6#;  %[m^2/s] kinematic viscosity of air at 0
     rho_0_Air = 1.29#;     %[kg/m^3] Air density at 0
     Shaft = [mm_stack_length,                               #1;         %End position of the sections mm (Absolut)
-             im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['OP']['mm_mechanical_air_gap_length'], #1;         %Inner Radius in mm
+             # [Imthiaz Ahmed] poses question on this value. See https://seversongroup.slack.com/archives/D01HSGBLSES/p1616609258033500?thread_ts=1616560325.030600&cid=D01HSGBLSES
+             # im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['OP']['mm_mechanical_air_gap_length'], #1;         %Inner Radius in mm
+             im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['GP']['mm_d_sleeve'].value, #1;         %Inner Radius in mm 
+             #
              1,                                                     #0;         %Shrouded (1) or free surface (0)
              im_variant.template.d['OP']['mm_mechanical_air_gap_length']]                              #0];        %Airgap in mm
     Num_shaft_section = 1
@@ -427,6 +430,10 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     R     = Shaft[1]*1e-3 # radius of air gap
     delta = Shaft[3]*1e-3 # length of air gap
     
+    print('[utility.py] DEBUG L, R, delta =', L, R, delta)
+    print('\tRadius version old:', im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['OP']['mm_mechanical_air_gap_length'])
+    print('\tRadius version new:', im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['GP']['mm_d_sleeve'].value)
+
     Omega = 2*np.pi*im_variant.template.d['OP']['the_speed']/60.
     if abs(Omega - im_variant.template.d['OP']['Omega']) < 0.1:
         pass

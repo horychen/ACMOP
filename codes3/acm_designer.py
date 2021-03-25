@@ -171,7 +171,13 @@ class swarm_data_container(object):
                         x_denorm[4]  = design_parameters_denorm[7] # spmsm_template.mm_w_st   
                         x_denorm[5]  = design_parameters_denorm[12] #            mm_d_sleeve
                         r_si = design_parameters_denorm[2] # 2 spmsm_template.mm_r_si      
-                        x_denorm[6]  = r_si /  x_denorm[3] # split_ratio     r_is_slash_r_os 
+                        try:
+                            x_denorm[6]  = r_si /  x_denorm[3] # split_ratio     r_is_slash_r_os 
+                        except ZeroDivisionError as e:
+                            print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                            print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                            print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                            raise e
                         x_denorm[7]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm      
                         x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
                         # childGP

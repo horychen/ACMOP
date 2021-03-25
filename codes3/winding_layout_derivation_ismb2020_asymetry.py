@@ -830,7 +830,8 @@ if __name__ == '__main__':
                                   # (3, 36, 2, 3, 7, 0), # 12
                                   # (3, 27, 2, 3, 6, 0), # 13
                                   # (3, 36, 2, 3,    8,   0), # Dec. 15, 2020
-                                  (3, 36, 4, 5,    3,   0), # Jan. 19, 2021
+                                  # (3, 36, 4, 5,    3,   0), # Jan. 19, 2021
+                                  (3, 18, 8, 7,    1,   0), # Mar. 25, 2021 哔哩哔哩：一介介一
                                 #  m,  Q, p, ps, y, turn function bias (turn_func_bias)
                              ]
     bool_double_layer_winding = True
@@ -861,7 +862,9 @@ if __name__ == '__main__':
 
         wd.drawer_T1.cvs.insert(wd.drawer_Text.cvs, [pyx.trafo.translate(PLOT_SPACING*3, -220)])
 
-        wd.drawer_T1.cvs.writePDFfile(output_dir + 'pyx_output_wily_deriv2_Q%dp%dps%dy%d'%(wd.Q,wd.p,wd.ps,wd.coil_pitch_y))
+        fname = output_dir + 'pyx_output_wily_deriv2_Q%dp%dps%dy%d'%(wd.Q,wd.p,wd.ps,wd.coil_pitch_y)
+        wd.drawer_T1.cvs.writePDFfile(fname)
+        print(f'save to {fname}')
 
         if wd.m!=3:
             quit()
