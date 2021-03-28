@@ -160,6 +160,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         }
         return original_template_neighbor_bounds
 
+    """ Obsolete feature """
     def build_design_parameters_list(self):
         GP = self.d['GP']
         SD = self.SD

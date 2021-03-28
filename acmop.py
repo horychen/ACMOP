@@ -26,11 +26,11 @@ def main(bool_post_processing=True):
         # select_spec = "IM Q24p2y6 Qr16"
         # select_spec = "IM Q24p1y9 Qr32 Round Bar" # RevisionInNov: rev2 reviewer 1
         # select_spec = "IM Q24p1y9 Qr16 Round Bar" # Prototype
-    # mop = AC_Machine_Optiomization_Wrapper(
-    #         select_fea_config_dict = "#019 JMAG IM Nine Variables",
-    #         select_spec            = 'IM p2ps3Qs18y4 Qr30-FSW Round Bar EquivDoubleLayer',
-    #         project_loc            = r'D:/DrH/acmop/_default/'
-    #     )
+    mop = AC_Machine_Optiomization_Wrapper(
+            select_fea_config_dict = "#019 JMAG IM Nine Variables",
+            select_spec            = 'IM p2ps3Qs18y4 Qr30-FSW Round Bar EquivDoubleLayer',
+            project_loc            = r'D:/DrH/acmop/_default/'
+        )
 
     # PEMD 2020 paper 
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting'
@@ -48,13 +48,13 @@ def main(bool_post_processing=True):
     #         project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p1y5_restart_from_optimal_and_reevaluate_wo_csv/',
     #         bool_show_jmag         = True
     #     )
-    mop = AC_Machine_Optiomization_Wrapper(
-            select_fea_config_dict = '#0211 JMAG PMSM Q12p4ps5 Sub-hamonics',
-            select_spec            = 'PMSM Q12p4y1 A',
-            # project_loc            = fr'{os.path.dirname(__file__)}/_default/',
-            project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/',
-            bool_show_jmag         = True
-        )
+    # mop = AC_Machine_Optiomization_Wrapper(
+    #         select_fea_config_dict = '#0211 JMAG PMSM Q12p4ps5 Sub-hamonics',
+    #         select_spec            = 'PMSM Q12p4y1 A',
+    #         # project_loc            = fr'{os.path.dirname(__file__)}/_default/',
+    #         project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/',
+    #         bool_show_jmag         = True
+    #     )
 
 
     #########################
