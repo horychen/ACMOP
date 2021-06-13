@@ -1,3 +1,5 @@
+import sys
+print(sys.version)
 import PyX_classes, PyX_Utility
 import os, pyx
 from pylab import np
@@ -45,8 +47,8 @@ if __name__ == '__main__':
 
     ## 标注
     # 纵轴
-    pu.pyx_text([2, y/2], r'$B_\delta(\alpha)$')
-    pu.pyx_text([x-0.5, 1.0], r'$\alpha$')
+    pu.pyx_text([2, y/2], r'$B_\delta(\alpha)$', size=3)
+    pu.pyx_text([x-0.5, 1.0], r'$\alpha$', size=3)
     def xAnnotation(left, right, yline, ytext, label):
         pu.pyx_line([left,  ytext],
                     [left,  yline])
@@ -54,8 +56,7 @@ if __name__ == '__main__':
                     [right, yline])
         pu.pyx_arrow_both_ends( [left, ytext],
                                 [right, ytext])
-        pu.pyx_text( [(left+right)/2, ytext+1], 
-                     label)
+        pu.pyx_text( [(left+right)/2, ytext+1], label, size=3)
     PyX_Utility.global_settings['linewidth'] = pyx.style.linewidth.THick
     PyX_Utility.global_settings['linestyle'] = pyx.style.linestyle.dashed
     xAnnotation(0.5*period, 1.5*period,
@@ -73,5 +74,5 @@ if __name__ == '__main__':
     print('save to:', fname)
 
     ## 裁切、打开文件
-    # os.system(f'sumatraPDF2 {fname}.pdf')
+    os.system(f'sumatraPDF2 {fname}.pdf')
     # os.system(f'pdfcrop {fname}.pdf {fname}-crop.pdf')

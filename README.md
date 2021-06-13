@@ -88,4 +88,3 @@ variant.build_jmag_project(variant.project_meta_data)
 - [TODO] Restarting optimziation with constaints applied.
 
 - [TODO] Double check winding's initial excitation position.
-

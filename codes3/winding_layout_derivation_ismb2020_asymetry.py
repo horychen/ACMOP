@@ -1,6 +1,5 @@
 ABCDEFGHIJKLMNOPQRSTUVWXYZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-output_dir = r'D:\DrH\bopt-python\_wily_deriv_2020/'
-output_dir = r'D:\DrH\bopt-python\_wily_deriv_ismb_2020_Asymetry/'
+output_dir = r'D:/DrH/acmop/_wily/'
 import os
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -575,11 +574,6 @@ def winding_short_pitch_factor_v2(h, coil_pitch_y, Q):
     return k_ph
 import pyx
 
-
-
-
-
-
 class Winding_Derivation(object):
     """General Implementation of the Winding_Derivation Process."""
     def __init__(self, slot_pole_comb, bool_double_layer_winding=True):
@@ -808,7 +802,6 @@ class Winding_Derivation(object):
             self.drawer_T4c = drawer_T4c
         self.drawer_Text = drawer_Text
 
-
 if __name__ == '__main__':
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
@@ -970,5 +963,3 @@ if __name__ == '__main__':
                 self.CommutatingSequenceD = 1
                 self.CommutatingSequenceB = 0
     '''%(grouping_AC, 2, 2 if bool_double_layer_winding else 1), end='')
-
-

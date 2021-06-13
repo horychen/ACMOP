@@ -9,6 +9,8 @@ import CrossSectInnerNotchedRotor
 import CrossSectStator
 import Location2D
 
+import pint
+
 class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
     ''' This is a surface mounted PM motor but it might have saliency on q-axis if alpha_rm is less than 180/p.
         就是说，允许永磁体陷入转子铁芯，只是永磁体外没有铁包裹防止永磁体飞出，而是需要额外增加碳纤维套。
@@ -71,7 +73,8 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             alpha_rm_over_alpha_rp = 0.75
             # stator_yoke_flux_density_Bys = 1.5
 
-        stator_outer_diameter_Dse = 0.225 # m
+        ureg = pint.UnitRegistry()
+        stator_outer_diameter_Dse = 0.225 * ureg.meter
 
         speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
 
