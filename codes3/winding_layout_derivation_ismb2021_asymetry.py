@@ -237,6 +237,8 @@ def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequenc
 
     u = PyX_Utility.PyX_Utility()
     dpnv_grouping_dict = dict()
+    dpnv_grouping_dict['GAC'] = []
+    dpnv_grouping_dict['GBD'] = []
 
     # Draw 180e band (IT IS VERY IMPORTANT THAT WE USE -120 and -240 INSTEAD OF 120 and 240 HERE)
     if which_phase == 'Aa':
@@ -283,10 +285,10 @@ def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequenc
                 # Grouping a/c
                 if belong_to_band(LB, UB, PHI):
                     print('Group a/c:', label, LB, UB, limit_to_360_deg(PHI))
-                    if which_phase not in dpnv_grouping_dict:
-                        dpnv_grouping_dict[which_phase] = [label]
-                    else:
-                        dpnv_grouping_dict[which_phase] += [label]
+                    dpnv_grouping_dict['GAC'] += [label]
+                else:
+                    print('Group b/d:', label, LB, UB, limit_to_360_deg(PHI))
+                    dpnv_grouping_dict['GBD'] += [label]
 
                 # Draw arrows
                 u.pyx_arrow(angular_location(PHI))
@@ -311,6 +313,8 @@ def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequenc
                     # Draw 辅助线
                     u.pyx_circle(RADIUS-(PHI//360)*distance_between_label_layers, bool_dashed=True, dash_list=[0,24], linewidth=0.020)
     
+    # backward compatable
+    dpnv_grouping_dict[which_phase] = dpnv_grouping_dict['GAC']
     return u, dpnv_grouping_dict
 
 def winding_distribution_factor_verPyrhonen(h, Q, p, m=3):
@@ -811,86 +815,90 @@ class Winding_Derivation(object):
         alpha_u = 2*np.pi / Q *p
 
         # print(v, p, alpha_u, coil_pitch_y)
-        radii = np.sin(0.5*v*p*alpha_u*coil_pitch_y/p)
-        print('coil span [elec.deg] =', 0.5*v*p*alpha_u*coil_pitch_y/p/np.pi*180 * p, end=' | ')
+        gamma = coil_pitch_y*alpha_u/p
+        radii = np.sin(v*p*coil_pitch_y*alpha_u/p/2)
+        print(f'Coil span [mech.deg] = {gamma/np.pi*180} | [elec.deg] = {v*p*gamma / np.pi*180}', end=' | ')
         # print('\t radii:', radii)
-        ELS_angles = -0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) # IMPORTANT: this is in mech.rad (not elec.rad!!!)
-        CJH_angles =  0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) # IMPORTANT: this is in mech.rad (not elec.rad!!!)
+        ELS_angles = -0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
+        CJH_angles =  0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
         ELS_pitch_factor_per_coil = radii * np.exp(1j*ELS_angles)
         CJH_pitch_factor_per_coil = radii * np.exp(1j*CJH_angles)
         return ELS_pitch_factor_per_coil, CJH_pitch_factor_per_coil
 
-    def get_complex_number_kw_per_phase(self, ZONES, v, p):
+
+    def get_complex_number_kw_per_phase(self, v, p, positive_connected_coils, negative_connected_coils):
 
         kp_els_list = []
         kp_cjh_list = []
 
-        for _, i in self.connection_star_raw_dict[ ZONES[0] ]:
+        for i in positive_connected_coils:
             els, cjh = self.get_complex_number_winding_factor_of_coil_i(i, self.coil_pitch_y, Q=self.Q, v=v, p=p)
             # this is pitch factor of coil in positive zone
             kp_els_list.append(els)
             kp_cjh_list.append(cjh)
 
             print(f'\tkp@Coil+{i:02d}', end=' | ')
-            print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*p), end='\t|\t')
-            print('cjh = %g∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*p))
+            print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*1), end='\t|\t')
+            print('cjh = %g∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*1))
 
-        for _, i in self.connection_star_raw_dict[ ZONES[1] ]:
+        for i in negative_connected_coils:
             els, cjh = self.get_complex_number_winding_factor_of_coil_i(i, self.coil_pitch_y, Q=self.Q, v=v, p=p)
             # this is pitch factor of coil in negative zone
-            els = np.abs(els) * np.exp(1j*(np.angle(els)*p+np.pi)/p)
-            cjh = np.abs(cjh) * np.exp(1j*(np.angle(cjh)*p+np.pi)/p)
+            els *= -1 # np.abs(els) * np.exp(1j*(np.angle(els)*1+np.pi)/p)
+            cjh *= -1 # np.abs(cjh) * np.exp(1j*(np.angle(cjh)*1+np.pi)/p)
             kp_els_list.append(els)
             kp_cjh_list.append(cjh)
 
             print(f'\tkp@Coil-{i:02d}', end=' | ')
-            print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*p), end='\t|\t')
-            print('cjh = %g∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*p))
+            print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*1), end='\t|\t')
+            print('cjh = %g∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*1))
 
         ''' When you sum up the vectors, they must be first converted to using elec.rad by multiplying the angle by p pole pairs.
         '''
         average = lambda x: np.sum(x)/len(x)
         # print([np.angle(el)/np.pi*180 for el in kp_els_list])
-        kp_list_in_elec_radians = [np.abs(c_kp)*np.exp(1j*np.angle(c_kp)*p) for c_kp in kp_els_list]; # print([np.angle(el)/np.pi*180 for el in kp_list_in_elec_radians])
-        kp_list_in_elec_radians = [np.abs(c_kp)*np.exp(1j*np.angle(c_kp)*p) for c_kp in kp_cjh_list]; # print([np.angle(el)/np.pi*180 for el in kp_list_in_elec_radians])
-        kw_els_elecrad = average(kp_list_in_elec_radians)
-        kw_cjh_elecrad = average(kp_list_in_elec_radians)
-        return kw_els_elecrad, kw_cjh_elecrad
+        # quit()
+        _kw_els = average(kp_els_list)
+        _kw_cjh = average(kp_cjh_list)
+        return _kw_els, _kw_cjh
 
     def get_complex_number_kw(self, p_or_ps, v=1):
 
         dict_kw_els = dict()
         dict_kw_cjh = dict()
 
-        kw_els_elecrad, kw_cjh_elecrad = self.get_complex_number_kw_per_phase('Aa', v=v, p=p_or_ps)
-        dict_kw_els['A'] = kw_els_elecrad
-        dict_kw_cjh['A'] = kw_cjh_elecrad
-        dict_kw_els['A_abs'] = np.abs(kw_els_elecrad)
-        dict_kw_cjh['A_abs'] = np.abs(kw_cjh_elecrad)
-        dict_kw_els['A_angle'] = np.angle(kw_els_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-        dict_kw_cjh['A_angle'] = np.angle(kw_cjh_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-        print(kw_els_elecrad, '=', f'{np.abs(kw_els_elecrad)}∠{np.angle(kw_els_elecrad)/np.pi*180}')
-        print(kw_cjh_elecrad, '=', f'{np.abs(kw_cjh_elecrad)}∠{np.angle(kw_cjh_elecrad)/np.pi*180}')
 
-        kw_els_elecrad, kw_cjh_elecrad = self.get_complex_number_kw_per_phase('Bb', v=v, p=p_or_ps)
-        dict_kw_els['B'] = kw_els_elecrad
-        dict_kw_cjh['B'] = kw_cjh_elecrad
-        dict_kw_els['B_abs'] = np.abs(kw_els_elecrad)
-        dict_kw_cjh['B_abs'] = np.abs(kw_cjh_elecrad)
-        dict_kw_els['B_angle'] = np.angle(kw_els_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-        dict_kw_cjh['B_angle'] = np.angle(kw_cjh_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-        print(kw_els_elecrad, '=', f'{np.abs(kw_els_elecrad)}∠{np.angle(kw_els_elecrad)/np.pi*180}')
-        print(kw_cjh_elecrad, '=', f'{np.abs(kw_cjh_elecrad)}∠{np.angle(kw_cjh_elecrad)/np.pi*180}')
+        for ZONE in ['A', 'B', 'C']:
+            pcc = [i for _angle, i in self.connection_star_raw_dict[ZONE]]
+            ncc = [i for _angle, i in self.connection_star_raw_dict[ZONE.lower()]]
 
-        kw_els_elecrad, kw_cjh_elecrad = self.get_complex_number_kw_per_phase('Cc', v=v, p=p_or_ps)
-        dict_kw_els['C'] = kw_els_elecrad
-        dict_kw_cjh['C'] = kw_cjh_elecrad
-        dict_kw_els['C_abs'] = np.abs(kw_els_elecrad)
-        dict_kw_cjh['C_abs'] = np.abs(kw_cjh_elecrad)
-        dict_kw_els['C_angle'] = np.angle(kw_els_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-        dict_kw_cjh['C_angle'] = np.angle(kw_cjh_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-        print(kw_els_elecrad, '=', f'{np.abs(kw_els_elecrad)}∠{np.angle(kw_els_elecrad)/np.pi*180}')
-        print(kw_cjh_elecrad, '=', f'{np.abs(kw_cjh_elecrad)}∠{np.angle(kw_cjh_elecrad)/np.pi*180}')
+            if p_or_ps == self.ps:
+                # suspension winding has different connection patten from the torque winding
+                if ZONE == 'A':
+                    dpnv_grouping_AC = self.dpnv_grouping_dict_a['GAC']
+                    dpnv_grouping_BD = self.dpnv_grouping_dict_a['GBD']
+                if ZONE == 'B':
+                    dpnv_grouping_AC = self.dpnv_grouping_dict_b['GAC']
+                    dpnv_grouping_BD = self.dpnv_grouping_dict_b['GBD']
+                if ZONE == 'C':
+                    dpnv_grouping_AC = self.dpnv_grouping_dict_c['GAC']
+                    dpnv_grouping_BD = self.dpnv_grouping_dict_c['GBD']
+                connection_star_raw_results = [-int(el) for el in dpnv_grouping_AC] + [int(el) for el in dpnv_grouping_BD]
+                pcc = [    el  for el in connection_star_raw_results if el>0]
+                ncc = [abs(el) for el in connection_star_raw_results if el<0]
+                print('sus-pcc:', pcc)
+                print('sus-ncc:', ncc)
+                # quit()
+
+            _kw_els, _kw_cjh = self.get_complex_number_kw_per_phase(v=v, p=p_or_ps, positive_connected_coils=pcc, negative_connected_coils=ncc)
+            dict_kw_els[f'{ZONE}'] = _kw_els
+            dict_kw_cjh[f'{ZONE}'] = _kw_cjh
+            dict_kw_els[f'{ZONE}_abs'] = np.abs(_kw_els)
+            dict_kw_cjh[f'{ZONE}_abs'] = np.abs(_kw_cjh)
+            dict_kw_els[f'{ZONE}_angle'] = np.angle(_kw_els)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+            dict_kw_cjh[f'{ZONE}_angle'] = np.angle(_kw_cjh)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+            print('kw(els)=', _kw_els, '=', f'{np.abs(_kw_els)}∠{np.angle(_kw_els)/np.pi*180}')
+            print('kw(cjh)=', _kw_cjh, '=', f'{np.abs(_kw_cjh)}∠{np.angle(_kw_cjh)/np.pi*180}')
 
         self.dict_kw_els = dict_kw_els
         self.dict_kw_cjh = dict_kw_cjh
@@ -909,7 +917,7 @@ if __name__ == '__main__':
                                 # (3, 24, 2, 3, 5, 0), # 4
                                 # (3, 24, 2, 3, 6, 0), # 5
                                 # (3, 24, 2, 3, 4, 0), # 6
-                                (3, 18, 2, 3, 4, 0), # 7
+                                (3, 18, 2, 3, 4, 0), # 7            # ISMB 2021 Winding
                                 # (3, 18, 2, 3, 5, 0), # 8
                                 # (3, 18, 2, 3, 3, 0), # 9
                                   # (3, 36, 2, 3, 8, 0), # 10
@@ -919,8 +927,10 @@ if __name__ == '__main__':
                                   # (3, 36, 2, 3,    8,   0), # Dec. 15, 2020
                                   # (3, 36, 4, 5,    3,   0), # Jan. 19, 2021
                                   # (3, 18, 8, 7,    1,   0), # Mar. 25, 2021 哔哩哔哩：一介介一
-                                  # (3, 18, 2, 3, 4, 0),
-                                  # (3, 36, 3, 4, 5, 0),
+                                  # (3, 18, 2, 3, 4, 0),                
+                                  # (3, 36, 3, 4, 5, 0),              # ISMB 2021 Winding
+                                  # (3, 18, 3, 4, 2, 0), # phase asymmetry
+                                  # (3, 18, 3, 4, 3, 0), # phase asymmetry
                                   # (3, 24, 4, 5, 3, 0),
                                 #  m, Q, p, ps, y, turn function bias (turn_func_bias)
                              ]
@@ -935,18 +945,23 @@ if __name__ == '__main__':
 
         wd = Winding_Derivation(slot_pole_comb, bool_double_layer_winding)
 
-        # NEW
-        dict_kw_els, dict_kw_cjh = wd.get_complex_number_kw(wd.p)
+        ''' NEW ISMB 2021 Complex Number Winding Factor '''
+        print('\n----------------------------------n=p')
+        # dict_kw_els, dict_kw_cjh = wd.get_complex_number_kw(wd.p)
+        print('\n----------------------------------n=ps')
+        dict_kw_els, dict_kw_cjh = wd.get_complex_number_kw(wd.ps, v=1/3)
         phase_difference = [
                             dict_kw_els['A_angle'] - dict_kw_els['B_angle'],
                             dict_kw_els['B_angle'] - dict_kw_els['C_angle'],
                             dict_kw_els['C_angle'] - dict_kw_els['A_angle'],
                            ]
+        print('phases of winding:', dict_kw_els['A_angle'], dict_kw_els['B_angle'], dict_kw_els['C_angle'])
         print('phase_difference:', phase_difference)
         for el in phase_difference:
             if abs(abs(el) - 240.0)>1e-5 and abs(abs(el) - 120.0)>1e-5:
                 print('!!!Phase Asymmetry Detected')
-        quit()
+
+        continue
 
 
 
