@@ -572,6 +572,7 @@ def winding_short_pitch_factor_v2(h, coil_pitch_y, Q):
     k_ph = np.sin(h * coil_pitch_y/y_Q * np.pi*0.5)
     # Here, coil_pitch_y/y_Q * np.pi is the short pitch radian (elec.) for 1 pole pair field
     return k_ph
+
 import pyx
 
 class Winding_Derivation(object):
@@ -802,6 +803,99 @@ class Winding_Derivation(object):
             self.drawer_T4c = drawer_T4c
         self.drawer_Text = drawer_Text
 
+    def get_complex_number_winding_factor_of_coil_i(self, i, coil_pitch_y, Q, v, p):
+        ''' In this formulation, the basic component is a coil rather than a coill side.
+            absolute harminic index h = v*p, with v the relative harmonic index w.r.t. p.
+        '''
+
+        alpha_u = 2*np.pi / Q *p
+
+        # print(v, p, alpha_u, coil_pitch_y)
+        radii = np.sin(0.5*v*p*alpha_u*coil_pitch_y/p)
+        print('coil span [elec.deg] =', 0.5*v*p*alpha_u*coil_pitch_y/p/np.pi*180 * p, end=' | ')
+        # print('\t radii:', radii)
+        ELS_angles = -0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) # IMPORTANT: this is in mech.rad (not elec.rad!!!)
+        CJH_angles =  0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) # IMPORTANT: this is in mech.rad (not elec.rad!!!)
+        ELS_pitch_factor_per_coil = radii * np.exp(1j*ELS_angles)
+        CJH_pitch_factor_per_coil = radii * np.exp(1j*CJH_angles)
+        return ELS_pitch_factor_per_coil, CJH_pitch_factor_per_coil
+
+    def get_complex_number_kw_per_phase(self, ZONES, v, p):
+
+        kp_els_list = []
+        kp_cjh_list = []
+
+        for _, i in self.connection_star_raw_dict[ ZONES[0] ]:
+            els, cjh = self.get_complex_number_winding_factor_of_coil_i(i, self.coil_pitch_y, Q=self.Q, v=v, p=p)
+            # this is pitch factor of coil in positive zone
+            kp_els_list.append(els)
+            kp_cjh_list.append(cjh)
+
+            print(f'\tkp@Coil+{i:02d}', end=' | ')
+            print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*p), end='\t|\t')
+            print('cjh = %g∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*p))
+
+        for _, i in self.connection_star_raw_dict[ ZONES[1] ]:
+            els, cjh = self.get_complex_number_winding_factor_of_coil_i(i, self.coil_pitch_y, Q=self.Q, v=v, p=p)
+            # this is pitch factor of coil in negative zone
+            els = np.abs(els) * np.exp(1j*(np.angle(els)*p+np.pi)/p)
+            cjh = np.abs(cjh) * np.exp(1j*(np.angle(cjh)*p+np.pi)/p)
+            kp_els_list.append(els)
+            kp_cjh_list.append(cjh)
+
+            print(f'\tkp@Coil-{i:02d}', end=' | ')
+            print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*p), end='\t|\t')
+            print('cjh = %g∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*p))
+
+        ''' When you sum up the vectors, they must be first converted to using elec.rad by multiplying the angle by p pole pairs.
+        '''
+        average = lambda x: np.sum(x)/len(x)
+        # print([np.angle(el)/np.pi*180 for el in kp_els_list])
+        kp_list_in_elec_radians = [np.abs(c_kp)*np.exp(1j*np.angle(c_kp)*p) for c_kp in kp_els_list]; # print([np.angle(el)/np.pi*180 for el in kp_list_in_elec_radians])
+        kp_list_in_elec_radians = [np.abs(c_kp)*np.exp(1j*np.angle(c_kp)*p) for c_kp in kp_cjh_list]; # print([np.angle(el)/np.pi*180 for el in kp_list_in_elec_radians])
+        kw_els_elecrad = average(kp_list_in_elec_radians)
+        kw_cjh_elecrad = average(kp_list_in_elec_radians)
+        return kw_els_elecrad, kw_cjh_elecrad
+
+    def get_complex_number_kw(self, p_or_ps, v=1):
+
+        dict_kw_els = dict()
+        dict_kw_cjh = dict()
+
+        kw_els_elecrad, kw_cjh_elecrad = self.get_complex_number_kw_per_phase('Aa', v=v, p=p_or_ps)
+        dict_kw_els['A'] = kw_els_elecrad
+        dict_kw_cjh['A'] = kw_cjh_elecrad
+        dict_kw_els['A_abs'] = np.abs(kw_els_elecrad)
+        dict_kw_cjh['A_abs'] = np.abs(kw_cjh_elecrad)
+        dict_kw_els['A_angle'] = np.angle(kw_els_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+        dict_kw_cjh['A_angle'] = np.angle(kw_cjh_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+        print(kw_els_elecrad, '=', f'{np.abs(kw_els_elecrad)}∠{np.angle(kw_els_elecrad)/np.pi*180}')
+        print(kw_cjh_elecrad, '=', f'{np.abs(kw_cjh_elecrad)}∠{np.angle(kw_cjh_elecrad)/np.pi*180}')
+
+        kw_els_elecrad, kw_cjh_elecrad = self.get_complex_number_kw_per_phase('Bb', v=v, p=p_or_ps)
+        dict_kw_els['B'] = kw_els_elecrad
+        dict_kw_cjh['B'] = kw_cjh_elecrad
+        dict_kw_els['B_abs'] = np.abs(kw_els_elecrad)
+        dict_kw_cjh['B_abs'] = np.abs(kw_cjh_elecrad)
+        dict_kw_els['B_angle'] = np.angle(kw_els_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+        dict_kw_cjh['B_angle'] = np.angle(kw_cjh_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+        print(kw_els_elecrad, '=', f'{np.abs(kw_els_elecrad)}∠{np.angle(kw_els_elecrad)/np.pi*180}')
+        print(kw_cjh_elecrad, '=', f'{np.abs(kw_cjh_elecrad)}∠{np.angle(kw_cjh_elecrad)/np.pi*180}')
+
+        kw_els_elecrad, kw_cjh_elecrad = self.get_complex_number_kw_per_phase('Cc', v=v, p=p_or_ps)
+        dict_kw_els['C'] = kw_els_elecrad
+        dict_kw_cjh['C'] = kw_cjh_elecrad
+        dict_kw_els['C_abs'] = np.abs(kw_els_elecrad)
+        dict_kw_cjh['C_abs'] = np.abs(kw_cjh_elecrad)
+        dict_kw_els['C_angle'] = np.angle(kw_els_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+        dict_kw_cjh['C_angle'] = np.angle(kw_cjh_elecrad)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+        print(kw_els_elecrad, '=', f'{np.abs(kw_els_elecrad)}∠{np.angle(kw_els_elecrad)/np.pi*180}')
+        print(kw_cjh_elecrad, '=', f'{np.abs(kw_cjh_elecrad)}∠{np.angle(kw_cjh_elecrad)/np.pi*180}')
+
+        self.dict_kw_els = dict_kw_els
+        self.dict_kw_cjh = dict_kw_cjh
+        return dict_kw_els, dict_kw_cjh
+
 if __name__ == '__main__':
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
@@ -815,7 +909,7 @@ if __name__ == '__main__':
                                 # (3, 24, 2, 3, 5, 0), # 4
                                 # (3, 24, 2, 3, 6, 0), # 5
                                 # (3, 24, 2, 3, 4, 0), # 6
-                                # (3, 18, 2, 3, 4, 0), # 7
+                                (3, 18, 2, 3, 4, 0), # 7
                                 # (3, 18, 2, 3, 5, 0), # 8
                                 # (3, 18, 2, 3, 3, 0), # 9
                                   # (3, 36, 2, 3, 8, 0), # 10
@@ -827,8 +921,8 @@ if __name__ == '__main__':
                                   # (3, 18, 8, 7,    1,   0), # Mar. 25, 2021 哔哩哔哩：一介介一
                                   # (3, 18, 2, 3, 4, 0),
                                   # (3, 36, 3, 4, 5, 0),
-                                  (3, 24, 4, 5, 3, 0),
-                                #  m,  Q, p, ps, y, turn function bias (turn_func_bias)
+                                  # (3, 24, 4, 5, 3, 0),
+                                #  m, Q, p, ps, y, turn function bias (turn_func_bias)
                              ]
     bool_double_layer_winding = True
 
@@ -840,6 +934,26 @@ if __name__ == '__main__':
         #     continue
 
         wd = Winding_Derivation(slot_pole_comb, bool_double_layer_winding)
+
+        # NEW
+        dict_kw_els, dict_kw_cjh = wd.get_complex_number_kw(wd.p)
+        phase_difference = [
+                            dict_kw_els['A_angle'] - dict_kw_els['B_angle'],
+                            dict_kw_els['B_angle'] - dict_kw_els['C_angle'],
+                            dict_kw_els['C_angle'] - dict_kw_els['A_angle'],
+                           ]
+        print('phase_difference:', phase_difference)
+        for el in phase_difference:
+            if abs(abs(el) - 240.0)>1e-5 and abs(abs(el) - 120.0)>1e-5:
+                print('!!!Phase Asymmetry Detected')
+        quit()
+
+
+
+
+
+
+
 
         fname = output_dir + 'wily_p%dps%dQ%dy%d'%(wd.p, wd.ps, wd.Q, wd.coil_pitch_y)
 
