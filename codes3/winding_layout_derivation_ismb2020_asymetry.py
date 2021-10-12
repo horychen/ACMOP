@@ -1,5 +1,6 @@
 ABCDEFGHIJKLMNOPQRSTUVWXYZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-output_dir = r'D:/DrH/Codes/acmop/_wily/'
+output_dir = r'D:\DrH\bopt-python\_wily_deriv_2020/'
+output_dir = r'D:\DrH\bopt-python\_wily_deriv_ismb_2020_Asymetry/'
 import os
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -237,8 +238,6 @@ def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequenc
 
     u = PyX_Utility.PyX_Utility()
     dpnv_grouping_dict = dict()
-    dpnv_grouping_dict['GAC'] = []
-    dpnv_grouping_dict['GBD'] = []
 
     # Draw 180e band (IT IS VERY IMPORTANT THAT WE USE -120 and -240 INSTEAD OF 120 and 240 HERE)
     if which_phase == 'Aa':
@@ -285,10 +284,10 @@ def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequenc
                 # Grouping a/c
                 if belong_to_band(LB, UB, PHI):
                     print('Group a/c:', label, LB, UB, limit_to_360_deg(PHI))
-                    dpnv_grouping_dict['GAC'] += [label]
-                else:
-                    print('Group b/d:', label, LB, UB, limit_to_360_deg(PHI))
-                    dpnv_grouping_dict['GBD'] += [label]
+                    if which_phase not in dpnv_grouping_dict:
+                        dpnv_grouping_dict[which_phase] = [label]
+                    else:
+                        dpnv_grouping_dict[which_phase] += [label]
 
                 # Draw arrows
                 u.pyx_arrow(angular_location(PHI))
@@ -313,8 +312,6 @@ def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequenc
                     # Draw 辅助线
                     u.pyx_circle(RADIUS-(PHI//360)*distance_between_label_layers, bool_dashed=True, dash_list=[0,24], linewidth=0.020)
     
-    # backward compatable
-    dpnv_grouping_dict[which_phase] = dpnv_grouping_dict['GAC']
     return u, dpnv_grouping_dict
 
 def winding_distribution_factor_verPyrhonen(h, Q, p, m=3):
@@ -576,8 +573,12 @@ def winding_short_pitch_factor_v2(h, coil_pitch_y, Q):
     k_ph = np.sin(h * coil_pitch_y/y_Q * np.pi*0.5)
     # Here, coil_pitch_y/y_Q * np.pi is the short pitch radian (elec.) for 1 pole pair field
     return k_ph
-
 import pyx
+
+
+
+
+
 
 class Winding_Derivation(object):
     """General Implementation of the Winding_Derivation Process."""
@@ -622,16 +623,10 @@ class Winding_Derivation(object):
         # drawer_T33, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(3*p), which_phase='Aa') # 3次谐波
         # drawer_T35, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(5*p), which_phase='Aa') # 5次谐波
         # drawer_T37, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(7*p), which_phase='Aa') # 7次谐波
-        # drawer_T1.pyx_text([0,RADIUS+5], '1) Torque phasor star ($Q=%d$, $p=%d$, $t=%d$)'%(Q,p,t))
-        # drawer_T1.pyx_text([0,RADIUS+3], r'$q = %g$, $Q^\prime=%g$, $p^\prime=%g$' % (q, Q/t, p/t)); self.Q_prime = Q/t
-        # drawer_T2.pyx_text([0,RADIUS+5], '2) Torque connection star (Pursue mAaimum emf)', scale=1)
-        # drawer_T2.pyx_text([0,RADIUS+3], '2) Torque connection star', scale=1)
-
-        # for ISMB 2021
-        drawer_T1.pyx_text([0,RADIUS+5], 'Torque phasor star ($Q_s=%d$, $p=%d$, $t=%d$)'%(Q,p,t))
-        drawer_T1.pyx_text([0,RADIUS+3], r'$q = %g$, $Q^\prime_s=%g$, $p^\prime=%g$' % (q, Q/t, p/t)); self.Q_prime = Q/t
-        drawer_T2.pyx_text([0,RADIUS+5], 'Torque connection star (Pursue mAaimum emf)', scale=1)
-        drawer_T2.pyx_text([0,RADIUS+3], 'Torque connection star', scale=1)
+        drawer_T1.pyx_text([0,RADIUS+5], '1) Torque phasor star ($Q=%d$, $p=%d$, $t=%d$)'%(Q,p,t))
+        drawer_T1.pyx_text([0,RADIUS+3], r'$q = %g$, $Q^\prime=%g$, $p^\prime=%g$' % (q, Q/t, p/t)); self.Q_prime = Q/t
+        drawer_T2.pyx_text([0,RADIUS+5], '2) Torque connection star (Pursue mAaimum emf)', scale=1)
+        drawer_T2.pyx_text([0,RADIUS+3], '2) Torque connection star', scale=1)
 
 
 
@@ -656,10 +651,9 @@ class Winding_Derivation(object):
                 drawer_T2.pyx_text([0,-RADIUS-3-3/(m/3)*_phaseNumber], f'Phase {_phaseName}: ' + ', '.join([str(el) for el in self.list_slot_number_of_phase[_phaseName]]), scale=3/(m/3))
 
         if m == 3:
-            # for ISMB 2021
-            # drawer_T3a.pyx_text([0,RADIUS+3], '3) Torque conn. star at sus. freq. U', scale=1); # drawer_T3a.pyx_text([0,RADIUS+2.5], 'Should have null emf but if you flip phasors in the $180^e$ band you have sus. emf')
-            # drawer_T3b.pyx_text([0,RADIUS+3], '3) Torque conn. star at sus. freq. W', scale=1)
-            # drawer_T3c.pyx_text([0,RADIUS+3], '3) Torque conn. star at sus. freq. V', scale=1)
+            drawer_T3a.pyx_text([0,RADIUS+3], '3) Torque conn. star at sus. freq. U', scale=1); # drawer_T3a.pyx_text([0,RADIUS+2.5], 'Should have null emf but if you flip phasors in the $180^e$ band you have sus. emf')
+            drawer_T3b.pyx_text([0,RADIUS+3], '3) Torque conn. star at sus. freq. W', scale=1)
+            drawer_T3c.pyx_text([0,RADIUS+3], '3) Torque conn. star at sus. freq. V', scale=1)
             # drawer_T33.pyx_text([0,RADIUS+5], '3) Torque conn. star at 3rd harmonic (ph.U)', scale=1)
             # drawer_T35.pyx_text([0,RADIUS+5], '3) Torque conn. star at 5th harmonic (ph.U)', scale=1)
             # drawer_T37.pyx_text([0,RADIUS+5], '3) Torque conn. star at 7th harmonic (ph.U)', scale=1)
@@ -671,8 +665,7 @@ class Winding_Derivation(object):
         if bool_double_layer_winding:
             # Torque
             drawer_T4 = draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, turn_func_bias=turn_func_bias)
-            # for ISMB 2021
-            # drawer_T4.pyx_text([0, RADIUS+5], '4) Torque turn function', scale=1)
+            drawer_T4.pyx_text([0, RADIUS+5], '4) Torque turn function', scale=1)
 
             if m == 3:
                 # Suspension
@@ -681,10 +674,9 @@ class Winding_Derivation(object):
                 drawer_T4b = draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, phase_Aa_dpnv_grouping_list=dpnv_grouping_dict_b['Bb'], Aa='Bb', turn_func_bias=turn_func_bias)
                 drawer_T4c = draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, phase_Aa_dpnv_grouping_list=dpnv_grouping_dict_c['Cc'], Aa='Cc', turn_func_bias=turn_func_bias)
 
-                # for ISMB 2021
-                # drawer_T4a.pyx_text([0, RADIUS+5], '4) Sus. turn function U', scale=1)
-                # drawer_T4b.pyx_text([0, RADIUS+5], '4) Sus. turn function V', scale=1)
-                # drawer_T4c.pyx_text([0, RADIUS+5], '4) Sus. turn function W', scale=1)
+                drawer_T4a.pyx_text([0, RADIUS+5], '4) Sus. turn function U', scale=1)
+                drawer_T4b.pyx_text([0, RADIUS+5], '4) Sus. turn function V', scale=1)
+                drawer_T4c.pyx_text([0, RADIUS+5], '4) Sus. turn function W', scale=1)
         else:
             drawer_T4 = draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, turn_func_bias=turn_func_bias)
             msg = 'Turn function for single layer winding is not implemented yet.'
@@ -816,115 +808,21 @@ class Winding_Derivation(object):
             self.drawer_T4c = drawer_T4c
         self.drawer_Text = drawer_Text
 
-    def get_complex_number_winding_factor_of_coil_i(self, i, coil_pitch_y, Q, v, p):
-        ''' In this formulation, the basic component is a coil rather than a coill side.
-            absolute harminic index h = v*p, with v the relative harmonic index w.r.t. p.
-        '''
 
-        alpha_u = 2*np.pi / Q *p
-
-        # print(v, p, alpha_u, coil_pitch_y)
-        gamma =            coil_pitch_y*alpha_u/p
-        radii = np.sin(v*p*coil_pitch_y*alpha_u/p/2)
-        print(f'Coil span [mech.deg] = {gamma/np.pi*180} | [elec.deg] = {v*p*gamma / np.pi*180}', end=' | ')
-        # print('\t radii:', radii)
-        ELS_angles = -0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
-        CJH_angles =  0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
-        ELS_pitch_factor_per_coil = radii * np.exp(1j*ELS_angles)
-        CJH_pitch_factor_per_coil = radii * np.exp(1j*CJH_angles)
-        return ELS_pitch_factor_per_coil, CJH_pitch_factor_per_coil
-
-    def get_complex_number_kw_per_phase(self, v, p, positive_connected_coils, negative_connected_coils):
-
-        kp_els_list = []
-        kp_cjh_list = []
-
-        for i in positive_connected_coils:
-            els, cjh = self.get_complex_number_winding_factor_of_coil_i(i, self.coil_pitch_y, Q=self.Q, v=v, p=p)
-            # this is pitch factor of coil in positive zone
-            kp_els_list.append(els)
-            kp_cjh_list.append(cjh)
-
-            print(f'\tkp@Coil+{i:02d}', end='\t|\t')
-            # print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*1), end='\t|\t')
-            print(  'cjh = %.3f∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*1))
-
-        for i in negative_connected_coils:
-            els, cjh = self.get_complex_number_winding_factor_of_coil_i(i, self.coil_pitch_y, Q=self.Q, v=v, p=p)
-            # this is pitch factor of coil in negative zone
-            els *= -1 # np.abs(els) * np.exp(1j*(np.angle(els)*1+np.pi)/p)
-            cjh *= -1 # np.abs(cjh) * np.exp(1j*(np.angle(cjh)*1+np.pi)/p)
-            kp_els_list.append(els)
-            kp_cjh_list.append(cjh)
-
-            print(f'\tkp@Coil-{i:02d}', end='\t|\t')
-            # print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*1), end='\t|\t')
-            print(  'cjh = %.3f∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*1))
-
-        ''' When you sum up the vectors, they must be first converted to using elec.rad by multiplying the angle by p pole pairs.
-        '''
-        average = lambda x: np.sum(x)/len(x)
-        # print([np.angle(el)/np.pi*180 for el in kp_els_list])
-        # quit()
-        _kw_els = average(kp_els_list)
-        _kw_cjh = average(kp_cjh_list)
-        return _kw_els, _kw_cjh
-
-    def get_complex_number_kw(self, p_or_ps, v=1, bool_study_suspension_subharmonics=False):
-
-        dict_kw_els = dict()
-        dict_kw_cjh = dict()
-
-        for ZONE in ['A', 'B', 'C']:
-            pcc = [i for _angle, i in self.connection_star_raw_dict[ZONE]]
-            ncc = [i for _angle, i in self.connection_star_raw_dict[ZONE.lower()]]
-
-            if p_or_ps == self.ps or bool_study_suspension_subharmonics:
-                # suspension winding has different connection patten from the torque winding
-                if ZONE == 'A':
-                    dpnv_grouping_AC = self.dpnv_grouping_dict_a['GAC']
-                    dpnv_grouping_BD = self.dpnv_grouping_dict_a['GBD']
-                if ZONE == 'B':
-                    dpnv_grouping_AC = self.dpnv_grouping_dict_b['GAC']
-                    dpnv_grouping_BD = self.dpnv_grouping_dict_b['GBD']
-                if ZONE == 'C':
-                    dpnv_grouping_AC = self.dpnv_grouping_dict_c['GAC']
-                    dpnv_grouping_BD = self.dpnv_grouping_dict_c['GBD']
-                connection_star_raw_results = [-int(el) for el in dpnv_grouping_AC] + [int(el) for el in dpnv_grouping_BD]
-                pcc = [    el  for el in connection_star_raw_results if el>0]
-                ncc = [abs(el) for el in connection_star_raw_results if el<0]
-                print('sus-pcc:', pcc)
-                print('sus-ncc:', ncc)
-                # quit()
-
-            _kw_els, _kw_cjh = self.get_complex_number_kw_per_phase(v=v, p=p_or_ps, positive_connected_coils=pcc, negative_connected_coils=ncc)
-            dict_kw_els[f'{ZONE}'] = _kw_els
-            dict_kw_cjh[f'{ZONE}'] = _kw_cjh
-            dict_kw_els[f'{ZONE}_abs'] = np.abs(_kw_els)
-            dict_kw_cjh[f'{ZONE}_abs'] = np.abs(_kw_cjh)
-            dict_kw_els[f'{ZONE}_angle'] = np.angle(_kw_els)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-            dict_kw_cjh[f'{ZONE}_angle'] = np.angle(_kw_cjh)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-            # print('kw(els)=', _kw_els, '=', f'{np.abs(_kw_els)}∠{np.angle(_kw_els)/np.pi*180}')
-            print('kw(cjh)=', _kw_cjh, '=', f'{np.abs(_kw_cjh):.3f}∠{np.angle(_kw_cjh)/np.pi*180:.1f}')
-
-        self.dict_kw_els = dict_kw_els
-        self.dict_kw_cjh = dict_kw_cjh
-        return dict_kw_els, dict_kw_cjh
-
-def main_derivation():
+if __name__ == '__main__':
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [  
                                 # (15, 30, 2, 3, 10, 0),
                                 # (3, 24, 1, 2, 9, 0),
                                 # (3, 27, 3, 2, 4, 0), # 0 <--- 这个如果作绕组你会发现W相的Group AC和Group BD的阴影刚好差了一点角度，导致三相AC/BD分组不对称。
-                                # (3, 36, 3, 2, 5, 0), # 1              # ISMB 2021 Winding (Only Amplitude asymmetry)
+                                # (3, 36, 3, 2, 5, 0), # 1
                                 # (3, 36, 3, 2, 6, 0), # 2
                                 # (3, 36, 3, 2, 4, 0), # 3
-                                # (3, 24, 2, 3, 5, 0), # 4            # ISMB 2021 Winding (Phase asymmetry in working harmonics)
+                                # (3, 24, 2, 3, 5, 0), # 4
                                 # (3, 24, 2, 3, 6, 0), # 5
                                 # (3, 24, 2, 3, 4, 0), # 6
-                                # (3, 18, 2, 3, 4, 0), # 7            # ISMB 2021 Winding (No asymmetry in working harmonics)
+                                # (3, 18, 2, 3, 4, 0), # 7
                                 # (3, 18, 2, 3, 5, 0), # 8
                                 # (3, 18, 2, 3, 3, 0), # 9
                                   # (3, 36, 2, 3, 8, 0), # 10
@@ -933,13 +831,8 @@ def main_derivation():
                                   # (3, 27, 2, 3, 6, 0), # 13
                                   # (3, 36, 2, 3,    8,   0), # Dec. 15, 2020
                                   # (3, 36, 4, 5,    3,   0), # Jan. 19, 2021
-                                  # (3, 18, 8, 7,    1,   0), # Mar. 25, 2021 哔哩哔哩：一介介一
-                                  # (3, 18, 2, 3, 4, 0),                
-                                  (3, 36, 3, 4, 5, 0),              # ISMB 2021 Winding
-                                  # (3, 18, 3, 4, 2, 0), # phase asymmetry
-                                  # (3, 18, 3, 4, 3, 0), # phase asymmetry
-                                  # (3, 24, 4, 5, 3, 0),
-                                #  m, Q, p, ps, y, turn function bias (turn_func_bias)
+                                  (3, 18, 8, 7,    1,   0), # Mar. 25, 2021 哔哩哔哩：一介介一
+                                #  m,  Q, p, ps, y, turn function bias (turn_func_bias)
                              ]
     bool_double_layer_winding = True
 
@@ -951,50 +844,6 @@ def main_derivation():
         #     continue
 
         wd = Winding_Derivation(slot_pole_comb, bool_double_layer_winding)
-
-        ''' NEW ISMB 2021 Complex Number Winding Factor '''
-        print('\n----------------------------------n=p')
-        dict_kw_els, dict_kw_cjh = wd.get_complex_number_kw(wd.p)
-        print('\n----------------------------------n=ps')
-        dict_kw_els, dict_kw_cjh = wd.get_complex_number_kw(wd.ps, v=1)
-        # dict_kw_els, dict_kw_cjh = wd.get_complex_number_kw(wd.ps, v=1/3)
-        # dict_kw_els, dict_kw_cjh = wd.get_complex_number_kw(1, v=1, bool_study_suspension_subharmonics=True)
-        phase_difference = [
-                            dict_kw_els['A_angle'] - dict_kw_els['B_angle'],
-                            dict_kw_els['B_angle'] - dict_kw_els['C_angle'],
-                            dict_kw_els['C_angle'] - dict_kw_els['A_angle'],
-                           ]
-        print('phases of winding:', dict_kw_els['A_angle'], dict_kw_els['B_angle'], dict_kw_els['C_angle'])
-        print('phase_difference:', phase_difference)
-        for el in phase_difference:
-            if abs(abs(el) - 240.0)>1e-5 and abs(abs(el) - 120.0)>1e-5:
-                print('!!!Phase Asymmetry Detected')
-
-        # continue
-
-
-
-
-
-
-
-
-        fname = output_dir + 'wily_p%dps%dQ%dy%d'%(wd.p, wd.ps, wd.Q, wd.coil_pitch_y)
-
-        if False:
-            ''' ISMB 2021: Produce sub-figure for the paper
-            '''
-            wd.drawer_T1.cvs.writePDFfile(fname + '_T1')
-            wd.drawer_T2.cvs.writePDFfile(fname + '_T2')
-            wd.drawer_T3a.cvs.insert(wd.drawer_T3b.cvs, [pyx.trafo.translate(20*2,  0)]) # NOTE THAT THE PHASE V and W are transposed!
-            wd.drawer_T3a.cvs.insert(wd.drawer_T3c.cvs, [pyx.trafo.translate(20*1,  0)]) # NOTE THAT THE PHASE V and W are transposed!
-            wd.drawer_T3a.cvs.writePDFfile(fname + '_T3abc')
-            wd.drawer_T4.cvs.writePDFfile(fname + '_T4')
-            wd.drawer_T4a.cvs.writePDFfile(fname + '_T4a')
-            wd.drawer_T4b.cvs.writePDFfile(fname + '_T4b')
-            wd.drawer_T4c.cvs.writePDFfile(fname + '_T4c')
-            print(f'Write pdf to {fname}')
-            quit()
 
         # Collage
         wd.drawer_T1.cvs.insert(wd.drawer_T2.cvs,  [pyx.trafo.translate(PLOT_SPACING*1,  0)])
@@ -1010,10 +859,10 @@ def main_derivation():
             wd.drawer_T1.cvs.insert(wd.drawer_T4a.cvs, [pyx.trafo.translate(             0,-100)])
             wd.drawer_T1.cvs.insert(wd.drawer_T4b.cvs, [pyx.trafo.translate(             0,-150)])
             wd.drawer_T1.cvs.insert(wd.drawer_T4c.cvs, [pyx.trafo.translate(             0,-200)])
-        # insert winding factor table
+
         wd.drawer_T1.cvs.insert(wd.drawer_Text.cvs, [pyx.trafo.translate(PLOT_SPACING*3, -220)])
 
-        # Save collage as file
+        fname = output_dir + 'pyx_output_wily_deriv2_Q%dp%dps%dy%d'%(wd.Q,wd.p,wd.ps,wd.coil_pitch_y)
         wd.drawer_T1.cvs.writePDFfile(fname)
         print(f'save to {fname}')
 
@@ -1123,439 +972,3 @@ def main_derivation():
     '''%(grouping_AC, 2, 2 if bool_double_layer_winding else 1), end='')
 
 
-# https://pythoninformer.com/categories/category-pycairo/
-# https://pythoninformer.com/python-libraries/pycairo/complex-shapes/
-# https://pythoninformer.com/python-libraries/pycairo/drawing-shapes/
-import cairo 
-class winding_diagram:
-    def __init__(self, layer_X_phases, layer_X_signs, coil_pitch_y, grouping_AC=None):
-        self.grouping_AC = grouping_AC
-        self.coil_pitch_y=coil_pitch_y
-
-        self.layer_X_phases=layer_X_phases
-        self.layer_X_signs=layer_X_signs
-
-        self.layer_Y_phases = self.infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-        self.layer_Y_signs  = self.infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-        l_rightlayer1 = self.layer_X_phases
-        l_rightlayer2 = self.layer_X_signs
-        l_leftlayer1  = self.layer_Y_phases
-        l_leftlayer2  = self.layer_Y_signs
-
-        # dl: dict list
-        self.dl_rightlayer = dl_rightlayer = {'U': [], 'V': [], 'W':[]}
-        self.dl_leftlayer  = dl_leftlayer  = {'U': [], 'V': [], 'W':[]}
-        count_slot = 0
-        while True:
-            try:
-                count_slot += 1
-
-                ABC     = l_rightlayer1.pop(0)
-                up_down = l_rightlayer2.pop(0)
-                for target in ['U', 'V', 'W']:
-                    if ABC == target:
-                        dl_rightlayer[target].append(up_down+str(count_slot))
-                        break
-
-                ABC     = l_leftlayer1.pop(0)
-                up_down = l_leftlayer2.pop(0)
-                for target in ['U', 'V', 'W']:
-                    if ABC == target:
-                        dl_leftlayer[target].append(up_down+str(count_slot))
-                        break
-
-            except IndexError as e: # nothing to pop
-                # raise e
-                count_slot -= 1
-                break
-        print('Qs:', count_slot)
-        for k, v in dl_rightlayer.items():
-            print('Right layer:', k, v)
-        for k, v in dl_leftlayer.items():
-            print('Left layer:', k, v)
-
-        # dl_rightlayer['A'] = dl_rightlayer['U']
-        # dl_leftlayer['A'] = dl_leftlayer['U']
-        # dl_rightlayer['B'] = dl_rightlayer['V']
-        # dl_leftlayer['B'] = dl_leftlayer['V']
-        # dl_rightlayer['C'] = dl_rightlayer['W']
-        # dl_leftlayer['C'] = dl_leftlayer['W']
-
-        self.dl_grouping_AC = dict()
-        self.dl_grouping_BD = dict()
-        if self.grouping_AC is not None:
-            for phase in ['U', 'V', 'W']:
-                self.dl_grouping_AC[phase] = [el for el in dl_rightlayer[phase] if grouping_AC[abs(int(el))-1]==True ]
-                self.dl_grouping_BD[phase] = [el for el in dl_rightlayer[phase] if grouping_AC[abs(int(el))-1]==False]
-                print(f'Phase {phase}, Group A/C:', self.dl_grouping_AC[phase])
-                print(f'         Group B/D:', self.dl_grouping_BD[phase])
-
-    @staticmethod
-    def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(layer_X_phases, coil_pitch):
-        return layer_X_phases[-coil_pitch:] + layer_X_phases[:-coil_pitch]
-
-    @staticmethod
-    def infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(layer_X_signs, coil_pitch):
-        temp = layer_X_signs[-coil_pitch:] + layer_X_signs[:-coil_pitch]
-        return [('-' if el == '+' else '+') for el in temp]
-
-    def draw(self):
-
-        slope = None
-        for phase in ['U', 'V', 'W']:
-
-            WIDTH       = 200
-            HEIGHT      = 50
-            PIXEL_SCALE = 10
-            with cairo.SVGSurface(f'tec-ismb-winding-diagram-{phase}.svg', WIDTH*PIXEL_SCALE, HEIGHT*PIXEL_SCALE) as surface:
-                ctx = cairo.Context(surface)
-                ctx.scale(PIXEL_SCALE, PIXEL_SCALE)
-                ctx.set_source_rgba(0, 0, 0, 1)
-                ctx.set_line_width(0.1)
-                ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-
-                ctx.set_font_size(1)
-                ctx.select_font_face("Times new roman", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-
-                Qs = len(self.dl_rightlayer['U'])*3
-                print(Qs, 'should be 36')
-
-                COIL_LENGTH = 8 # 导体长度
-                coil_spacing = 0.5 # 两个上层导体之间的间距
-                coil_bias = 0.3 # 绘制双层绕组的第二层的偏移量
-                THE_END   = (Qs  + 1 - 1/4.)*(1+coil_spacing)
-                THE_SHIFT = (Qs) * (1+coil_spacing)
-
-                CANVAS_OFFSET = COIL_LENGTH
-
-                SLOPE_CONST = 2 # end-turn
-                slope = SLOPE_CONST / (self.coil_pitch_y/2.*(1+coil_spacing) + coil_bias/2.)
-
-                FOUR = COIL_LENGTH # 导体末端高度
-                SIX = 2 + FOUR # 加上端部绕组后的高度
-
-                ''' Draw coils in the slots as vertical lines for 3 phases
-                '''
-                for color, winding_layout_right, winding_layout_left, _ in zip( ['#5C9C31', '#E97675', '#6C8FAB'] , 
-                                                                                [self.dl_rightlayer['U'], self.dl_rightlayer['V'], self.dl_rightlayer['W']],
-                                                                                [self.dl_leftlayer['U'], self.dl_leftlayer['V'], self.dl_leftlayer['W']],
-                                                                                list(range(3))):
-                    if _ == 0:
-                        ctx.set_source_rgba(92/255, 156/255, 49/255, 1.0)
-                    elif _ == 1:
-                        ctx.set_source_rgba(233/255, 118/255, 117/255, 1.0)
-                    elif _ == 2:
-                        ctx.set_source_rgba(108/255, 143/255, 171/255,  1.0)
-                        # https://www.color-hex.com/color/6c8fab
-
-                    count = 0
-                    for el1, el2 in zip(winding_layout_right, winding_layout_left):
-                        x1 = float(el1)
-                        x2 = float(el2)
-                        print(_, color, x1)
-
-                        # def arrow_demo(ctx, x, y, width, height, a, b):
-                        #     ctx.move_to(x, y + b)
-                        #     ctx.line_to(x, y + height - b)
-                        #     ctx.line_to(x + a, y + height - b)
-                        #     ctx.line_to(x + a, y + height)
-                        #     ctx.line_to(x + width, y + height/2)
-                        #     ctx.line_to(x + a, y)
-                        #     ctx.line_to(x + a, y + b)
-                        #     ctx.close_path()
-                        #     ctx.fill()
-
-                        def varrow(ctx, P1, P2, arrow_width=0.2, arrow_height=0.5):
-                            ctx.move_to(*P1)
-                            ctx.line_to(*P2)
-                            ctx.rel_line_to(-arrow_width, (-1 if (P2[1]>P1[1]) else 1) * arrow_height)
-                            ctx.move_to(*P2)
-                            ctx.rel_line_to(arrow_width,  (-1 if (P2[1]>P1[1]) else 1) * arrow_height)
-                            ctx.set_line_join(cairo.LINE_JOIN_ROUND)
-                            global_lw = ctx.get_line_width()
-                            ctx.set_line_width(global_lw*0.8)
-                            ctx.stroke()
-                            ctx.set_line_width(global_lw)
-
-                        # x means coil location (its meaning is equivalent to loc)
-                        def draw_vertical_line_and_arrow_head(x, x2):
-
-                            # 画上层导体
-                            XU = abs(x)*(1+coil_spacing)
-                            ctx.move_to(XU,           0+CANVAS_OFFSET)
-                            ctx.line_to(XU, COIL_LENGTH+CANVAS_OFFSET)
-                            ctx.set_dash([1, 0])
-                            ctx.stroke()
-
-                            # 画电流方向箭头
-                            ARROW_BIAS = 1.0
-                            annotate_bias = 0.5
-                            if x>0:
-                                xytext = [XU, 0.5*COIL_LENGTH + annotate_bias + CANVAS_OFFSET]
-                                xy     = [XU, 0.5*COIL_LENGTH - annotate_bias + CANVAS_OFFSET]
-                            else:
-                                xy     = [XU, 0.5*COIL_LENGTH + annotate_bias + CANVAS_OFFSET]
-                                xytext = [XU, 0.5*COIL_LENGTH - annotate_bias + CANVAS_OFFSET]
-                            varrow(ctx, xy, xytext)
-
-                            # 画下层导体
-                            XL = abs(x2)*(1+coil_spacing) + coil_bias
-                            ctx.move_to(XL,           0+CANVAS_OFFSET)
-                            ctx.line_to(XL, COIL_LENGTH+CANVAS_OFFSET)
-                            ctx.set_dash([0.5, 0.25])
-                            ctx.stroke()
-
-                            # 画数字123……
-                            ctx.move_to(xy[0]+1.25*coil_bias, annotate_bias + 0.25 + CANVAS_OFFSET)
-                            ctx.show_text(str(int(abs(x))))
-
-                            # 画电流方向箭头
-                            annotate_bias = 0.25
-                            if x2>0:
-                                xytext = [XL, 0.5*COIL_LENGTH + annotate_bias + ARROW_BIAS + CANVAS_OFFSET]
-                                xy     = [XL, 0.5*COIL_LENGTH - annotate_bias + ARROW_BIAS + CANVAS_OFFSET]
-                            else:
-                                xy     = [XL, 0.5*COIL_LENGTH + annotate_bias + ARROW_BIAS + CANVAS_OFFSET]
-                                xytext = [XL, 0.5*COIL_LENGTH - annotate_bias + ARROW_BIAS + CANVAS_OFFSET]
-                            ctx.set_dash([1, 0])
-                            varrow(ctx, xy, xytext)
-
-                        def draw_end_turns(x, coil_pitch):
-
-                            def mirror_plot(ctx, X, Y):
-                                # 先画北极端部绕组
-                                ctx.move_to(X[0], Y[0])
-                                ctx.line_to(X[1], Y[1])
-                                ctx.stroke()
-                                # 再画南极端部绕组
-                                ctx.move_to(X[0], Y[0] - 2*(Y[0] - COIL_LENGTH/2 - CANVAS_OFFSET) )
-                                ctx.line_to(X[1], Y[1] - 2*(Y[1] - COIL_LENGTH/2 - CANVAS_OFFSET) )
-                                ctx.stroke()
-                                # print(Y[0], Y[1])
-
-                            XU = abs(x)*(1+coil_spacing)
-
-                            # going up
-                            loc1 = (1+coil_spacing) * (abs(x) + coil_pitch/2) + coil_bias/2. # half pitch
-                            # going down
-                            loc2 = (1+coil_spacing) * (abs(x) + coil_pitch) + coil_bias # full pitch
-
-                            if loc1 <= THE_END:
-                                # going up
-                                ctx.set_dash([1, 0])
-                                mirror_plot(ctx,  [ XU, loc1], [ FOUR+CANVAS_OFFSET, 
-                                                                SIX + CANVAS_OFFSET])
-                                if loc2 < THE_END:
-                                    # goibng down 
-                                    ctx.set_dash([0.5, 0.3])
-                                    mirror_plot(ctx,  [ loc1, loc2], [ SIX+CANVAS_OFFSET, 
-                                                                    FOUR + CANVAS_OFFSET])
-                                else:
-                                    # going down (to be continued)
-                                    ctx.set_dash([0.5, 0.3])
-                                    mirror_plot(ctx,  [ loc1, THE_END], [ SIX+CANVAS_OFFSET, 
-                                                   SIX-slope*(THE_END-loc1) + CANVAS_OFFSET])
-                                    # going down (continued)
-                                    mirror_plot(ctx,  [ THE_END-THE_SHIFT, loc2-THE_SHIFT], [ SIX-slope*(THE_END-loc1)+CANVAS_OFFSET, 
-                                                                                                                FOUR + CANVAS_OFFSET])
-                            else:
-
-                                # going up (to be continued)
-                                ctx.set_dash([1, 0])
-                                mirror_plot(ctx,  [ XU, THE_END ], [ FOUR+CANVAS_OFFSET, 
-                                                FOUR+slope*(THE_END-XU) + CANVAS_OFFSET])
-                                # going up (continued)
-                                mirror_plot(ctx,  [ THE_END-THE_SHIFT, loc1-THE_SHIFT], [ FOUR+slope*(THE_END-XU)+CANVAS_OFFSET, 
-                                                                                                            SIX + CANVAS_OFFSET])
-
-                                # going down 
-                                ctx.set_dash([0.5, 0.3])
-                                mirror_plot(ctx,  [ loc1-THE_SHIFT, loc2-THE_SHIFT], [ SIX+CANVAS_OFFSET, 
-                                                                                    FOUR + CANVAS_OFFSET])
-
-                        
-                        draw_vertical_line_and_arrow_head(x1, x2) # right layer, left layer
-                        draw_end_turns(x1, self.coil_pitch_y)
-
-                        count += 1
-                        # if count == 11:
-                        #     break
-
-
-
-                ''' Draw terminals for a phase
-                '''
-                if phase == 'U':
-                    ctx.set_source_rgba(92/255, 156/255, 49/255, 1.0)
-                elif phase == 'V':
-                    ctx.set_source_rgba(233/255, 118/255, 117/255, 1.0)
-                elif phase == 'W':
-                    ctx.set_source_rgba(108/255, 143/255, 171/255,  1.0)
-
-                if self.grouping_AC is None:
-                    break
-                else:
-                    def draw_terminals(slope, phase='U', coil_pitch=None):
-
-                        
-                        terminal_bias = 0.5
-
-                        self.dl_grouping_AC[phase] # ['-8', '+13', '+14', '-19', '-20', '+25']
-                        self.dl_grouping_BD[phase] # ['+1', '+2', '-7', '+26', '-31', '-32']
-
-                        def avoid_coil_distance_is_over_half_slots(grouping_number):
-                            for index, str_number in enumerate(grouping_number):
-                                if index+1 < len(grouping_number):
-                                    if abs(int(grouping_number[index+1])) - abs(int(str_number)) > Qs/2:
-                                        grouping_number = grouping_number[index+1:] + grouping_number[:index+1]
-                                        print('Re-order as', grouping_number)
-                            return grouping_number
-
-                        self.dl_grouping_AC[phase] = avoid_coil_distance_is_over_half_slots(self.dl_grouping_AC[phase])
-                        self.dl_grouping_BD[phase] = avoid_coil_distance_is_over_half_slots(self.dl_grouping_BD[phase])
-                        print(self.dl_grouping_AC[phase])
-                        print(self.dl_grouping_BD[phase])
-
-                        for grouping_number, NINE_BIAS, grp in zip([self.dl_grouping_BD[phase], self.dl_grouping_AC[phase]],
-                                                              [1.0, 0.5],
-                                                              ['a', 'b']):
-
-                            NINE = SIX + NINE_BIAS
-
-                            # Draw group A/C or B/D:
-                            for index, str_number in enumerate(grouping_number):
-                                x = int(str_number)
-                                XU = abs(x)*(1+coil_spacing) # XU: location of upper layer
-
-                                # Draw vertical coil terminal line
-                                # Draw vertical coil terminal line
-                                # Draw vertical coil terminal line
-                                loc_tri = XU+coil_pitch/2*(1+coil_spacing)+coil_bias/2 # top of the triangle
-                                if x>0: 
-                                    # solid line
-                                    ctx.set_dash([1, 0])
-                                    if loc_tri + terminal_bias > THE_END:
-                                        loc_tri -= THE_SHIFT
-                                    c1 = (loc_tri - terminal_bias, NINE)
-                                    y_span = [c1[1]]+[SIX-terminal_bias*slope]
-                                    xy     = [c1[0], sum(y_span)/2]
-                                    xytext = [c1[0], sum(y_span)/2 + 0.25]
-
-                                    ctx.move_to(c1[0],                   c1[1] + CANVAS_OFFSET)
-                                    ctx.line_to(c1[0], SIX-terminal_bias*slope + CANVAS_OFFSET)
-                                    ctx.stroke()
-
-                                    # the other layer
-                                    ctx.set_dash([0.0, 0.2])
-                                    ctx.move_to(c1[0]+terminal_bias*2,                   c1[1] + CANVAS_OFFSET)
-                                    ctx.line_to(c1[0]+terminal_bias*2, SIX-terminal_bias*slope + CANVAS_OFFSET)
-                                    ctx.stroke()
-                                    ctx.set_dash([1, 0])
-
-                                else: 
-                                    # dashed line
-                                    ctx.set_dash([0.0, 0.2])
-                                    if loc_tri + terminal_bias > THE_END:
-                                        loc_tri -= THE_SHIFT
-                                    c1 = (loc_tri + terminal_bias, NINE)
-                                    y_span = [c1[1]]+[SIX-terminal_bias*slope]
-                                    xy     = [c1[0], sum(y_span)/2]
-                                    xytext = [c1[0], sum(y_span)/2 + 0.25]
-                                    ctx.move_to(c1[0],                   c1[1] + CANVAS_OFFSET)
-                                    ctx.line_to(c1[0], SIX-terminal_bias*slope + CANVAS_OFFSET)
-                                    ctx.stroke()
-
-                                    # the other layer
-                                    ctx.set_dash([1, 0])
-                                    ctx.move_to(c1[0]-terminal_bias*2,                   c1[1] + CANVAS_OFFSET)
-                                    ctx.line_to(c1[0]-terminal_bias*2, SIX-terminal_bias*slope + CANVAS_OFFSET)
-                                    ctx.stroke()
-                                    ctx.set_dash([0.0, 0.2])
-
-                                print('-----------', x)
-                                # ax.annotate('', xytext=xytext, xy=xy, xycoords='data', arrowprops=dict(arrowstyle="->", color=color, lw=0.5, alpha=1.0))
-
-
-                                # 画线圈组的出头
-                                # 画线圈组的出头
-                                # 画线圈组的出头
-                                if index+1 >= len(grouping_number):
-                                    ctx.set_dash([0.0, 0.2])
-                                    ctx.move_to(loc_tri + terminal_bias,           0.5 + NINE + CANVAS_OFFSET)
-                                    ctx.line_to(loc_tri + terminal_bias,                 NINE + CANVAS_OFFSET)
-                                    ctx.stroke()
-
-                                    ctx.set_dash([1, 0])
-                                    ctx.arc(    loc_tri + terminal_bias,           0.5 + NINE + CANVAS_OFFSET, 0.2, 0, 2*np.pi)
-                                    ctx.rel_move_to(0, 0.5)
-                                    ctx.show_text(f'{phase.lower()}{grp}-')
-                                    ctx.stroke()
-                                if index == 0:
-                                    ctx.set_dash([1, 0])
-                                    ctx.move_to(loc_tri - terminal_bias,           0.5 + NINE + CANVAS_OFFSET)
-                                    ctx.line_to(loc_tri - terminal_bias,                 NINE + CANVAS_OFFSET)
-                                    ctx.stroke()
-
-                                    ctx.set_dash([1, 0])
-                                    ctx.arc(    loc_tri - terminal_bias,           0.5 + NINE + CANVAS_OFFSET, 0.2, 0, 2*np.pi)
-                                    ctx.rel_move_to(0, 0.5)
-                                    ctx.show_text(f'{phase.lower()}{grp}+')
-                                    ctx.stroke()
-
-                                # Draw horizontal line that connects coil to coil
-                                # Draw horizontal line that connects coil to coil
-                                # Draw horizontal line that connects coil to coil
-                                if index+1 < len(grouping_number):
-                                    x2 = int(grouping_number[index+1])
-                                    def script():
-                                        loc_tri = (abs(x2)+coil_pitch/2)*(1+coil_spacing)+coil_bias/2 # top of the triangle
-                                        if abs(x2) > abs(x):
-                                            # 此时到了x2处，如果x2也是正的
-                                            if x2>0:
-                                                ctx.line_to(loc_tri - terminal_bias, NINE + CANVAS_OFFSET)
-                                            else:
-                                                ctx.line_to(loc_tri + terminal_bias - 2*terminal_bias, NINE + CANVAS_OFFSET)
-                                        else:
-                                            # 需要向右延伸截断并从最左边续上
-                                            ctx.line_to(THE_END, NINE + CANVAS_OFFSET)
-
-                                            ctx.move_to(THE_END - THE_SHIFT,        NINE + CANVAS_OFFSET)
-                                            ctx.line_to(loc_tri - terminal_bias,    NINE + CANVAS_OFFSET)
-
-                                    if x>0:
-                                        ctx.move_to(c1[0]+np.sign(x)*terminal_bias*2, NINE + CANVAS_OFFSET)
-                                        # 如果是正导体，那么就是从x的下层拉过来的
-                                        script()
-                                    else:
-                                        ctx.move_to(c1[0], NINE + CANVAS_OFFSET)
-                                        # 如果是负导体，仍然只能从x的下层拉过来的
-                                        script()
-
-                                    ctx.set_dash([0.0, 0.2])
-                                    ctx.stroke()
-
-                    draw_terminals(slope, phase=phase, coil_pitch=self.coil_pitch_y)
-
-                    # draw connection lines between coil and coil
-                    # list_coil_connection = [(-el[0], -el[1]) for el in list_terminals]
-                    # draw_coil_connections(list_coil_connection, slope)
-
-                    break
-
-if __name__ == '__main__':
-
-    if False:
-        main_derivation()
-
-    else:
-        phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
-        signs = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-        grouping_AC = [0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]
-        diagram = winding_diagram(
-            layer_X_phases = phases,
-            layer_X_signs = signs,
-            coil_pitch_y = 5,
-            grouping_AC = grouping_AC,
-        )
-        diagram.draw()

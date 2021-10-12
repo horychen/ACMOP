@@ -804,7 +804,7 @@ class suspension_force_vector(object):
         self.ss_avg_force_angle     = np.arctan2(self.ss_avg_force_vector[1], self.ss_avg_force_vector[0]) / np.pi * 180
         if self.ss_avg_force_angle<0:
             self.ss_avg_force_angle+=360
-        print('sfv.ss_avg_force_angle =', self.ss_avg_force_angle)
+        # print('sfv.ss_avg_force_angle =', self.ss_avg_force_angle)
         # if self.ss_avg_force_angle < 0:
         #     self.ss_avg_force_angle += 360
         # print('sfv:', self.ss_avg_force_angle)

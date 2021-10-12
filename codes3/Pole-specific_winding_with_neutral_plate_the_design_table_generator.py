@@ -72,9 +72,9 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
             or abs(Qs - Qr) == 2*p-1 \
             or Qr == Qs \
             or Qr == 0.5*Qs \
-            or Qr == 2*Qs\
-            or abs(Qs - Qr) == 2*p+2 \
-            or abs(Qs - Qr) == 2*p-2:
+            or Qr == 2*Qs:
+            # or abs(Qs - Qr) == 2*p+2 \
+            # or abs(Qs - Qr) == 2*p-2 \
             # or Qr > 1.25*Qs \
             # or Qr       % (6*p) == 0 \
             # or (Qr+2*p) % (6*p) == 0 \
@@ -152,7 +152,6 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
         sU = ''
         sL = ''
         self.pairs = []
-        # y*Qr' (number of slot in a sub-cage)
         if y*2 == Qr and layers==1:
             for i in range(y):
                 sU += ' | ' + chr(char_bias+i)
@@ -160,16 +159,6 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
             for ind, _ in enumerate(range(y, Qr)):
                 sU += ' | ' + chr(char_bias+ind)
         elif y*3 == Qr and layers==2:
-            for i in range(Qr-y):
-                sU += ' | ' + chr(char_bias+i)
-                # sL += ' | ' + chr(char_bias+Qr+i-y)
-                self.pairs.append( (i+1, i+y+1) )
-            for i in range(Qr-y, Qr):
-                sU += ' | ' + chr(char_bias+i)
-                # sL += ' | ' + chr(char_bias+i+y)
-                self.pairs.append( (i+1, i+y-Qr+1) )
-        elif y*4 == Qr and layers==2:
-            # TODO: 直接照抄y*3==Qr的代码，可以吗？
             for i in range(Qr-y):
                 sU += ' | ' + chr(char_bias+i)
                 # sL += ' | ' + chr(char_bias+Qr+i-y)
@@ -231,12 +220,10 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
         return list_groups
 
 if __name__ == '__main__':
-    # layers = 1; QS = 36
-    # layers = 1; QS = 24
-
-    # layers = 2; QS = 24
+    layers = 1; QS = 36
+    layers = 1; QS = 24
+    layers = 2; QS = 24
     # layers = 2; QS = 18
-    layers = 2; QS = 36
 
     print(f'For Qs={QS:d}, find valid set of pole specific winding with neutral plate.')
     from fractions import Fraction
@@ -261,9 +248,6 @@ if __name__ == '__main__':
     # design.get_design(layers=2, ps=3, p=2, k1=1, k=10)
 
     print('\n'+'~*'*40)
-    # design.get_design(layers=2, ps=3, p=2, k1=1, k=6)
-    # design.get_design(layers=2, ps=4, p=3, k1=1, k=5) # Mar. 02 2021, TEC-ISMB-2021
-    design.get_design(layers=2, ps=4, p=3, k1=1, k=4) #  April 24 2021
-    # design.get_design(layers=2, ps=4, p=3, k1=1, k=3) # April 24 2021
+    design.get_design(layers=2, ps=3, p=2, k1=1, k=6)
 
 

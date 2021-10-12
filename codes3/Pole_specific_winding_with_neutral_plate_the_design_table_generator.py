@@ -1,5 +1,10 @@
+from fractions import Fraction
+import math
+import os, sys
+MAX_K = 20+1
+MAX_PS = 4+1
 class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
-    def __init__(self, layers):
+    def __init__(self, layers, QS):
         print('_________________________\nlayers =', layers) # =1 or =2
 
         # ps in N_Even for single layer winding and k in N for double layer winding
@@ -46,6 +51,13 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
 
                         # fractional slot winding?
                         print('   ISW ' if n ==1 else '   _FSW', end='')
+                        if n!=1:
+                            if n%2==1:
+                                print(' First grade. ', end='')
+                            elif n%2==0:
+                                print(' Second grade.', end='')
+                        else:
+                            print('              ', end='')
 
                         # SPP
                         print('   ' + 'q=z/n=%d/%d'%(Fraction(Qr,2*p*m).numerator, Fraction(Qr,2*p*m).denominator), end='')
@@ -70,11 +82,11 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
             if abs(Qs - Qr) == 2 \
             or abs(Qs - Qr) == 2*p+1 \
             or abs(Qs - Qr) == 2*p-1 \
+            or abs(Qs - Qr) == 2*p+2 \
+            or abs(Qs - Qr) == 2*p-2 \
             or Qr == Qs \
             or Qr == 0.5*Qs \
-            or Qr == 2*Qs\
-            or abs(Qs - Qr) == 2*p+2 \
-            or abs(Qs - Qr) == 2*p-2:
+            or Qr == 2*Qs:
             # or Qr > 1.25*Qs \
             # or Qr       % (6*p) == 0 \
             # or (Qr+2*p) % (6*p) == 0 \
@@ -89,21 +101,28 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
         return valid_Qr
 
     def get_design(self, layers, ps, p, k1, k):
+        self.p = p
+        self.ps = ps
+        self.k1 = k1
+        self.k = k
+
         # c/d = reduced( k1/ps )
         self.c = c = Fraction(k1, ps).numerator
         self.d = d = Fraction(k1, ps).denominator
         print('c/d\t= %d/%d'%(c, d))
 
         self.Qr = Qr = k*d
+        self.t = t = math.gcd(Qr,p)
+        self.Qr_prime = Qr / t
         print(f'Qr\t= {Qr}')
         print(f'p\t= {p}')
         print(f'ps\t= {ps}')
         print(f'k1\t= {k1}')
         print(f'k\t= {k}')
-        print(f't\t= {math.gcd(Qr,p)}')
+        print(f't\t= {t}')
 
-        self.nl = Qr/2 + 1 if layers == 1 else 0
-        print('nl\t= %2d'%(self.nl))
+        self.nl = nl = Qr/2 + 1 if layers == 1 else 0
+        print('nl\t= %2d'%(nl))
 
         y = k*c
         self.coil_pitch_y = coil_pitch_y = y
@@ -132,9 +151,12 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
         # winding factor = pitch factor because z=1, i.e., no distribution, i.e., one coil per coil group
         self.gamma = gamma = y/Qr * 2*math.pi
         print('kw_h = sin(h*gamma/2) =', end='')
-        for h in range(1, 10):
+        kw_at_h = dict()
+        for h in range(1, 20):
             kw_h = math.sin(h*gamma/2)
+            kw_at_h[h] = kw_h
             print(f'{kw_h:.2f}', end=', ')
+        self.kw_at_h = kw_at_h
         print('...')
 
 
@@ -152,7 +174,6 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
         sU = ''
         sL = ''
         self.pairs = []
-        # y*Qr' (number of slot in a sub-cage)
         if y*2 == Qr and layers==1:
             for i in range(y):
                 sU += ' | ' + chr(char_bias+i)
@@ -160,16 +181,6 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
             for ind, _ in enumerate(range(y, Qr)):
                 sU += ' | ' + chr(char_bias+ind)
         elif y*3 == Qr and layers==2:
-            for i in range(Qr-y):
-                sU += ' | ' + chr(char_bias+i)
-                # sL += ' | ' + chr(char_bias+Qr+i-y)
-                self.pairs.append( (i+1, i+y+1) )
-            for i in range(Qr-y, Qr):
-                sU += ' | ' + chr(char_bias+i)
-                # sL += ' | ' + chr(char_bias+i+y)
-                self.pairs.append( (i+1, i+y-Qr+1) )
-        elif y*4 == Qr and layers==2:
-            # TODO: 直接照抄y*3==Qr的代码，可以吗？
             for i in range(Qr-y):
                 sU += ' | ' + chr(char_bias+i)
                 # sL += ' | ' + chr(char_bias+Qr+i-y)
@@ -192,7 +203,7 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
         and ps == %d \
         and coil_pitch_y == %d:'''%(Qr,p,ps,coil_pitch_y), end='\n\t\t\tself.pairs = ')
         if layers == 2:
-            print(design.reduce_to_single_layer())
+            print(self.reduce_to_single_layer())
         else:
             print(self.pairs)
 
@@ -231,11 +242,10 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
         return list_groups
 
 if __name__ == '__main__':
-    # layers = 1; QS = 36
-    # layers = 1; QS = 24
-
-    # layers = 2; QS = 24
-    # layers = 2; QS = 18
+    layers = 1; QS = 36
+    layers = 1; QS = 24
+    layers = 2; QS = 24
+    layers = 2; QS = 18
     layers = 2; QS = 36
 
     print(f'For Qs={QS:d}, find valid set of pole specific winding with neutral plate.')
@@ -249,7 +259,7 @@ if __name__ == '__main__':
 
     import os, sys
     # sys.stdout = open(os.devnull, "w")
-    design = ValidSet_of_PoleSpecificWindingWithNeutralPlate(layers=layers)
+    design = ValidSet_of_PoleSpecificWindingWithNeutralPlate(layers=layers, QS=QS)
     sys.stdout = sys.__stdout__
 
     # print('\n'+'~*'*40)
@@ -257,13 +267,9 @@ if __name__ == '__main__':
     # print('\n'+'~*'*40)
     # design.get_design(layers=1, ps=2, p=3, k1=1, k=10)
 
-    # print('\n'+'~*'*40)
-    # design.get_design(layers=2, ps=3, p=2, k1=1, k=10)
-
     print('\n'+'~*'*40)
-    # design.get_design(layers=2, ps=3, p=2, k1=1, k=6)
-    # design.get_design(layers=2, ps=4, p=3, k1=1, k=5) # Mar. 02 2021, TEC-ISMB-2021
-    design.get_design(layers=2, ps=4, p=3, k1=1, k=4) #  April 24 2021
-    # design.get_design(layers=2, ps=4, p=3, k1=1, k=3) # April 24 2021
+    design.get_design(layers=2, ps=3, p=2, k1=1, k=10)
+    # ps.get_design(layers=layers, ps=wd.ps, p=wd.p, k1=k1, k=k)
+
 
 

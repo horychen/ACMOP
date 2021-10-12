@@ -2021,7 +2021,7 @@ if __name__ == '__main__':
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
         fig.tight_layout()
-        fig.savefig(r'./prototype_winding_diagram_phase_%s.pdf'%(phase), dpi=400)
+        fig.savefig(r'D:\DrH\Codes\acmop\release/prototype_winding_diagram_phase_%s.pdf'%(phase), dpi=400)
     quit()
 
     # ROTOR WINDING (four pole 8 phase single layer wave winding)
@@ -2130,7 +2130,7 @@ if __name__ == '__main__':
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
     fig.tight_layout()
-    fig.savefig(r'D:\OneDrive - UW-Madison\c\release\rotor_winding.png', dpi=300)
+    fig.savefig(r'D:\DrH\Codes\acmop\release\rotor_winding.pdf', dpi=300)
 
     show()
     quit()

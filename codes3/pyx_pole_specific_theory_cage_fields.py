@@ -74,5 +74,5 @@ if __name__ == '__main__':
     print('save to:', fname)
 
     ## 裁切、打开文件
-    os.system(f'sumatraPDF2 {fname}.pdf')
+    os.system(f'sumatraPDF {fname}.pdf')
     # os.system(f'pdfcrop {fname}.pdf {fname}-crop.pdf')
