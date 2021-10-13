@@ -1,5 +1,5 @@
 ABCDEFGHIJKLMNOPQRSTUVWXYZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-output_dir = r'D:/DrH/Codes/acmop/_wily/'
+output_dir = r'../_wily/' # r'D:/DrH/Codes/acmop/_wily/'
 import os
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -1208,7 +1208,7 @@ class winding_diagram:
             WIDTH       = 200
             HEIGHT      = 50
             PIXEL_SCALE = 10
-            with cairo.SVGSurface(f'tec-ismb-winding-diagram-{phase}.svg', WIDTH*PIXEL_SCALE, HEIGHT*PIXEL_SCALE) as surface:
+            with cairo.SVGSurface(f'{output_dir}tec-ismb-winding-diagram-{phase}.svg', WIDTH*PIXEL_SCALE, HEIGHT*PIXEL_SCALE) as surface:
                 ctx = cairo.Context(surface)
                 ctx.scale(PIXEL_SCALE, PIXEL_SCALE)
                 ctx.set_source_rgba(0, 0, 0, 1)
@@ -1221,7 +1221,7 @@ class winding_diagram:
                 Qs = len(self.dl_rightlayer['U'])*3
                 print(Qs, 'should be 36')
 
-                COIL_LENGTH = 8 # 导体长度
+                COIL_LENGTH = 4 # 导体长度
                 coil_spacing = 0.5 # 两个上层导体之间的间距
                 coil_bias = 0.3 # 绘制双层绕组的第二层的偏移量
                 THE_END   = (Qs  + 1 - 1/4.)*(1+coil_spacing)
@@ -1393,12 +1393,9 @@ class winding_diagram:
                 elif phase == 'W':
                     ctx.set_source_rgba(108/255, 143/255, 171/255,  1.0)
 
-                if self.grouping_AC is None:
-                    break
-                else:
+                if self.grouping_AC is not None:
                     def draw_terminals(slope, phase='U', coil_pitch=None):
 
-                        
                         terminal_bias = 0.5
 
                         self.dl_grouping_AC[phase] # ['-8', '+13', '+14', '-19', '-20', '+25']
@@ -1420,7 +1417,8 @@ class winding_diagram:
                         for grouping_number, NINE_BIAS, grp in zip([self.dl_grouping_BD[phase], self.dl_grouping_AC[phase]],
                                                               [1.0, 0.5],
                                                               ['a', 'b']):
-
+                            HORIZONTAL_OFFSET = 0.0
+                            THE_DIRECTION = None
                             NINE = SIX + NINE_BIAS
 
                             # Draw group A/C or B/D:
@@ -1431,117 +1429,171 @@ class winding_diagram:
                                 # Draw vertical coil terminal line
                                 # Draw vertical coil terminal line
                                 # Draw vertical coil terminal line
-                                loc_tri = XU+coil_pitch/2*(1+coil_spacing)+coil_bias/2 # top of the triangle
+                                loc_triangle = XU+coil_pitch/2*(1+coil_spacing)+coil_bias/2 # top of the triangle
                                 if x>0: 
                                     # solid line
                                     ctx.set_dash([1, 0])
-                                    if loc_tri + terminal_bias > THE_END:
-                                        loc_tri -= THE_SHIFT
-                                    c1 = (loc_tri - terminal_bias, NINE)
-                                    y_span = [c1[1]]+[SIX-terminal_bias*slope]
-                                    xy     = [c1[0], sum(y_span)/2]
-                                    xytext = [c1[0], sum(y_span)/2 + 0.25]
-
-                                    ctx.move_to(c1[0],                   c1[1] + CANVAS_OFFSET)
-                                    ctx.line_to(c1[0], SIX-terminal_bias*slope + CANVAS_OFFSET)
-                                    ctx.stroke()
+                                    if loc_triangle - terminal_bias < THE_END: # 想画竖线，只要横坐标小于 THE_END，就不需要去掉 THE_SHIFT。
+                                        端部连接处 = (loc_triangle - terminal_bias, NINE)
+                                        ctx.move_to(端部连接处[0],            端部连接处[1] + CANVAS_OFFSET)
+                                        ctx.line_to(端部连接处[0], SIX-terminal_bias*slope + CANVAS_OFFSET)
+                                        ctx.stroke()
+                                        # loc_triangle -= THE_SHIFT # 这里不要shift！
+                                    else:
+                                        端部连接处 = (loc_triangle - THE_SHIFT - terminal_bias, NINE)
+                                        # y_span = [端部连接处[1]]+[SIX-terminal_bias*slope]
+                                        # xy     = [端部连接处[0], sum(y_span)/2]
+                                        # xytext = [端部连接处[0], sum(y_span)/2 + 0.25]
+                                        ctx.move_to(端部连接处[0],            端部连接处[1] + CANVAS_OFFSET)
+                                        ctx.line_to(端部连接处[0], SIX-terminal_bias*slope + CANVAS_OFFSET)
+                                        ctx.stroke()
 
                                     # the other layer
                                     ctx.set_dash([0.0, 0.2])
-                                    ctx.move_to(c1[0]+terminal_bias*2,                   c1[1] + CANVAS_OFFSET)
-                                    ctx.line_to(c1[0]+terminal_bias*2, SIX-terminal_bias*slope + CANVAS_OFFSET)
+                                    ctx.move_to(端部连接处[0]+terminal_bias*2 - THE_SHIFT*(loc_triangle+terminal_bias>THE_END),            端部连接处[1] + CANVAS_OFFSET)
+                                    ctx.line_to(端部连接处[0]+terminal_bias*2 - THE_SHIFT*(loc_triangle+terminal_bias>THE_END), SIX-terminal_bias*slope + CANVAS_OFFSET)
                                     ctx.stroke()
-                                    ctx.set_dash([1, 0])
+                                    # ctx.set_dash([1, 0])
 
                                 else: 
                                     # dashed line
                                     ctx.set_dash([0.0, 0.2])
-                                    if loc_tri + terminal_bias > THE_END:
-                                        loc_tri -= THE_SHIFT
-                                    c1 = (loc_tri + terminal_bias, NINE)
-                                    y_span = [c1[1]]+[SIX-terminal_bias*slope]
-                                    xy     = [c1[0], sum(y_span)/2]
-                                    xytext = [c1[0], sum(y_span)/2 + 0.25]
-                                    ctx.move_to(c1[0],                   c1[1] + CANVAS_OFFSET)
-                                    ctx.line_to(c1[0], SIX-terminal_bias*slope + CANVAS_OFFSET)
-                                    ctx.stroke()
+                                    if loc_triangle + terminal_bias < THE_END:
+                                        # loc_triangle -= THE_SHIFT
+                                        端部连接处 = (loc_triangle + terminal_bias, NINE)
+                                        ctx.move_to(端部连接处[0], 端部连接处[1] + CANVAS_OFFSET)
+                                        ctx.line_to(端部连接处[0], SIX-terminal_bias*slope + CANVAS_OFFSET)
+                                        ctx.stroke()
+                                    else:
+                                        端部连接处 = (loc_triangle - THE_SHIFT + terminal_bias, NINE)
+                                        # y_span = [端部连接处[1]]+[SIX-terminal_bias*slope]
+                                        # xy     = [端部连接处[0], sum(y_span)/2]
+                                        # xytext = [端部连接处[0], sum(y_span)/2 + 0.25]
+                                        ctx.move_to(端部连接处[0], 端部连接处[1] + CANVAS_OFFSET)
+                                        ctx.line_to(端部连接处[0], SIX-terminal_bias*slope + CANVAS_OFFSET)
+                                        ctx.stroke()
 
                                     # the other layer
                                     ctx.set_dash([1, 0])
-                                    ctx.move_to(c1[0]-terminal_bias*2,                   c1[1] + CANVAS_OFFSET)
-                                    ctx.line_to(c1[0]-terminal_bias*2, SIX-terminal_bias*slope + CANVAS_OFFSET)
+                                    ctx.move_to(端部连接处[0]-terminal_bias*2,            端部连接处[1] + CANVAS_OFFSET)
+                                    ctx.line_to(端部连接处[0]-terminal_bias*2, SIX-terminal_bias*slope + CANVAS_OFFSET)
                                     ctx.stroke()
-                                    ctx.set_dash([0.0, 0.2])
+                                    # ctx.set_dash([0.0, 0.2])
 
-                                print('-----------', x)
+                                # print('-----------', x)
                                 # ax.annotate('', xytext=xytext, xy=xy, xycoords='data', arrowprops=dict(arrowstyle="->", color=color, lw=0.5, alpha=1.0))
 
 
                                 # 画线圈组的出头
                                 # 画线圈组的出头
                                 # 画线圈组的出头
-                                if index+1 >= len(grouping_number):
-                                    ctx.set_dash([0.0, 0.2])
-                                    ctx.move_to(loc_tri + terminal_bias,           0.5 + NINE + CANVAS_OFFSET)
-                                    ctx.line_to(loc_tri + terminal_bias,                 NINE + CANVAS_OFFSET)
-                                    ctx.stroke()
+                                if index == 0 or index+1 >= len(grouping_number):
 
-                                    ctx.set_dash([1, 0])
-                                    ctx.arc(    loc_tri + terminal_bias,           0.5 + NINE + CANVAS_OFFSET, 0.2, 0, 2*np.pi)
-                                    ctx.rel_move_to(0, 0.5)
-                                    ctx.show_text(f'{phase.lower()}{grp}-')
-                                    ctx.stroke()
-                                if index == 0:
-                                    ctx.set_dash([1, 0])
-                                    ctx.move_to(loc_tri - terminal_bias,           0.5 + NINE + CANVAS_OFFSET)
-                                    ctx.line_to(loc_tri - terminal_bias,                 NINE + CANVAS_OFFSET)
-                                    ctx.stroke()
+                                    if index == 0:
+                                        if x>0:
+                                            ctx.set_dash([0.0, 0.2])
+                                        else:
+                                            ctx.set_dash([1, 0])
 
-                                    ctx.set_dash([1, 0])
-                                    ctx.arc(    loc_tri - terminal_bias,           0.5 + NINE + CANVAS_OFFSET, 0.2, 0, 2*np.pi)
-                                    ctx.rel_move_to(0, 0.5)
-                                    ctx.show_text(f'{phase.lower()}{grp}+')
-                                    ctx.stroke()
+                                        XTerminal = loc_triangle + terminal_bias * (1 if x > 0 else -1)
+                                        if XTerminal > THE_END:
+                                            XTerminal -= THE_SHIFT
+                                        ctx.move_to(XTerminal,           1.0 + NINE + CANVAS_OFFSET)
+                                        ctx.line_to(XTerminal,                 NINE + CANVAS_OFFSET)
+                                        ctx.stroke()
+
+                                        ctx.set_dash([1, 0])
+                                        ctx.arc(    XTerminal,           1.0 + NINE + CANVAS_OFFSET, 0.2, 0, 2*np.pi)
+                                        ctx.rel_move_to(0, 0.5)
+                                        ctx.show_text(f'{phase.lower()}{grp}{"+"}')
+                                        ctx.stroke()
+                                    else:
+                                        if x<0:
+                                            ctx.set_dash([0.0, 0.2])
+                                        else:
+                                            ctx.set_dash([1, 0])
+
+                                        XTerminal = loc_triangle - terminal_bias * (1 if x > 0 else -1)
+                                        if XTerminal > THE_END:
+                                            XTerminal -= THE_SHIFT
+                                        ctx.move_to(XTerminal,           1.0 + NINE + CANVAS_OFFSET)
+                                        ctx.line_to(XTerminal,                 NINE + CANVAS_OFFSET)
+                                        ctx.stroke()
+
+                                        ctx.set_dash([1, 0])
+                                        ctx.arc(    XTerminal,           1.0 + NINE + CANVAS_OFFSET, 0.2, 0, 2*np.pi)
+                                        ctx.rel_move_to(0, 0.5)
+                                        ctx.show_text(f'{phase.lower()}{grp}{"-"}')
+                                        ctx.stroke()
 
                                 # Draw horizontal line that connects coil to coil
                                 # Draw horizontal line that connects coil to coil
                                 # Draw horizontal line that connects coil to coil
                                 if index+1 < len(grouping_number):
                                     x2 = int(grouping_number[index+1])
-                                    def script():
-                                        loc_tri = (abs(x2)+coil_pitch/2)*(1+coil_spacing)+coil_bias/2 # top of the triangle
-                                        if abs(x2) > abs(x):
-                                            # 此时到了x2处，如果x2也是正的
-                                            if x2>0:
-                                                ctx.line_to(loc_tri - terminal_bias, NINE + CANVAS_OFFSET)
+
+                                    if x2 < 0:
+                                        # 如果x2是负的，就不需要垫高
+                                        HORIZONTAL_OFFSET = 0.0
+                                        ctx.move_to(端部连接处[0], NINE + CANVAS_OFFSET)
+                                    else:
+                                        # 如果x2是正的，则需要垫高
+                                        HORIZONTAL_OFFSET += 0.5
+                                        ctx.move_to(端部连接处[0], NINE + CANVAS_OFFSET)
+                                        ctx.line_to(端部连接处[0], NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+
+                                    # if abs(x2) != 35 and abs(x2) != 36:
+                                    # if abs(x2) != 36:
+                                    if True:
+                                        loc_triangle2 = (abs(x2)+coil_pitch/2)*(1+coil_spacing)+coil_bias/2 # top of the triangle
+                                        print(phase, x, x2)
+                                        def draw_continued(shift):
+                                            ctx.line_to(THE_END, NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+
+                                            ctx.move_to(THE_END - THE_SHIFT, NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+
+                                            if HORIZONTAL_OFFSET > 0:
+                                                ctx.line_to(loc_triangle2 - shift + terminal_bias, NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+                                                ctx.line_to(loc_triangle2 - shift + terminal_bias, NINE + CANVAS_OFFSET)
                                             else:
-                                                ctx.line_to(loc_tri + terminal_bias - 2*terminal_bias, NINE + CANVAS_OFFSET)
+                                                ctx.line_to(loc_triangle2 - shift - terminal_bias, NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+
+                                        # if abs(x2) > abs(x):
+                                        if loc_triangle2 > loc_triangle:
+                                            if abs(x2) == 36:
+                                                print(x, x2, loc_triangle, loc_triangle2)
+
+                                            if loc_triangle > THE_END and loc_triangle2 > THE_END:
+                                                print("Both x's and x2's triangle locations are larger than THE_END.", x, x2)
+                                                # 两个线圈的三角尖尖都超过了THE_END，比如x=-35，x2=-36
+                                                # ctx.rel_move_to(-THE_SHIFT, 0)
+
+                                                if HORIZONTAL_OFFSET > 0:
+                                                    ctx.line_to(loc_triangle2-THE_SHIFT + terminal_bias, NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+                                                    ctx.line_to(loc_triangle2-THE_SHIFT + terminal_bias, NINE + CANVAS_OFFSET)
+                                                else:
+                                                    ctx.line_to(loc_triangle2-THE_SHIFT - terminal_bias, NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+                                            else:
+                                                if loc_triangle2 < THE_END:
+                                                    # 此时到了x2处，
+                                                    if HORIZONTAL_OFFSET > 0:
+                                                        ctx.line_to(loc_triangle2 + terminal_bias, NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+                                                        ctx.line_to(loc_triangle2 + terminal_bias, NINE + CANVAS_OFFSET)
+                                                    else:
+                                                        ctx.line_to(loc_triangle2 - terminal_bias, NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+                                                else:
+                                                    # 需要向右延伸截断并从最左边续上
+                                                    draw_continued(THE_SHIFT)
                                         else:
                                             # 需要向右延伸截断并从最左边续上
-                                            ctx.line_to(THE_END, NINE + CANVAS_OFFSET)
-
-                                            ctx.move_to(THE_END - THE_SHIFT,        NINE + CANVAS_OFFSET)
-                                            ctx.line_to(loc_tri - terminal_bias,    NINE + CANVAS_OFFSET)
-
-                                    if x>0:
-                                        ctx.move_to(c1[0]+np.sign(x)*terminal_bias*2, NINE + CANVAS_OFFSET)
-                                        # 如果是正导体，那么就是从x的下层拉过来的
-                                        script()
-                                    else:
-                                        ctx.move_to(c1[0], NINE + CANVAS_OFFSET)
-                                        # 如果是负导体，仍然只能从x的下层拉过来的
-                                        script()
+                                            draw_continued(0)
 
                                     ctx.set_dash([0.0, 0.2])
                                     ctx.stroke()
+                            # break # draw only group ac
 
                     draw_terminals(slope, phase=phase, coil_pitch=self.coil_pitch_y)
-
-                    # draw connection lines between coil and coil
-                    # list_coil_connection = [(-el[0], -el[1]) for el in list_terminals]
-                    # draw_coil_connections(list_coil_connection, slope)
-
-                    break
+                    # break
 
 if __name__ == '__main__':
 
