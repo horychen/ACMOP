@@ -1,6 +1,6 @@
 ABCDEFGHIJKLMNOPQRSTUVWXYZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-output_dir = r'../_wily/' # r'D:/DrH/Codes/acmop/_wily/'
 import os
+output_dir = os.path.dirname(__file__) + r'/../_wily/'
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 print('Output directory is:', output_dir)
@@ -1122,6 +1122,7 @@ def main_derivation():
                 self.CommutatingSequenceB = 0
     '''%(grouping_AC, 2, 2 if bool_double_layer_winding else 1), end='')
 
+    return layer_X_phases, layer_X_signs, grouping_AC, coil_pitch_y
 
 # https://pythoninformer.com/categories/category-pycairo/
 # https://pythoninformer.com/python-libraries/pycairo/complex-shapes/
@@ -1597,17 +1598,18 @@ class winding_diagram:
 
 if __name__ == '__main__':
 
-    if False:
-        main_derivation()
-
+    if True:
+        phases, signs, grouping_AC, coil_pitch_y = main_derivation()
     else:
         phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
         signs = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
         grouping_AC = [0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]
-        diagram = winding_diagram(
-            layer_X_phases = phases,
-            layer_X_signs = signs,
-            coil_pitch_y = 5,
-            grouping_AC = grouping_AC,
-        )
-        diagram.draw()
+        coil_pitch_y = 5
+
+    diagram = winding_diagram(
+        layer_X_phases = phases,
+        layer_X_signs = signs,
+        coil_pitch_y = coil_pitch_y,
+        grouping_AC = grouping_AC,
+    )
+    diagram.draw()
