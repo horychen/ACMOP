@@ -916,7 +916,7 @@ def main_derivation():
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [  
                                 # (15, 30, 2, 3, 10, 0),
-                                # (3, 24, 1, 2, 9, 0),
+                                (3, 24, 1, 2, 9, 0),
                                 # (3, 27, 3, 2, 4, 0), # 0 <--- 这个如果作绕组你会发现W相的Group AC和Group BD的阴影刚好差了一点角度，导致三相AC/BD分组不对称。
                                 # (3, 36, 3, 2, 5, 0), # 1              # ISMB 2021 Winding (Only Amplitude asymmetry)
                                 # (3, 36, 3, 2, 6, 0), # 2
@@ -935,7 +935,7 @@ def main_derivation():
                                   # (3, 36, 4, 5,    3,   0), # Jan. 19, 2021
                                   # (3, 18, 8, 7,    1,   0), # Mar. 25, 2021 哔哩哔哩：一介介一
                                   # (3, 18, 2, 3, 4, 0),                
-                                  (3, 36, 3, 4, 5, 0),              # ISMB 2021 Winding
+                                  # (3, 36, 3, 4, 5, 0),              # ISMB 2021 Winding
                                   # (3, 18, 3, 4, 2, 0), # phase asymmetry
                                   # (3, 18, 3, 4, 3, 0), # phase asymmetry
                                   # (3, 24, 4, 5, 3, 0),
@@ -1209,7 +1209,9 @@ class winding_diagram:
             WIDTH       = 200
             HEIGHT      = 50
             PIXEL_SCALE = 10
-            with cairo.SVGSurface(f'{output_dir}tec-ismb-winding-diagram-{phase}.svg', WIDTH*PIXEL_SCALE, HEIGHT*PIXEL_SCALE) as surface:
+            # with cairo.SVGSurface(f'{output_dir}tec-ismb-winding-diagram-{phase}.svg', WIDTH*PIXEL_SCALE, HEIGHT*PIXEL_SCALE) as surface:
+            temp = self.dl_rightlayer['U']
+            with cairo.SVGSurface(f'{output_dir}winding-diagram-{phase}-{"".join(temp)}.svg', WIDTH*PIXEL_SCALE, HEIGHT*PIXEL_SCALE) as surface:
                 ctx = cairo.Context(surface)
                 ctx.scale(PIXEL_SCALE, PIXEL_SCALE)
                 ctx.set_source_rgba(0, 0, 0, 1)
@@ -1220,7 +1222,7 @@ class winding_diagram:
                 ctx.select_font_face("Times new roman", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
                 Qs = len(self.dl_rightlayer['U'])*3
-                print(Qs, 'should be 36')
+                # print(Qs, 'should be 36')
 
                 COIL_LENGTH = 4 # 导体长度
                 coil_spacing = 0.5 # 两个上层导体之间的间距
@@ -1451,8 +1453,10 @@ class winding_diagram:
 
                                     # the other layer
                                     ctx.set_dash([0.0, 0.2])
-                                    ctx.move_to(端部连接处[0]+terminal_bias*2 - THE_SHIFT*(loc_triangle+terminal_bias>THE_END),            端部连接处[1] + CANVAS_OFFSET)
-                                    ctx.line_to(端部连接处[0]+terminal_bias*2 - THE_SHIFT*(loc_triangle+terminal_bias>THE_END), SIX-terminal_bias*slope + CANVAS_OFFSET)
+                                    # ctx.move_to(端部连接处[0]+terminal_bias*2 - THE_SHIFT*(loc_triangle+terminal_bias>THE_END),            端部连接处[1] + CANVAS_OFFSET)
+                                    # ctx.line_to(端部连接处[0]+terminal_bias*2 - THE_SHIFT*(loc_triangle+terminal_bias>THE_END), SIX-terminal_bias*slope + CANVAS_OFFSET)
+                                    ctx.move_to(端部连接处[0]+terminal_bias*2,            端部连接处[1] + CANVAS_OFFSET)
+                                    ctx.line_to(端部连接处[0]+terminal_bias*2, SIX-terminal_bias*slope + CANVAS_OFFSET)
                                     ctx.stroke()
                                     # ctx.set_dash([1, 0])
 
@@ -1475,11 +1479,19 @@ class winding_diagram:
                                         ctx.stroke()
 
                                     # the other layer
-                                    ctx.set_dash([1, 0])
-                                    ctx.move_to(端部连接处[0]-terminal_bias*2,            端部连接处[1] + CANVAS_OFFSET)
-                                    ctx.line_to(端部连接处[0]-terminal_bias*2, SIX-terminal_bias*slope + CANVAS_OFFSET)
-                                    ctx.stroke()
-                                    # ctx.set_dash([0.0, 0.2])
+                                    if loc_triangle - terminal_bias > THE_END:
+                                        # 减了以后仍超过THE_END，简单，沿用之前已经shift过的端部连接处坐标即可。
+                                        ctx.set_dash([1, 0])
+                                        ctx.move_to(端部连接处[0]-terminal_bias*2,            端部连接处[1] + CANVAS_OFFSET)
+                                        ctx.line_to(端部连接处[0]-terminal_bias*2, SIX-terminal_bias*slope + CANVAS_OFFSET)
+                                        ctx.stroke()
+                                        # ctx.set_dash([0.0, 0.2])
+                                    else:
+                                        # 减了以后没超THE_END，需要把shift给取消
+                                        ctx.set_dash([1, 0])
+                                        ctx.move_to(loc_triangle-terminal_bias,            端部连接处[1] + CANVAS_OFFSET)
+                                        ctx.line_to(loc_triangle-terminal_bias, SIX-terminal_bias*slope + CANVAS_OFFSET)
+                                        ctx.stroke()
 
                                 # print('-----------', x)
                                 # ax.annotate('', xytext=xytext, xy=xy, xycoords='data', arrowprops=dict(arrowstyle="->", color=color, lw=0.5, alpha=1.0))
@@ -1564,7 +1576,8 @@ class winding_diagram:
                                             if abs(x2) == 36:
                                                 print(x, x2, loc_triangle, loc_triangle2)
 
-                                            if loc_triangle > THE_END and loc_triangle2 > THE_END:
+                                            if (loc_triangle > THE_END and loc_triangle2 > THE_END) \
+                                            or (loc_triangle+terminal_bias > THE_END and loc_triangle2 > THE_END): # 为了解决样机绕组的V相的20线圈连21线圈时会出现的问题
                                                 print("Both x's and x2's triangle locations are larger than THE_END.", x, x2)
                                                 # 两个线圈的三角尖尖都超过了THE_END，比如x=-35，x2=-36
                                                 # ctx.rel_move_to(-THE_SHIFT, 0)
@@ -1586,8 +1599,20 @@ class winding_diagram:
                                                     # 需要向右延伸截断并从最左边续上
                                                     draw_continued(THE_SHIFT)
                                         else:
-                                            # 需要向右延伸截断并从最左边续上
-                                            draw_continued(0)
+                                            #  x很大，比如24，而x很小，比如1。 所以 x2=1 < x=24
+                                            if loc_triangle > THE_END and loc_triangle2 < THE_END:
+
+                                                # 24的loc_triangle肯定超过THE_END了，但是1的没有loc_triangle2很小
+                                                # ctx.rel_move_to(-THE_SHIFT, 0)
+
+                                                if HORIZONTAL_OFFSET > 0:
+                                                    ctx.line_to(loc_triangle2 + terminal_bias, NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+                                                    ctx.line_to(loc_triangle2 + terminal_bias, NINE + CANVAS_OFFSET)
+                                                else:
+                                                    ctx.line_to(loc_triangle2 - terminal_bias, NINE + CANVAS_OFFSET + HORIZONTAL_OFFSET)
+                                            else:
+                                                # 需要向右延伸截断并从最左边续上
+                                                draw_continued(0)
 
                                     ctx.set_dash([0.0, 0.2])
                                     ctx.stroke()
