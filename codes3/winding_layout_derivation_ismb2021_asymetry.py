@@ -935,7 +935,7 @@ def main_derivation():
                                   # (3, 36, 4, 5,    3,   0), # Jan. 19, 2021
                                   # (3, 18, 8, 7,    1,   0), # Mar. 25, 2021 哔哩哔哩：一介介一
                                   # (3, 18, 2, 3, 4, 0),                
-                                  # (3, 36, 3, 4, 5, 0),              # ISMB 2021 Winding
+                                  # (3, 36, 3, 4, 5, 0),              # ISMB 2021 Winding design 7
                                   # (3, 18, 3, 4, 2, 0), # phase asymmetry
                                   # (3, 18, 3, 4, 3, 0), # phase asymmetry
                                   # (3, 24, 4, 5, 3, 0),
@@ -1418,8 +1418,10 @@ class winding_diagram:
                         print(self.dl_grouping_BD[phase])
 
                         for grouping_number, NINE_BIAS, grp in zip([self.dl_grouping_BD[phase], self.dl_grouping_AC[phase]],
+                        # for grouping_number, NINE_BIAS, grp in zip(
+                        #                                       (self.dl_grouping_BD[phase], self.dl_grouping_AC[phase][::-1]),
                                                               [1.0, 0.5],
-                                                              ['a', 'b']):
+                                                              ['b', 'a']):
                             HORIZONTAL_OFFSET = 0.0
                             THE_DIRECTION = None
                             NINE = SIX + NINE_BIAS
@@ -1497,6 +1499,7 @@ class winding_diagram:
                                 # ax.annotate('', xytext=xytext, xy=xy, xycoords='data', arrowprops=dict(arrowstyle="->", color=color, lw=0.5, alpha=1.0))
 
 
+                                # 其实这里的代码默默保证了线圈的端部接线是保证电流从左向右流动的。
                                 # 画线圈组的出头
                                 # 画线圈组的出头
                                 # 画线圈组的出头
@@ -1539,6 +1542,7 @@ class winding_diagram:
                                         ctx.show_text(f'{phase.lower()}{grp}{"-"}')
                                         ctx.stroke()
 
+                                # 其实这里的代码默默保证了线圈的端部接线是保证电流从左向右流动的。
                                 # Draw horizontal line that connects coil to coil
                                 # Draw horizontal line that connects coil to coil
                                 # Draw horizontal line that connects coil to coil
