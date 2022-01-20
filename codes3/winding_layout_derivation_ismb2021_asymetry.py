@@ -916,7 +916,10 @@ def main_derivation():
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [  
                                 # (15, 30, 2, 3, 10, 0),
-                                (3, 24, 1, 2, 9, 0),
+                                # (3, 24, 1, 2, 9, 0),
+                                (3, 48, 2, 1, 12, 0), # XSQ
+                                # (3, 9, 4, 5, 1, 0), # Slessinv TIE.R1
+                                # (3, 18, 4, 5, 2, 0), # Slessinv TIE.R1 750W Servo
                                 # (3, 27, 3, 2, 4, 0), # 0 <--- 这个如果作绕组你会发现W相的Group AC和Group BD的阴影刚好差了一点角度，导致三相AC/BD分组不对称。
                                 # (3, 36, 3, 2, 5, 0), # 1              # ISMB 2021 Winding (Only Amplitude asymmetry)
                                 # (3, 36, 3, 2, 6, 0), # 2
@@ -939,6 +942,7 @@ def main_derivation():
                                   # (3, 18, 3, 4, 2, 0), # phase asymmetry
                                   # (3, 18, 3, 4, 3, 0), # phase asymmetry
                                   # (3, 24, 4, 5, 3, 0),
+                                  # (3, 12, 5, 6, 1, 0), # SH-WuJi
                                 #  m, Q, p, ps, y, turn function bias (turn_func_bias)
                              ]
     bool_double_layer_winding = True
@@ -1629,6 +1633,7 @@ if __name__ == '__main__':
 
     if True:
         phases, signs, grouping_AC, coil_pitch_y = main_derivation()
+        quit()
     else:
         phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
         signs = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']

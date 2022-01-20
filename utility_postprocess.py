@@ -238,7 +238,7 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
 
 import os, sys, builtins
 import pandas as pd
-import acmop, main_utility
+import codes3.acmop as acmop, main_utility
 import utility_streamlit
 
 class SwarmAnalyzer(object):

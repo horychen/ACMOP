@@ -97,6 +97,26 @@ class winding_layout_v2(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 
         if DPNV_or_SEPA == True \
+        and Qs == 18 \
+        and p == 4 \
+        and ps == 5 \
+        and coil_pitch_y == 2:
+
+            self.layer_X_phases = ['U', 'W', 'U', 'W', 'V', 'W', 'V', 'U', 'V', 'U', 'W', 'U', 'W', 'V', 'W', 'V', 'U', 'V']
+            self.layer_X_signs  = ['+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-']
+            self.coil_pitch_y   = coil_pitch_y
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+            self.grouping_AC            = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+            self.number_parallel_branch = 2
+            self.number_winding_layer   = 2
+
+            self.bool_3PhaseCurrentSource = False
+            self.CommutatingSequenceD = 1
+            self.CommutatingSequenceB = 0
+
+        if DPNV_or_SEPA == True \
         and Qs == 36 \
         and p == 3 \
         and ps == 2 \
@@ -410,8 +430,7 @@ class winding_layout_v2(object):
             print('[wily] self.deg_winding_U_phase_phase_axis_angle:', self.deg_winding_U_phase_phase_axis_angle)
             # quit()
         except:
-            print(Qs,p,ps,coil_pitch_y)
-            raise Exception('Error: This winding is not implemented.')
+            raise Exception(f'Error: This winding is not implemented:{Qs,p,ps,coil_pitch_y}')
 
 
         # 这是实际在pre_procee中调用的字典

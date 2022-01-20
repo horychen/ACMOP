@@ -9,7 +9,7 @@ import CrossSectInnerNotchedRotor
 import CrossSectStator
 import Location2D
 
-import pint
+# import pint
 
 class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
     ''' This is a surface mounted PM motor but it might have saliency on q-axis if alpha_rm is less than 180/p.
@@ -36,7 +36,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         })
         GP.update(childGP)
 
-       # Get Analytical Design
+        # Get Analytical Design
         self.Bianchi2006(fea_config_dict, SD, GP, OP)
 
         # 定义搜索空间，determine bounds
@@ -73,8 +73,8 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             alpha_rm_over_alpha_rp = 0.75
             # stator_yoke_flux_density_Bys = 1.5
 
-        ureg = pint.UnitRegistry()
-        stator_outer_diameter_Dse = 0.225 * ureg.meter
+        # ureg = pint.UnitRegistry()
+        stator_outer_diameter_Dse = 0.225 #* ureg.meter
 
         speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
 
@@ -86,6 +86,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
 
         stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*SD['p'])
+        print(stator_outer_diameter_Dse, stator_inner_diameter_Dis, stator_yoke_height_h_ys)
         stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
         stator_slot_height_h_ss = stator_tooth_height_h_ds
         stator_tooth_width_b_ds = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* SD['Qs'])
