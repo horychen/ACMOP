@@ -24,9 +24,9 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         self.name = '__SPMSM'
 
         # 初始化搜索空间
-        GP = self.d['GP']
-        OP = self.d['OP']
-        SD = self.SD
+        GP = self.d['GP'] # Geometry Parameter
+        OP = self.d['OP'] # Other Property
+        SD = self.SD      # Specification Dictionary
         childGP = OrderedDict({
             # SPMSM Peculiar
             "deg_alpha_rm"      : acmop_parameter("free",      "magnet_pole_span_angle",        None, [None, None], lambda GP,SD:None),
@@ -58,6 +58,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
 
         air_gap_flux_density_B = SD['guess_air_gap_flux_density_B']
         # air_gap_flux_density_B = 0.9
+
         stator_tooth_flux_density_B_ds = SD['guess_stator_tooth_flux_density_B_ds']
         # stator_tooth_flux_density_B_ds = 1.5
 
@@ -86,7 +87,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
 
         stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*SD['p'])
-        print(stator_outer_diameter_Dse, stator_inner_diameter_Dis, stator_yoke_height_h_ys)
+        # print(stator_outer_diameter_Dse, stator_inner_diameter_Dis, stator_yoke_height_h_ys)
         stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
         stator_slot_height_h_ss = stator_tooth_height_h_ds
         stator_tooth_width_b_ds = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* SD['Qs'])
@@ -114,7 +115,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP['mm_d_fixed_air_gap'].value   = SD['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
         GP['mm_d_pm'].value              = 4  # mm
-        GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is randomly specified
+        GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is epirically specified
         GP['mm_r_or'].value              = 1e3*rotor_outer_radius_r_or
         GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_fixed_air_gap'].value
         # SPMSM specific

@@ -630,7 +630,7 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
     ################################################################
     # caculate the fitness
     print('-'*40)
-    print('Calculate the fitness for', acm_variant.name)
+    print('[utility.py] Calculate the fitness for', acm_variant.name)
 
     # LOSS
     if 'IM' in machine_type:
@@ -676,16 +676,16 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
     else:
                                  # 基波电流幅值（在一根导体里的电流，六相逆变器中的GroupBDW相的电流，所以相当于已经考虑了并联支路数了）
         stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.coils.mm2_slot_area*1e-6/acm_variant.template.d['OP']['DriveW_zQ'])
-        print('Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2'%(stator_current_density))
+        print('[utility.py] Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2'%(stator_current_density))
         rotor_current_density = 0
 
-    print('Required torque: %g Nm'%(required_torque))
-    print("acm_variant.template.d['OP']['Omega']: %g rad/s"%(acm_variant.template.d['OP']['Omega']))
+    print('[utility.py] Required torque: %g Nm'%(required_torque))
+    print("[utility.py] acm_variant.template.d['OP']['Omega']: %g rad/s"%(acm_variant.template.d['OP']['Omega']))
     rated_shaft_power  = acm_variant.template.d['OP']['Omega'] * required_torque
     rated_efficiency   = rated_shaft_power / (rated_total_loss + rated_shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
 
     rated_rotor_volume = np.pi*(acm_variant.template.d['GP']['mm_r_or'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
-    print('rated_stack_length_mm =', rated_stack_length_mm)
+    print('[utility.py] rated_stack_length_mm =', rated_stack_length_mm)
 
     # This weighted list suggests that peak-to-peak torque ripple of 5% is comparable with Em of 5% or Ea of 1 deg. Ref: Ye gu ECCE 2018
     # Eric suggests Ea is 1 deg. But I think this may be too much emphasis on Ea so large Trip does not matter anymore (not verified yet).
@@ -707,18 +707,18 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
 
         Vol_PM = (acm_variant.rotorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
 
-        print('Area_Fe', (acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2)
-        print('Area_Cu (est.)', dm.Vol_Cu/(rated_stack_length_mm*1e-3))
-        print('Area_PM', (acm_variant.rotorMagnet.mm2_magnet_area*1e-6))
-        print('Volume_Fe',    Vol_Fe)
-        print('Volume_Cu', dm.Vol_Cu)
-        print('Volume_PM',    Vol_PM)
+        print('[utility.py] Area_Fe', (acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2)
+        print('[utility.py] Area_Cu (est.)', dm.Vol_Cu/(rated_stack_length_mm*1e-3))
+        print('[utility.py] Area_PM', (acm_variant.rotorMagnet.mm2_magnet_area*1e-6))
+        print('[utility.py] Volume_Fe',    Vol_Fe)
+        print('[utility.py] Volume_Cu', dm.Vol_Cu)
+        print('[utility.py] Volume_PM',    Vol_PM)
         f1_PMSM =    Vol_Fe * price_per_volume_steel \
                 + dm.Vol_Cu * price_per_volume_copper\
                 +    Vol_PM * price_per_volume_magnet
-        print('Cost Fe:',   Vol_Fe * price_per_volume_steel )
-        print('Cost Cu:',dm.Vol_Cu * price_per_volume_copper)
-        print('Cost PM:',   Vol_PM * price_per_volume_magnet)
+        print('[utility.py] Cost Fe:',   Vol_Fe * price_per_volume_steel )
+        print('[utility.py] Cost Cu:',dm.Vol_Cu * price_per_volume_copper)
+        print('[utility.py] Cost PM:',   Vol_PM * price_per_volume_magnet)
         f1 = f1_PMSM
 
     # - Efficiency @ Rated Power
@@ -727,10 +727,10 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
     f3 = sum(list_weighted_ripples)
 
     FRW = ss_avg_force_magnitude / rotor_weight
-    print('FRW:', FRW, 'Rotor weight:', rotor_weight, 'Stack length:', acm_variant.template.d['OP']['mm_template_stack_length'], 'Rated stack length:', rated_stack_length_mm)
+    print('[utility.py] FRW:', FRW, 'Rotor weight:', rotor_weight, 'Stack length:', acm_variant.template.d['OP']['mm_template_stack_length'], 'Rated stack length:', rated_stack_length_mm)
     rated_rotor_volume = acm_variant.template.get_rotor_volume(stack_length=rated_stack_length_mm) 
     rated_rotor_weight = acm_variant.template.get_rotor_weight(stack_length=rated_stack_length_mm)
-    print('rated_rotor_volume:', rated_rotor_volume, 'rated_rotor_weight:', rated_rotor_weight)
+    print('[utility.py] rated_rotor_volume:', rated_rotor_volume, 'rated_rotor_weight:', rated_rotor_weight)
 
     rated_results = [   rated_shaft_power, 
                         rated_efficiency,
@@ -1186,7 +1186,7 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
     Vol_Cu_along_stack = area_copper_S_Cu * (stack_length_m) * Q
     stator_copper_loss_along_stack = rho_Copper * Vol_Cu_along_stack * Js**2
 
-    print('Stator current [Arms]:', current_rms_value, 'Js:', Js)
+    print('[utility.py] Stator current [Arms]:', current_rms_value, 'Js:', Js)
 
     if rotor_slot_area is not None:
         raise Exception('Not supported')
@@ -1223,7 +1223,7 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
         Vol_Cu_along_stack = area_copper_S_Cu * (end_winding_length_Lew) * Q # wrong?
         Vol_Cu_along_stack = area_copper_S_Cu * (stack_length_m) * Q
         rotor_copper_loss_along_stack = rho_Copper * Vol_Cu_along_stack * Jr**2
-        print('Rotor current [Arms]:', current_rms_value, 'Jr:', Jr)
+        print('[utility.py] Rotor current [Arms]:', current_rms_value, 'Jr:', Jr)
     else:
         rotor_copper_loss, rotor_copper_loss_along_stack, Jr = 0, 0, 0
 
@@ -1331,14 +1331,14 @@ def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict,
                 if count>8:
                     rotor_iron_loss = float(row[2]) # Rotor Core
                     stator_iron_loss = float(row[3]) # Stator Core
-                    print('Iron loss:', stator_iron_loss, rotor_iron_loss)
+                    print('[utility.py] Iron loss:', stator_iron_loss, rotor_iron_loss)
                     break
             elif 'PMSM' in machine_type:
                 if count>7:
-                    print('This should be 0:', float(row[0]))
+                    print('[utility.py] This should be 0:', float(row[0]))
                     rotor_iron_loss = float(row[1]) # Rotor Core
                     stator_iron_loss = float(row[4]) # Stator Core
-                    print('Iron loss:', stator_iron_loss, rotor_iron_loss)
+                    print('[utility.py] Iron loss:', stator_iron_loss, rotor_iron_loss)
                     break                    
     with open(path_prefix + study_name + '_joule_loss_loss.csv', 'r') as f:
         count = 0
@@ -1348,13 +1348,13 @@ def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict,
                 if count>8:
                     rotor_eddycurrent_loss  = float(row[2]) # Rotor Core
                     stator_eddycurrent_loss = float(row[3]) # Stator Core
-                    print('Eddy current loss:', stator_eddycurrent_loss, rotor_eddycurrent_loss)
+                    print('[utility.py] Eddy current loss:', stator_eddycurrent_loss, rotor_eddycurrent_loss)
                     break
             elif 'PMSM' in machine_type:
                 if count>7:
                     rotor_eddycurrent_loss  = float(row[1]) # Rotor Core
                     stator_eddycurrent_loss = float(row[4]) # Stator Core
-                    print('Eddy current loss:', stator_eddycurrent_loss, rotor_eddycurrent_loss)
+                    print('[utility.py] Eddy current loss:', stator_eddycurrent_loss, rotor_eddycurrent_loss)
                     break
     with open(path_prefix + study_name + '_hysteresis_loss_loss.csv', 'r') as f:
         count = 0
@@ -1364,13 +1364,13 @@ def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict,
                 if count>8:
                     rotor_hysteresis_loss = float(row[2]) # Rotor Core
                     stator_hysteresis_loss = float(row[3]) # Stator Core
-                    print('Hysteresis loss:', stator_hysteresis_loss, rotor_hysteresis_loss)
+                    print('[utility.py] Hysteresis loss:', stator_hysteresis_loss, rotor_hysteresis_loss)
                     break
             elif 'PMSM' in machine_type:
                 if count>7:
                     rotor_hysteresis_loss  = float(row[1]) # Rotor Core
                     stator_hysteresis_loss = float(row[4]) # Stator Core
-                    print('Hysteresis loss:', stator_hysteresis_loss, rotor_hysteresis_loss)
+                    print('[utility.py] Hysteresis loss:', stator_hysteresis_loss, rotor_hysteresis_loss)
                     break
 
     # Joule Loss (Copper and Magnet)
@@ -1389,12 +1389,12 @@ def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict,
                 if count>8:
                     if count==8+1:
                         if 'Coil' not in headers[idx_coil]:
-                            print(headers)
+                            print('[utility.py]', headers)
                             raise Exception('Error when load csv data for Coil.')
                         stator_copper_loss = float(row[idx_coil]) # Coil # it is the same over time, this value does not account for end coil
 
                     if 'Cage' not in headers[idx_coil-1]:
-                        print(headers)
+                        print('[utility.py]', headers)
                         raise Exception('Error when load csv data for Cage.')
                     rotor_Joule_loss_list.append(float(row[idx_coil-1])) # Cage
 
@@ -1408,12 +1408,12 @@ def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict,
                 if count>7:
                     if count==7+1:
                         if 'Coil' not in headers[idx_coil]:
-                            print(headers)
+                            print('[utility.py]', headers)
                             raise Exception('Error when load csv data for Coil.')
                         stator_copper_loss = float(row[idx_coil]) # Coil # it is the same over time, this value does not account for end coil
 
                     if 'Magnet' not in headers[idx_coil-1]:
-                        print(headers)
+                        print('[utility.py]', headers)
                         raise Exception('Error when load csv data for Magnet.')
                     rotor_Joule_loss_list.append(float(row[idx_coil-1])) # Magnet
 
@@ -1424,7 +1424,7 @@ def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict,
     # quit()
     rotor_Joule_loss = sum(effective_part) / len(effective_part)
     if 'PMSM' in machine_type:
-        print('Magnet Joule loss:', rotor_Joule_loss)
+        print('[utility.py] Magnet Joule loss:', rotor_Joule_loss)
 
     if femm_solver is not None:
         # blockPrint()
@@ -1686,8 +1686,8 @@ def compute_power_factor_from_half_period(voltage, current, mytime, targetFreq=1
     gs_i.ampl = math.sqrt(gs_i.real*gs_i.real + gs_i.imag*gs_i.imag) 
     gs_i.phase = math.atan2(gs_i.imag, gs_i.real)
 
-    print('gs_u.ampl', gs_u.ampl)
-    print('gs_i.ampl', gs_i.ampl)
+    print('[utility.py] DEBUG PF, gs_u.ampl:', gs_u.ampl)
+    print('[utility.py] DEBUG PF, gs_i.ampl:', gs_i.ampl)
 
     phase_difference_in_deg = ((gs_i.phase-gs_u.phase)/math.pi*180)
     power_factor = math.cos(gs_i.phase-gs_u.phase)

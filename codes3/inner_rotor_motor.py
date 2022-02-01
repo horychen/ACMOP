@@ -1,15 +1,16 @@
+from dataclasses import dataclass
 import pyrhonen_procedure_as_function, winding_layout
 import numpy as np
 import logging
 import utility
 from utility import acmop_parameter, EPS
 from time import time as clock_time
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
-# Nomenclature:
+# Abbreviations:
 # GP = Geometric Parameters
 # OP = Other Properties
-# 
+# SD = Specification Dictionary
 
 def derive_mm_r_si(GP,SD):
     # (option 1) depends on split_ratio and r_os
@@ -115,7 +116,7 @@ class template_machine_as_numbers(object):
             parameter.bounds = val
             if parameter.type == 'free':
                 self.bounds_denorm.append(val)
-        print(f'[template] BOUNDS_denorm {len(self.bounds_denorm)}', self.bounds_denorm)
+        print(f'[inner_rotor_motor.py] template BOUNDS_denorm in R^{len(self.bounds_denorm)}:', self.bounds_denorm)
         return self.bounds_denorm
     def get_other_properties_after_geometric_parameters_are_initialized(self, GP, SD):
 
@@ -178,7 +179,7 @@ class template_machine_as_numbers(object):
         # 先拿个模板来，但是几何尺寸的变量值是旧的
         x_denorm_dict = self.get_x_denorm_dict_from_geometric_parameters(self.d['GP'])
 
-        print('DEBUG [inner_rotor_motor.py]', x_denorm_dict.keys())
+        print('[inner_rotor_motor.py] DEBUG x_denorm_dict:', x_denorm_dict.keys())
 
         # 对模板进行遍历，挨个把新的几何尺寸的值从x_denorm中读取出来并更新x_denorm_dict
         for key, new_val in zip(x_denorm_dict.keys(), x_denorm):
@@ -240,8 +241,7 @@ class variant_machine_as_objects(object):
                     print('\t', k,v)
             GP = self.template.update_geometric_parametes_using_x_denorm_dict(x_denorm_dict)
 
-
-        print('DEBUG [inner_rotor_motor.py] x_denorm length', len(x_denorm), x_denorm)
+        print('[inner_rotor_motor.py] DEBUG x_denorm length is', len(x_denorm), x_denorm)
 
         #test: yes, it is by reference!
         # print(self.template.d['GP'])
@@ -259,6 +259,7 @@ class variant_machine_as_objects(object):
 
             # self.template.d['OP']['mm_template_stack_length']      = spmsm_template.stack_length 
 
+
         # #04 Material Condutivity Properties
         # if self.template.fea_config_dict is not None:
         #     self.End_Ring_Resistance = fea_config_dict['End_Ring_Resistance']
@@ -272,6 +273,10 @@ class variant_machine_as_objects(object):
         #06 Meshing & Solver Properties
         # self.max_nonlinear_iteration = 50 # 30 for transient solve
         # self.meshSize_Magnet = 2 # mm
+
+    def reproduce_wily(self):
+        ''' This method is only used for reproducing design from jsonpickle'''
+        self.template.d['OP']['wily'] = winding_layout.winding_layout_v2(self.template.SD['DPNV_or_SEPA'], self.template.SD['Qs'], self.template.SD['p'], self.template.SD['ps'], self.template.SD['coil_pitch_y'])
 
     def update_mechanical_parameters(self, syn_freq=None):
         OP = self.template.d['OP']
@@ -345,6 +350,14 @@ class variant_machine_as_objects(object):
             CurrentAmp_in_the_slot = self.coils.mm2_slot_area * OP['fill_factor'] * OP['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
             CurrentAmp_per_conductor = CurrentAmp_in_the_slot / OP['DriveW_zQ']
             CurrentAmp_per_phase = CurrentAmp_per_conductor * OP['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+                # try:
+                #     CurrentAmp_per_phase = CurrentAmp_per_conductor * OP['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+                # except AttributeError:
+                #     # print(OP['wily'])
+                #     CurrentAmp_per_phase = CurrentAmp_per_conductor * OP['wily']['number_parallel_branch']
+                #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'number_parallel_branch', implying that the object wily has become a dict after jsonpickle.")
+                #     # quit() 
+
             # Maybe there is a bug here... regarding the excitation for suspension winding...
             variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
             variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
@@ -355,7 +368,7 @@ class variant_machine_as_objects(object):
             # self.spec_geometry_dict['DriveW_CurrentAmp'] = self.DriveW_CurrentAmp
 
             slot_current_utilizing_ratio = (OP['DriveW_CurrentAmp'] + OP['BeariW_CurrentAmp']) / OP['CurrentAmp_per_phase']
-            print('---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio)
+            print('[inner_rotor_motor.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio)
 
             # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
             # print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
@@ -386,11 +399,11 @@ class variant_machine_as_objects(object):
         # sel = view.GetCurrentSelection()
         # sel.SelectPart(123)
         # sel.SetBlockUpdateView(False)
-                                #  轴 转子    永磁体         套 定子      绕组
         SD = self.template.SD
         p = SD['p']
         s = SD['no_segmented_magnets']
         Q = SD['Qs']
+                                #   轴 转子 永磁体  护套 定子 绕组
         if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
             msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
             logger = logging.getLogger(__name__)
@@ -452,6 +465,14 @@ class variant_machine_as_objects(object):
         Y = R*np.sin(THETA)
         countXL = 0
         wily = self.template.d['OP']['wily']
+        # try:
+        #     wily.layer_X_phases
+        # except AttributeError:
+        #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'layer_X_phases', implying that the object wily has become a dict after jsonpickle.")
+        #     WILY = namedtuple('WILY', self.template.d['OP']['wily'])
+        #     wily_as_obj =      WILY(**self.template.d['OP']['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
+        #     wily = wily_as_obj
+
         for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
             countXL += 1 
             add_part_to_set("CoilLX%s%s %d"%(UVW,UpDown,countXL), X, Y)
@@ -544,6 +565,14 @@ class variant_machine_as_objects(object):
         GP = self.template.d['GP']
         OP = self.template.d['OP']
         wily = OP['wily']
+        # try:
+        #     wily.deg_winding_U_phase_phase_axis_angle
+        # except AttributeError:
+        #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'deg_winding_U_phase_phase_axis_angle', implying that the object wily has become a dict after jsonpickle.")
+        #     WILY = namedtuple('WILY', self.template.d['OP']['wily'])
+        #     wily_as_obj =      WILY(**self.template.d['OP']['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
+        #     wily = wily_as_obj
+        
         study.GetStudyProperties().SetValue("ConversionType", 0)
         study.GetStudyProperties().SetValue("NonlinearMaxIteration", self.template.fea_config_dict['designer.max_nonlinear_iteration'])
         study.GetStudyProperties().SetValue("ModelThickness", OP['mm_template_stack_length']) # [mm] Stack Length
@@ -562,9 +591,9 @@ class variant_machine_as_objects(object):
         #   The U-phase current is sin(omega_syn*t) = 0 at t=0 and requires the d-axis to be at the winding phase axis (to obtain id=0 control)
         deg_pole_span = 180/self.template.SD['p']
         #                                                              inter-pole notch (0.5 for half)         rotate to x-axis    winding placing bias (half adjacent slot angle)      reverse north and south pole to make torque positive.
-        print(                     '[PMSM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,     + deg_pole_span)
-        print(                     '[PMSM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span, 'deg')
-        study.GetCondition("RotCon").SetValue(u"InitialRotationAngle",  (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span) 
+        print('[inner_rotor_motor.py] [PMSM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,     + deg_pole_span)
+        print('[inner_rotor_motor.py] [PMSM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span, 'deg')
+        study.GetCondition("RotCon").SetValue(u"InitialRotationAngle",    (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span) 
 
 
         study.CreateCondition("Torque", "TorCon") # study.GetCondition(u"TorCon").SetXYZPoint(u"", 0, 0, 0) # megbox warning
@@ -859,7 +888,7 @@ class variant_machine_as_objects(object):
         study.GetMaterial(u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
         available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220] # according to JMAG
         magnet_temperature = min(available_temperature_list, key=lambda x:abs(x-self.template.spec_input_dict['Temperature']))        
-        print('magnet_temperature is', magnet_temperature, 'deg C.')
+        print('[inner_rotor_motor.py] magnet_temperature is', magnet_temperature, 'deg C.')
         study.GetMaterial(u"Magnet").SetValue(u"Temperature", magnet_temperature) # 80 deg TEMPERATURE (There is no 75 deg C option)
         study.GetMaterial(u"Magnet").SetValue(u"Poles", self.template.d['OP']['DriveW_poles'])
 
@@ -1064,13 +1093,13 @@ class variant_machine_as_objects(object):
 
                 # Check if it is a distributed windg???
                 if wily.distributed_or_concentrated == False:
-                    print('Concentrated winding!')
+                    print('[inner_rotor_motor.py] Concentrated winding!')
                     UVW    = wily.layer_Y_phases[index_leftlayer]
                     UpDown = wily.layer_Y_signs[index_leftlayer]
                 else:
                     # print('Distributed winding.')
                     if wily.layer_Y_phases[index_leftlayer] != UVW:
-                        print('[Warn] Potential bug in your winding layout detected.')
+                        print('[inner_rotor_motor.py] [Warning] Potential bug in your winding layout detected.')
                         raise Exception('Bug in winding layout detected.')
                     # 右层导体的电流方向是正，那么与其串联的一个coil_pitch之处的左层导体就是负！不需要再检查l_leftlayer2了~
                     if UpDown == '+': 
@@ -1111,7 +1140,8 @@ class variant_machine_as_objects(object):
         template_tuple_list = get_tuple_list(self.template)
         if toString==False:
             print('- Bearingless PMSM Individual #%s\n\t' % (self.name), end=' ')
-            print(', \n\t'.join("%s = %s" % item for item in tuple_list))
+            print(', \n\t'.join("%s = %s" % item for item in variant_tuple_list))
+            print(', \n\t'.join("%s = %s" % item for item in template_tuple_list))
             return ''
         else:
             return '\n- Bearingless PMSM Individual #%s\n\t' % (self.name) \
@@ -1177,7 +1207,8 @@ class variant_machine_as_objects(object):
                 app.GetDataManager().CreateGraphModel(ref1)
                 app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
         else:
-
+            ''' This is a special debugging feature that allows to recover FEA results (swarm_data.txt) from JMAG Deisnger's csv results.
+            '''
             THE_mm2_magnet_area = self.spmsm_variant.rotorMagnet.draw(None, bool_re_evaluate=True)
             THE_mm2_slot_area = self.spmsm_variant.coils.draw(None, bool_re_evaluate=True)
 
@@ -1190,20 +1221,71 @@ class variant_machine_as_objects(object):
             spmsm_variant.BeariW_CurrentAmp = spmsm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
 
             slot_area_utilizing_ratio = (spmsm_variant.DriveW_CurrentAmp + spmsm_variant.BeariW_CurrentAmp) / spmsm_variant.CurrentAmp_per_phase
-            print('---Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio)
+            print('[inner_rotor_motor.py]---Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio)
 
-            print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
-            print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
-            print('---spmsm_variant.DriveW_CurrentAmp =', spmsm_variant.DriveW_CurrentAmp)
-            print('---spmsm_variant.BeariW_CurrentAmp =', spmsm_variant.BeariW_CurrentAmp)
-            print('---TORQUE_CURRENT_RATIO:', spmsm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'])
-            print('---SUSPENSION_CURRENT_RATIO:', spmsm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
+            print('[inner_rotor_motor.py]---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
+            print('[inner_rotor_motor.py]---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
+            print('[inner_rotor_motor.py]---spmsm_variant.DriveW_CurrentAmp =', spmsm_variant.DriveW_CurrentAmp)
+            print('[inner_rotor_motor.py]---spmsm_variant.BeariW_CurrentAmp =', spmsm_variant.BeariW_CurrentAmp)
+            print('[inner_rotor_motor.py]---TORQUE_CURRENT_RATIO:', spmsm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'])
+            print('[inner_rotor_motor.py]---SUSPENSION_CURRENT_RATIO:', spmsm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
+
+    ''' Create FEMM Project
+    '''
+    def build_femm_project(self, project_meta_data=None):
+        if project_meta_data is None:
+            # this object is reloaded, so retrieve saved meta data
+            project_meta_data = self.project_meta_data
+        else:
+            # save for reload this object from json
+            self.project_meta_data = project_meta_data
+        expected_project_file = project_meta_data["expected_project_file"]
+        study_name            = project_meta_data["study_name"]
+        dir_csv_output_folder = project_meta_data["dir_csv_output_folder"]
+        output_dir            = project_meta_data["output_dir"]
+
+        # use alias
+        spmsm_variant = self
+
+        # Leave the solving task to FEMM
+
+        # def draw_jmag_bpmsm():
+        import JMAG
+        toolJd = JMAG.JMAG(self.template.fea_config_dict, self.template.spec_input_dict)
+
+        toolJd.open(expected_project_file)
+        DRAW_SUCCESS = spmsm_variant.draw_spmsm(toolJd)
+        if DRAW_SUCCESS != 1:
+            raise Exception('Drawer failed.')
+
+        app = toolJd.app
+
+        # FEMM
+        if app.NumModels()>=1:
+            model = app.GetModel(spmsm_variant.name)
+        else:
+            logger = logging.getLogger(__name__)
+            logger.error('there is no model yet for %s'%(spmsm_variant.name))
+            raise Exception('why is there no model yet? %s'%(spmsm_variant.name))
+
+        spmsm_variant.pre_process(app, model)
+        study = spmsm_variant.add_magnetic_transient_study(app, model, dir_csv_output_folder, study_name) # Change here and there 
+        self.mesh_study(spmsm_variant, app, model, study, output_dir=output_dir)
+        # raise KeyboardInterrupt
+        self.run_study(spmsm_variant, app, study, self.template.fea_config_dict, clock_time())
+
+        # # export Voltage if field data exists.
+        # if self.template.fea_config_dict['delete_results_after_calculation'] == False:
+        #     # Export Circuit Voltage
+        #     ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
+        #     app.GetDataManager().CreateGraphModel(ref1)
+        #     app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
 
     @classmethod
     def run_study(cls, im_variant, app, study, fea_config_dict, toc):
         logger = logging.getLogger(__name__)
         if fea_config_dict['designer.JMAG_Scheduler'] == False:
-            print('Run jam.exe...')
+            print('[inner_rotor_motor.py] Run jam.exe...')
             # if run_list[1] == True:
             try:
                 study.RunAllCases()

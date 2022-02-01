@@ -1,39 +1,4 @@
 {
-    "#03 JMAG Non-Bearingless Motor Evaluation Setting": {
-
-        "designer.max_nonlinear_iteration": 50,
-        "designer.meshSize_Magnet": 2,
-
-        "which_filter": "VariableSleeveLength",
-
-        "local_sensitivity_analysis":false,
-        "local_sensitivity_analysis_number_of_variants": 20,
-
-        "bool_post_processing":false,
-        "flag_optimization":false, 
-        "bool_re_evaluate":false,
-        "bool_re_evaluate_wo_csv":false,
-        "delete_results_after_calculation": false, 
-
-        "designer.Show": true,
-        "designer.MultipleCPUs":false,
-        "designer.OnlyTableResults":false, 
-        "designer.Restart":false, 
-        "designer.JMAG_Scheduler":false, 
-
-        "designer.number_of_steps_1stTSS":24, 
-        "designer.number_of_steps_2ndTSS":32, 
-        "designer.StepPerCycle_3rdTSS":64, 
-        "designer.number_cycles_in_1stTSS":3, 
-        "designer.number_cycles_in_2ndTSS":0.5, 
-        "designer.number_cycles_in_3rdTSS":0, 
-        "designer.number_cycles_prolonged":0, 
-        "designer.TranRef-StepPerCycle":64, 
-
-        "femm.Coarse_Mesh": false,
-        "femm.deg_per_step": null
-    },
-
     "#01 JMAG IM Evaluation Setting": {
 
         "TORQUE_CURRENT_RATIO" : 0.975,
@@ -461,6 +426,61 @@
         "designer.number_cycles_in_3rdTSS":0, 
         "designer.number_cycles_prolonged":0, 
         "designer.TranRef-StepPerCycle":64, 
+
+        "femm.Coarse_Mesh": false,
+        "femm.deg_per_step": null
+    },
+
+
+
+    "#03 JMAG Non-Bearingless Motor Evaluation Setting": {
+
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
+
+        "which_filter": "VariableSleeveLength",
+
+        "local_sensitivity_analysis":false,
+        "local_sensitivity_analysis_number_of_variants": 20,
+
+        "bool_post_processing":false,
+        "flag_optimization":false, 
+        "bool_re_evaluate":false,
+        "bool_re_evaluate_wo_csv":false,
+        "delete_results_after_calculation": false, 
+
+        "designer.Show": true,
+        "designer.MultipleCPUs":false,
+        "designer.OnlyTableResults":false, 
+        "designer.Restart":false, 
+        "designer.JMAG_Scheduler":false, 
+
+        "designer.number_of_steps_1stTSS":24, 
+        "designer.number_of_steps_2ndTSS":32, 
+        "designer.StepPerCycle_3rdTSS":64, 
+        "designer.number_cycles_in_1stTSS":3, 
+        "designer.number_cycles_in_2ndTSS":0.5, 
+        "designer.number_cycles_in_3rdTSS":0, 
+        "designer.number_cycles_prolonged":0, 
+        "designer.TranRef-StepPerCycle":64, 
+
+        "femm.Coarse_Mesh": false,
+        "femm.deg_per_step": null
+    },
+
+    "#04 FEMM PMSM Evaluation Setting": {
+
+        "TORQUE_CURRENT_RATIO" : 0.95,
+        "SUSPENSION_CURRENT_RATIO" : 0.05,
+
+        "which_filter": "VariableSleeveLength",
+
+        "local_sensitivity_analysis":false,
+        "local_sensitivity_analysis_number_of_variants": 20,
+
+        "bool_post_processing":false,
+        "flag_optimization":false, 
+        "delete_results_after_calculation": false, 
 
         "femm.Coarse_Mesh": false,
         "femm.deg_per_step": null

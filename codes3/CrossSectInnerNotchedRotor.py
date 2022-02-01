@@ -269,13 +269,13 @@ class CrossSectInnerNotchedMagnet(object):
             Rout = r_P4+d_pm
             Rin  = r_P4
             self.mm2_magnet_area = alpha_rm/alpha_rp  *  np.pi*(Rout**2 - Rin**2) # magnet area for all the poles
-            print('Magnet area in total is %g mm^2'%(self.mm2_magnet_area))
+            print('[CrossSectInnerNotchedRotor.py] Magnet area in total is %g mm^2'%(self.mm2_magnet_area))
             if bool_re_evaluate:
                 return self.mm2_magnet_area
 
             # rotor inter-pole notch
             if self.notched_rotor.deg_alpha_rm >= 180/p*0.9800:
-                print('FULL POLE PITCH MAGNET IS USED.')
+                print('[CrossSectInnerNotchedRotor.py] FULL POLE PITCH MAGNET IS USED.')
                 list_segments += drawer.drawLine(P3_extra, P4)
                 list_segments += drawer.drawArc([0,0], P5, P4)
                 list_segments += drawer.drawLine(P5, P6_extra)

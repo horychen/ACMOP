@@ -3,7 +3,7 @@ import pygmo as pg
 import utility_moo
 import json, os
 def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2SwarmData=None, bool_post_processing=False):
-    print('-'*40, '[main_utility.py] load_settings()')
+    # print('-'*40, '[main_utility.py] load_settings()')
     __file__dirname_as_in_python39 = os.path.dirname(os.path.abspath(__file__))
     # print(__file__dirname_as_in_python39)
 
@@ -12,19 +12,19 @@ def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2Sw
     with open((__file__dirname_as_in_python39)+'/machine_simulation.json', 'r') as f:
         raw_fea_config_dicts = json.load(f)
 
-    def decode_raw_specs(raw_specs, select_spec=None):
-        for key, val in raw_specs.items():
-            print('\n', key)
-            for ke, va in val.items():
-                print('\t', ke)
-                for k, v in va.items():
-                    print('\t\t', k + ':', v)
+    # def decode_raw_specs(raw_specs, select_spec=None):
+    #     for key, val in raw_specs.items():
+    #         print('\n', key)
+    #         for ke, va in val.items():
+    #             print('\t', ke)
+    #             for k, v in va.items():
+    #                 print('\t\t', k + ':', v)
     # decode_raw_specs(raw_specs, select_spec)
-    def decode_raw_fea_configs(raw_fea_config_dicts):
-        for key, val in raw_fea_config_dicts.items():
-            print('\n', key)
-            for ke, va in val.items():
-                print('\t', ke+':', va)
+    # def decode_raw_fea_configs(raw_fea_config_dicts):
+    #     for key, val in raw_fea_config_dicts.items():
+    #         print('\n', key)
+    #         for ke, va in val.items():
+    #             print('\t', ke+':', va)
     # decode_raw_fea_configs(raw_fea_config_dicts)
 
     spec_input_dict = raw_specs[select_spec]['Inputs']
@@ -45,7 +45,7 @@ def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2Sw
     # create output folder only when not post-processing? No, sometimes in post-processing we run FEA simulation.
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    print('[main_utility.py]', output_dir)
+    print('[main_utility.py] output_dir:', output_dir)
     with open(output_dir+'acmop-settings.txt', 'w') as f:
         f.write(select_spec + ' | ' + select_fea_config_dict)
     # print(spec_input_dict)

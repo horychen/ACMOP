@@ -46,7 +46,7 @@ def where_am_i_v2(fea_config_dict, bool_post_processing=False):
     # dir_femm_files = dir_parent + 'femm_files/'
     pc_name = get_pc_name()
     os.chdir(dir_codes)
-    print('[INFO] cd to:', dir_codes)
+    print('[where_am_i.py] CD to:', dir_codes)
 
     # print(dir_parent, dir_codes, pc_name, sep='\n'); quit()
     # fea_config_dict['dir.interpreter']       = dir_interpreter 

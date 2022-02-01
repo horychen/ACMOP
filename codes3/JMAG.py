@@ -73,7 +73,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             self.app = app # means that the JMAG Designer is turned ON now.
 
             def add_steel(self):
-                print('[First run on %s detected]'%(self.fea_config_dict['pc_name']), self.spec_input_dict['Steel'], 'is added to jmag material library.')
+                print('[JMAG.py] [First run on %s detected]'%(self.fea_config_dict['pc_name']), self.spec_input_dict['Steel'], 'is added to jmag material library.')
                 import population
                 if 'M15' in self.spec_input_dict['Steel']:
                     population.add_M1xSteel(self.app, self.fea_config_dict['dir.parent'], steel_name="M-15 Steel")
@@ -92,7 +92,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 with open(fname, 'r') as f:
                     flag_already_there = False
                     for line in f.readlines():
-                        print(self.fea_config_dict['pc_name'], self.spec_input_dict['Steel'])
+                        print('[JMAG.py]', self.fea_config_dict['pc_name'], self.spec_input_dict['Steel'])
                         if self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['Steel'] in line:
                             flag_already_there = True
                             break
@@ -101,9 +101,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         else:
             app = self.app
 
-        print(expected_project_file_path)
+        print('[JMAG.py] expected_project_file_path:', expected_project_file_path)
         if os.path.exists(expected_project_file_path):
-            print('JMAG project exists already. I learned my lessions. I will NOT delete it but create a new one with a different name instead.')
+            print('[JMAG.py] JMAG project exists already. I learned my lessions. I will NOT delete it but create a new one with a different name instead.')
             # os.remove(expected_project_file_path)
             attempts = 2
             temp_path = expected_project_file_path[:-len('.jproj')] + 'attempts%d.jproj'%(attempts)
@@ -415,10 +415,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
     def run_study(self, im_variant, app, study, toc):
         logger = logging.getLogger(__name__)
         if self.fea_config_dict['JMAG_Scheduler'] == False:
-            print('Run jam.exe...')
+            print('[JMAG.py] Run jam.exe...')
             # if run_list[1] == True:
             study.RunAllCases()
-            msg = 'Time spent on %s is %g s.'%(study.GetName() , clock_time() - toc)
+            msg = '[JMAG.py] Time spent on %s is %g s.'%(study.GetName() , clock_time() - toc)
             logger.debug(msg)
             print(msg)
         else:

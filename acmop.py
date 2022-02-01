@@ -1,3 +1,4 @@
+# Install Anaconda3-2021.05-Windows-x86_64 Python 3.8.8 for PYGMO to work
 def main(bool_post_processing=True):
     # Vernier Machine
     # mop = AC_Machine_Optiomization_Wrapper(
@@ -46,14 +47,14 @@ def main(bool_post_processing=True):
     #         select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
     #         select_spec            = 'PMSM Q12p1y5 A',
     #         project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p1y5_restart_from_optimal_and_reevaluate_wo_csv/',
-    #         bool_show_jmag         = True
+    #         bool_show_GUI         = True
     #     )
     # mop = AC_Machine_Optiomization_Wrapper(
     #         select_fea_config_dict = '#0211 JMAG PMSM Q12p4ps5 Sub-hamonics',
     #         select_spec            = 'PMSM Q12p4y1 A',
     #         # project_loc            = fr'{os.path.dirname(__file__)}/_default/',
     #         project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/',
-    #         bool_show_jmag         = True
+    #         bool_show_GUI         = True
     #     )
 
 
@@ -75,10 +76,10 @@ def main(bool_post_processing=True):
             # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
 
 
-import os, sys; sys.path.insert(0, os.path.dirname(__file__)+'/codes3/')
+import os, sys; sys.path.insert(0, os.path.dirname(__file__)+'/codes3/'); # print('Python version:', sys.version_info[:])
 import main_utility
 # import winding_layout, PyX_Utility, math # part_winding
-import acm_designer, bearingless_spmsm_design, vernier_motor_design # part_initialDesign
+import acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design # part_initialDesign
 
 from dataclasses import dataclass
 @dataclass
@@ -93,7 +94,7 @@ class AC_Machine_Optiomization_Wrapper(object):
     project_loc: str = None
     path2SwarmData: str = None
     # D. this is up to you
-    bool_show_jmag: bool = False
+    bool_show_GUI: bool = False
 
     ''' Derived
     '''
@@ -112,15 +113,15 @@ class AC_Machine_Optiomization_Wrapper(object):
                 main_utility.load_settings(self.select_spec, self.select_fea_config_dict, 
                                             project_loc=self.project_loc, 
                                             path2SwarmData=self.path2SwarmData)
-        self.fea_config_dict['designer.Show'] = self.bool_show_jmag
+        self.fea_config_dict['designer.Show'] = self.bool_show_GUI
         if self.path2SwarmData is None:
             self.path2SwarmData = self.project_loc + self.select_spec.replace(' ', '_') + '/'
         if self.project_loc is None:
             self.project_loc = os.path.abspath(os.path.join(self.path2SwarmData, '..',))
 
-        print(self.project_loc)
-        print(self.path2SwarmData)
-        print(self.output_dir)
+        print('[acmop.py] project_loc   :', self.project_loc)
+        print('[acmop.py] path2SwarmData:', self.path2SwarmData)
+        print('[acmop.py] output_dir    :', self.output_dir)
 
         r""" <ACMOP parent dir> = D:/DrH/acmop/
              <Data folder name> = <ACMOP parent dir>/_default/, /_WenboVShapeVernier/, or /_PEMD_2020_swarm_data_collected/_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/
@@ -243,12 +244,12 @@ class AC_Machine_Optiomization_Wrapper(object):
             normalized_force_error_magnitude, \
             force_error_angle = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
 
-        print('[part_evaluation]:', cost_function, f1, f2, f3, FRW, \
+        print('[acmop.py] part_evaluation:', cost_function, f1, f2, f3, FRW, \
         normalized_torque_ripple, \
         normalized_force_error_magnitude, \
         force_error_angle)
 
-        print('Check several things: 1. the winding initial excitation angle; 2. the rotor d-axis initial position should be orthoganal to winding excitation field.')
+        print('[acmop.py] Check several things: 1. the winding initial excitation angle; 2. the rotor d-axis initial position should be orthoganal to winding excitation field.')
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[4] Optimization Part' Multi-Objective Optimization
@@ -493,11 +494,13 @@ class AC_Machine_Optiomization_Wrapper(object):
         # Recover a design from its jsonpickle-object file
         import utility_json
         try:
-            motor_design_variant = utility_json.from_json_recursively(fname, load_here=mop.ad.output_dir+'jsonpickle/')
+            motor_design_variant = utility_json.from_json_recursively(fname, load_here=self.ad.output_dir+'jsonpickle/')
+            motor_design_variant.reproduce_wily()
             motor_design_variant.build_jmag_project(motor_design_variant.project_meta_data)
         except FileNotFoundError as e:
             print(e)
             print("你有没有搞错啊？json文件找不到啊，忘记把bool_post_processing改回来了？")
+        return motor_design_variant
 
     def part_post_optimization_analysis(self, project_name):
         # Status report: Generation, individuals, geometry as input, fea tools, performance as output (based on JSON files)

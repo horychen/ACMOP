@@ -185,7 +185,7 @@ class CrossSectInnerRotorStatorWinding(object):
                (r_si+d_sp+d_st)*-sin(alpha_slot_span*0.5) *1.00 ]
 
         self.mm2_slot_area = 2 * get_area_polygon(P4, P5, P6, POpen)
-        print('Slot area is %g mm^2'%(self.mm2_slot_area))
+        print('[CrossSectStator.py] Stator slot area is %g mm^2'%(self.mm2_slot_area))
         if bool_re_evaluate:
             return self.mm2_slot_area
 
