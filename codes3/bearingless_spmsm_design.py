@@ -29,8 +29,10 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         SD = self.SD      # Specification Dictionary
         childGP = OrderedDict({
             # SPMSM Peculiar
-            "deg_alpha_rm"      : acmop_parameter("free",      "magnet_pole_span_angle",        None, [None, None], lambda GP,SD:None),
-            "mm_d_rp"           : acmop_parameter("free",      "inter_polar_iron_thickness",    None, [None, None], lambda GP,SD:None),
+            "mm_d_pm"           : acmop_parameter("free",     "magnet_depth",                  None, [None, None], lambda GP,SD:None),
+            "mm_d_ri"           : acmop_parameter("free",     "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SD:None),
+            "deg_alpha_rm"      : acmop_parameter("free",     "magnet_pole_span_angle",        None, [None, None], lambda GP,SD:None),
+            "mm_d_rp"           : acmop_parameter("free",     "inter_polar_iron_thickness",    None, [None, None], lambda GP,SD:None),
             "deg_alpha_rs"      : acmop_parameter("free" if SD['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None], lambda GP,SD:None),
             "mm_d_rs"           : acmop_parameter("free" if SD['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None], lambda GP,SD:None),
         })

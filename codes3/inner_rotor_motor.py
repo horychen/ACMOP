@@ -72,8 +72,6 @@ class template_machine_as_numbers(object):
             "mm_d_fixed_air_gap": acmop_parameter("fixed",    "mechanical_air_gap_length",     None, [None, None], lambda GP,SD:None),
             "mm_d_sleeve"       : acmop_parameter("fixed",    "sleeve_length",                 None, [None, None], lambda GP,SD:None),
             "split_ratio"       : acmop_parameter("free",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SD:None),
-            "mm_d_pm"           : acmop_parameter("free",     "magnet_depth",                  None, [None, None], lambda GP,SD:None),
-            "mm_d_ri"           : acmop_parameter("free",     "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SD:None),
             "mm_r_or"           : acmop_parameter("derived",  "outer_rotor_radius",            None, [None, None], lambda GP,SD:derive_mm_r_or(GP,SD)),
             "mm_r_ri"           : acmop_parameter("derived",  "inner_rotor_radius",            None, [None, None], lambda GP,SD:derive_mm_r_ri(GP,SD)),
         })
@@ -88,8 +86,11 @@ class template_machine_as_numbers(object):
             self.d['GP']['mm_d_sleeve'].type = "fixed"
         elif 'VariableSleeveLength' in self.d['which_filter']:
             self.d['GP']['mm_d_sleeve'].type = "free"
+        elif 'VariableStatorSlotDepth_VariableStatorYokeDepth' in self.d['which_filter']:
+            # IM
+            self.d['GP']['mm_d_fixed_air_gap'].type = "free"
         else:
-            raise Exception('Not defined', self.d['which_filter'])
+            raise Exception(f"Not defined: {self.d['which_filter']}")
 
         # Get Analytical Design
         # self.ModifiedBianchi2006(fea_config_dict, SD)

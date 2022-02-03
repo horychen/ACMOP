@@ -629,7 +629,7 @@ def build_str_results(axeses, acm_variant, project_name, tran_study_name, dir_cs
     # NEW CODES for rated performance
     ################################################################
     # caculate the fitness
-    print('-'*40)
+    print('[utility.py]', '-'*40)
     print('[utility.py] Calculate the fitness for', acm_variant.name)
 
     # LOSS

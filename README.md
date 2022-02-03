@@ -2,7 +2,7 @@
 
 > Alternating Current Machine Optimization Project
 
-## Requirements:
+## Requirements (Obsolete):
 
 - JMAG Designer 17.1.05i
 > Higher version might not work as the invoking method names might be changed.
@@ -17,6 +17,14 @@
 - pyx, pyfemm, streamlit, jsonpickle and others (if any) can be installed via pip
 
 - texlive, or other latex compiler (if you want pdf report for motor design)
+
+## Installation:
+
+- 1. Get [Anaconda3-2021.05-Windows-x86_64.exe 477.2M 2021-05-13 22:08:48](https://repo.anaconda.com/archive/)
+
+- 2. (OPTIONAL) Create a virtual environment by `conda create -n your-env-name python=3.8.8 pygmo`, and then activate your virtual env by `conda activate your-env-name`.
+
+- 3. Install the rest dependencies from PyPI: `pip install pyx, pyfemm, jsonpickle, recordtype, pint`
 
 ## Features
 - Restartable. Upon interrupts, this program is able to re-start from the file "swarm_data.txt" of the current run (or even from a different run).

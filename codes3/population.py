@@ -24,6 +24,8 @@ import winding_layout
 EPS = 1e-2 # unit: mm
 bool_add_part_to_set_by_id = True # since ismb 2020, selecting by part position will somehow accidentally select stator core and cause problems.
 
+JMAG_CIRCUIT_Y_POSITION_BIAS_FOR_CURRENT_SOURCE = 0 # don't change this, change where 'X = 40;'
+
 class swarm(object):
 
     def __init__(self, fea_config_dict, de_config_dict=None):
@@ -3204,6 +3206,9 @@ class bearingless_induction_motor_design(object):
                     new_spec_geometry_dict,
                     im.fea_config_dict, 
                     "PS-variant" + str(number_current_generation) + '-' + str(individual_index))
+
+        # 2022-02-03
+        self.template = im
 
         self.number_current_generation = number_current_generation
         self.individual_index = individual_index
