@@ -9,10 +9,10 @@ from collections import OrderedDict, namedtuple
 
 # Abbreviations:
 # GP = Geometric Parameters
-# OP = Other Properties
-# SD = Specification Dictionary
+# EX = Other Properties
+# SI = Specification Dictionary
 
-def derive_mm_r_si(GP,SD):
+def derive_mm_r_si(GP,SI):
     # (option 1) depends on split_ratio and r_os
     GP       ['mm_r_si'].value = GP['mm_r_os'].value * GP['split_ratio'].value
     return GP['mm_r_si'].value
@@ -20,24 +20,24 @@ def derive_mm_r_si(GP,SD):
         # GP['mm_r_si'].value = GP['mm_r_os'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_sp'].value
         # return GP['mm_r_si'].value
 
-def derive_deg_alpha_so(GP,SD):
+def derive_deg_alpha_so(GP,SI):
     # this allows a square tooth tip, or else the tooth tip might be pointy
     GP       ['deg_alpha_so'].value = GP['deg_alpha_st'].value/2
     return GP['deg_alpha_so'].value
 
-def derive_mm_d_sp(GP,SD):
+def derive_mm_d_sp(GP,SI):
     GP       ['mm_d_sp'].value = 1.5*GP['mm_d_so'].value
     return GP['mm_d_sp'].value
 
-def derive_mm_d_sy(GP,SD):
+def derive_mm_d_sy(GP,SI):
     GP       ['mm_d_sy'].value = GP['mm_r_os'].value - GP['mm_r_si'].value - GP['mm_d_st'].value - GP['mm_d_sp'].value
     return GP['mm_d_sy'].value
 
-def derive_mm_r_or(GP,SD):
+def derive_mm_r_or(GP,SI):
     GP       ['mm_r_or'].value = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_fixed_air_gap'].value
     return GP['mm_r_or'].value
 
-def derive_mm_r_ri(GP,SD):
+def derive_mm_r_ri(GP,SI):
     GP       ['mm_r_ri'].value = GP['mm_r_or'].value - GP['mm_d_pm'].value - GP['mm_d_ri'].value
     if GP    ['mm_r_ri'].value<=0:
         print()
@@ -54,32 +54,34 @@ class template_machine_as_numbers(object):
         # 仿真输入
         self.fea_config_dict = fea_config_dict
         self.spec_input_dict = spec_input_dict
-        self.SD = SD = spec_input_dict # short name
+        self.SI = SI = spec_input_dict # short name
 
         # 初始化搜索空间
         geometric_parameters = OrderedDict({
             # STATOR                          Type       Name                          Value  Bounds       Calc
-            "deg_alpha_st" : acmop_parameter("free",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SD:None),
-            "mm_d_so"      : acmop_parameter("free",    "stator_tooth_open_depth"    , None, [None, None], lambda GP,SD:None),
-            "mm_d_st"      : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SD:None),
-            "mm_r_os"      : acmop_parameter("free",    "outer_stator_radius"        , None, [None, None], lambda GP,SD:None),
-            "mm_w_st"      : acmop_parameter("free",    "stator_tooth_width"         , None, [None, None], lambda GP,SD:None),
-            "mm_r_si"      : acmop_parameter("derived", "inner_stator_radius"        , None, [None, None], lambda GP,SD:derive_mm_r_si     (GP,SD)),
-            "deg_alpha_so" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SD:derive_deg_alpha_so(GP,SD)),
-            "mm_d_sp"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SD:derive_mm_d_sp     (GP,SD)),
-            "mm_d_sy"      : acmop_parameter("derived", "stator_yoke_depth"          , None, [None, None], lambda GP,SD:derive_mm_d_sy     (GP,SD)),
+            "deg_alpha_st" : acmop_parameter("free",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
+            "mm_d_so"      : acmop_parameter("free",    "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
+            "mm_d_st"      : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:None),
+            "mm_r_os"      : acmop_parameter("free",    "outer_stator_radius"        , None, [None, None], lambda GP,SI:None),
+            "mm_w_st"      : acmop_parameter("free",    "stator_tooth_width"         , None, [None, None], lambda GP,SI:None),
+            "mm_r_si"      : acmop_parameter("derived", "inner_stator_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si     (GP,SI)),
+            "deg_alpha_so" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_so(GP,SI)),
+            "mm_d_sp"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_sp     (GP,SI)),
+            "mm_d_sy"      : acmop_parameter("derived", "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy     (GP,SI)),
             # ROTOR
-            "mm_d_fixed_air_gap": acmop_parameter("fixed",    "mechanical_air_gap_length",     None, [None, None], lambda GP,SD:None),
-            "mm_d_sleeve"       : acmop_parameter("fixed",    "sleeve_length",                 None, [None, None], lambda GP,SD:None),
-            "split_ratio"       : acmop_parameter("free",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SD:None),
-            "mm_r_or"           : acmop_parameter("derived",  "outer_rotor_radius",            None, [None, None], lambda GP,SD:derive_mm_r_or(GP,SD)),
-            "mm_r_ri"           : acmop_parameter("derived",  "inner_rotor_radius",            None, [None, None], lambda GP,SD:derive_mm_r_ri(GP,SD)),
+            "mm_d_fixed_air_gap": acmop_parameter("fixed",    "mechanical_air_gap_length",     None, [None, None], lambda GP,SI:None),
+            "mm_d_sleeve"       : acmop_parameter("fixed",    "sleeve_length",                 None, [None, None], lambda GP,SI:None),
+            "split_ratio"       : acmop_parameter("free",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SI:None),
+            "mm_r_or"           : acmop_parameter("derived",  "outer_rotor_radius",            None, [None, None], lambda GP,SI:derive_mm_r_or(GP,SI)),
+            "mm_r_ri"           : acmop_parameter("derived",  "inner_rotor_radius",            None, [None, None], lambda GP,SI:derive_mm_r_ri(GP,SI)),
         })
         # all in one place
         self.d = {
             "which_filter": fea_config_dict['which_filter'],
             "GP": geometric_parameters,
-            "OP": OrderedDict()
+            "EX": OrderedDict(), # "Other Properties" is now renamed to "EXcitations"
+            "x_denorm_dict": OrderedDict(),
+            "bounds_denorm": [],
         }
 
         if 'FixedSleeveLength' in self.d['which_filter']:
@@ -93,7 +95,7 @@ class template_machine_as_numbers(object):
             raise Exception(f"Not defined: {self.d['which_filter']}")
 
         # Get Analytical Design
-        # self.ModifiedBianchi2006(fea_config_dict, SD)
+        # self.ModifiedBianchi2006(fea_config_dict, SI)
 
 
         # debug
@@ -119,33 +121,33 @@ class template_machine_as_numbers(object):
                 self.bounds_denorm.append(val)
         print(f'[inner_rotor_motor.py] template BOUNDS_denorm in R^{len(self.bounds_denorm)}:', self.bounds_denorm)
         return self.bounds_denorm
-    def get_other_properties_after_geometric_parameters_are_initialized(self, GP, SD):
+    def get_other_properties_after_geometric_parameters_are_initialized(self, GP, SI):
 
         # Template's Other Properties (Shared by the swarm)
-        OP = self.d['OP']
+        EX = self.d['EX']
         if True:
             # WINDING Layout
-            OP['wily'] = wily = winding_layout.winding_layout_v2(SD['DPNV_or_SEPA'], SD['Qs'], SD['p'], SD['ps'], SD['coil_pitch_y'])
+            EX['wily'] = wily = winding_layout.winding_layout_v2(SI['DPNV_or_SEPA'], SI['Qs'], SI['p'], SI['ps'], SI['coil_pitch_y'])
             # STACK LENGTH
-            OP['mm_template_stack_length'] = pyrhonen_procedure_as_function.get_mm_template_stack_length(SD, GP['mm_r_or'].value*1e-3) # mm TODO:
-            OP['mm_mechanical_air_gap_length'] = SD['minimum_mechanical_air_gap_length_mm']
+            EX['mm_template_stack_length'] = pyrhonen_procedure_as_function.get_mm_template_stack_length(SI, GP['mm_r_or'].value*1e-3) # mm TODO:
+            EX['mm_mechanical_air_gap_length'] = SI['minimum_mechanical_air_gap_length_mm']
             # THERMAL Properties
-            OP['Js']                = SD['Js'] # Arms/mm^2 im_OP['Js'] 
-            OP['fill_factor']       = SD['space_factor_kCu'] # im_OP['fill_factor'] 
+            EX['Js']                = SI['Js'] # Arms/mm^2 im_OP['Js'] 
+            EX['fill_factor']       = SI['space_factor_kCu'] # im_OP['fill_factor'] 
             # MOTOR Winding Excitation Properties
-            OP['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SD, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_or'].value*2*1e-3) # TODO:
-            OP['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SD) # TODO:
-            OP['DriveW_Freq']       = SD['ExcitationFreqSimulated']
-            OP['DriveW_Rs']         = 1.0 # TODO: Must be greater than zero to let JMAG work
-            OP['DriveW_poles']      = SD['p']*2
-        # self.d.update( {"OP": OP} )
-        return OP
+            EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_or'].value*2*1e-3) # TODO:
+            EX['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SI) # TODO:
+            EX['DriveW_Freq']       = SI['ExcitationFreqSimulated']
+            EX['DriveW_Rs']         = 1.0 # TODO: Must be greater than zero to let JMAG work
+            EX['DriveW_poles']      = SI['p']*2
+        # self.d.update( {"EX": EX} )
+        return EX
 
     ''' 实用
     '''
     def get_rotor_volume(self, stack_length=None):
         if stack_length is None:
-            return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (self.d['OP']['mm_template_stack_length']*1e-3)
+            return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (self.d['EX']['mm_template_stack_length']*1e-3)
         else:
             return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (stack_length*1e-3)
     def get_rotor_weight(self, gravity=9.8, stack_length=None):
@@ -199,7 +201,7 @@ class template_machine_as_numbers(object):
         # print()
         for key, parameter in self.d['GP'].items():
             if parameter.type == 'derived':
-                parameter.value = parameter.calc(self.d['GP'], self.SD)
+                parameter.value = parameter.calc(self.d['GP'], self.SI)
                 # print(parameter)
                 if parameter.value<=0:
                     raise Exception('Error: Negative derived parameter', str(parameter))
@@ -229,7 +231,7 @@ class variant_machine_as_objects(object):
                 self.name = f"p{self.template.spec_input_dict['p']}ps{self.template.spec_input_dict['ps']}-Q{self.template.spec_input_dict['Qs']}y{self.template.spec_input_dict['coil_pitch_y']}-{counter:04d}-redo{counter_loop}"
         else:
             self.name = 'SPMSM_InitialDesign'
-        self.ID = 'Q%dp%ds%d'%(self.template.SD['Qs'], self.template.SD['p'],self.template.SD['no_segmented_magnets'])
+        self.ID = 'Q%dp%ds%d'%(self.template.SI['Qs'], self.template.SI['p'],self.template.SI['no_segmented_magnets'])
 
         #02 Geometry Data
         if x_denorm is None:
@@ -251,14 +253,14 @@ class variant_machine_as_objects(object):
         # quit()
 
         #03 Inherit properties
-        # self.template.d['OP']
+        # self.template.d['EX']
             # self.DriveW_CurrentAmp = None ########### will be assisned when drawing the coils
             # self.DriveW_poles      = spmsm_template.DriveW_poles
 
             # self.Js                = spmsm_template.Js 
             # self.fill_factor       = spmsm_template.fill_factor 
 
-            # self.template.d['OP']['mm_template_stack_length']      = spmsm_template.stack_length 
+            # self.template.d['EX']['mm_template_stack_length']      = spmsm_template.stack_length 
 
 
         # #04 Material Condutivity Properties
@@ -277,13 +279,13 @@ class variant_machine_as_objects(object):
 
     def reproduce_wily(self):
         ''' This method is only used for reproducing design from jsonpickle'''
-        self.template.d['OP']['wily'] = winding_layout.winding_layout_v2(self.template.SD['DPNV_or_SEPA'], self.template.SD['Qs'], self.template.SD['p'], self.template.SD['ps'], self.template.SD['coil_pitch_y'])
+        self.template.d['EX']['wily'] = winding_layout.winding_layout_v2(self.template.SI['DPNV_or_SEPA'], self.template.SI['Qs'], self.template.SI['p'], self.template.SI['ps'], self.template.SI['coil_pitch_y'])
 
     def update_mechanical_parameters(self, syn_freq=None):
-        OP = self.template.d['OP']
+        EX = self.template.d['EX']
         if syn_freq is None:
-            OP['the_speed'] = OP['DriveW_Freq']*60. / (0.5*OP['DriveW_poles']) # rpm
-            OP['Omega']     = OP['the_speed'] / 60. * 2*np.pi
+            EX['the_speed'] = EX['DriveW_Freq']*60. / (0.5*EX['DriveW_poles']) # rpm
+            EX['Omega']     = EX['the_speed'] / 60. * 2*np.pi
             # self.omega = None # This variable name is devil! you can't tell its electrical or mechanical! #+ self.DriveW_Freq * (1-self.the_slip) * 2*pi
         else:
             raise Exception('Not implemented.')
@@ -347,29 +349,29 @@ class variant_machine_as_objects(object):
             region4 = toolJd.prepareSection(list_regions)
 
             # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
-            OP = self.template.d['OP']
-            CurrentAmp_in_the_slot = self.coils.mm2_slot_area * OP['fill_factor'] * OP['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
-            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / OP['DriveW_zQ']
-            CurrentAmp_per_phase = CurrentAmp_per_conductor * OP['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+            EX = self.template.d['EX']
+            CurrentAmp_in_the_slot = self.coils.mm2_slot_area * EX['fill_factor'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
+            CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
                 # try:
-                #     CurrentAmp_per_phase = CurrentAmp_per_conductor * OP['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+                #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
                 # except AttributeError:
-                #     # print(OP['wily'])
-                #     CurrentAmp_per_phase = CurrentAmp_per_conductor * OP['wily']['number_parallel_branch']
+                #     # print(EX['wily'])
+                #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily']['number_parallel_branch']
                 #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'number_parallel_branch', implying that the object wily has become a dict after jsonpickle.")
                 #     # quit() 
 
             # Maybe there is a bug here... regarding the excitation for suspension winding...
             variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
             variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
-            OP['CurrentAmp_per_phase'] = CurrentAmp_per_phase
-            OP['DriveW_CurrentAmp'] = self.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
-            OP['BeariW_CurrentAmp'] = self.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+            EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
+            EX['DriveW_CurrentAmp'] = self.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+            EX['BeariW_CurrentAmp'] = self.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
 
             # self.spec_geometry_dict['DriveW_CurrentAmp'] = self.DriveW_CurrentAmp
 
-            slot_current_utilizing_ratio = (OP['DriveW_CurrentAmp'] + OP['BeariW_CurrentAmp']) / OP['CurrentAmp_per_phase']
-            print('[inner_rotor_motor.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio)
+            slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+            print('[inner_rotor_motor.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
 
             # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
             # print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
@@ -400,10 +402,10 @@ class variant_machine_as_objects(object):
         # sel = view.GetCurrentSelection()
         # sel.SelectPart(123)
         # sel.SetBlockUpdateView(False)
-        SD = self.template.SD
-        p = SD['p']
-        s = SD['no_segmented_magnets']
-        Q = SD['Qs']
+        SI = self.template.SI
+        p = SI['p']
+        s = SI['no_segmented_magnets']
+        Q = SI['Qs']
                                 #   轴 转子 永磁体  护套 定子 绕组
         if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
             msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
@@ -465,13 +467,13 @@ class variant_machine_as_objects(object):
         X = R*np.cos(THETA)
         Y = R*np.sin(THETA)
         countXL = 0
-        wily = self.template.d['OP']['wily']
+        wily = self.template.d['EX']['wily']
         # try:
         #     wily.layer_X_phases
         # except AttributeError:
         #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'layer_X_phases', implying that the object wily has become a dict after jsonpickle.")
-        #     WILY = namedtuple('WILY', self.template.d['OP']['wily'])
-        #     wily_as_obj =      WILY(**self.template.d['OP']['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
+        #     WILY = namedtuple('WILY', self.template.d['EX']['wily'])
+        #     wily_as_obj =      WILY(**self.template.d['EX']['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
         #     wily = wily_as_obj
 
         for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
@@ -564,19 +566,19 @@ class variant_machine_as_objects(object):
 
         # misc
         GP = self.template.d['GP']
-        OP = self.template.d['OP']
-        wily = OP['wily']
+        EX = self.template.d['EX']
+        wily = EX['wily']
         # try:
         #     wily.deg_winding_U_phase_phase_axis_angle
         # except AttributeError:
         #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'deg_winding_U_phase_phase_axis_angle', implying that the object wily has become a dict after jsonpickle.")
-        #     WILY = namedtuple('WILY', self.template.d['OP']['wily'])
-        #     wily_as_obj =      WILY(**self.template.d['OP']['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
+        #     WILY = namedtuple('WILY', self.template.d['EX']['wily'])
+        #     wily_as_obj =      WILY(**self.template.d['EX']['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
         #     wily = wily_as_obj
         
         study.GetStudyProperties().SetValue("ConversionType", 0)
         study.GetStudyProperties().SetValue("NonlinearMaxIteration", self.template.fea_config_dict['designer.max_nonlinear_iteration'])
-        study.GetStudyProperties().SetValue("ModelThickness", OP['mm_template_stack_length']) # [mm] Stack Length
+        study.GetStudyProperties().SetValue("ModelThickness", EX['mm_template_stack_length']) # [mm] Stack Length
 
         # Material
         self.add_material(study)
@@ -584,13 +586,13 @@ class variant_machine_as_objects(object):
         # Conditions - Motion
         study.CreateCondition("RotationMotion", "RotCon") # study.GetCondition(u"RotCon").SetXYZPoint(u"", 0, 0, 1) # megbox warning
         # print('the_speed:', self.the_speed)
-        study.GetCondition("RotCon").SetValue("AngularVelocity", int(OP['the_speed']))
+        study.GetCondition("RotCon").SetValue("AngularVelocity", int(EX['the_speed']))
         study.GetCondition("RotCon").ClearParts()
         study.GetCondition("RotCon").AddSet(model.GetSetList().GetSet("Motion_Region"), 0)
         # Implementation of id=0 control:
         #   After rotate the rotor by half the inter-pole notch span, The d-axis initial position is at pole pitch angle divided by 2.
         #   The U-phase current is sin(omega_syn*t) = 0 at t=0 and requires the d-axis to be at the winding phase axis (to obtain id=0 control)
-        deg_pole_span = 180/self.template.SD['p']
+        deg_pole_span = 180/self.template.SI['p']
         #                                                              inter-pole notch (0.5 for half)         rotate to x-axis    winding placing bias (half adjacent slot angle)      reverse north and south pole to make torque positive.
         print('[inner_rotor_motor.py] [PMSM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,     + deg_pole_span)
         print('[inner_rotor_motor.py] [PMSM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span, 'deg')
@@ -652,10 +654,10 @@ class variant_machine_as_objects(object):
                     refarray[0][0] = 0
                     refarray[0][1] =    1
                     refarray[0][2] =        50
-                    refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_Freq']
+                    refarray[1][0] = number_cycles_in_1stTSS/EX['DriveW_Freq']
                     refarray[1][1] =    number_of_steps_1stTSS
                     refarray[1][2] =        50
-                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_Freq']
+                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/EX['DriveW_Freq']
                     refarray[2][1] =    number_of_steps_2ndTSS # 最后的number_of_steps_2ndTSS（32）步，必须对应半个周期，从而和后面的铁耗计算相对应。
                     refarray[2][2] =        50
                 else:
@@ -663,13 +665,13 @@ class variant_machine_as_objects(object):
                     refarray[0][0] = 0
                     refarray[0][1] =    1
                     refarray[0][2] =        50
-                    refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_Freq']
+                    refarray[1][0] = number_cycles_in_1stTSS/EX['DriveW_Freq']
                     refarray[1][1] =    number_of_steps_1stTSS
                     refarray[1][2] =        50
-                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_Freq']
+                    refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/EX['DriveW_Freq']
                     refarray[2][1] =    number_of_steps_2ndTSS # 最后的number_of_steps_2ndTSS（32）步，必须对应半个周期，从而和后面的铁耗计算相对应。
                     refarray[2][2] =        50
-                    refarray[3][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS+number_cycles_in_3rdTSS)/OP['DriveW_Freq']
+                    refarray[3][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS+number_cycles_in_3rdTSS)/EX['DriveW_Freq']
                     refarray[3][1] =    number_of_steps_3rdTSS
                     refarray[3][2] =        50
             else:
@@ -677,16 +679,16 @@ class variant_machine_as_objects(object):
                 refarray[0][0] = 0
                 refarray[0][1] =    1
                 refarray[0][2] =        50
-                refarray[1][0] = number_cycles_in_1stTSS/OP['DriveW_Freq']
+                refarray[1][0] = number_cycles_in_1stTSS/EX['DriveW_Freq']
                 refarray[1][1] =    number_of_steps_1stTSS
                 refarray[1][2] =        50
-                refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/OP['DriveW_Freq']
+                refarray[2][0] = (number_cycles_in_1stTSS+number_cycles_in_2ndTSS)/EX['DriveW_Freq']
                 refarray[2][1] =    number_of_steps_2ndTSS # 最后的number_of_steps_2ndTSS（32）步，必须对应半个周期，从而和后面的铁耗计算相对应。
                 refarray[2][2] =        50
-                refarray[3][0] = refarray[2][0] + number_cycles_prolonged/OP['DriveW_Freq'] 
+                refarray[3][0] = refarray[2][0] + number_cycles_prolonged/EX['DriveW_Freq'] 
                 refarray[3][1] =    number_cycles_prolonged*self.template.fea_config_dict['designer.TranRef-StepPerCycle'] 
                 refarray[3][2] =        50
-                # refarray[4][0] = refarray[3][0] + 0.5/OP['DriveW_Freq'] # 最后来一个超密的半周期400步
+                # refarray[4][0] = refarray[3][0] + 0.5/EX['DriveW_Freq'] # 最后来一个超密的半周期400步
                 # refarray[4][1] =    400
                 # refarray[4][2] =        50
             number_of_total_steps = 1 + number_of_steps_1stTSS + number_of_steps_2ndTSS + number_of_steps_3rdTSS + number_cycles_prolonged*self.template.fea_config_dict['designer.TranRef-StepPerCycle'] # [Double Check] don't forget to modify here!
@@ -700,10 +702,10 @@ class variant_machine_as_objects(object):
         study.GetDesignTable().AddEquation("freq")
         study.GetDesignTable().AddEquation("speed")
         study.GetDesignTable().GetEquation("freq").SetType(0)
-        study.GetDesignTable().GetEquation("freq").SetExpression("%g"%((OP['DriveW_Freq'])))
+        study.GetDesignTable().GetEquation("freq").SetExpression("%g"%((EX['DriveW_Freq'])))
         study.GetDesignTable().GetEquation("freq").SetDescription("Excitation Frequency")
         study.GetDesignTable().GetEquation("speed").SetType(1)
-        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %d"%(60/(OP['DriveW_poles']/2)))
+        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %d"%(60/(EX['DriveW_poles']/2)))
         study.GetDesignTable().GetEquation("speed").SetDescription("mechanical speed of four pole")
 
         # speed, freq, slip
@@ -733,7 +735,7 @@ class variant_machine_as_objects(object):
         # Stator 
         if True:
             cond = study.CreateCondition("Ironloss", "IronLossConStator")
-            cond.SetValue("RevolutionSpeed", "freq*60/%d"%(0.5*OP['DriveW_poles']))
+            cond.SetValue("RevolutionSpeed", "freq*60/%d"%(0.5*EX['DriveW_poles']))
             cond.ClearParts()
             sel = cond.GetSelection()
             sel.SelectPartByPosition(self.template.d['GP']['mm_r_si'].value + EPS, 0 ,0)
@@ -891,13 +893,13 @@ class variant_machine_as_objects(object):
         magnet_temperature = min(available_temperature_list, key=lambda x:abs(x-self.template.spec_input_dict['Temperature']))        
         print('[inner_rotor_motor.py] magnet_temperature is', magnet_temperature, 'deg C.')
         study.GetMaterial(u"Magnet").SetValue(u"Temperature", magnet_temperature) # 80 deg TEMPERATURE (There is no 75 deg C option)
-        study.GetMaterial(u"Magnet").SetValue(u"Poles", self.template.d['OP']['DriveW_poles'])
+        study.GetMaterial(u"Magnet").SetValue(u"Poles", self.template.d['EX']['DriveW_poles'])
 
         study.GetMaterial(u"Magnet").SetDirectionXYZ(1, 0, 0)
         study.GetMaterial(u"Magnet").SetAxisXYZ(0, 0, 1)
         study.GetMaterial(u"Magnet").SetOriginXYZ(0, 0, 0)
         study.GetMaterial(u"Magnet").SetPattern(u"RadialCircular")
-        study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*self.template.SD['p']) ) # 半个极距
+        study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*self.template.SI['p']) ) # 半个极距
 
 
         # add_carbon_fiber_material(app)
@@ -970,33 +972,33 @@ class variant_machine_as_objects(object):
         # 这里电流幅值中的0.5因子源自DPNV导致的等于2的平行支路数。没有考虑到这一点，是否会对initial design的有效性产生影响？
         # 仔细看DPNV的接线，对于转矩逆变器，绕组的并联支路数为2，而对于悬浮逆变器，绕组的并联支路数为1。
 
-        OP = self.template.d['OP']
-        wily = OP['wily']
+        EX = self.template.d['EX']
+        wily = EX['wily']
 
         npb = wily.number_parallel_branch
         nwl = wily.number_winding_layer # number of windign layers 
         # if self.template.fea_config_dict['DPNV_separate_winding_implementation'] == True or self.template.spec_input_dict['DPNV_or_SEPA'] == False:
         if self.template.spec_input_dict['DPNV_or_SEPA'] == False:
             # either a separate winding or a DPNV winding implemented as a separate winding
-            ampD =  0.5 * (OP['DriveW_CurrentAmp']/npb + self.BeariW_CurrentAmp) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
-            ampB = -0.5 * (OP['DriveW_CurrentAmp']/npb - self.BeariW_CurrentAmp) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
+            ampD =  0.5 * (EX['DriveW_CurrentAmp']/npb + self.BeariW_CurrentAmp) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
+            ampB = -0.5 * (EX['DriveW_CurrentAmp']/npb - self.BeariW_CurrentAmp) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
             if bool_3PhaseCurrentSource != True:
                 raise Exception('Logic Error Detected.')
         else:
             # case: DPNV as an actual two layer winding
-            ampD = OP['DriveW_CurrentAmp']/npb
-            ampB = OP['BeariW_CurrentAmp']
+            ampD = EX['DriveW_CurrentAmp']/npb
+            ampB = EX['BeariW_CurrentAmp']
             if bool_3PhaseCurrentSource != False:
                 raise Exception('Logic Error Detected.')
 
-        circuit('GroupAC',  OP['DriveW_zQ']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
-            Rs=OP['DriveW_Rs'],ampD= ampD,
-                              ampB=-ampB, freq=self.template.d['OP']['DriveW_Freq'], phase=0,
+        circuit('GroupAC',  EX['DriveW_zQ']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
+            Rs=EX['DriveW_Rs'],ampD= ampD,
+                              ampB=-ampB, freq=self.template.d['EX']['DriveW_Freq'], phase=0,
                               CommutatingSequenceD=wily.CommutatingSequenceD,
                               CommutatingSequenceB=wily.CommutatingSequenceB)
-        circuit('GroupBD',  OP['BeariW_zQ']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
-            Rs=OP['BeariW_Rs'],ampD= ampD,
-                              ampB=+ampB, freq=self.template.d['OP']['BeariW_Freq'], phase=0,
+        circuit('GroupBD',  EX['BeariW_zQ']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
+            Rs=EX['BeariW_Rs'],ampD= ampD,
+                              ampB=+ampB, freq=self.template.d['EX']['BeariW_Freq'], phase=0,
                               CommutatingSequenceD=wily.CommutatingSequenceD,
                               CommutatingSequenceB=wily.CommutatingSequenceB,x=25) # CS4 corresponds to uauc (conflict with following codes but it does not matter.)
 
@@ -1046,7 +1048,7 @@ class variant_machine_as_objects(object):
             # Create FEM Coil Condition
             # here we map circuit component `Coil2A' to FEM Coil Condition 'phaseAuauc
             # here we map circuit component `Coil4A' to FEM Coil Condition 'phaseAubud
-            for suffix, poles in zip(['GroupAC', 'GroupBD'], [OP['DriveW_poles'], OP['BeariW_poles']]): # 仍然需要考虑poles，是因为为Coil设置Set那里的代码还没有更新。这里的2(self.DriveW_poles)和4(self.BeariW_poles)等价于leftlayer和rightlayer。
+            for suffix, poles in zip(['GroupAC', 'GroupBD'], [EX['DriveW_poles'], EX['BeariW_poles']]): # 仍然需要考虑poles，是因为为Coil设置Set那里的代码还没有更新。这里的2(self.DriveW_poles)和4(self.BeariW_poles)等价于leftlayer和rightlayer。
                 for UVW in ['U','V','W']:
                     study.CreateCondition("FEMCoil", 'phase'+UVW+suffix)
                     # link between FEM Coil Condition and Circuit FEM Coil
@@ -1076,7 +1078,7 @@ class variant_machine_as_objects(object):
                 subcondition.SetValue("Direction2D", dict_dir[UpDown])
 
                 # left layer
-                Q = self.template.SD['Qs']
+                Q = self.template.SI['Qs']
                 if coil_pitch > 0:
                     if countXL+coil_pitch <= Q:
                         count_leftlayer = countXL+coil_pitch
@@ -1214,8 +1216,8 @@ class variant_machine_as_objects(object):
             THE_mm2_slot_area = self.spmsm_variant.coils.draw(None, bool_re_evaluate=True)
 
             CurrentAmp_in_the_slot = THE_mm2_slot_area * spmsm_variant.fill_factor * spmsm_variant.Js*1e-6 * np.sqrt(2) #/2.2*2.8
-            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / spmsm_variant.template.d['OP']['DriveW_zQ']
-            CurrentAmp_per_phase = CurrentAmp_per_conductor * spmsm_variant.template.d['OP']['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / spmsm_variant.template.d['EX']['DriveW_zQ']
+            CurrentAmp_per_phase = CurrentAmp_per_conductor * spmsm_variant.template.d['EX']['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
             variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
             spmsm_variant.CurrentAmp_per_phase = CurrentAmp_per_phase
             spmsm_variant.DriveW_CurrentAmp = spmsm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 

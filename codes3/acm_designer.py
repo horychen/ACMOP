@@ -274,7 +274,7 @@ class swarm_data_container(object):
         self.l_original_stack_length                = [raw[11] for raw in self.rated_data] # new!
         self.l_original_rotor_weight                = [weight/rated*ori for weight, rated, ori in zip(self.l_rated_rotor_weight, self.l_rated_stack_length, self.l_original_stack_length)]
 
-        # TODO: change to OP['mec_power'] and OP['the_speed']
+        # TODO: change to EX['mec_power'] and EX['the_speed']
         required_torque = 50e3 / (30000/60*2*np.pi)         # TODO: should use rated stack length and torque average to compute this
         self.l_TRV = [required_torque/raw for raw in self.l_rated_rotor_volume]
         self.l_FRW = [F/W for W, F in zip(self.l_original_rotor_weight, self.l_ss_avg_force_magnitude)] # FRW
@@ -893,11 +893,11 @@ class acm_designer(object):
         spec_performance_dict['str_results'] = str_results
 
         GP = motor_design_variant.template.d['GP']
-        OP = motor_design_variant.template.d['OP']
+        EX = motor_design_variant.template.d['EX']
 
         # wily is not json serilizable, so is recordtype type object: acmop_parameters
-        wily = OP['wily']
-        OP['wily'] = {
+        wily = EX['wily']
+        EX['wily'] = {
             'layer_X_phases': wily.layer_X_phases,
             'layer_X_signs': wily.layer_X_signs,
             'coil_pitch_y': wily.coil_pitch_y,
@@ -931,11 +931,11 @@ class acm_designer(object):
         big_dict = dict()
         with open(self.output_dir + self.select_spec + '.json', 'a') as f:
             big_dict[self.select_spec+f'-gen{number_current_generation}-ind{individual_index}'] = {
-                'Inputs'       :         motor_design_variant.template.spec_input_dict,
+                'Spec inputs'  :         motor_design_variant.template.spec_input_dict,
                 'x_denorm_dict':         motor_design_variant.template.get_x_denorm_dict_from_geometric_parameters(GP),
-                'Geometric Parameters':  list_of_GP_as_dict,
-                'Other Properties':      OP,
-                'Performance' :          spec_performance_dict
+                'Geometric parameters':  list_of_GP_as_dict,
+                'Excitations'  :         EX,
+                'Performance'  :         spec_performance_dict
                 # 'Derived'     :            self.spec.spec_derive_dict,
                 # 'Geometry'    : motor_design_variant.spec_geometry_dict,
             }
@@ -948,7 +948,7 @@ class acm_designer(object):
 
         utility_json.to_json_recursively(motor_design_variant, motor_design_variant.name, save_here=self.output_dir+'jsonpickle/')
 
-        OP['wily'] = wily
+        EX['wily'] = wily
 
         # return motor_design_variant
 

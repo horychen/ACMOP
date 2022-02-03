@@ -25,48 +25,48 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
 
         # 初始化搜索空间
         GP = self.d['GP'] # Geometry Parameter
-        OP = self.d['OP'] # Other Property
-        SD = self.SD      # Specification Dictionary
+        EX = self.d['EX'] # EXcitations (was OP: Other Property)
+        SI = self.SI      # Specification Input dictionary (was SD)
         childGP = OrderedDict({
             # SPMSM Peculiar
-            "mm_d_pm"           : acmop_parameter("free",     "magnet_depth",                  None, [None, None], lambda GP,SD:None),
-            "mm_d_ri"           : acmop_parameter("free",     "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SD:None),
-            "deg_alpha_rm"      : acmop_parameter("free",     "magnet_pole_span_angle",        None, [None, None], lambda GP,SD:None),
-            "mm_d_rp"           : acmop_parameter("free",     "inter_polar_iron_thickness",    None, [None, None], lambda GP,SD:None),
-            "deg_alpha_rs"      : acmop_parameter("free" if SD['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None], lambda GP,SD:None),
-            "mm_d_rs"           : acmop_parameter("free" if SD['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None], lambda GP,SD:None),
+            "mm_d_pm"           : acmop_parameter("free",     "magnet_depth",                  None, [None, None], lambda GP,SI:None),
+            "mm_d_ri"           : acmop_parameter("free",     "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SI:None),
+            "deg_alpha_rm"      : acmop_parameter("free",     "magnet_pole_span_angle",        None, [None, None], lambda GP,SI:None),
+            "mm_d_rp"           : acmop_parameter("free",     "inter_polar_iron_thickness",    None, [None, None], lambda GP,SI:None),
+            "deg_alpha_rs"      : acmop_parameter("free" if SI['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None], lambda GP,SI:None),
+            "mm_d_rs"           : acmop_parameter("free" if SI['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None], lambda GP,SI:None),
         })
         GP.update(childGP)
 
         # Get Analytical Design
-        self.Bianchi2006(fea_config_dict, SD, GP, OP)
+        self.Bianchi2006(fea_config_dict, SI, GP, EX)
 
         # 定义搜索空间，determine bounds
-        original_template_neighbor_bounds = self.get_template_neighbor_bounds(GP, SD)        
+        original_template_neighbor_bounds = self.get_template_neighbor_bounds(GP, SI)        
         self.bounds_denorm = self.define_search_space(GP, original_template_neighbor_bounds)
 
         # Template's Other Properties (Shared by the swarm)
-        OP = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SD)
+        EX = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SI)
         # BEARING Winding Excitation Properties
         if True:
-            OP['BeariW_zQ']         = OP['DriveW_zQ']
-            OP['BeariW_CurrentAmp'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (OP['DriveW_CurrentAmp'] / fea_config_dict['TORQUE_CURRENT_RATIO'])
-            OP['BeariW_Freq']       = OP['DriveW_Freq']
-            OP['BeariW_Rs']         = OP['DriveW_Rs'] * OP['BeariW_zQ'] / OP['DriveW_zQ']
-            OP['BeariW_poles']      = SD['ps']*2
-            OP['slot_current_utilizing_ratio'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] + fea_config_dict['TORQUE_CURRENT_RATIO'] # will be less than 1 for separate winding
+            EX['BeariW_zQ']         = EX['DriveW_zQ']
+            EX['BeariW_CurrentAmp'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (EX['DriveW_CurrentAmp'] / fea_config_dict['TORQUE_CURRENT_RATIO'])
+            EX['BeariW_Freq']       = EX['DriveW_Freq']
+            EX['BeariW_Rs']         = EX['DriveW_Rs'] * EX['BeariW_zQ'] / EX['DriveW_zQ']
+            EX['BeariW_poles']      = SI['ps']*2
+            EX['slot_current_utilizing_ratio'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] + fea_config_dict['TORQUE_CURRENT_RATIO'] # will be less than 1 for separate winding
 
-    def Bianchi2006(self, fea_config_dict, SD, GP, OP):
+    def Bianchi2006(self, fea_config_dict, SI, GP, EX):
 
-        air_gap_flux_density_B = SD['guess_air_gap_flux_density_B']
+        air_gap_flux_density_B = SI['guess_air_gap_flux_density_B']
         # air_gap_flux_density_B = 0.9
 
-        stator_tooth_flux_density_B_ds = SD['guess_stator_tooth_flux_density_B_ds']
+        stator_tooth_flux_density_B_ds = SI['guess_stator_tooth_flux_density_B_ds']
         # stator_tooth_flux_density_B_ds = 1.5
 
-        stator_yoke_flux_density_Bys = SD['guess_stator_yoke_flux_density_Bys']
+        stator_yoke_flux_density_Bys = SI['guess_stator_yoke_flux_density_Bys']
 
-        if SD['p'] >= 2:
+        if SI['p'] >= 2:
             ROTOR_STATOR_YOKE_HEIGHT_RATIO = 0.75
             alpha_rm_over_alpha_rp = 1.0
             # stator_yoke_flux_density_Bys = 1.2
@@ -79,29 +79,29 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # ureg = pint.UnitRegistry()
         stator_outer_diameter_Dse = 0.225 #* ureg.meter
 
-        speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
+        speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
-        rotor_outer_radius_r_or = pyrhonen_procedure_as_function.eric_specify_tip_speed_get_radius(SD['tip_speed'], speed_rpm)
+        rotor_outer_radius_r_or = pyrhonen_procedure_as_function.eric_specify_tip_speed_get_radius(SI['tip_speed'], speed_rpm)
         rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
         sleeve_length = 3
-        stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SD['minimum_mechanical_air_gap_length_mm'])*1e-3 # m (sleeve 3 mm, air gap 0.75 mm)
+        stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SI['minimum_mechanical_air_gap_length_mm'])*1e-3 # m (sleeve 3 mm, air gap 0.75 mm)
         stator_inner_diameter_Dis = stator_inner_radius_r_is*2
         split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
 
-        stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*SD['p'])
+        stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*SI['p'])
         # print(stator_outer_diameter_Dse, stator_inner_diameter_Dis, stator_yoke_height_h_ys)
         stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
         stator_slot_height_h_ss = stator_tooth_height_h_ds
-        stator_tooth_width_b_ds = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* SD['Qs'])
+        stator_tooth_width_b_ds = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* SI['Qs'])
 
-        OP['stator_slot_area'] = stator_slot_area = np.pi/(4*SD['Qs']) * ((stator_outer_diameter_Dse - 2*stator_yoke_height_h_ys)**2 - stator_inner_diameter_Dis**2) - stator_tooth_width_b_ds * stator_tooth_height_h_ds
+        EX['stator_slot_area'] = stator_slot_area = np.pi/(4*SI['Qs']) * ((stator_outer_diameter_Dse - 2*stator_yoke_height_h_ys)**2 - stator_inner_diameter_Dis**2) - stator_tooth_width_b_ds * stator_tooth_height_h_ds
 
-        slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / SD['Qs']
+        slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / SI['Qs']
         kov = 1.8 # \in [1.6, 2.0]
-        OP['end_winding_length_Lew'] = end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (SD['coil_pitch_y'] - 1)
+        EX['end_winding_length_Lew'] = end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (SI['coil_pitch_y'] - 1)
 
-        Q = SD['Qs']
-        p = SD['p']
+        Q = SI['Qs']
+        p = SI['p']
         # STATOR
         GP['deg_alpha_st'].value         = 360/Q - 2 # deg
         GP['deg_alpha_so'].value         = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
@@ -114,7 +114,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
         # ROTOR
         GP['mm_d_sleeve'].value          = sleeve_length
-        GP['mm_d_fixed_air_gap'].value   = SD['minimum_mechanical_air_gap_length_mm']
+        GP['mm_d_fixed_air_gap'].value   = SI['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
         GP['mm_d_pm'].value              = 4  # mm
         GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is epirically specified
@@ -123,7 +123,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # SPMSM specific
         GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
         GP['mm_d_rp'].value              = 3  # mm
-        GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SD['no_segmented_magnets']
+        GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SI['no_segmented_magnets']
         GP['mm_d_rs'].value              = 0.20*GP['mm_d_rp'].value # d_pm > d_rp and d_pm > d_rs
 
         # Those are some obsolete variables that are convenient to have.
@@ -133,17 +133,17 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # Those variables are for PMSM convenience
         # template.rotor_steel_outer_radius = spec_geometry_dict['rotor_steel_outer_radius'] = template.Radius_OuterRotor
 
-        # required_torque = SD['mec_power']/(2*np.pi*speed_rpm)*60
-        # rotor_volume_Vr = required_torque/(2*SD['TangentialStress'])
+        # required_torque = SI['mec_power']/(2*np.pi*speed_rpm)*60
+        # rotor_volume_Vr = required_torque/(2*SI['TangentialStress'])
         # template.required_torque = required_torque
 
-    def get_template_neighbor_bounds(self, GP, SD):
+    def get_template_neighbor_bounds(self, GP, SI):
         ''' The bounds are determined around the template design.
         '''
 
-        Q = self.SD['Qs']
-        p = self.SD['p']
-        s = self.SD['no_segmented_magnets']
+        Q = self.SI['Qs']
+        p = self.SI['p']
+        s = self.SI['no_segmented_magnets']
 
         GP = self.d['GP']
 
@@ -170,7 +170,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
     """ Obsolete feature """
     def build_design_parameters_list(self):
         GP = self.d['GP']
-        SD = self.SD
+        SI = self.SI
         # obsolete feature
         design_parameters = [
             0.0,
@@ -210,8 +210,8 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
 
         # 检查几何变量之间是否有冲突
         GP = self.template.d['GP']
-        SD = self.template.SD
-        self.check_invalid_design(GP, SD)
+        SI = self.template.SI
+        self.check_invalid_design(GP, SI)
 
         # Parts
         self.rotorCore = CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
@@ -223,8 +223,8 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
                             mm_r_ri      = GP['mm_r_ri'].value, # inner radius of rotor: class type DimLinear
                             mm_d_rp      = GP['mm_d_rp'].value, # interpolar iron thickness: class type DimLinear
                             mm_d_rs      = GP['mm_d_rs'].value, # inter segment iron thickness: class type DimLinear
-                            p = template.SD['p'], # Set pole-pairs to 2
-                            s = template.SD['no_segmented_magnets'], # Set magnet segments/pole to 4
+                            p = template.SI['p'], # Set pole-pairs to 2
+                            s = template.SI['no_segmented_magnets'], # Set magnet segments/pole to 4
                             location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0))
 
         self.shaft = CrossSectInnerNotchedRotor.CrossSectShaft(name = 'Shaft',
@@ -247,7 +247,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
                                             mm_r_st = 0.0, # =0
                                             mm_r_sf = 0.0, # =0
                                             mm_r_sb = 0.0, # =0
-                                            Q = template.SD['Qs'],
+                                            Q = template.SI['Qs'],
                                             location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
                                             )
 
@@ -263,7 +263,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
         #03 Mechanical Parameters
         self.update_mechanical_parameters()
 
-    def check_invalid_design(self, GP, SD):
+    def check_invalid_design(self, GP, SI):
 
         # 不合理的变量选择（mm_d_rp）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
         if GP['mm_d_rp'].value > GP['mm_d_pm'].value:
@@ -284,14 +284,14 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
             logger = logging.getLogger(__name__).warn(msg)
 
         # 不合理的变量选择（deg_alpha_rs）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
-        if not (GP['deg_alpha_rs'].value > GP['deg_alpha_rm'].value/SD['no_segmented_magnets']):
-            GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value/SD['no_segmented_magnets']
+        if not (GP['deg_alpha_rs'].value > GP['deg_alpha_rm'].value/SI['no_segmented_magnets']):
+            GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value/SI['no_segmented_magnets']
             msg = '[Warning from bearingless_spmsm_design.py]: deg_alpha_rs cannot be larger than deg_alpha_rm/s. Note deg_alpha_rs is set to deg_alpha_rm/s.'
             print(msg)
             logger = logging.getLogger(__name__).warn(msg)
 
         # 如果没有永磁体分段，那么alpha_rs应该等于alpha_rm。
-        if SD['no_segmented_magnets'] == 1:
+        if SI['no_segmented_magnets'] == 1:
             GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value # raise Exception('Invalid alpha_rs. Check that it is equal to alpha_rm for s=1')
             GP['mm_d_rs'].value = 0 # raise Exception('Invalid d_rs. Check that it is equal to 0 for s =1')
         # This is all we need
