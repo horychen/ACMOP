@@ -783,6 +783,7 @@ class acm_designer(object):
             self.spec = None
 
         self.fea_config_dict = fea_config_dict
+        self.spec_input_dict = spec_input_dict
         self.output_dir, self.select_spec, self.select_fea_config_dict = output_dir, select_spec, select_fea_config_dict
 
         # to be used with PYGMO
@@ -1076,58 +1077,161 @@ class acm_designer(object):
             function = vernier_motor_design.vernier_motor_VShapePM_design_variant
         else:
             raise Exception('Not supported machine_type:', template.machine_type)
-        self.variant = variant = function(
+        self.acm_variant = acm_variant = function(
                         template=template,
                         x_denorm=x_denorm,
                         counter=counter,
                         counter_loop=counter_loop
                     )
 
-        # 传递模板的爸爸给孙子（考虑移除）
-        # variant.spec = template.spec
-
-        # project name
-        self.project_name = variant.name
-        self.expected_project_file = self.output_dir + "%s.jproj"%(self.project_name)
-
-        # study name
-        study_name = variant.name + "-Transient" # Change here and there 
-
-        # project meta data
-        project_meta_data = {
-            "expected_project_file": self.expected_project_file,
-            "project_name": self.project_name,
-            "study_name": study_name,
-            "dir_csv_output_folder": self.dir_csv_output_folder,
-            "output_dir": self.output_dir
-        }
 
         if 'JMAG' in self.select_fea_config_dict:
+            # project name
+            self.project_name = acm_variant.name
+            self.expected_project_file = self.output_dir + "%s.jproj"%(self.project_name)
+
+            # study name
+            study_name = acm_variant.name + "-Transient" # Change here and there 
+
+            # project meta data
+            project_meta_data = {
+                "expected_project_file": self.expected_project_file,
+                "project_name": self.project_name,
+                "study_name": study_name,
+                "dir_csv_output_folder": self.dir_csv_output_folder,
+                "output_dir": self.output_dir
+            }
+
             # Leave the solving task to JMAG
-            variant.build_jmag_project(project_meta_data, bool_re_evaluate=bool_re_evaluate)
+            self.build_jmag_project(acm_variant, project_meta_data, bool_re_evaluate=bool_re_evaluate)
+
+            ################################################################
+            # Load data for cost function evaluation
+            ################################################################
+            acm_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            if results_to_be_unpacked is not None:
+                if self.fig_main is not None:
+                    try:
+                        self.fig_main.savefig(self.output_dir + acm_variant.name + 'results.png', dpi=150)
+                    except Exception as e:
+                        print(e)
+                        print('\n\n\nIgnore error and continue.')
+                    finally:
+                        utility.pyplot_clear(self.axeses)
+                # show()
+                return acm_variant 
+            else:
+                raise Exception('[acm_designer] results_to_be_unpacked is None.')
+
         elif 'FEMM' in self.select_fea_config_dict:
-            variant.build_femm_project(project_meta_data)
+            self.build_femm_project(acm_variant, self.output_dir)
+
         else:
             raise Exception('[acm_designer.py] Wrong string of select_fea_config_dict:', self.select_fea_config_dict)
 
-        ################################################################
-        # Load data for cost function evaluation
-        ################################################################
-        variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
-        if results_to_be_unpacked is not None:
-            if self.fig_main is not None:
-                try:
-                    self.fig_main.savefig(self.output_dir + variant.name + 'results.png', dpi=150)
-                except Exception as e:
-                    print(e)
-                    print('\n\n\nIgnore error and continue.')
-                finally:
-                    utility.pyplot_clear(self.axeses)
-            # show()
-            return variant 
-        else:
-            raise Exception('[acm_designer] results_to_be_unpacked is None.')
 
+    ''' Produce JMAG Project
+    '''
+    def build_jmag_project(self, acm_variant, project_meta_data=None, bool_re_evaluate=False):
+        if project_meta_data is None:
+            # this object is reloaded, so retrieve saved meta data
+            project_meta_data = self.project_meta_data
+        else:
+            # save for reload this object from json
+            self.project_meta_data = project_meta_data
+        expected_project_file = project_meta_data["expected_project_file"]
+        study_name            = project_meta_data["study_name"]
+        dir_csv_output_folder = project_meta_data["dir_csv_output_folder"]
+        output_dir            = project_meta_data["output_dir"]
+
+        # use alias
+        # acm_variant = self
+
+        # Leave the solving task to JMAG
+        if bool_re_evaluate==False:
+
+            # def draw_jmag_bpmsm():
+            import JMAG
+            toolJd = JMAG.JMAG(self.fea_config_dict, self.spec_input_dict)
+
+            toolJd.open(expected_project_file)
+            DRAW_SUCCESS = toolJd.draw_spmsm(acm_variant)
+            if DRAW_SUCCESS != 1:
+                raise Exception('Drawer failed.')
+
+            app = toolJd.app
+
+            # JMAG
+            if app.NumModels()>=1:
+                model = app.GetModel(acm_variant.name)
+            else:
+                logger = logging.getLogger(__name__)
+                logger.error('there is no model yet for %s'%(acm_variant.name))
+                raise Exception('why is there no model yet? %s'%(acm_variant.name))
+
+            toolJd.pre_process_PMSM(app, model, acm_variant)
+            study = toolJd.add_magnetic_transient_study(app, model, dir_csv_output_folder, study_name, acm_variant)
+            toolJd.mesh_study(acm_variant, app, model, study, output_dir=output_dir)
+            # raise KeyboardInterrupt
+            toolJd.run_study(acm_variant, app, study, acm_variant.template.fea_config_dict, clock_time())
+
+
+            # export Voltage if field data exists.
+            if acm_variant.template.fea_config_dict['delete_results_after_calculation'] == False:
+                # Export Circuit Voltage
+                ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
+                app.GetDataManager().CreateGraphModel(ref1)
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+        else:
+            ''' This is a special debugging feature that allows to recover FEA results (swarm_data.txt) from JMAG Deisnger's csv results.
+            '''
+            THE_mm2_magnet_area = acm_variant.rotorMagnet.draw(None, bool_re_evaluate=True)
+            THE_mm2_slot_area = acm_variant.coils.draw(None, bool_re_evaluate=True)
+
+            CurrentAmp_in_the_slot = THE_mm2_slot_area * acm_variant.fill_factor * acm_variant.Js*1e-6 * np.sqrt(2) #/2.2*2.8
+            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / acm_variant.template.d['EX']['DriveW_zQ']
+            CurrentAmp_per_phase = CurrentAmp_per_conductor * acm_variant.template.d['EX']['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+            variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
+            acm_variant.CurrentAmp_per_phase = CurrentAmp_per_phase
+            acm_variant.DriveW_CurrentAmp = acm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+            acm_variant.BeariW_CurrentAmp = acm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+
+            slot_area_utilizing_ratio = (acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp) / acm_variant.CurrentAmp_per_phase
+            print('[inner_rotor_motor.py]---Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio)
+
+            print('[inner_rotor_motor.py]---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
+            print('[inner_rotor_motor.py]---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
+            print('[inner_rotor_motor.py]---acm_variant.DriveW_CurrentAmp =', acm_variant.DriveW_CurrentAmp)
+            print('[inner_rotor_motor.py]---acm_variant.BeariW_CurrentAmp =', acm_variant.BeariW_CurrentAmp)
+            print('[inner_rotor_motor.py]---TORQUE_CURRENT_RATIO:', acm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'])
+            print('[inner_rotor_motor.py]---SUSPENSION_CURRENT_RATIO:', acm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
+
+    ''' Create FEMM Project
+    '''
+    def build_femm_project(self, acm_variant, output_dir):
+        # Leave the solving task to FEMM
+
+        import FEMM_SlidingMesh
+        toolFEMM = FEMM_SlidingMesh.FEMM_SlidingMesh(acm_variant.template.fea_config_dict)
+        toolFEMM.open()
+        toolFEMM.probdef(stack_length=acm_variant.template.d['EX']['mm_template_stack_length'], excitation_frequency=0)
+        toolFEMM.vangogh.draw_model()
+        toolFEMM.pre_process()
+
+
+        DRAW_SUCCESS = acm_variant.draw_spmsm(toolFEMM)
+        if DRAW_SUCCESS != 1:
+            raise Exception('Drawer failed.')
+
+        self.add_material()
+        # self.draw_model()
+        self.vangogh.draw_model()
+        self.add_block_labels_static_solver()
+
+        femm.mi_saveas(self.output_file_name + self.list_name[0] + '.fem')
+
+        self.model_rotor_rotate(time)
+        femm.mi_saveas(fem_file)
 
 
     ''' BELOW ARE BOPT-PYTHON CODES for BLIM ONLY

@@ -9,7 +9,7 @@ import CrossSectVShapeConsequentPoleRotor
 import CrossSectStator
 import Location2D
 
-import pint
+# import pint
 
 def derive_mm_w_pm(GP,SD):
     GP["mm_w_pm"].value          = ( GP['mm_r_os'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(GP['deg_alpha_vspm'].value) - GP['mm_d_pm'].value * np.tan(GP['deg_alpha_vspm'].value)
@@ -73,8 +73,8 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
             # stator_yoke_flux_density_Bys = 1.5
 
         # stator_outer_diameter_Dse = 0.128 # m
-        ureg = pint.UnitRegistry()
-        stator_outer_diameter_Dse = 0.128 * ureg.meter
+        # ureg = pint.UnitRegistry()
+        stator_outer_diameter_Dse = 0.128 # * ureg.meter
         stator_outer_radius_r_os  = 0.5*stator_outer_diameter_Dse
 
         speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
