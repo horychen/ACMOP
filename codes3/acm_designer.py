@@ -1212,26 +1212,17 @@ class acm_designer(object):
         # Leave the solving task to FEMM
 
         import FEMM_SlidingMesh
-        toolFEMM = FEMM_SlidingMesh.FEMM_SlidingMesh(acm_variant.template.fea_config_dict)
+        self.toolFEMM = toolFEMM = FEMM_SlidingMesh.FEMM_SlidingMesh(acm_variant)
         toolFEMM.open()
         toolFEMM.probdef(stack_length=acm_variant.template.d['EX']['mm_template_stack_length'], excitation_frequency=0)
-        toolFEMM.vangogh.draw_model()
-        toolFEMM.pre_process()
 
-
-        DRAW_SUCCESS = acm_variant.draw_spmsm(toolFEMM)
+        # toolFEMM.vangogh.draw_model()
+        DRAW_SUCCESS = toolFEMM.draw_spmsm(acm_variant)
         if DRAW_SUCCESS != 1:
             raise Exception('Drawer failed.')
 
-        self.add_material()
-        # self.draw_model()
-        self.vangogh.draw_model()
-        self.add_block_labels_static_solver()
-
-        femm.mi_saveas(self.output_file_name + self.list_name[0] + '.fem')
-
-        self.model_rotor_rotate(time)
-        femm.mi_saveas(fem_file)
+        toolFEMM.pre_process()
+        toolFEMM.save()
 
 
     ''' BELOW ARE BOPT-PYTHON CODES for BLIM ONLY

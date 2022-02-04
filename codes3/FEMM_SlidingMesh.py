@@ -1,25 +1,13 @@
 #coding:utf-8
 
 import femm
-from math import tan, pi, atan, cos, sin, sqrt, copysign, exp
 import numpy as np
-from csv import reader as csv_reader
-
 import logging
 import os
 from collections import OrderedDict
-
-import sys
-import subprocess
-
 import utility
- # will not create new list as zip does
-
 from time import sleep
 from time import time as clock_time
-
-from VanGogh import VanGogh
-
 import winding_layout
 
 SELECT_ALL = 4
@@ -34,7 +22,7 @@ class FEMM_SlidingMesh(object):
         self.vangogh = FEMM_Solver.VanGogh_FEMM(acm_variant)
 
         self.deg_per_step = acm_variant.template.fea_config_dict['femm.deg_per_step'] # deg, we need this for show_results
-        self.dir_codes = acm_variant.template.fea_config_dict['dir.codes']
+        self.dir_codes = acm_variant.template.fea_config_dict['dir.parent'] + 'codes3/'
 
         self.rotor_phase_name_list = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
@@ -64,8 +52,8 @@ class FEMM_SlidingMesh(object):
         # self.draw_model()
         self.add_block_labels_static_solver()
 
-        self.output_file_name =   self.acm_variant.template.fea_config_dict['dir_femm_files'] 
-                                + self.acm_variant.template.fea_config_dict['model_name_prefix'] 
+        self.output_file_name =   self.acm_variant.template.fea_config_dict['dir_femm_files']     \
+                                + self.acm_variant.template.fea_config_dict['model_name_prefix']  \
                                 + '/%s-%gHz'%(self.acm_variant.ID, self.excitation_frequency)
 
         if self.deg_per_step == 0.0:
@@ -110,19 +98,19 @@ class FEMM_SlidingMesh(object):
 
         # femm.mi_addmaterial('Air', 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0);
         # femm.mi_addmaterial('Aluminum', 1, 1, 0, 0, 35, 0, 0, 1, 0, 0, 0)
-        femm.mi_addmaterial('Aluminum', 1, 1, 0, 0, self.im.spec_derive_dict['Bar_Conductivity']*1e-6, 0, 0, 1, 0, 0, 0) # [MS/m]
+        femm.mi_addmaterial('Aluminum', 1, 1, 0, 0, self.acm_variant.spec_derive_dict['Bar_Conductivity']*1e-6, 0, 0, 1, 0, 0, 0) # [MS/m]
         # femm.mi_addmaterial('Aluminum', 1, 1, 0, 0, 1/1.673e-2, 0, 0, 1, 0, 0, 0)
 
         # femm.mi_addmaterial('LinearIron', 2000, 2000, 0, 0, 0, 0, 0, 1, 0, 0, 0);
 
-        if self.im.spec_input_dict['Steel'] == 'M19Gauge29':
+        if self.acm_variant.spec_input_dict['Steel'] == 'M19Gauge29':
             # femm.mi_getmaterial('M-19 Steel') # for Stator & Rotor Iron Cores (Nonlinear with B-H curve)
             femm.mi_addmaterial('M19Gauge29',0,0, 0,0, 0,0.3556,0, 0.95) # no lamination for testing consistency with JMAG
             hdata, bdata = np.loadtxt(self.dir_codes + './M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1))
             for n in range(0,len(bdata)):
                 femm.mi_addbhpoint('M19Gauge29', bdata[n], hdata[n])
 
-        elif self.im.spec_input_dict['Steel'] == 'Arnon5':
+        elif self.acm_variant.spec_input_dict['Steel'] == 'Arnon5':
             # Arnon5 is 1/5 thick as M15, which is too thin to use and it is expensive as well
             femm.mi_addmaterial('Arnon5-final',0,0, 0,0, 0.0,0.127,0, 0.96)
             # BH = np.loadtxt(self.dir_codes + '../Arnon5/Arnon5-final.txt', unpack=True, usecols=(0,1))
@@ -133,7 +121,7 @@ class FEMM_SlidingMesh(object):
             for n in range(0,len(bdata)):
                 femm.mi_addbhpoint('Arnon5-final', bdata[n], hdata[n])
 
-        elif self.im.spec_input_dict['Steel'] == 'M15':
+        elif self.acm_variant.spec_input_dict['Steel'] == 'M15':
             femm.mi_addmaterial('My M-15 Steel',0,0, 0,0, 0,0.635,0, 0.98)
             BH = np.loadtxt(self.dir_codes + '../Arnon5/M-15-Steel-BH-Curve.txt', unpack=True, usecols=(0,1))
             bdata = BH[1]
@@ -547,6 +535,12 @@ class FEMM_SlidingMesh(object):
 
         # Other arc-segment-specific mesh constraints are already done in draw_model()
 
+    def save(self):
+        femm.mi_saveas(self.output_file_name + self.list_name[0] + '.fem')
+        # self.model_rotor_rotate(time)
+        # femm.mi_saveas(fem_file)
+
+
     def draw_model(self, fraction=1):
 
         from shapely.geometry import LineString
@@ -777,6 +771,213 @@ class FEMM_SlidingMesh(object):
             draw_line(p1, p2)
             p1 = (+im.Radius_OuterStatorYoke, 0)
             add_line(p1, p2)
+        else:
+            raise Exception('not supported fraction = %d' % (fraction))
+        # Air Gap Boundary for Rotor Motion #1
+        # R = im.Radius_OuterRotor+0.6*im.Length_AirGap
+        # femm.mi_drawarc(R,0, -R,0, 180, 5)
+        # femm.mi_drawarc(-R,0, R,0, 180, 5)
+        # R = im.Radius_OuterRotor+0.4*im.Length_AirGap
+        # femm.mi_drawarc(R,0, -R,0, 180, 5)
+        # femm.mi_drawarc(-R,0, R,0, 180, 5)
+
+    def getSketch(self, sketchName, color=None):
+        pass
+
+    ''' Drawer
+    '''
+    def draw_spmsm(self, acm_variant):
+        # Rotor Core
+        list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=True)
+        self.bMirror = False
+        self.iRotateCopy = acm_variant.rotorCore.p*2
+        # region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
+
+        # Shaft
+        # list_regions = acm_variant.shaft.draw(self)
+        # self.bMirror = False
+        # self.iRotateCopy = 1
+        # region0 = self.prepareSection(list_regions)
+
+        # Rotor Magnet
+        list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=True)
+        self.bMirror = False
+        self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
+        # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
+
+        # Sleeve
+        # list_regions = acm_variant.sleeve.draw(self)
+        # self.bMirror = False
+        # self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
+        # regionS = self.prepareSection(list_regions)
+
+        # Stator Core
+        list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=True)
+        self.bMirror = True
+        self.iRotateCopy = acm_variant.stator_core.Q
+        # region3 = self.prepareSection(list_regions, color=color_rgb_A)
+
+        # Stator Winding
+        list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=True)
+        self.bMirror = False
+        self.iRotateCopy = acm_variant.coils.stator_core.Q
+        # region4 = self.prepareSection(list_regions)
+
+        # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
+        EX = acm_variant.template.d['EX']
+        CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['fill_factor'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+        CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
+        CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+
+        # Maybe there is a bug here... regarding the excitation for suspension winding...
+        variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
+        variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
+        EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
+        EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+        EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+
+        slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+        print('[inner_rotor_motor.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
+
+        return True
+
+    @staticmethod
+    def mirror_and_copyrotate(Q, Radius, fraction):
+        # Mirror
+        femm.mi_selectcircle(0,0,Radius+EPS,SELECT_ALL) # this EPS is sometime necessary to selece the arc at Radius.
+        femm.mi_mirror2(0,0,-Radius,0, SELECT_ALL)
+
+        # Rotate
+        femm.mi_selectcircle(0,0,Radius+EPS,SELECT_ALL)
+        femm.mi_copyrotate2(0, 0, 360./Q, int(Q)/fraction, SELECT_ALL)
+
+    @staticmethod
+    def draw_arc(p1, p2, angle, maxseg=1, center=None, **kwarg):
+        femm.mi_drawarc(p1[0],p1[1],p2[0],p2[1],angle/pi*180,maxseg) # [deg]
+
+    @staticmethod
+    def add_arc(p1, p2, angle, maxseg=1, center=None, **kwarg):
+        femm.mi_addarc(p1[0],p1[1],p2[0],p2[1],angle/pi*180,maxseg) # [deg]
+
+    @staticmethod
+    def draw_line(p1, p2):
+        femm.mi_drawline(p1[0],p1[1],p2[0],p2[1])
+
+    @staticmethod
+    def add_line(p1, p2):
+        femm.mi_addsegment(p1[0],p1[1],p2[0],p2[1])
+
+
+
+    @staticmethod
+    def drawLine(p1, p2):
+        femm.mi_drawline(p1[0],p1[1],p2[0],p2[1])
+        return []
+
+    @staticmethod
+    def drawArc(centerxy, startxy, endxy, maxseg=1):
+        
+        v1 = np.array([startxy[0] - centerxy[0], startxy[1] - centerxy[1]])
+        v2 = np.array([endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]])
+
+        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (np.sqrt(v1.dot(v1))*np.sqrt(v2.dot(v2)))
+        angle = np.arccos(cos夹角)
+        if angle == 0:
+            angle = 360
+
+        p1, p2 = startxy, endxy
+        femm.mi_drawarc(p1[0],p1[1],p2[0],p2[1],angle/np.pi*180,maxseg)
+        return []
+
+
+    def some_solver_related_operations_rotor_before_mirror_rotation(self, im, P6, P8):
+
+        if im.use_drop_shape_rotor_bar == True:
+            # constraint to reduce element number @rotor-P6
+            femm.mi_selectarcsegment(P6[0], P6[1])
+            femm.mi_setarcsegmentprop(8, "<None>", False, 100)
+            femm.mi_clearselected()
+
+            # constraint to reduce element number @rotor-P8
+            femm.mi_selectarcsegment(P8[0], P8[1])
+            femm.mi_setarcsegmentprop(8, "<None>", False, 100)
+            femm.mi_clearselected()
+        else:
+            # constraint to reduce element number @rotor-P8
+            femm.mi_selectarcsegment(P8[0], P8[1])
+            femm.mi_setarcsegmentprop(8, "<None>", False, 100)
+            femm.mi_clearselected()
+
+    def some_solver_related_operations_fraction(self, im, fraction):
+        # Boundary
+        if fraction == 1:
+            femm.mi_drawarc(im.Radius_Shaft,0, -im.Radius_Shaft,0, 180, 20) # 边界不要用太小的segment咯！避免剖分过细（这里设置无效）
+            femm.mi_drawarc(-im.Radius_Shaft,0, im.Radius_Shaft,0, 180, 20)
+            femm.mi_drawarc(im.Radius_OuterStatorYoke,0, -im.Radius_OuterStatorYoke,0, 180, 20)
+            femm.mi_drawarc(-im.Radius_OuterStatorYoke,0, im.Radius_OuterStatorYoke,0, 180, 20)
+        elif fraction == 4:
+            femm.mi_drawarc(-im.Radius_Shaft,0, 0, -im.Radius_Shaft, 90, 10)
+            femm.mi_drawarc(-im.Radius_OuterStatorYoke,0, 0, -im.Radius_OuterStatorYoke, 90, 10)
+            femm.mi_selectrectangle(-EPS-im.Radius_Shaft,EPS,EPS-im.Radius_OuterStatorYoke,im.Radius_OuterStatorYoke,SELECT_ALL)
+            femm.mi_selectrectangle(EPS,-EPS-im.Radius_Shaft,im.Radius_OuterStatorYoke,EPS-im.Radius_OuterStatorYoke,SELECT_ALL)
+            femm.mi_deleteselected()
+
+            # between 2rd and 3th quarters
+            p1 = (-im.Location_RotorBarCenter2+im.Radius_of_RotorSlot2, 0)
+            p2 = (-im.Radius_Shaft, 0)
+            self.add_line(p1, p2)
+            p2 = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
+            self.add_line(p1, p2)
+            p1 = (-im.Radius_OuterRotor-0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
+            self.draw_line(p1, p2)
+            p2 = (-im.Radius_OuterRotor-im.Length_AirGap, 0)
+            self.draw_line(p1, p2)
+            p1 = (-im.Radius_OuterStatorYoke, 0)
+            self.add_line(p1, p2)
+
+            # between 3rd and 4th quarters
+            p1 = (0, -im.Location_RotorBarCenter2+im.Radius_of_RotorSlot2)
+            p2 = (0, -im.Radius_Shaft)
+            self.add_line(p1, p2)
+            p2 = (0, -im.Location_RotorBarCenter-im.Radius_of_RotorSlot)
+            self.add_line(p1, p2)
+            p1 = (0, -im.Radius_OuterRotor-0.5*im.Length_AirGap)
+            self.draw_line(p1, p2)
+            p2 = (0, -im.Radius_OuterRotor-im.Length_AirGap)
+            self.draw_line(p1, p2)
+            p1 = (0, -im.Radius_OuterStatorYoke)
+            self.add_line(p1, p2)
+        elif fraction == 2:
+            femm.mi_drawarc(-im.Radius_Shaft,0, im.Radius_Shaft,0, 180, 15)
+            femm.mi_drawarc(-im.Radius_OuterStatorYoke,0, im.Radius_OuterStatorYoke,0, 180, 15)
+            femm.mi_selectrectangle(EPS-im.Radius_OuterStatorYoke,EPS, -EPS+im.Radius_OuterStatorYoke,EPS+im.Radius_OuterStatorYoke, SELECT_ALL)
+            femm.mi_deleteselected()
+
+            # between 2rd and 3th quarters
+            p1 = (-im.Location_RotorBarCenter2+im.Radius_of_RotorSlot2, 0)
+            p2 = (-im.Radius_Shaft, 0)
+            self.add_line(p1, p2)
+            p2 = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
+            self.add_line(p1, p2)
+            p1 = (-im.Radius_OuterRotor-0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
+            self.draw_line(p1, p2)
+            p2 = (-im.Radius_OuterRotor-im.Length_AirGap, 0)
+            self.draw_line(p1, p2)
+            p1 = (-im.Radius_OuterStatorYoke, 0)
+            self.add_line(p1, p2)
+
+            # between 1rd and 4th quarters
+            p1 = (+im.Location_RotorBarCenter2-im.Radius_of_RotorSlot2, 0)
+            p2 = (+im.Radius_Shaft, 0)
+            self.add_line(p1, p2)
+            p2 = (+im.Location_RotorBarCenter+im.Radius_of_RotorSlot, 0)
+            self.add_line(p1, p2)
+            p1 = (+im.Radius_OuterRotor+0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
+            self.draw_line(p1, p2)
+            p2 = (+im.Radius_OuterRotor+im.Length_AirGap, 0)
+            self.draw_line(p1, p2)
+            p1 = (+im.Radius_OuterStatorYoke, 0)
+            self.add_line(p1, p2)
         else:
             raise Exception('not supported fraction = %d' % (fraction))
         # Air Gap Boundary for Rotor Motion #1

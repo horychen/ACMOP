@@ -56,10 +56,11 @@ def where_am_i_v2(fea_config_dict, bool_post_processing=False):
     fea_config_dict['pc_name']               = pc_name
 
     fea_config_dict['delete_results_after_calculation'] = False # True for saving disk space (but you lose voltage profile and element data)
-    if fea_config_dict['designer.Restart'] == False:
-        fea_config_dict['designer.OnlyTableResults'] = True  # save disk space for my PC
-    # However, we need field data for iron loss calculation
-    fea_config_dict['designer.OnlyTableResults'] = False 
+    if 'designer.OnlyTableResults' in fea_config_dict.keys():
+        # if fea_config_dict['designer.Restart'] == False:
+        #     fea_config_dict['designer.OnlyTableResults'] = True  # save disk space for my PC
+        # However, we need field data for iron loss calculation
+        fea_config_dict['designer.OnlyTableResults'] = False 
 
 
 if __name__ == '__main__':

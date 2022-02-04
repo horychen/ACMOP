@@ -297,31 +297,6 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
         # This is all we need
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def add_carbon_fiber_material(app):
     app.GetMaterialLibrary().CreateCustomMaterial(u"CarbonFiber", u"Custom Materials")
     app.GetMaterialLibrary().GetUserMaterial(u"CarbonFiber").SetValue(u"Density", 1.6)

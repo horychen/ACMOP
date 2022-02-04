@@ -38,7 +38,7 @@ class CrossSectInnerRotorStator:
         self.Q = Q               
         self.location = location 
 
-    def draw(self, drawer):
+    def draw(self, drawer, bool_draw_whole_model=True):
 
         drawer.getSketch(self.name, self.color)
 
@@ -90,24 +90,45 @@ class CrossSectInnerRotorStator:
         P8 = [  r_si+d_sp+d_st+d_sy, 0]
 
         list_segments = []
-        list_segments += drawer.drawArc([0,0], P2, P1)
-        list_segments += drawer.drawLine(P2, P3)
-        list_segments += drawer.drawLine(P3, P4)
-        list_segments += drawer.drawLine(P4, P5)
-        list_segments += drawer.drawArc([0,0], P6, P5)
-        # print(P4, P5)
-        # print(P6, P5)
-        list_segments += drawer.drawLine(P6, P7)
-
-            # l, vA = drawer.drawArc([0,0], P6, P5, returnVertexName=True)
-            # list_segments += l
-            # l, vB = drawer.drawLine(P6, P7, returnVertexName=True)
-            # list_segments += l
-            # drawer.addConstraintCocentricity(vA[0], vB[0])
-            # raise
-
-        list_segments += drawer.drawArc([0,0], P7, P8)
-        list_segments += drawer.drawLine(P8, P1)
+        if bool_draw_whole_model:
+            P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
+            P3_Mirror = [P3[0], -P3[1]]
+            P4_Mirror = [P4[0], -P4[1]]
+            P5_Mirror = [P5[0], -P5[1]]
+            def iPark(P, theta):
+                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+            def draw_fraction(list_segments, P2, P3, P4, P5,
+                                            P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
+                P5_Rotate = iPark(P5, alpha_slot_span)
+                list_segments += drawer.drawArc([0,0], P2, P2_Mirror)
+                list_segments += drawer.drawLine(P2, P3)
+                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
+                list_segments += drawer.drawLine(P3, P4)
+                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
+                list_segments += drawer.drawLine(P4, P5)
+                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+                list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+            for i in range(Q):
+                draw_fraction(list_segments, iPark(P2, i*alpha_slot_span), 
+                                             iPark(P3, i*alpha_slot_span), 
+                                             iPark(P4, i*alpha_slot_span), 
+                                             iPark(P5, i*alpha_slot_span),
+                                             iPark(P2_Mirror, i*alpha_slot_span), 
+                                             iPark(P3_Mirror, i*alpha_slot_span), 
+                                             iPark(P4_Mirror, i*alpha_slot_span), 
+                                             iPark(P5_Mirror, i*alpha_slot_span), )
+                # raise
+            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
+            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+        else:
+            list_segments += drawer.drawArc([0,0], P2, P1)
+            list_segments += drawer.drawLine(P2, P3)
+            list_segments += drawer.drawLine(P3, P4)
+            list_segments += drawer.drawLine(P4, P5)
+            list_segments += drawer.drawArc([0,0], P6, P5)
+            list_segments += drawer.drawLine(P6, P7)
+            list_segments += drawer.drawArc([0,0], P7, P8)
+            list_segments += drawer.drawLine(P8, P1)
 
         # DEBUG
         # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
@@ -134,7 +155,7 @@ class CrossSectInnerRotorStatorWinding(object):
         self.color = color
         self.stator_core = stator_core
 
-    def draw(self, drawer, bool_re_evaluate=False):
+    def draw(self, drawer, bool_re_evaluate=False, bool_draw_whole_model=False):
 
         if False == bool_re_evaluate:
             drawer.getSketch(self.name, self.color)
@@ -208,26 +229,60 @@ class CrossSectInnerRotorStatorWinding(object):
         list_regions = []
 
         list_segments = []
-        # list_segments += drawer.drawCircle(PCoil, TheRadius)
-        list_segments += drawer.drawArc([0,0], P6_Shrink, P5_Shrink)
-        list_segments += drawer.drawLine(P5_Shrink, P4_Shrink)
-        list_segments += drawer.drawLine(P4_Shrink, POpen_Shrink)
-        list_segments += drawer.drawLine(POpen_Shrink, P6_Shrink)
-        list_regions.append(list_segments)
+        if bool_draw_whole_model:
+            P6_Shrink_Mirror = [P6_Shrink[0], -P6_Shrink[1]]
+            P5_Shrink_Mirror = [P5_Shrink[0], -P5_Shrink[1]]
+            P4_Shrink_Mirror = [P4_Shrink[0], -P4_Shrink[1]]
+            POpen_Shrink_Mirror = [POpen_Shrink[0], -POpen_Shrink[1]]
+            def iPark(P, theta):
+                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+            def draw_fraction(list_segments, P6_Shrink, P5_Shrink, P4_Shrink, POpen_Shrink,
+                                            P6_Shrink_Mirror, P5_Shrink_Mirror, P4_Shrink_Mirror,  POpen_Shrink_Mirror):
+                list_segments += drawer.drawArc([0,0], P6_Shrink, P5_Shrink)
+                list_segments += drawer.drawLine(P5_Shrink, P4_Shrink)
+                list_segments += drawer.drawLine(P4_Shrink, POpen_Shrink)
+                list_segments += drawer.drawLine(POpen_Shrink, P6_Shrink)
+                list_regions.append(list_segments)
+                list_segments = []
 
-        PCoil[1] *= -1
-        P6_Shrink[1] *= -1
-        P5_Shrink[1] *= -1
-        P4_Shrink[1] *= -1
-        POpen_Shrink[1] *= -1
-        list_segments = []
-        # list_segments += drawer.drawCircle(PCoil, TheRadius)
-        list_segments += drawer.drawArc([0,0], P5_Shrink, P6_Shrink)
-        list_segments += drawer.drawLine(P5_Shrink, P4_Shrink)
-        list_segments += drawer.drawLine(P4_Shrink, POpen_Shrink)
-        list_segments += drawer.drawLine(POpen_Shrink, P6_Shrink)
-        list_regions.append(list_segments)
-        list_segments = []
+                list_segments += drawer.drawArc([0,0], P5_Shrink_Mirror, P6_Shrink_Mirror)
+                list_segments += drawer.drawLine(P5_Shrink_Mirror, P4_Shrink_Mirror)
+                list_segments += drawer.drawLine(P4_Shrink_Mirror, POpen_Shrink_Mirror)
+                list_segments += drawer.drawLine(POpen_Shrink_Mirror, P6_Shrink_Mirror)
+                list_regions.append(list_segments)
+                list_segments = []
+
+            for i in range(Q):
+                draw_fraction(list_segments, iPark(P6_Shrink, i*alpha_slot_span), 
+                                             iPark(P5_Shrink, i*alpha_slot_span), 
+                                             iPark(P4_Shrink, i*alpha_slot_span), 
+                                             iPark(POpen_Shrink, i*alpha_slot_span),
+                                             iPark(P6_Shrink_Mirror, i*alpha_slot_span), 
+                                             iPark(P5_Shrink_Mirror, i*alpha_slot_span), 
+                                             iPark(P4_Shrink_Mirror, i*alpha_slot_span), 
+                                             iPark(POpen_Shrink_Mirror, i*alpha_slot_span), )
+                # raise
+        else:
+            # list_segments += drawer.drawCircle(PCoil, TheRadius)
+            list_segments += drawer.drawArc([0,0], P6_Shrink, P5_Shrink)
+            list_segments += drawer.drawLine(P5_Shrink, P4_Shrink)
+            list_segments += drawer.drawLine(P4_Shrink, POpen_Shrink)
+            list_segments += drawer.drawLine(POpen_Shrink, P6_Shrink)
+            list_regions.append(list_segments)
+
+            PCoil[1] *= -1
+            P6_Shrink[1] *= -1
+            P5_Shrink[1] *= -1
+            P4_Shrink[1] *= -1
+            POpen_Shrink[1] *= -1
+            list_segments = []
+            # list_segments += drawer.drawCircle(PCoil, TheRadius)
+            list_segments += drawer.drawArc([0,0], P5_Shrink, P6_Shrink)
+            list_segments += drawer.drawLine(P5_Shrink, P4_Shrink)
+            list_segments += drawer.drawLine(P4_Shrink, POpen_Shrink)
+            list_segments += drawer.drawLine(POpen_Shrink, P6_Shrink)
+            list_regions.append(list_segments)
+            list_segments = []
 
         # 我乱给的
         innerCoord = ( 0.5*(POpen[0]+P6[0]), 0.5*(POpen[1]+P6[1]))

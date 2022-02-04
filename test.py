@@ -1,13 +1,15 @@
-import os, sys; #sys.path.insert(0, os.path.dirname(__file__)+'/codes3/'); # print('Python version:', sys.version_info[:])
-import acmop
+import os, sys
+try:sys.path.insert(0, os.path.dirname(__file__)+'/codes3/')
+except:sys.path.insert(0, 'D:/DrH/Codes/acmop/codes3/')
+finally:import acmop
 
 mop = acmop.AC_Machine_Optiomization_Wrapper(
     # select_spec='IM Q24p1y9 Qr32 Round Bar',
     # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
     select_spec            = 'PMSM Q12p4y1 A', #'PMSM Q18p4y2 Beijing ShiDaiChaoQun',
-    select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-    # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
+    # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+    select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
 
     project_loc            = fr'D:/DrH/Codes/acmop/_default/',
     bool_show_GUI          = True
