@@ -13,16 +13,16 @@ import winding_layout
 SELECT_ALL = 4
 EPS = 1e-2 # unit mm
 
-import FEMM_Solver
+# import FEMM_Solver
 
 class FEMM_SlidingMesh(object):
 
     def __init__(self, acm_variant):
         self.acm_variant = acm_variant
-        self.vangogh = FEMM_Solver.VanGogh_FEMM(acm_variant)
+        # self.vangogh = FEMM_Solver.VanGogh_FEMM(acm_variant)
 
         self.deg_per_step = acm_variant.template.fea_config_dict['femm.deg_per_step'] # deg, we need this for show_results
-        self.dir_codes = acm_variant.template.fea_config_dict['dir.parent'] + 'codes3/'
+        self.dir_parent    = acm_variant.template.fea_config_dict['dir.parent']
 
         self.rotor_phase_name_list = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
@@ -30,63 +30,29 @@ class FEMM_SlidingMesh(object):
         femm.openfemm(True) # bHide # False for debug
         femm.newdocument(0) # magnetic
 
-    def probdef(self, stack_length=100, excitation_frequency=0):
-        self.excitation_frequency = excitation_frequency
+    def probdef(self, stack_length=100, time_harmonic_study_frequency=0):
+        self.time_harmonic_study_frequency = time_harmonic_study_frequency
         # femm.smartmesh(False) <- This will not work due to bug of femm.__init__  # let mi_smartmesh deside. You must turn it off in parasolver.py
-        femm.callfemm_noeval('smartmesh(0)') # call this after probdef
-        femm.mi_probdef(excitation_frequency, 'millimeters', 'planar', 1e-8, # must < 1e-8
+        femm.callfemm_noeval('smartmesh(0)') # call this before probdef?
+        femm.mi_probdef(time_harmonic_study_frequency, 'millimeters', 'planar', 1e-8, # must < 1e-8
                         stack_length, 18, 1) # The acsolver parameter (default: 0) specifies which solver is to be used for AC problems: 0 for successive approximation, 1 for Newton.
                                              # 1 for 'I intend to try the acsolver of Newton, as this is the default for JMAG@[Nonlinear Calculation] Setting Panel in the [Study Properties] Dialog Box'
-        # femm.callfemm_noeval('mi_smartmesh(0)') # call this after probdef
+        # femm.callfemm_noeval('mi_smartmesh(0)') # call this after probdef?
         self.bool_automesh = False # setting to false gives no effect?
 
         # femm.smartmesh(True) # let mi_smartmesh deside. You must turn it off in parasolver.py
         # self.bool_automesh = True # setting to false gives no effect?
 
-    def pre_process(self):
+    def pre_process(self, project_file_name):
         # if self.deg_per_step == 0.0:
         #     print('Locked Rotor! Run 40 stEPS for one slip period.')
         #     self.im.update_mechanical_parameters(syn_freq=0.0)
-
         self.add_material()
-        # self.draw_model()
         self.add_block_labels_static_solver()
-
-        self.output_file_name =   self.acm_variant.template.fea_config_dict['dir_femm_files']     \
-                                + self.acm_variant.template.fea_config_dict['model_name_prefix']  \
-                                + '/%s-%gHz'%(self.acm_variant.ID, self.excitation_frequency)
-
-        if self.deg_per_step == 0.0:
-            for i in range(40): # don't forget there
-                time += 1.0/self.acm_variant.DriveW_Freq / 40. # don't forget here
-                # self.rotor_position_in_deg = i # used in file naming
-                print(i, time, 's')
-
-                last_out_file_name = output_file_name
-                output_file_name = self.output_file_name + '%04d'%(i)
-                if os.path.exists(output_file_name + '.ans'):
-                    print('.ans file exists. skip this fem file: %s' % (output_file_name))
-                    continue
-                if last_out_file_name != None:
-                    femm.opendocument(last_out_file_name + '.fem')
-                    self.add_sliding_mesh(0.0)
-
-                femm.mi_saveas(output_file_name + '.fem') # locked-rotor test
-        else: # rotating static FEA
-            STATIC_RUN_PERIOD = 2*90 # deg
-
-            self.list_rotor_position_in_deg = np.arange(0, STATIC_RUN_PERIOD, self.deg_per_step)
-            self.list_name = ['%04d'%(10*el) for el in self.list_rotor_position_in_deg] # with no suffix
-
-            femm.mi_saveas(self.output_file_name + self.list_name[0] + '.fem')
-            for rotor_position_in_deg, name in zip(self.list_rotor_position_in_deg[1:], # skip the intial position
-                                                    self.list_name[1:]):
-                femm_file = self.output_file_name + name + '.fem'
-                time = np.abs(rotor_position_in_deg/180*pi / self.acm_variant.Omega) # DEBUG: 查了这么久的BUG，原来就是转速用错了！应该用机械转速啊！
-                self.add_sliding_mesh(time)
-                femm.mi_saveas(femm_file)
-                print('[FEMM_SlidingMesh.py]', time*1e3, 'ms', rotor_position_in_deg, 'deg', self.acm_variant.Omega, 'rad/s', self.acm_variant.Omega/2/np.pi, 's^-1')
-        femm.closefemm()
+        self.add_sliding_band(deg_innerAngle=0) # modifying parameter here has no effect
+        self.update_circuit_excitation(time=0) # modifying parameter here has no effect
+        femm.mi_saveas(project_file_name)
+        print('[FEMM_SlidingMesh.py] Save as:', project_file_name)
 
     def add_material(self):
         # mi_addmaterial('matname', mu x, mu y, H c, J, Cduct, Lam d, Phi hmax, lam fill, LamType, Phi hx, Phi hy, nstr, dwire)
@@ -98,22 +64,24 @@ class FEMM_SlidingMesh(object):
 
         # femm.mi_addmaterial('Air', 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0);
         # femm.mi_addmaterial('Aluminum', 1, 1, 0, 0, 35, 0, 0, 1, 0, 0, 0)
-        femm.mi_addmaterial('Aluminum', 1, 1, 0, 0, self.acm_variant.spec_derive_dict['Bar_Conductivity']*1e-6, 0, 0, 1, 0, 0, 0) # [MS/m]
+        if 'Bar_Conductivity' in self.acm_variant.template.d['EX'].keys():
+            # spec_derive_dict?
+            femm.mi_addmaterial('Aluminum', 1, 1, 0, 0, self.acm_variant.template.d['EX']['Bar_Conductivity']*1e-6, 0, 0, 1, 0, 0, 0) # [MS/m]
         # femm.mi_addmaterial('Aluminum', 1, 1, 0, 0, 1/1.673e-2, 0, 0, 1, 0, 0, 0)
 
         # femm.mi_addmaterial('LinearIron', 2000, 2000, 0, 0, 0, 0, 0, 1, 0, 0, 0);
 
-        if self.acm_variant.spec_input_dict['Steel'] == 'M19Gauge29':
+        if self.acm_variant.template.spec_input_dict['Steel'] == 'M19Gauge29':
             # femm.mi_getmaterial('M-19 Steel') # for Stator & Rotor Iron Cores (Nonlinear with B-H curve)
             femm.mi_addmaterial('M19Gauge29',0,0, 0,0, 0,0.3556,0, 0.95) # no lamination for testing consistency with JMAG
-            hdata, bdata = np.loadtxt(self.dir_codes + './M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1))
+            hdata, bdata = np.loadtxt(self.dir_parent + 'BH/M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1))
             for n in range(0,len(bdata)):
                 femm.mi_addbhpoint('M19Gauge29', bdata[n], hdata[n])
 
-        elif self.acm_variant.spec_input_dict['Steel'] == 'Arnon5':
+        elif self.acm_variant.template.spec_input_dict['Steel'] == 'Arnon5':
             # Arnon5 is 1/5 thick as M15, which is too thin to use and it is expensive as well
             femm.mi_addmaterial('Arnon5-final',0,0, 0,0, 0.0,0.127,0, 0.96)
-            # BH = np.loadtxt(self.dir_codes + '../Arnon5/Arnon5-final.txt', unpack=True, usecols=(0,1))
+            # BH = np.loadtxt(self.dir_parent + 'BH/Arnon5/Arnon5-final.txt', unpack=True, usecols=(0,1))
             BH = np.loadtxt('D:/DrH/Codes/c/Arnon5/Arnon5-final.txt', unpack=True, usecols=(0,1))
 
             bdata = BH[1][1:] # if not skip the first point, there will be two (0,0) in FEMM software, reason unknown.
@@ -121,7 +89,7 @@ class FEMM_SlidingMesh(object):
             for n in range(0,len(bdata)):
                 femm.mi_addbhpoint('Arnon5-final', bdata[n], hdata[n])
 
-        elif self.acm_variant.spec_input_dict['Steel'] == 'M15':
+        elif self.acm_variant.template.spec_input_dict['Steel'] == 'M15':
             femm.mi_addmaterial('My M-15 Steel',0,0, 0,0, 0,0.635,0, 0.98)
             BH = np.loadtxt(self.dir_codes + '../Arnon5/M-15-Steel-BH-Curve.txt', unpack=True, usecols=(0,1))
             bdata = BH[1]
@@ -143,20 +111,26 @@ class FEMM_SlidingMesh(object):
             for n in range(0,len(bdata)):
                 femm.mi_addbhpoint('Arnon5', bdata[n], hdata[n])
 
+    @staticmethod
+    def set_block_label(group_no, material_name, p, meshsize_if_no_automesh, incircuit='<None>', turns=0, automesh=True, magdir=0):
+        femm.mi_addblocklabel(p[0],p[1])
+        femm.mi_selectlabel(p[0],p[1])
+        femm.mi_setblockprop(material_name, automesh, meshsize_if_no_automesh, incircuit, magdir, group_no, turns)
+        femm.mi_clearselected()
+
     def add_block_labels_static_solver(self, fraction=1):
         # add_block_labels_static_solver is implemented with the new general DPNV winding implementation
-        im = self.im
 
         SERIES_CONNECTED = 1
         PARALLEL_CONNECTED = 0
 
-        if self.im.fea_config_dict['femm.Coarse_Mesh']==True: # Coarse mesh
-            if self.im.fea_config_dict['femm.Coarse_Mesh_Level'] == 2:
+        if self.acm_variant.template.fea_config_dict['femm.Coarse_Mesh']==True: # Coarse mesh
+            if self.acm_variant.template.fea_config_dict['femm.Coarse_Mesh_Level'] == 2:
                 MESH_SIZE_ALUMINUM = 2 * 6    # 3
                 MESH_SIZE_STEEL    = 2 * 6    # 4
                 MESH_SIZE_AIR      = 2 * 0.75 # 0.5 
                 MESH_SIZE_COPPER   = 2 * 10   # 8
-            elif self.im.fea_config_dict['femm.Coarse_Mesh_Level'] == 3:
+            elif self.acm_variant.template.fea_config_dict['femm.Coarse_Mesh_Level'] == 3:
                 MESH_SIZE_ALUMINUM = 1 * 6    # 3
                 MESH_SIZE_STEEL    = 1 * 6    # 4
                 MESH_SIZE_AIR      = 1 * 0.75 # 0.5 
@@ -169,617 +143,246 @@ class FEMM_SlidingMesh(object):
             MESH_SIZE_AIR      = 0.5 
             MESH_SIZE_COPPER   = 8
 
-        def block_label(group_no, material_name, p, meshsize_if_no_automesh, incircuit='<None>', turns=0, automesh=True, magdir=0):
-            femm.mi_addblocklabel(p[0],p[1])
-            femm.mi_selectlabel(p[0],p[1])
-            femm.mi_setblockprop(material_name, automesh, meshsize_if_no_automesh, incircuit, magdir, group_no, turns)
-            femm.mi_clearselected()
+        GP = self.acm_variant.template.d['GP']
 
-        # air region @225deg
-        X = Y = -(im.Radius_OuterRotor+0.5*im.Length_AirGap) / 1.4142135623730951
-        block_label(9, 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
+        # Air region (Stator)
+        X, Y = -(GP['mm_r_or'].value+5*EPS), 0
+        self.set_block_label(9, 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
+        # Air region (Rotor)
+        X, Y =   GP['mm_r_si'].value-5*EPS, 0
+        self.set_block_label(9, 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
 
         # # Air Gap Boundary for Rotor Motion #2
-        # block_label(9, '<No Mesh>',   (0, im.Radius_OuterRotor+0.5*im.Length_AirGap), 5, automesh=self.bool_automesh)
-        # block_label(9, 'Air',         (0, im.Radius_OuterRotor+0.7*im.Length_AirGap), 0.5, automesh=self.bool_automesh)
-        # block_label(9, 'Air',         (0, im.Radius_OuterRotor+0.3*im.Length_AirGap), 0.5, automesh=self.bool_automesh)
+        # self.set_block_label(9, '<No Mesh>',   (0, im.Radius_OuterRotor+0.5*im.Length_AirGap), 5, automesh=self.bool_automesh)
+        # self.set_block_label(9, 'Air',         (0, im.Radius_OuterRotor+0.7*im.Length_AirGap), 0.5, automesh=self.bool_automesh)
+        # self.set_block_label(9, 'Air',         (0, im.Radius_OuterRotor+0.3*im.Length_AirGap), 0.5, automesh=self.bool_automesh)
 
 
         # shaft
         if fraction == 1:
-            block_label(102, '<No Mesh>',         (0, 0),  20)
-            # block_label(101, 'Air',         (0, 0),  10, automesh=True) # for deeply-saturated rotor yoke
+            self.set_block_label(102, '<No Mesh>',         (0, 0),  20)
+            # self.set_block_label(101, 'Air',         (0, 0),  10, automesh=True) # for deeply-saturated rotor yoke
 
         # Iron Core @225deg
-        if 'M19' in self.im.spec_input_dict['Steel']:
+        if 'M19' in self.acm_variant.template.spec_input_dict['Steel']:
             steel_name = 'M19Gauge29'
-        elif self.im.spec_input_dict['Steel'] == 'M15':
+        elif self.acm_variant.template.spec_input_dict['Steel'] == 'M15':
             steel_name = 'My M-15 Steel' 
-        elif self.im.spec_input_dict['Steel'] == 'Arnon5':
+        elif self.acm_variant.template.spec_input_dict['Steel'] == 'Arnon5':
             steel_name = 'Arnon5-final'
-        X = Y = -(im.Radius_Shaft+EPS*10) / 1.4142135623730951
-        block_label(100, steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
-        X = Y = -(0.5*(im.Radius_InnerStatorYoke+im.Radius_OuterStatorYoke)) / 1.4142135623730951
-        block_label(10, steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
+        X, Y = -(GP['mm_r_ri'].value + 0.5*GP['mm_d_ri'].value), 0
+        self.set_block_label(100, steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
+        X, Y = (0.5*(GP['mm_r_si'].value + GP['mm_r_os'].value)), 0
+        self.set_block_label(10, steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
+
+        # Rotor Magnet
+        THETA = GP['deg_alpha_rm'].value * 0.5 / 180 * np.pi
+        R = GP['mm_r_or'].value - 0.5*GP['mm_d_rp'].value
+        femm.mi_getmaterial('N40')
+        for _ in range(2*self.acm_variant.template.SI['p']):
+            X, Y = R*np.cos(THETA), R*np.sin(THETA)
+            self.set_block_label(101, 'N40', (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh, magdir=THETA/np.pi*180 + _%2*180)
+            deg_alpha_rp = 360 / (2*self.acm_variant.template.SI['p'])
+            THETA += deg_alpha_rp / 180 * np.pi
 
         # Circuit Configuration
         # Rotor Winding
-        if fraction == 1:
-            # 4 pole Pole-Specific Rotor Winding 
-
-            # R = 0.5*(im.Location_RotorBarCenter + im.Location_RotorBarCenter2)
-            R = im.Location_RotorBarCenter # Since 5/23/2019
-            angle_per_slot = 2*pi/im.Qr
-            THETA_BAR = pi - angle_per_slot
-
-            for i in range(self.rotor_slot_per_pole):
-                circuit_name = 'r%s'%(self.rotor_phase_name_list[i])
-
-                if self.flag_static_solver == True: #self.freq == 0: # Static FEA
-                    femm.mi_addcircprop(circuit_name, self.dict_rotor_current_function[i](0.0), SERIES_CONNECTED)
-                    # print self.dict_rotor_current_function[i](0.0)
-                else:  # Eddy Current FEA (with multi-phase 4-bar cage... haha this is practically nothing)
-                    femm.mi_addcircprop(circuit_name, 0, PARALLEL_CONNECTED) # PARALLEL for PS circuit
-
-                THETA_BAR += angle_per_slot
-
-                if True:
-                    # The general implmentation of any pole PS rotor winding
-                    for j in range(im.DriveW_poles):
-                        THETA = THETA_BAR + angle_per_slot*j*self.rotor_slot_per_pole
-                        X = R*cos(THETA); Y = R*sin(THETA)
-                        if j % 2 == 0:
-                            block_label(101, 'Aluminum', (X, Y), MESH_SIZE_ALUMINUM, automesh=self.bool_automesh, incircuit=circuit_name, turns=1)
-                        else:
-                            block_label(101, 'Aluminum', (X, Y), MESH_SIZE_ALUMINUM, automesh=self.bool_automesh, incircuit=circuit_name, turns=-1)
-
-                elif im.DriveW_poles==4:
-                    # The explict implementation only working for 4 pole PS rotor winding
-    
-                    THETA = THETA_BAR
-                    X = R*cos(THETA); Y = R*sin(THETA)
-                    block_label(101, 'Aluminum', (X, Y), MESH_SIZE_ALUMINUM, automesh=self.bool_automesh, incircuit=circuit_name, turns=1)
-
-                    THETA = THETA_BAR + angle_per_slot*self.rotor_slot_per_pole
-                    X = R*cos(THETA); Y = R*sin(THETA)
-                    block_label(101, 'Aluminum', (X, Y), MESH_SIZE_ALUMINUM, automesh=self.bool_automesh, incircuit=circuit_name, turns=-1)
-
-                    THETA = THETA_BAR + angle_per_slot*2*self.rotor_slot_per_pole
-                    X = R*cos(THETA); Y = R*sin(THETA)
-                    block_label(101, 'Aluminum', (X, Y), MESH_SIZE_ALUMINUM, automesh=self.bool_automesh, incircuit=circuit_name, turns=1)
-
-                    THETA = THETA_BAR + angle_per_slot*3*self.rotor_slot_per_pole
-                    X = R*cos(THETA); Y = R*sin(THETA)
-                    block_label(101, 'Aluminum', (X, Y), MESH_SIZE_ALUMINUM, automesh=self.bool_automesh, incircuit=circuit_name, turns=-1)
-
-        elif fraction == 4 or fraction == 2:
-            # 2 pole Pole-Specific Rotor Winding with fraction
-            # poly-four-bar-Cage + no bearing current excitated <=> pole specific winding 
-
-            # R = 0.5*(im.Location_RotorBarCenter + im.Location_RotorBarCenter2)
-            R = im.Location_RotorBarCenter # Since 5/23/2019
-            angle_per_slot = 2*pi/im.Qr
-            THETA_BAR = pi - angle_per_slot + EPS # add EPS for the half bar
-
-            for i in range(self.rotor_slot_per_pole):
-                circuit_name = 'r%s'%(self.rotor_phase_name_list[i])
-                # Eddy Current FEA (with multi-phase 4-bar cage behave the same with PS rotor winding when no bearing current is excited!
-                femm.mi_addcircprop(circuit_name, 0, PARALLEL_CONNECTED) # PARALLEL for PS circuit (valid only if there is no 2-pole field)
-
-                THETA_BAR += angle_per_slot
-
-                THETA = THETA_BAR
-                X = R*cos(THETA); Y = R*sin(THETA)
-                block_label(101, 'Aluminum', (X, Y), MESH_SIZE_ALUMINUM, automesh=self.bool_automesh, incircuit=circuit_name, turns=1) # rA+ ~ rH+
-
-                if fraction == 2:
-                    THETA = THETA_BAR + angle_per_slot*self.rotor_slot_per_pole
-                    X = R*cos(THETA); Y = R*sin(THETA)
-                    block_label(101, 'Aluminum', (X, Y), MESH_SIZE_ALUMINUM, automesh=self.bool_automesh, incircuit=circuit_name, turns=-1) # rA- However, this turns=-1 is not effective for PARALLEL_CONNECTED circuit
-
-            # the other half bar 
-            # THETA_BAR += angle_per_slot
-            THETA = THETA + angle_per_slot - 2*EPS
-            X = R*cos(THETA); Y = R*sin(THETA)
-            block_label(101, 'Aluminum', (X, Y), MESH_SIZE_ALUMINUM, automesh=self.bool_automesh, incircuit='r%s'%(self.rotor_phase_name_list[0]), turns=-1) # However, this turns=-1 is not effective for PARALLEL_CONNECTED circuit
+        pass
 
         # Stator Winding
-        npb = im.wily.number_parallel_branch
-        nwl = im.wily.number_winding_layer # number of windign layers 
-        if self.flag_static_solver == True: #self.freq == 0: 
-            # static solver
-            femm.mi_addcircprop('U-GrpAC', self.dict_stator_current_function[0](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('V-GrpAC', self.dict_stator_current_function[1](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('W-GrpAC', self.dict_stator_current_function[2](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('U-GrpBD', self.dict_stator_current_function[3](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('V-GrpBD', self.dict_stator_current_function[4](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('W-GrpBD', self.dict_stator_current_function[5](0.0), SERIES_CONNECTED)
-        else: # eddy current solver
-            # if im.fea_config_dict['DPNV_separate_winding_implementation'] == True or im.fea_config_dict['DPNV'] == False:
-            if im.spec_input_dict['DPNV_or_SEPA'] == False:
-                # either a separate winding or a DPNV winding implemented as a separate winding
-                ampD = im.DriveW_CurrentAmp/npb
-                ampB = im.BeariW_CurrentAmp
-            else:
-                # case: DPNV as an actual two layer winding
-                ampD = im.DriveW_CurrentAmp/npb
-                ampB = ampD
+        EX = self.acm_variant.template.d['EX']
+        wily = EX['wily']
+        npb = wily.number_parallel_branch
+        nwl = wily.number_winding_layer # number of windign layers 
+        ampD = EX['DriveW_CurrentAmp']/npb
+        ampB = EX['BeariW_CurrentAmp']
+        turnsD = EX['DriveW_zQ']/nwl
+        turnsB = EX['BeariW_zQ']/nwl
 
-            if im.wily.CommutatingSequenceD == 1:
-                MyCommutatingSequence = ['-', '+'] # 2 pole
-            else:
-                # raise
-                MyCommutatingSequence = ['+', '-'] # 4 pole legacy
+        # static solver
+        omegaDrive = 2*np.pi*self.acm_variant.template.d['EX']['DriveW_Freq']
+        omegaBeari = 2*np.pi*self.acm_variant.template.d['EX']['BeariW_Freq']
+        phase_shift_drive = -120 if wily.CommutatingSequenceD == 1 else 120
+        phase_shift_beari = -120 if wily.CommutatingSequenceB == 1 else 120
+        self.dict_stator_current_function = []
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=-ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=-ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=-ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=+ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=+ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=+ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
 
-            femm.mi_addcircprop('dU', '%g'                             %(ampD), SERIES_CONNECTED)
-            femm.mi_addcircprop('dV', '%g*(-0.5%sI*0.8660254037844386)'%(ampD, MyCommutatingSequence[0]), SERIES_CONNECTED)
-            femm.mi_addcircprop('dW', '%g*(-0.5%sI*0.8660254037844386)'%(ampD, MyCommutatingSequence[1]), SERIES_CONNECTED)
-            femm.mi_addcircprop('bU', '%g'                             %(ampB), SERIES_CONNECTED)
-            femm.mi_addcircprop('bV', '%g*(-0.5%sI*0.8660254037844386)'%(ampB, MyCommutatingSequence[0]), SERIES_CONNECTED)
-            femm.mi_addcircprop('bW', '%g*(-0.5%sI*0.8660254037844386)'%(ampB, MyCommutatingSequence[1]), SERIES_CONNECTED)
+        femm.mi_addcircprop('U-GrpAC', self.dict_stator_current_function[0](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('V-GrpAC', self.dict_stator_current_function[1](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('W-GrpAC', self.dict_stator_current_function[2](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('U-GrpBD', self.dict_stator_current_function[3](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('V-GrpBD', self.dict_stator_current_function[4](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('W-GrpBD', self.dict_stator_current_function[5](0.0), SERIES_CONNECTED)
 
-            # if fraction == 1: # I thought PS can be realized in FEMM but I was wrong, this fraction==1 case should be deleted!
-            #     # femm.mi_addcircprop('bA', '%g'                            %(im.BeariW_CurrentAmp), SERIES_CONNECTED)
-            #     # femm.mi_addcircprop('bB', '%g*(-0.5+I*0.8660254037844386)'%(im.BeariW_CurrentAmp), SERIES_CONNECTED)
-            #     # femm.mi_addcircprop('bC', '%g*(-0.5-I*0.8660254037844386)'%(im.BeariW_CurrentAmp), SERIES_CONNECTED)
-            #     femm.mi_addcircprop('bU', '%g'                             %(ampB), SERIES_CONNECTED)
-            #     femm.mi_addcircprop('bV', '%g*(-0.5%sI*0.8660254037844386)'%(ampB, MyCommutatingSequence[0]), SERIES_CONNECTED)
-            #     femm.mi_addcircprop('bW', '%g*(-0.5%sI*0.8660254037844386)'%(ampB, MyCommutatingSequence[1]), SERIES_CONNECTED)
-            # elif fraction == 4 or fraction == 2: # no bearing current
-            #     femm.mi_addcircprop('bU', 0, SERIES_CONNECTED)
-            #     femm.mi_addcircprop('bV', 0, SERIES_CONNECTED)
-            #     femm.mi_addcircprop('bW', 0, SERIES_CONNECTED)
+        Qs = self.acm_variant.template.SI['Qs']
 
         # dict_dir = {'+':1, '-':-1} # wrong (not consistent with JMAG)
         dict_dir = {'+':-1, '-':1, 'o':0}
-        R = 0.5*(im.Radius_OuterRotor + im.Radius_InnerStatorYoke)
-        angle_per_slot = 2*pi/im.Qs
+        R = GP['mm_r_si'].value + 0.8 * GP['mm_d_st'].value
+        angle_per_slot = 2*np.pi/Qs
 
         # X layer winding's blocks
-        THETA = - angle_per_slot + 0.5*angle_per_slot - 3.0/360 # This 3 deg must be less than 360/Qs/2，取这么大是为了在GUI上看得清楚点。
+        ''' TODO Need to make sure the block is inside the coil object
+        '''
+        self.acm_variant.coils.innerCoord
+        OFFSET = 2 / 180 * np.pi
+        THETA = - angle_per_slot + 0.5*angle_per_slot - OFFSET # This 3 deg must be less than 360/Qs/2，取这么大是为了在GUI上看得清楚点。
         count = 0
         # for phase, up_or_down in zip(im.l_rightlayer1,im.l_rightlayer2):
-        for phase, up_or_down, AC_or_BD in zip(im.wily.layer_X_phases, im.wily.layer_X_signs, im.wily.grouping_AC):
+        for phase, up_or_down, AC_or_BD in zip(wily.layer_X_phases, wily.layer_X_signs, wily.grouping_AC):
             # circuit_name = 'd' + phase
             circuit_name = phase + '-Grp' + ('AC' if AC_or_BD else 'BD')
             THETA += angle_per_slot
-            X = R*cos(THETA); Y = R*sin(THETA)
+            X = R*np.cos(THETA); Y = R*np.sin(THETA)
             count += 1
             if fraction == 4:
-                if not (count > im.Qs*0.5+EPS and count <= im.Qs*0.75+EPS): 
+                if not (count > Qs*0.5+EPS and count <= Qs*0.75+EPS): 
                     continue
             if fraction == 2:
-                if not (count > im.Qs*0.5+EPS): 
+                if not (count > Qs*0.5+EPS): 
                     continue
             # if phase == 'U':
-            block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, automesh=self.bool_automesh, incircuit=circuit_name, turns=im.DriveW_zQ/nwl*dict_dir[up_or_down])
-        #     print('|||', circuit_name, phase, up_or_down, AC_or_BD, X, Y)
-        # print(im.wily.grouping_AC)
-        # print('End of X layer')
+            self.set_block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsD*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
 
         # Y layer winding's blocks
         if fraction == 1:
-            THETA = - angle_per_slot + 0.5*angle_per_slot + 3.0/360
+            THETA = - angle_per_slot + 0.5*angle_per_slot + OFFSET
 
-            grouping_AC_of_Y_layer = winding_layout.infer_Y_layer_grpAC_from_X_layer_and_coil_pitch_y(im.wily.grouping_AC, im.wily.coil_pitch_y)
-            # print('-'*100)
-            # print(im.wily.grouping_AC)
-            # print(grouping_AC_of_Y_layer)
-            # quit()
-            # for phase, up_or_down in zip(im.l_leftlayer1,im.l_leftlayer2):
-            for phase, up_or_down, AC_or_BD in zip(im.wily.layer_Y_phases, im.wily.layer_Y_signs, grouping_AC_of_Y_layer):
+            grouping_AC_of_Y_layer = winding_layout.infer_Y_layer_grpAC_from_X_layer_and_coil_pitch_y(wily.grouping_AC, wily.coil_pitch_y)
+            for phase, up_or_down, AC_or_BD in zip(wily.layer_Y_phases, wily.layer_Y_signs, grouping_AC_of_Y_layer):
                 # circuit_name = 'b' + phase
                 circuit_name = phase + '-Grp' + ('AC' if AC_or_BD else 'BD')
                 THETA += angle_per_slot
-                X = R*cos(THETA); Y = R*sin(THETA)
+                X = R*np.cos(THETA); Y = R*np.sin(THETA)
 
-                # if self.im.fea_config_dict['DPNV'] == True: 
-                # else： # separate winding (e.g., Chiba's)
-                # if phase == 'U':
-                block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, automesh=self.bool_automesh, incircuit=circuit_name, turns=im.BeariW_turns/nwl*dict_dir[up_or_down])
-            #     print('|||', circuit_name, phase, up_or_down, AC_or_BD, X, Y)
-            # print(grouping_AC_of_Y_layer)
-            # print('End of Y layer')
+                self.set_block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsB*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
 
-        elif fraction == 4 or fraction == 2:
-            # 危险！FEMM默认把没有设置incircuit的导体都在无限远短接在一起——也就是说，你可能把定子悬浮绕组也短接到鼠笼上去了！
-            # 所以，一定要设置好悬浮绕组，而且要用serial-connected，电流给定为 0 A。
-            THETA = - angle_per_slot + 0.5*angle_per_slot + 3.0/360
-            count = 0
-            # for phase, up_or_down in zip(im.l_leftlayer1,im.l_leftlayer2):
-            for phase, up_or_down in zip(im.wily.layer_Y_phases, im.wily.layer_Y_signs):
-                circuit_name = 'b' + phase
-                THETA += angle_per_slot
-                X = R*cos(THETA); Y = R*sin(THETA)
-                count += 1
-                if fraction == 4:
-                    if not (count > im.Qs*0.5+EPS and count <= im.Qs*0.75+EPS): 
-                        continue
-                elif fraction == 2:
-                    if not (count > im.Qs*0.5+EPS): 
-                        continue
-                block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, automesh=self.bool_automesh, incircuit=circuit_name, turns=im.BeariW_turns/nwl*dict_dir[up_or_down])
+        # 危险！FEMM默认把没有设置incircuit的导体都在无限远短接在一起——也就是说，你可能把定子悬浮绕组也短接到鼠笼上去了！
+        # 所以，一定要设置好悬浮绕组，而且要用serial-connected，电流给定为 0 A。
+
+
+    def add_sliding_band(self, deg_innerAngle, deg_OuterAngle=0, fraction=1):
+        # if self.deg_per_step != 0.0:
+        #     # 之前用的方法是打开上一个FEM文件，然后将其模型旋转deg_per_step，用不到rotor_position_in_deg的！
+        #     # 当然，我们也试过AirGapBoundary（David Meeker推荐的），转动转子不需要重复剖分，但是计算出来的力不准（转矩是准的）
+        #     # 现在，我们打开在0位置的fem文件，然后转动，saveas。这样，就不用不断地打开文件了
+        #     femm.mi_selectgroup(100) # this only select the block labels
+        #     femm.mi_selectgroup(101)
+        #     femm.mi_selectcircle(0,0,self.acm_variant.template.d['GP']['mm_r_or'].value+EPS,SELECT_ALL) # this selects the nodes, segments, arcs
+        #     femm.mi_moverotate(0,0, self.deg_per_step)
+        #     # femm.mi_zoomnatural()
+
+        GP = self.acm_variant.template.d['GP']
+        Point_Stator = [GP['mm_r_si'].value - 0.3*GP['mm_d_fixed_air_gap'].value, 0]
+        Point_Rotor  = [GP['mm_r_si'].value - 0.6*GP['mm_d_fixed_air_gap'].value, 0]
+        self.drawArc([0,0], Point_Stator, [-Point_Stator[0], Point_Stator[1]])
+        self.drawArc([0,0],               [-Point_Stator[0], Point_Stator[1]], Point_Stator)
+        self.drawArc([0,0], Point_Rotor,  [-Point_Rotor[0], Point_Rotor[1]])
+        self.drawArc([0,0],               [-Point_Rotor[0], Point_Rotor[1]], Point_Rotor)
+
+        # sliding band is implemented as anti-... in FEMM
+        femm.mi_addboundprop('WholeModelSlidingBand', 0,0,0, 0,0,0, 0,0, 6,deg_innerAngle,deg_OuterAngle) # Periodic Air Gap (see https://www.femm.info/wiki/slidingbandbenchmark)
+        # 注意圆弧分成两段来画了
+        femm.mi_selectarcsegment(0,  Point_Stator[0])
+        femm.mi_setarcsegmentprop(1, "WholeModelSlidingBand", False, 137) # maxseg = 1
+        femm.mi_clearselected()
+        femm.mi_selectarcsegment(0, -Point_Stator[0])
+        femm.mi_setarcsegmentprop(1, "WholeModelSlidingBand", False, 137) # maxseg = 1
+        femm.mi_clearselected()
+        femm.mi_selectarcsegment(0,  Point_Rotor[0])
+        femm.mi_setarcsegmentprop(1, "WholeModelSlidingBand", False, 137) # maxseg = 1
+        femm.mi_clearselected()
+        femm.mi_selectarcsegment(0, -Point_Rotor[0])
+        femm.mi_setarcsegmentprop(1, "WholeModelSlidingBand", False, 137) # maxseg = 1
+        femm.mi_clearselected()
+        self.set_block_label(102, '<No Mesh>',         (0, 0.5*Point_Stator[0]+0.5*Point_Rotor[0]),  20)
 
         # Boundary Conditions 
         # femm.mi_makeABC() # open boundary
         if fraction == 1:
             femm.mi_addboundprop('BC:A=0', 0,0,0, 0,0,0,0,0,0,0,0)
 
-            femm.mi_selectarcsegment(0,-im.Radius_OuterStatorYoke)
+            femm.mi_selectarcsegment(0,-GP['mm_r_os'].value)
             femm.mi_setarcsegmentprop(20, "BC:A=0", False, 10) # maxseg = 20 deg (only this is found effective)
             femm.mi_clearselected()
-            femm.mi_selectarcsegment(0,im.Radius_OuterStatorYoke)
+            femm.mi_selectarcsegment(0,GP['mm_r_os'].value)
             femm.mi_setarcsegmentprop(20, "BC:A=0", False, 10)
             femm.mi_clearselected()
 
-            femm.mi_selectarcsegment(0,-im.Radius_Shaft)
+            femm.mi_selectarcsegment(0,-GP['mm_r_ri'].value)
             femm.mi_setarcsegmentprop(20, "BC:A=0", False, 100)
             femm.mi_clearselected()
-            femm.mi_selectarcsegment(0,im.Radius_Shaft)
+            femm.mi_selectarcsegment(0,GP['mm_r_ri'].value)
             femm.mi_setarcsegmentprop(20, "BC:A=0", False, 100)
             femm.mi_clearselected()
-        elif fraction == 4:
-            femm.mi_addboundprop('BC:A=0', 0,0,0, 0,0,0,0,0,0,0,0)
-
-            X = Y = -(im.Radius_OuterStatorYoke) / 1.4142135623730951
-            femm.mi_selectarcsegment(X, Y)
-            femm.mi_setarcsegmentprop(10, "BC:A=0", False, 10) # maxseg = 20 deg (only this is found effective)
-            femm.mi_clearselected()
-
-            X = Y = -(im.Radius_Shaft) / 1.4142135623730951
-            femm.mi_selectarcsegment(0,-im.Radius_Shaft)
-            femm.mi_setarcsegmentprop(10, "BC:A=0", False, 100)
-            femm.mi_clearselected()
-
-            femm.mi_addboundprop('apbc1', 0,0,0, 0,0,0,0,0, 5, 0,0)
-            femm.mi_addboundprop('apbc2', 0,0,0, 0,0,0,0,0, 5, 0,0)
-            femm.mi_addboundprop('apbc3', 0,0,0, 0,0,0,0,0, 5, 0,0)
-            femm.mi_addboundprop('apbc5', 0,0,0, 0,0,0,0,0, 5, 0,0)
-            femm.mi_addboundprop('apbc6', 0,0,0, 0,0,0,0,0, 5, 0,0) # http://www.femm.info/wiki/periodicboundaries
-
-            R = im.Radius_Shaft+EPS
-            femm.mi_selectsegment(0,-R)
-            femm.mi_selectsegment(-R,0)
-            femm.mi_setsegmentprop("apbc1", 4, False, False, 100)
-            femm.mi_clearselected()
-
-            R = im.Location_RotorBarCenter
-            femm.mi_selectsegment(0,-R)
-            femm.mi_selectsegment(-R,0)
-            femm.mi_setsegmentprop("apbc2", 3, False, False, 100)
-            femm.mi_clearselected()
-
-            R = im.Radius_OuterRotor + 0.25*im.Length_AirGap
-            femm.mi_selectsegment(0,-R)
-            femm.mi_selectsegment(-R,0)
-            femm.mi_setsegmentprop("apbc3", 0.5, False, False, 9)
-            femm.mi_clearselected()
-
-            R = im.Radius_OuterRotor + 0.75*im.Length_AirGap
-            femm.mi_selectsegment(0,-R)
-            femm.mi_selectsegment(-R,0)
-            femm.mi_setsegmentprop("apbc5", 0.5, False, False, 9)
-            femm.mi_clearselected()
-
-            R = im.Radius_OuterStatorYoke-EPS
-            femm.mi_selectsegment(0,-R)
-            femm.mi_selectsegment(-R,0)
-            femm.mi_setsegmentprop("apbc6", 4, False, False, 10)
-            femm.mi_clearselected()
-        elif fraction == 2:
-            femm.mi_addboundprop('BC:A=0', 0,0,0, 0,0,0,0,0,0,0,0)
-
-            X = Y = -(im.Radius_OuterStatorYoke) / 1.4142135623730951
-            femm.mi_selectarcsegment(X, Y)
-            femm.mi_setarcsegmentprop(10, "BC:A=0", False, 10) # maxseg = 20 deg (only this is found effective)
-            femm.mi_clearselected()
-
-            X = Y = -(im.Radius_Shaft) / 1.4142135623730951
-            femm.mi_selectarcsegment(0,-im.Radius_Shaft)
-            femm.mi_setarcsegmentprop(10, "BC:A=0", False, 100)
-            femm.mi_clearselected()
-
-            femm.mi_addboundprop('pbc1', 0,0,0, 0,0,0,0,0, 4, 0,0)
-            femm.mi_addboundprop('pbc2', 0,0,0, 0,0,0,0,0, 4, 0,0)
-            femm.mi_addboundprop('pbc3', 0,0,0, 0,0,0,0,0, 4, 0,0)
-            femm.mi_addboundprop('pbc5', 0,0,0, 0,0,0,0,0, 4, 0,0)
-            femm.mi_addboundprop('pbc6', 0,0,0, 0,0,0,0,0, 4, 0,0)
-
-            R = im.Radius_Shaft+EPS
-            femm.mi_selectsegment(-R,0)
-            femm.mi_selectsegment(+R,0)
-            femm.mi_setsegmentprop("pbc1", 4, False, False, 100)
-            femm.mi_clearselected()
-
-            R = im.Location_RotorBarCenter
-            femm.mi_selectsegment(+R,0)
-            femm.mi_selectsegment(-R,0)
-            femm.mi_setsegmentprop("pbc2", 3, False, False, 100)
-            femm.mi_clearselected()
-
-            R = im.Radius_OuterRotor + 0.25*im.Length_AirGap
-            femm.mi_selectsegment(+R,0)
-            femm.mi_selectsegment(-R,0)
-            femm.mi_setsegmentprop("pbc3", 0.5, False, False, 9)
-            femm.mi_clearselected()
-
-            R = im.Radius_OuterRotor + 0.75*im.Length_AirGap
-            femm.mi_selectsegment(+R,0)
-            femm.mi_selectsegment(-R,0)
-            femm.mi_setsegmentprop("pbc5", 0.5, False, False, 9)
-            femm.mi_clearselected()
-
-            R = im.Radius_OuterStatorYoke-EPS
-            femm.mi_selectsegment(+R,0)
-            femm.mi_selectsegment(-R,0)
-            femm.mi_setsegmentprop("pbc6", 4, False, False, 10)
-            femm.mi_clearselected()
-
-        # Air Gap Boundary for Rotor Motion #3
-        # inner_angle = 0; outer_angle = 0
-        # femm.mi_addboundprop('AGB4RM', 0,0,0, 0,0,0,0,0, 6, inner_angle, outer_angle)
-        # R = im.Radius_OuterRotor+0.6*im.Length_AirGap
-        # femm.mi_selectarcsegment(0,-R)
-        # femm.mi_setarcsegmentprop(5, "AGB4RM", False, 9)
-        # femm.mi_clearselected()
-        # femm.mi_selectarcsegment(0,R)
-        # femm.mi_setarcsegmentprop(5, "AGB4RM", False, 9)
-        # femm.mi_clearselected()
-        # R = im.Radius_OuterRotor+0.4*im.Length_AirGap
-        # femm.mi_selectarcsegment(0,-R)
-        # femm.mi_setarcsegmentprop(5, "AGB4RM", False, 9)
-        # femm.mi_clearselected()
-        # femm.mi_selectarcsegment(0,R)
-        # femm.mi_setarcsegmentprop(5, "AGB4RM", False, 9)
-        # femm.mi_clearselected()
 
         # Other arc-segment-specific mesh constraints are already done in draw_model()
 
-    def save(self):
-        femm.mi_saveas(self.output_file_name + self.list_name[0] + '.fem')
+    def run_transient_study(self):
+        GP = self.acm_variant.template.d['GP']
+        EX = self.acm_variant.template.d['EX']
+
+        deg_pole_span = 180/self.acm_variant.template.SI['p']
+        initial_rotor_position_mech_deg = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + EX['wily'].deg_winding_U_phase_phase_axis_angle + deg_pole_span
+
+        electrical_period = 1/EX['DriveW_Freq']
+        number_of_steps = self.acm_variant.template.fea_config_dict['femm.number_of_steps_2ndTSS']
+        step_size_sec = electrical_period / number_of_steps
+        step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
+
+        self.acm_variant.femm_torque = []
+        self.acm_variant.femm_force  = []
+        self.acm_variant.femm_energy = []
+        self.acm_variant.femm_time   = []
+        self.acm_variant.femm_rotor_position = []
+        for index, RotorAngle_MechanicalDegrees in enumerate(np.arange(  
+                initial_rotor_position_mech_deg, 
+                initial_rotor_position_mech_deg+180+step_size_mech_deg, 
+                step_size_mech_deg)):
+            time = index * step_size_sec
+            self.update_circuit_excitation(time)
+            femm.mi_modifyboundprop('WholeModelSlidingBand', 10, RotorAngle_MechanicalDegrees) # change inner angle to RotorAngle_MechanicalDegrees
+            femm.mi_createmesh()
+            print('[FEMM_SlidingMesh.py] Run FEMMM solver...')
+            femm.mi_analyze(1)
+
+            femm.mi_loadsolution()
+            self.acm_variant.femm_time.append(time)
+            self.acm_variant.femm_rotor_position.append(RotorAngle_MechanicalDegrees)
+            self.acm_variant.femm_torque.append( femm.mo_gapintegral('WholeModelSlidingBand',0) )
+            self.acm_variant.femm_force .append( femm.mo_gapintegral('WholeModelSlidingBand',1) )
+            self.acm_variant.femm_energy.append( femm.mo_gapintegral('WholeModelSlidingBand',2) )
+            femm.mo_close()
+
+        femm.mi_close()
+
+    def get_transient_results(self):
+        pass
+
+    def update_circuit_excitation(self, time):
+        # rotor current
+        # for i in range(self.rotor_slot_per_pole):
+        #     circuit_name = 'r%s'%(self.rotor_phase_name_list[i])
+        #     femm.mi_modifycircprop(circuit_name, 1, self.dict_rotor_current_function[i](time))
+
+        # stator current
+        femm.mi_modifycircprop('U-GrpAC', 1, self.dict_stator_current_function[0](time))
+        femm.mi_modifycircprop('V-GrpAC', 1, self.dict_stator_current_function[1](time))
+        femm.mi_modifycircprop('W-GrpAC', 1, self.dict_stator_current_function[2](time))
+        femm.mi_modifycircprop('U-GrpBD', 1, self.dict_stator_current_function[3](time))
+        femm.mi_modifycircprop('V-GrpBD', 1, self.dict_stator_current_function[4](time))
+        femm.mi_modifycircprop('W-GrpBD', 1, self.dict_stator_current_function[5](time))
+
+    # def save(self):
+        # print('[FEMM_SlidingMesh.py] save to:', self.output_file_name + '.fem')
+        # femm.mi_saveas(self.output_file_name + '.fem')
         # self.model_rotor_rotate(time)
         # femm.mi_saveas(fem_file)
-
-
-    def draw_model(self, fraction=1):
-
-        from shapely.geometry import LineString
-        from shapely.geometry import Point
-
-        im = self.im
-
-        origin = Point(0,0)
-        Stator_Sector_Angle = 2*pi/im.Qs*0.5
-        Rotor_Sector_Angle = 2*pi/im.Qr*0.5
-
-        def mirror_and_copyrotate(Q, Radius, fraction):
-            # Mirror
-            femm.mi_selectcircle(0,0,Radius+EPS,SELECT_ALL) # this EPS is sometime necessary to selece the arc at Radius.
-            femm.mi_mirror2(0,0,-Radius,0, SELECT_ALL)
-
-            # Rotate
-            femm.mi_selectcircle(0,0,Radius+EPS,SELECT_ALL)
-            femm.mi_copyrotate2(0, 0, 360./Q, int(Q)/fraction, SELECT_ALL)
-
-        def create_circle(p, radius):
-            return p.buffer(radius).boundary
-
-        def get_node_at_intersection(c,l): # this works for c and l having one intersection only
-            i = c.intersection(l)
-            # femm.mi_addnode(i.coords[0][0], i.coords[0][1])
-            return i.coords[0][0], i.coords[0][1]
-
-        def draw_arc(p1, p2, angle, maxseg=1):
-            femm.mi_drawarc(p1[0],p1[1],p2[0],p2[1],angle/pi*180,maxseg) # [deg]
-        def add_arc(p1, p2, angle, maxseg=1):
-            femm.mi_addarc(p1[0],p1[1],p2[0],p2[1],angle/pi*180,maxseg) # [deg]
-        def draw_line(p1, p2):
-            femm.mi_drawline(p1[0],p1[1],p2[0],p2[1])
-        def add_line(p1, p2):
-            femm.mi_addsegment(p1[0],p1[1],p2[0],p2[1])
-        def get_postive_angle(p, origin=(0,0)):
-            # using atan loses info about the quadrant
-            return atan(abs((p[1]-origin[1]) / (p[0]-origin[0])))
-
-
-        ''' Part: Stator '''
-        # Draw Points as direction of CCW
-        # P1
-        P1 = (-im.Radius_OuterRotor-im.Length_AirGap, 0)
-
-        # P2
-        # Parallel to Line? No they are actually not parallel
-        P2_angle = Stator_Sector_Angle -im.Angle_StatorSlotOpen*0.5/180*pi
-        k = -tan(P2_angle) # slope
-        l_sector_parallel = LineString([(0,0), (-im.Radius_OuterStatorYoke, -im.Radius_OuterStatorYoke*k)])
-        c = create_circle(origin, im.Radius_OuterRotor+im.Length_AirGap)
-        P2 = get_node_at_intersection(c,l_sector_parallel)
-        draw_arc(P2, P1, get_postive_angle(P2))
-
-        # P3
-        c = create_circle(origin, im.Radius_OuterRotor+im.Length_AirGap+im.Width_StatorTeethHeadThickness)
-        P3 = get_node_at_intersection(c,l_sector_parallel)
-        draw_line(P2, P3)
-
-        # P4
-        c = create_circle(origin, im.Radius_OuterRotor+im.Length_AirGap+im.Width_StatorTeethHeadThickness+im.Width_StatorTeethNeck)
-        l = LineString([(0, 0.5*im.Width_StatorTeethBody), (-im.Radius_OuterStatorYoke, 0.5*im.Width_StatorTeethBody)])
-        P4 = get_node_at_intersection(c,l)
-        draw_line(P3, P4)
-
-        # P5
-        c = create_circle(origin, im.Radius_InnerStatorYoke)
-        P5 = get_node_at_intersection(c,l)
-        draw_line(P4, P5)
-
-        # P6
-        k = -tan(Stator_Sector_Angle)
-        l_sector = LineString([(0,0), (-im.Radius_OuterStatorYoke, -im.Radius_OuterStatorYoke*k)])
-        P6 = get_node_at_intersection(c,l_sector)
-        draw_arc(P6, P5, Stator_Sector_Angle - get_postive_angle(P5))
-
-        # P7
-        c = create_circle(origin, im.Radius_OuterStatorYoke)
-        P7 = get_node_at_intersection(c,l_sector)
-        # draw_line(P6, P7)
-
-        # P8
-        P8 = (-im.Radius_OuterStatorYoke, 0)
-        # draw_arc(P7, P8, Stator_Sector_Angle)
-        # draw_line(P8, P1)
-
-        # P_Coil
-        l = LineString([(P3[0], P3[1]), (P3[0], im.Radius_OuterStatorYoke)])
-        P_Coil = get_node_at_intersection(l_sector, l)
-        draw_line(P4, P_Coil)
-        draw_line(P6, P_Coil)
-
-        mirror_and_copyrotate(im.Qs, im.Radius_OuterStatorYoke, fraction)
-
-
-
-        ''' Part: Rotor '''
-        # Draw Points as direction of CCW
-        # P1
-        # femm.mi_addnode(-im.Radius_Shaft, 0)
-        P1 = (-im.Radius_Shaft, 0)
-
-        # P2
-        c = create_circle(origin, im.Radius_Shaft)
-        # Line: y = k*x, with k = -tan(2*pi/im.Qr*0.5)
-        P2_angle = P3_anlge = Rotor_Sector_Angle
-        k = -tan(P2_angle)
-        l_sector = LineString([(0,0), (-im.Radius_OuterStatorYoke, -im.Radius_OuterStatorYoke*k)])
-        P2 = get_node_at_intersection(c,l_sector)
-        # draw_arc(P2, P1, P2_angle)
-
-        # P3
-        c = create_circle(origin, im.Radius_OuterRotor)
-        P3 = get_node_at_intersection(c,l_sector)
-        # draw_line(P2, P3)
-
-
-        # P4
-        l = LineString([(-im.Location_RotorBarCenter, 0.5*im.Width_RotorSlotOpen), (-im.Radius_OuterRotor, 0.5*im.Width_RotorSlotOpen)])
-        P4 = get_node_at_intersection(c,l)
-        draw_arc(P3, P4, P3_anlge - get_postive_angle(P4))
-
-        # P5
-        p = Point(-im.Location_RotorBarCenter, 0)
-        c = create_circle(p, im.Radius_of_RotorSlot)
-        P5 = get_node_at_intersection(c,l)
-        draw_line(P4, P5)
-
-        # P6
-        # femm.mi_addnode(-im.Location_RotorBarCenter, im.Radius_of_RotorSlot)
-        P6 = (-im.Location_RotorBarCenter, im.Radius_of_RotorSlot)
-        draw_arc(P6, P5, 0.5*pi - get_postive_angle(P5, c.centroid.coords[0]))
-        # constraint to reduce element number
-        femm.mi_selectarcsegment(P6[0], P6[1])
-        femm.mi_setarcsegmentprop(8, "<None>", False, 100)
-        femm.mi_clearselected()
-
-
-        # P7
-        # femm.mi_addnode(-im.Location_RotorBarCenter2, im.Radius_of_RotorSlot2)
-        P7 = (-im.Location_RotorBarCenter2, im.Radius_of_RotorSlot2)
-        draw_line(P6, P7)
-
-        # P8
-        # femm.mi_addnode(-im.Location_RotorBarCenter2+im.Radius_of_RotorSlot2, 0)
-        P8 = (-im.Location_RotorBarCenter2+im.Radius_of_RotorSlot2, 0)
-        draw_arc(P8, P7, 0.5*pi)
-        # draw_line(P8, P1)
-        # constraint to reduce element number
-        femm.mi_selectarcsegment(P8[0], P8[1])
-        femm.mi_setarcsegmentprop(8, "<None>", False, 100)
-        femm.mi_clearselected()
-
-        # P_Bar
-        P_Bar = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
-        draw_arc(P5, P_Bar, get_postive_angle(P5))
-        # add_line(P_Bar, P8)
-
-        mirror_and_copyrotate(im.Qr, im.Radius_OuterRotor, fraction)
-
-        # Boundary
-        if fraction == 1:
-            femm.mi_drawarc(im.Radius_Shaft,0, -im.Radius_Shaft,0, 180, 20) # 边界不要用太小的segment咯！避免剖分过细（这里设置无效）
-            femm.mi_drawarc(-im.Radius_Shaft,0, im.Radius_Shaft,0, 180, 20)
-            femm.mi_drawarc(im.Radius_OuterStatorYoke,0, -im.Radius_OuterStatorYoke,0, 180, 20)
-            femm.mi_drawarc(-im.Radius_OuterStatorYoke,0, im.Radius_OuterStatorYoke,0, 180, 20)
-        elif fraction == 4:
-            femm.mi_drawarc(-im.Radius_Shaft,0, 0, -im.Radius_Shaft, 90, 10)
-            femm.mi_drawarc(-im.Radius_OuterStatorYoke,0, 0, -im.Radius_OuterStatorYoke, 90, 10)
-            femm.mi_selectrectangle(-EPS-im.Radius_Shaft,EPS,EPS-im.Radius_OuterStatorYoke,im.Radius_OuterStatorYoke,SELECT_ALL)
-            femm.mi_selectrectangle(EPS,-EPS-im.Radius_Shaft,im.Radius_OuterStatorYoke,EPS-im.Radius_OuterStatorYoke,SELECT_ALL)
-            femm.mi_deleteselected()
-
-            # between 2rd and 3th quarters
-            p1 = (-im.Location_RotorBarCenter2+im.Radius_of_RotorSlot2, 0)
-            p2 = (-im.Radius_Shaft, 0)
-            add_line(p1, p2)
-            p2 = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
-            add_line(p1, p2)
-            p1 = (-im.Radius_OuterRotor-0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
-            draw_line(p1, p2)
-            p2 = (-im.Radius_OuterRotor-im.Length_AirGap, 0)
-            draw_line(p1, p2)
-            p1 = (-im.Radius_OuterStatorYoke, 0)
-            add_line(p1, p2)
-
-            # between 3rd and 4th quarters
-            p1 = (0, -im.Location_RotorBarCenter2+im.Radius_of_RotorSlot2)
-            p2 = (0, -im.Radius_Shaft)
-            add_line(p1, p2)
-            p2 = (0, -im.Location_RotorBarCenter-im.Radius_of_RotorSlot)
-            add_line(p1, p2)
-            p1 = (0, -im.Radius_OuterRotor-0.5*im.Length_AirGap)
-            draw_line(p1, p2)
-            p2 = (0, -im.Radius_OuterRotor-im.Length_AirGap)
-            draw_line(p1, p2)
-            p1 = (0, -im.Radius_OuterStatorYoke)
-            add_line(p1, p2)
-        elif fraction == 2:
-            femm.mi_drawarc(-im.Radius_Shaft,0, im.Radius_Shaft,0, 180, 15)
-            femm.mi_drawarc(-im.Radius_OuterStatorYoke,0, im.Radius_OuterStatorYoke,0, 180, 15)
-            femm.mi_selectrectangle(EPS-im.Radius_OuterStatorYoke,EPS, -EPS+im.Radius_OuterStatorYoke,EPS+im.Radius_OuterStatorYoke, SELECT_ALL)
-            femm.mi_deleteselected()
-
-            # between 2rd and 3th quarters
-            p1 = (-im.Location_RotorBarCenter2+im.Radius_of_RotorSlot2, 0)
-            p2 = (-im.Radius_Shaft, 0)
-            add_line(p1, p2)
-            p2 = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
-            add_line(p1, p2)
-            p1 = (-im.Radius_OuterRotor-0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
-            draw_line(p1, p2)
-            p2 = (-im.Radius_OuterRotor-im.Length_AirGap, 0)
-            draw_line(p1, p2)
-            p1 = (-im.Radius_OuterStatorYoke, 0)
-            add_line(p1, p2)
-
-            # between 1rd and 4th quarters
-            p1 = (+im.Location_RotorBarCenter2-im.Radius_of_RotorSlot2, 0)
-            p2 = (+im.Radius_Shaft, 0)
-            add_line(p1, p2)
-            p2 = (+im.Location_RotorBarCenter+im.Radius_of_RotorSlot, 0)
-            add_line(p1, p2)
-            p1 = (+im.Radius_OuterRotor+0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
-            draw_line(p1, p2)
-            p2 = (+im.Radius_OuterRotor+im.Length_AirGap, 0)
-            draw_line(p1, p2)
-            p1 = (+im.Radius_OuterStatorYoke, 0)
-            add_line(p1, p2)
-        else:
-            raise Exception('not supported fraction = %d' % (fraction))
-        # Air Gap Boundary for Rotor Motion #1
-        # R = im.Radius_OuterRotor+0.6*im.Length_AirGap
-        # femm.mi_drawarc(R,0, -R,0, 180, 5)
-        # femm.mi_drawarc(-R,0, R,0, 180, 5)
-        # R = im.Radius_OuterRotor+0.4*im.Length_AirGap
-        # femm.mi_drawarc(R,0, -R,0, 180, 5)
-        # femm.mi_drawarc(-R,0, R,0, 180, 5)
 
     def getSketch(self, sketchName, color=None):
         pass
@@ -987,30 +590,6 @@ class FEMM_SlidingMesh(object):
         # R = im.Radius_OuterRotor+0.4*im.Length_AirGap
         # femm.mi_drawarc(R,0, -R,0, 180, 5)
         # femm.mi_drawarc(-R,0, R,0, 180, 5)
-
-    def add_sliding_mesh(self, time):
-        if self.deg_per_step != 0.0:
-            # 之前用的方法是打开上一个FEM文件，然后将其模型旋转deg_per_step，用不到rotor_position_in_deg的！
-            # 当然，我们也试过AirGapBoundary（David Meeker推荐的），转动转子不需要重复剖分，但是计算出来的力不准（转矩是准的）
-            # 现在，我们打开在0位置的fem文件，然后转动，saveas。这样，就不用不断地打开文件了
-            femm.mi_selectgroup(100) # this only select the block labels
-            femm.mi_selectgroup(101)
-            femm.mi_selectcircle(0,0,self.im.Radius_OuterRotor+EPS,SELECT_ALL) # this selects the nodes, segments, arcs
-            femm.mi_moverotate(0,0, self.deg_per_step)
-            # femm.mi_zoomnatural()
-
-        # rotor current
-        for i in range(self.rotor_slot_per_pole):
-            circuit_name = 'r%s'%(self.rotor_phase_name_list[i])
-            femm.mi_modifycircprop(circuit_name, 1, self.dict_rotor_current_function[i](time))
-
-        # stator current
-        femm.mi_modifycircprop('U-GrpAC', 1, self.dict_stator_current_function[0](time))
-        femm.mi_modifycircprop('V-GrpAC', 1, self.dict_stator_current_function[1](time))
-        femm.mi_modifycircprop('W-GrpAC', 1, self.dict_stator_current_function[2](time))
-        femm.mi_modifycircprop('U-GrpBD', 1, self.dict_stator_current_function[3](time))
-        femm.mi_modifycircprop('V-GrpBD', 1, self.dict_stator_current_function[4](time))
-        femm.mi_modifycircprop('W-GrpBD', 1, self.dict_stator_current_function[5](time))
 
 
 
@@ -1379,7 +958,7 @@ class FEMM_SlidingMesh(object):
         zQ                       = self.im.DriveW_zQ
         coil_pitch_yq            = self.im.wily.coil_pitch_y
         Q                        = self.im.Qs
-        # the_radius_m             = 1e-3*(0.5*(self.im.Radius_OuterRotor + self.im.Length_AirGap + self.im.Radius_InnerStatorYoke))
+        # the_radius_m             = 1e-3*(0.5*(self.acm_variant.template.d['GP']['mm_r_or'].value + self.im.Length_AirGap + self.im.Radius_InnerStatorYoke))
         stack_length_m           = 1e-3*self.im.stack_length
         # number_of_phase          = 3
         # Ns                       = zQ * self.im.Qs / (2 * number_of_phase * a) # 3 phase winding
@@ -1393,7 +972,7 @@ class FEMM_SlidingMesh(object):
                                                            # 这样的电流在一个槽内有zQ个，所以Islot=(current_rms_value/a) * zQ
                                                            # 槽电流除以槽内铜的面积，就是电流密度
 
-        stator_inner_diameter_D = 2*(air_gap_length_delta + self.im.Radius_OuterRotor*1e-3)
+        stator_inner_diameter_D = 2*(air_gap_length_delta + self.acm_variant.template.d['GP']['mm_r_or'].value*1e-3)
         slot_height_h_t = 0.5*(self.im.stator_yoke_diameter_Dsyi - stator_inner_diameter_D)
         slot_pitch_pps = np.pi * (stator_inner_diameter_D + slot_height_h_t) / Q
         kov = 1.8 # \in [1.6, 2.0]
@@ -1418,7 +997,7 @@ class FEMM_SlidingMesh(object):
         zQ                       = 1
         coil_pitch_yq            = self.im.Qr/self.im.DriveW_poles
         Q                        = self.im.Qr
-        # the_radius_m             = 1e-3*(self.im.Radius_OuterRotor - self.im.Radius_of_RotorSlot)
+        # the_radius_m             = 1e-3*(self.acm_variant.template.d['GP']['mm_r_or'].value - self.im.Radius_of_RotorSlot)
         stack_length_m           = 1e-3*self.im.stack_length
         # number_of_phase          = self.im.Qr/self.im.DriveW_poles
         # Ns                       = zQ * self.im.Qr / (2 * number_of_phase * a) # turns in series = 2 for 4 pole winding; = 1 for 2 pole winding
@@ -1429,7 +1008,7 @@ class FEMM_SlidingMesh(object):
         Jr = (current_rms_value/a) * zQ / area_copper_S_Cu # 逆变器电流current_rms_value在流入电机时，
 
 
-        rotor_outer_diameter_Dor = 2*(self.im.Radius_OuterRotor*1e-3)
+        rotor_outer_diameter_Dor = 2*(self.acm_variant.template.d['GP']['mm_r_or'].value*1e-3)
         slot_height_h_t = self.im.rotor_slot_height_h_sr
         slot_pitch_pps = np.pi * (rotor_outer_diameter_Dor - slot_height_h_t) / Q
         kov = 1.6 

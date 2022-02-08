@@ -94,6 +94,7 @@ class CrossSectInnerNotchedRotor(object):
         P1 = [r_ri, 0]
 
         r_P2 = r_ri + d_ri + d_rp
+        # print('[CrossSectInnerNotchedRotor.py] DEBUG: ', r_P2, mm_r_or)
         P2 = [r_P2, 0]
 
         alpha_P3 = alpha_rp - alpha_rm
@@ -138,6 +139,9 @@ class CrossSectInnerNotchedRotor(object):
                         list_segments += drawer.drawLine(P5_CCW, P2)
                     for i in range(2*p):
                         draw_fraction(list_segments, iPark(P2, i*alpha_rp), iPark(P3, i*alpha_rp), iPark(P4, i*alpha_rp), iPark(P5, i*alpha_rp))
+                    # draw a circle (this is officially suggested)
+                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                    list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
 
                 else:
                     list_segments += drawer.drawLine(P1, P2)

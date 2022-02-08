@@ -11,7 +11,7 @@ mop = acmop.AC_Machine_Optiomization_Wrapper(
     # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
     select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
 
-    project_loc            = fr'D:/DrH/Codes/acmop/_default/',
+    project_loc            = fr'D:/DrH/Codebs/acmop/_default/',
     bool_show_GUI          = True
 )
 
@@ -31,3 +31,14 @@ else:
     else:
         mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5 - visualize swarm data
         # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
+
+
+
+
+''' Interactive variable checking example:
+>>> GP = mop.ad.acm_variant.template.d['GP'] 
+>>> GP['mm_r_ri'].value + GP['mm_d_ri'].value + GP['mm_d_rp'].value 
+46.7464829275686
+>>> GP['mm_r_or'] 
+acmop_parameter(type='derived', name='outer_rotor_radius', value=47.7464829275686, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000130CF961790>)
+'''

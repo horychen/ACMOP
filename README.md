@@ -38,9 +38,14 @@ import utility_json; variant = utility_json.from_json_recursively('p2ps1-Q12y3-0
 variant.build_jmag_project(variant.project_meta_data)
 ```
 
-## TODO
+## TODO (FEMM)
+- There is no need to draw coils smaller than slots in FEMM and this has been causing too many meshes inside the slots, slowing down FEA in FEMM.
+- The sliding band is drawing inside the region of mechanical air gap. Since the sleeve band is not even modeled in FEMM, maybe we should draw sliding band at the middle of the magnetic air gap. I am not sure if this will improve the meshing quality in the air gap.
+- Magnet eddy current is not yet considered.
 
-- The circuit excitation will give wrong terminal voltage results (the electromagnetic performance is correct because the current is correct, though).
+## TODO (JMAG)
+
+- Currently, DPNV winding is implemented as a dual three phase system excited by current source inverter. Therefore, the JMAG circuit's (current source) excitation will give wrong terminal voltage results and the no voltage property is not observed (but the electromagnetic performance is correct because the current is correct).
 - Variable d_rp and d_rs can be larger than d_pm. This is not allowed for using sleeve to retain the magnet. Should add new variable like d_pm_to_iron instead.
 - Upon restarting, the constraints are not applied to the archive. High ripple design or low FRW may take up space in Pareto front.
 - The constraints are fake constraints in current optimization code implementation. For example, if the optimization is re-started from the archive, those designs with FRW<0.75 could dominate other designs even though the constraint should be FRW>0.75.

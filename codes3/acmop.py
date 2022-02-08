@@ -20,7 +20,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
     ''' Derived
     '''
-    output_dir: str = None
+    # output_dir: str = None
     spec_input_dict: dict = None
     fea_config_dict: dict = None
 
@@ -31,7 +31,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         3. Run Pole-specific_winding_with_neutral_plate_the_design_table_generator.py to get a new rotor winding layout and paste the code into winding_layout.py
         4. Update this file with new "select_spec".
         '''
-        self.output_dir, self.spec_input_dict, self.fea_config_dict = \
+        self.spec_input_dict, self.fea_config_dict = \
                 main_utility.load_settings(self.select_spec, self.select_fea_config_dict, 
                                             project_loc=self.project_loc, 
                                             path2SwarmData=self.path2SwarmData)
@@ -43,9 +43,9 @@ class AC_Machine_Optiomization_Wrapper(object):
 
         print('[acmop.py] project_loc   :', self.project_loc)
         print('[acmop.py] path2SwarmData:', self.path2SwarmData)
-        print('[acmop.py] output_dir    :', self.output_dir)
+        print('[acmop.py] output_dir    :', self.fea_config_dict['output_dir'])
 
-        r""" <ACMOP parent dir> = D:/DrH/acmop/
+        r""" <ACMOP parent dir> = D:/DrH/Codes/acmop/
              <Data folder name> = <ACMOP parent dir>/_default/, /_WenboVShapeVernier/, or /_PEMD_2020_swarm_data_collected/_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/
              <Project location> = <Data folder name>
              <path2SwarmData>   = <Project location>/PMSM_Q12p4y1_A/(swarm_data.txt)
@@ -138,11 +138,10 @@ class AC_Machine_Optiomization_Wrapper(object):
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
         self.ad = acm_designer.acm_designer(
-                    self.fea_config_dict, 
-                    self.spec_input_dict, 
-                    self.output_dir, 
                     self.select_spec, 
+                    self.spec_input_dict, 
                     self.select_fea_config_dict,
+                    self.fea_config_dict, 
                     acm_template=acm_template,
                 )
 

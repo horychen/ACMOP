@@ -772,7 +772,7 @@ class swarm_data_container(object):
 
 
 class acm_designer(object):
-    def __init__(self, fea_config_dict, spec_input_dict, output_dir, select_spec, select_fea_config_dict, acm_template=None):
+    def __init__(self, select_spec, spec_input_dict, select_fea_config_dict, fea_config_dict, acm_template=None):
         # spec and acm_template are objects
         self.acm_template = acm_template
         try:
@@ -782,9 +782,10 @@ class acm_designer(object):
             print('[acm_designer.py] DEBUG: spec is None.')
             self.spec = None
 
-        self.fea_config_dict = fea_config_dict
-        self.spec_input_dict = spec_input_dict
-        self.output_dir, self.select_spec, self.select_fea_config_dict = output_dir, select_spec, select_fea_config_dict
+        self.fea_config_dict        = fea_config_dict
+        self.spec_input_dict        = spec_input_dict
+        self.select_spec            = select_spec
+        self.select_fea_config_dict = select_fea_config_dict
 
         # to be used with PYGMO
         self.flag_do_not_evaluate_when_init_pop = False
@@ -798,13 +799,13 @@ class acm_designer(object):
         self.app = None
 
         # 如果文件夹不存在，那就造起来！
-        self.output_dir = self.fea_config_dict['run_folder']
-        if not os.path.isdir(self.output_dir):
-            os.makedirs(self.output_dir)
-        self.dir_csv_output_folder = self.output_dir + 'csv/'
+        output_dir = self.fea_config_dict['output_dir']
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
+        self.dir_csv_output_folder = output_dir + 'csv/'
         if not os.path.isdir(self.dir_csv_output_folder):
             os.makedirs(self.dir_csv_output_folder)
-        self.dir_jsonpickle_folder = self.output_dir + 'jsonpickle/'
+        self.dir_jsonpickle_folder = output_dir + 'jsonpickle/'
         if not os.path.isdir(self.dir_jsonpickle_folder):
             os.makedirs(self.dir_jsonpickle_folder)
 
@@ -816,9 +817,9 @@ class acm_designer(object):
 
         self.folder_to_be_deleted = None
 
-        # if os.path.exists(self.output_dir+'swarm_MOO_log.txt'):
-        #     os.rename(self.output_dir+'swarm_MOO_log.txt', self.output_dir+'swarm_MOO_log_backup.txt')
-        open(self.output_dir+'swarm_MOO_log.txt', 'a').close()
+        # if os.path.exists(output_dir+'swarm_MOO_log.txt'):
+        #     os.rename(output_dir+'swarm_MOO_log.txt', output_dir+'swarm_MOO_log_backup.txt')
+        open(output_dir+'swarm_MOO_log.txt', 'a').close()
 
     def init_logger(self, prefix='pygmo_'):
         # self.logger = utility.myLogger(self.output_dir+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
@@ -828,16 +829,11 @@ class acm_designer(object):
     # Automatic Performance Evaluation (This is just a wraper)
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def evaluate_design(self, acm_template, x_denorm, counter=999, counter_loop=1):
-        # print(acm_template.name)
-        # quit()
         if 'PM' in acm_template.name:
-            # function = self.fea_bearingless_spmsm
-            function = self.fea_wrapper
-            return function(acm_template, x_denorm, counter, counter_loop)
+            return self.fea_wrapper(acm_template, x_denorm, counter, counter_loop)
 
         elif 'IM' in acm_template.name:
-            function = self.fea_bearingless_induction
-            return function(acm_template.obsolete_template, x_denorm, counter, counter_loop)
+            return self.fea_bearingless_induction(acm_template.obsolete_template, x_denorm, counter, counter_loop)
 
         else:
             raise Exception(f'{acm_template.name} is not regognized as a valid machine type.')
@@ -848,110 +844,123 @@ class acm_designer(object):
 
         # 这里应该返回新获得的设计，然后可以获得geometry_dict，然后包括x_denorm的信息方便重构设计。
         motor_design_variant = self.evaluate_design(acm_template, x_denorm, counter, counter_loop)
-        cost_function, f1, f2, f3, FRW, \
-        normalized_torque_ripple, \
-        normalized_force_error_magnitude, \
-        force_error_angle, \
-        project_name, individual_name, \
-        number_current_generation, individual_index,\
-        power_factor, \
-        rated_ratio, \
-        rated_stack_length_mm, \
-        rated_total_loss, \
-        rated_stator_copper_loss_along_stack, \
-        rated_rotor_copper_loss_along_stack, \
-        stator_copper_loss_in_end_turn, \
-        rotor_copper_loss_in_end_turn, \
-        rated_iron_loss, \
-        rated_windage_loss, \
-        str_results = motor_design_variant.results_to_be_unpacked
 
-        # motor_design_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
+        if 'FEMM' in self.select_fea_config_dict:
+            print('femm_torque:', motor_design_variant.femm_torque)
+            print('femm_force :', motor_design_variant.femm_force )
+            print('femm_energy:', motor_design_variant.femm_energy)
 
-        spec_performance_dict = dict()
-        spec_performance_dict['cost_function'] = cost_function
-        spec_performance_dict['f1'] = f1
-        spec_performance_dict['f2'] = f2
-        spec_performance_dict['f3'] = f3
-        spec_performance_dict['FRW'] = FRW 
-        spec_performance_dict['normalized_torque_ripple'] = normalized_torque_ripple
-        spec_performance_dict['normalized_force_error_magnitude'] = normalized_force_error_magnitude
-        spec_performance_dict['force_error_angle'] = force_error_angle
-        spec_performance_dict['project_name'] = project_name
-        spec_performance_dict['individual_name'] = individual_name
-        spec_performance_dict['number_current_generation'] = number_current_generation
-        spec_performance_dict['individual_index'] = individual_index
-        spec_performance_dict['power_factor'] = power_factor
-        spec_performance_dict['rated_ratio'] = rated_ratio
-        spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
-        spec_performance_dict['rated_total_loss'] = rated_total_loss
-        spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
-        spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
-        spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
-        spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
-        spec_performance_dict['rated_iron_loss'] = rated_iron_loss
-        spec_performance_dict['rated_windage_loss'] = rated_windage_loss
-        spec_performance_dict['str_results'] = str_results
+            cost_function, f1, f2, f3, FRW, \
+            normalized_torque_ripple, \
+            normalized_force_error_magnitude, \
+            force_error_angle
 
-        GP = motor_design_variant.template.d['GP']
-        EX = motor_design_variant.template.d['EX']
+        elif 'JMAG' in self.select_fea_config_dict:
 
-        # wily is not json serilizable, so is recordtype type object: acmop_parameters
-        wily = EX['wily']
-        EX['wily'] = {
-            'layer_X_phases': wily.layer_X_phases,
-            'layer_X_signs': wily.layer_X_signs,
-            'coil_pitch_y': wily.coil_pitch_y,
-            'layer_Y_phases': wily.layer_Y_phases,
-            'layer_Y_signs': wily.layer_Y_signs,
-            #
-            'grouping_AC': wily.grouping_AC,
-            'number_parallel_branch': wily.number_parallel_branch,
-            'number_winding_layer': wily.number_winding_layer,
-            #
-            'bool_3PhaseCurrentSource': wily.bool_3PhaseCurrentSource,
-            'CommutatingSequenceD': wily.CommutatingSequenceD,
-            'CommutatingSequenceB': wily.CommutatingSequenceB,
-            #
-            'deg_winding_U_phase_phase_axis_angle': wily.deg_winding_U_phase_phase_axis_angle,
-            #
-            'Qs': wily.Qs,
-            'p': wily.p,
-            'ps': wily.ps,
-            'pr': wily.pr,
-            'SPP': wily.SPP,
-            #
-            'dict_coil_connection': wily.dict_coil_connection,
-        }
-        list_of_GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
-        for parameter_key_val_pair in list_of_GP_as_dict:
-            # print('DEBUG', parameter_key_val_pair)
-            for key, val in parameter_key_val_pair.items():
-                val['calc'] = None # function .calc cannot be serialized 
+            cost_function, f1, f2, f3, FRW, \
+            normalized_torque_ripple, \
+            normalized_force_error_magnitude, \
+            force_error_angle, \
+            project_name, individual_name, \
+            number_current_generation, individual_index,\
+            power_factor, \
+            rated_ratio, \
+            rated_stack_length_mm, \
+            rated_total_loss, \
+            rated_stator_copper_loss_along_stack, \
+            rated_rotor_copper_loss_along_stack, \
+            stator_copper_loss_in_end_turn, \
+            rotor_copper_loss_in_end_turn, \
+            rated_iron_loss, \
+            rated_windage_loss, \
+            str_results = motor_design_variant.results_to_be_unpacked
 
-        big_dict = dict()
-        with open(self.output_dir + self.select_spec + '.json', 'a') as f:
-            big_dict[self.select_spec+f'-gen{number_current_generation}-ind{individual_index}'] = {
-                'Spec inputs'  :         motor_design_variant.template.spec_input_dict,
-                'x_denorm_dict':         motor_design_variant.template.get_x_denorm_dict_from_geometric_parameters(GP),
-                'Geometric parameters':  list_of_GP_as_dict,
-                'Excitations'  :         EX,
-                'Performance'  :         spec_performance_dict
-                # 'Derived'     :            self.spec.spec_derive_dict,
-                # 'Geometry'    : motor_design_variant.spec_geometry_dict,
+            # motor_design_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
+
+            spec_performance_dict = dict()
+            spec_performance_dict['cost_function'] = cost_function
+            spec_performance_dict['f1'] = f1
+            spec_performance_dict['f2'] = f2
+            spec_performance_dict['f3'] = f3
+            spec_performance_dict['FRW'] = FRW 
+            spec_performance_dict['normalized_torque_ripple'] = normalized_torque_ripple
+            spec_performance_dict['normalized_force_error_magnitude'] = normalized_force_error_magnitude
+            spec_performance_dict['force_error_angle'] = force_error_angle
+            spec_performance_dict['project_name'] = project_name
+            spec_performance_dict['individual_name'] = individual_name
+            spec_performance_dict['number_current_generation'] = number_current_generation
+            spec_performance_dict['individual_index'] = individual_index
+            spec_performance_dict['power_factor'] = power_factor
+            spec_performance_dict['rated_ratio'] = rated_ratio
+            spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
+            spec_performance_dict['rated_total_loss'] = rated_total_loss
+            spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
+            spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
+            spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
+            spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
+            spec_performance_dict['rated_iron_loss'] = rated_iron_loss
+            spec_performance_dict['rated_windage_loss'] = rated_windage_loss
+            spec_performance_dict['str_results'] = str_results
+
+            GP = motor_design_variant.template.d['GP']
+            EX = motor_design_variant.template.d['EX']
+
+            # wily is not json serilizable, so is recordtype type object: acmop_parameters
+            wily = EX['wily']
+            EX['wily'] = {
+                'layer_X_phases': wily.layer_X_phases,
+                'layer_X_signs': wily.layer_X_signs,
+                'coil_pitch_y': wily.coil_pitch_y,
+                'layer_Y_phases': wily.layer_Y_phases,
+                'layer_Y_signs': wily.layer_Y_signs,
+                #
+                'grouping_AC': wily.grouping_AC,
+                'number_parallel_branch': wily.number_parallel_branch,
+                'number_winding_layer': wily.number_winding_layer,
+                #
+                'bool_3PhaseCurrentSource': wily.bool_3PhaseCurrentSource,
+                'CommutatingSequenceD': wily.CommutatingSequenceD,
+                'CommutatingSequenceB': wily.CommutatingSequenceB,
+                #
+                'deg_winding_U_phase_phase_axis_angle': wily.deg_winding_U_phase_phase_axis_angle,
+                #
+                'Qs': wily.Qs,
+                'p': wily.p,
+                'ps': wily.ps,
+                'pr': wily.pr,
+                'SPP': wily.SPP,
+                #
+                'dict_coil_connection': wily.dict_coil_connection,
             }
-            f.write(f',\n"{counter}":')
-            try:
-                json.dump(big_dict, f, indent=4)
-            except Exception as e:
-                print(f'[acm_designer.py] [Warning] You might need to clean up .json data file yourself at {self.output_dir}\n'*3)
-                raise e
+            list_of_GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
+            for parameter_key_val_pair in list_of_GP_as_dict:
+                # print('DEBUG', parameter_key_val_pair)
+                for key, val in parameter_key_val_pair.items():
+                    val['calc'] = None # function .calc cannot be serialized 
 
-        utility_json.to_json_recursively(motor_design_variant, motor_design_variant.name, save_here=self.output_dir+'jsonpickle/')
+            big_dict = dict()
+            with open(self.output_dir + self.select_spec + '.json', 'a') as f:
+                big_dict[self.select_spec+f'-gen{number_current_generation}-ind{individual_index}'] = {
+                    'Spec inputs'  :         motor_design_variant.template.spec_input_dict,
+                    'x_denorm_dict':         motor_design_variant.template.get_x_denorm_dict_from_geometric_parameters(GP),
+                    'Geometric parameters':  list_of_GP_as_dict,
+                    'Excitations'  :         EX,
+                    'Performance'  :         spec_performance_dict
+                    # 'Derived'     :            self.spec.spec_derive_dict,
+                    # 'Geometry'    : motor_design_variant.spec_geometry_dict,
+                }
+                f.write(f',\n"{counter}":')
+                try:
+                    json.dump(big_dict, f, indent=4)
+                except Exception as e:
+                    print(f'[acm_designer.py] [Warning] You might need to clean up .json data file yourself at {self.output_dir}\n'*3)
+                    raise e
 
-        EX['wily'] = wily
+            utility_json.to_json_recursively(motor_design_variant, motor_design_variant.name, save_here=self.output_dir+'jsonpickle/')
 
-        # return motor_design_variant
+            EX['wily'] = wily
+
+            # return motor_design_variant
 
         return cost_function, f1, f2, f3, FRW, \
         normalized_torque_ripple, \
@@ -1124,8 +1133,8 @@ class acm_designer(object):
                 raise Exception('[acm_designer] results_to_be_unpacked is None.')
 
         elif 'FEMM' in self.select_fea_config_dict:
-            self.build_femm_project(acm_variant, self.output_dir)
-
+            self.build_femm_project(acm_variant)
+            return acm_variant
         else:
             raise Exception('[acm_designer.py] Wrong string of select_fea_config_dict:', self.select_fea_config_dict)
 
@@ -1208,21 +1217,20 @@ class acm_designer(object):
 
     ''' Create FEMM Project
     '''
-    def build_femm_project(self, acm_variant, output_dir):
+    def build_femm_project(self, acm_variant):
         # Leave the solving task to FEMM
 
         import FEMM_SlidingMesh
         self.toolFEMM = toolFEMM = FEMM_SlidingMesh.FEMM_SlidingMesh(acm_variant)
         toolFEMM.open()
-        toolFEMM.probdef(stack_length=acm_variant.template.d['EX']['mm_template_stack_length'], excitation_frequency=0)
+        toolFEMM.probdef(stack_length=acm_variant.template.d['EX']['mm_template_stack_length'], time_harmonic_study_frequency=0)
 
-        # toolFEMM.vangogh.draw_model()
-        DRAW_SUCCESS = toolFEMM.draw_spmsm(acm_variant)
-        if DRAW_SUCCESS != 1:
-            raise Exception('Drawer failed.')
+        if toolFEMM.draw_spmsm(acm_variant) != 1: raise Exception('Drawer failed.')
 
-        toolFEMM.pre_process()
-        toolFEMM.save()
+        
+        toolFEMM.pre_process(project_file_name=self.acm_variant.template.fea_config_dict['output_dir'] + self.acm_variant.name + '-' + self.acm_variant.ID + '.fem')
+        toolFEMM.run_transient_study()
+        toolFEMM.get_transient_results()
 
 
     ''' BELOW ARE BOPT-PYTHON CODES for BLIM ONLY

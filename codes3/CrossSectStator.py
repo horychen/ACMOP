@@ -118,6 +118,7 @@ class CrossSectInnerRotorStator:
                                              iPark(P4_Mirror, i*alpha_slot_span), 
                                              iPark(P5_Mirror, i*alpha_slot_span), )
                 # raise
+            # draw a circle (this is officially suggested)
             list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
             list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
         else:
@@ -134,10 +135,10 @@ class CrossSectInnerRotorStator:
         # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
         #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
 
-        innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+        self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
         # return [list_segments]
-        return {'innerCoord': innerCoord, 'list_regions':[list_segments], 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])]}
+        return {'innerCoord': self.innerCoord, 'list_regions':[list_segments], 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])]}
 
 def get_area_polygon(a,b,c,d):
     x1, x2, x3, x4 = a[0], b[0], c[0], d[0]
@@ -285,10 +286,10 @@ class CrossSectInnerRotorStatorWinding(object):
             list_segments = []
 
         # 我乱给的
-        innerCoord = ( 0.5*(POpen[0]+P6[0]), 0.5*(POpen[1]+P6[1]))
+        self.innerCoord = ( 0.5*(POpen[0]+P6[0]), 0.5*(POpen[1]+P6[1]))
 
         # return [list_segments]
-        return {'innerCoord': innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
+        return {'innerCoord': self.innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
 
 if __name__ == '__main__':
     import JMAG

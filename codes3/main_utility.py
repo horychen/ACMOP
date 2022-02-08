@@ -38,9 +38,9 @@ def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2Sw
     if project_loc is None:
         project_loc = os.path.abspath(os.path.join(path2SwarmData, '..',))
 
-    fea_config_dict['run_folder'] = path2SwarmData
+    fea_config_dict['output_dir'] = path2SwarmData
 
-    output_dir = fea_config_dict['run_folder'] #[:-1] + r'_json_files/'
+    output_dir = fea_config_dict['output_dir'] #[:-1] + r'_json_files/'
 
     # create output folder only when not post-processing? No, sometimes in post-processing we run FEA simulation.
     if not os.path.exists(output_dir):
@@ -51,7 +51,7 @@ def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2Sw
     # print(spec_input_dict)
     # quit()
 
-    return output_dir, spec_input_dict, fea_config_dict
+    return spec_input_dict, fea_config_dict
 
 def get_sorted_swarm_data_from_the_archive(prob, popsize, path_to_archive, bool_absolute_path=False):
     output_dir_backup = ad.solver.output_dir
