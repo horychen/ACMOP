@@ -419,7 +419,7 @@ class winding_layout_v2(object):
                 else:
                     # fractional slot and q>1
                     self.deg_winding_U_phase_phase_axis_angle = 360/Qs*0.5 * (phase_U_starting_slot_number + self.coil_pitch_y )
-                    msg = '[wily][Warning] This case (q=%g) is not thought thorough, so you must inspect the initial excitation angle and initial rotor position manually to make sure it is id=0 control.'%(q)
+                    msg = '[winding_layout.py] [Warning] This case (q=%g) is not thought thorough, so you must inspect the initial excitation angle and initial rotor position manually to make sure it is id=0 control.'%(q)
                     print(msg)
                     if q>2:
                         raise Exception(msg)

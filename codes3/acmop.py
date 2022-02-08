@@ -163,16 +163,34 @@ class AC_Machine_Optiomization_Wrapper(object):
         # print(x_denorm)
         # raise
 
-        # evaluate design (with json output)
-        cost_function, f1, f2, f3, FRW, \
-            normalized_torque_ripple, \
-            normalized_force_error_magnitude, \
-            force_error_angle = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
+        from pylab import plt, np
 
-        print('[acmop.py] part_evaluation:', cost_function, f1, f2, f3, FRW, \
-        normalized_torque_ripple, \
-        normalized_force_error_magnitude, \
-        force_error_angle)
+        fig, axes = plt.subplots(3)
+
+        for angle in np.arange(-15, 16, 5):
+            self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'] = angle
+            print('User shifts the initial rotor position angle by', self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'], 'deg')
+            motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
+
+            axes[0].plot(motor_design_variant.femm_time, motor_design_variant.femm_torque, label=str(angle))
+            axes[1].plot(motor_design_variant.femm_time, motor_design_variant.femm_force , label=str(angle))
+            axes[2].plot(motor_design_variant.femm_time, motor_design_variant.femm_energy, label=str(angle))
+        plt.legend()
+        plt.show()
+
+
+
+        # if returned is not None:
+        #     # evaluate design (with json output)
+        #     cost_function, f1, f2, f3, FRW, \
+        #         normalized_torque_ripple, \
+        #         normalized_force_error_magnitude, \
+        #         force_error_angle = returned
+
+        #     print('[acmop.py] part_evaluation:', cost_function, f1, f2, f3, FRW, \
+        #     normalized_torque_ripple, \
+        #     normalized_force_error_magnitude, \
+        #     force_error_angle)
 
         print('[acmop.py] Check several things: 1. the winding initial excitation angle; 2. the rotor d-axis initial position should be orthoganal to winding excitation field.')
 

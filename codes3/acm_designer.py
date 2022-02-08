@@ -850,6 +850,8 @@ class acm_designer(object):
             print('femm_force :', motor_design_variant.femm_force )
             print('femm_energy:', motor_design_variant.femm_energy)
 
+            return motor_design_variant
+
             cost_function, f1, f2, f3, FRW, \
             normalized_torque_ripple, \
             normalized_force_error_magnitude, \

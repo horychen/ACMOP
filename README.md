@@ -42,6 +42,7 @@ variant.build_jmag_project(variant.project_meta_data)
 - There is no need to draw coils smaller than slots in FEMM and this has been causing too many meshes inside the slots, slowing down FEA in FEMM.
 - The sliding band is drawing inside the region of mechanical air gap. Since the sleeve band is not even modeled in FEMM, maybe we should draw sliding band at the middle of the magnetic air gap. I am not sure if this will improve the meshing quality in the air gap.
 - Magnet eddy current is not yet considered.
+- Run multiple FEMM instances in parallel to sovle for transient FEA results.
 
 ## TODO (JMAG)
 

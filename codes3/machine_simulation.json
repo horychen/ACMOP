@@ -484,6 +484,8 @@
 
         "femm.Coarse_Mesh": false,
         "femm.deg_per_step": null,
-        "femm.number_of_steps_2ndTSS": 32
+        "femm.MechDeg_IdEqualToNonZeroAngle": 0,
+        "femm.number_cycles_in_2ndTSS": 0.5,
+        "femm.number_of_steps_2ndTSS": 16
     }
 }

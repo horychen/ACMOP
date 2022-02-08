@@ -53,6 +53,7 @@ class FEMM_SlidingMesh(object):
         self.update_circuit_excitation(time=0) # modifying parameter here has no effect
         femm.mi_saveas(project_file_name)
         print('[FEMM_SlidingMesh.py] Save as:', project_file_name)
+        self.project_file_name = project_file_name
 
     def add_material(self):
         # mi_addmaterial('matname', mu x, mu y, H c, J, Cduct, Lam d, Phi hmax, lam fill, LamType, Phi hx, Phi hy, nstr, dwire)
@@ -329,9 +330,10 @@ class FEMM_SlidingMesh(object):
 
         deg_pole_span = 180/self.acm_variant.template.SI['p']
         initial_rotor_position_mech_deg = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + EX['wily'].deg_winding_U_phase_phase_axis_angle + deg_pole_span
+        print('[FEMM_SlidingMesh.py] initial_rotor_position_mech_deg:', initial_rotor_position_mech_deg, 'deg || deg_winding_U_phase_phase_axis_angle:', '', EX['wily'].deg_winding_U_phase_phase_axis_angle)
 
-        electrical_period = 1/EX['DriveW_Freq']
-        number_of_steps = self.acm_variant.template.fea_config_dict['femm.number_of_steps_2ndTSS']
+        electrical_period = self.acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
+        number_of_steps   = self.acm_variant.template.fea_config_dict['femm.number_of_steps_2ndTSS']
         step_size_sec = electrical_period / number_of_steps
         step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
 
@@ -340,24 +342,41 @@ class FEMM_SlidingMesh(object):
         self.acm_variant.femm_energy = []
         self.acm_variant.femm_time   = []
         self.acm_variant.femm_rotor_position = []
-        for index, RotorAngle_MechanicalDegrees in enumerate(np.arange(  
-                initial_rotor_position_mech_deg, 
-                initial_rotor_position_mech_deg+180+step_size_mech_deg, 
-                step_size_mech_deg)):
-            time = index * step_size_sec
-            self.update_circuit_excitation(time)
-            femm.mi_modifyboundprop('WholeModelSlidingBand', 10, RotorAngle_MechanicalDegrees) # change inner angle to RotorAngle_MechanicalDegrees
-            femm.mi_createmesh()
+        for index in range(number_of_steps):
+        # for index, RotorAngle_MechanicalDegrees in enumerate(np.arange(  
+        #         initial_rotor_position_mech_deg, 
+        #         initial_rotor_position_mech_deg+180+step_size_mech_deg, 
+        #         step_size_mech_deg)):
+            time                         = index * step_size_sec
+            RotorAngle_MechanicalDegrees = index * step_size_mech_deg
+            current_sources = self.update_circuit_excitation(time)
+            femm.mi_modifyboundprop('WholeModelSlidingBand', 10, initial_rotor_position_mech_deg+RotorAngle_MechanicalDegrees+self.acm_variant.template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle']) # change inner angle to 
+
+            # if index > 0:
+            #     femm.mi_setprevious(self.project_file_name[:-4] + f'-{index-1:03d}.ans', 1) # 1: must be incremental permeability (because frozen permability means the permeability is fixed).
+            # Starting nonlinear field from previous solution is not possible with current FEMM's function
+            femm.mi_saveas(self.project_file_name[:-4] + f'{index:3d}.fem')
+
+            # femm.mi_createmesh() # no need
             print('[FEMM_SlidingMesh.py] Run FEMMM solver...')
             femm.mi_analyze(1)
 
+            # collect results at: index
             femm.mi_loadsolution()
             self.acm_variant.femm_time.append(time)
             self.acm_variant.femm_rotor_position.append(RotorAngle_MechanicalDegrees)
-            self.acm_variant.femm_torque.append( femm.mo_gapintegral('WholeModelSlidingBand',0) )
-            self.acm_variant.femm_force .append( femm.mo_gapintegral('WholeModelSlidingBand',1) )
-            self.acm_variant.femm_energy.append( femm.mo_gapintegral('WholeModelSlidingBand',2) )
+            torque = femm.mo_gapintegral('WholeModelSlidingBand',0)
+            force  = femm.mo_gapintegral('WholeModelSlidingBand',1)
+            energy = femm.mo_gapintegral('WholeModelSlidingBand',2)
+            self.acm_variant.femm_torque.append( torque )
+            self.acm_variant.femm_force .append( force )
+            self.acm_variant.femm_energy.append( energy )
+            print(f'\t {index}, {time*1000} ms, {RotorAngle_MechanicalDegrees} deg : {torque:.2f}, [{force[0]:.2f}, {force[1]:.2f}], {energy:.2f}', end=' | ')
+            print(' A,'.join(f'{current:.1f}' for current in current_sources), 'A')
             femm.mo_close()
+
+            # save field results for incremental study
+            # femm.mi_saveas('ptemp-acmop.fem')
 
         femm.mi_close()
 
@@ -377,6 +396,15 @@ class FEMM_SlidingMesh(object):
         femm.mi_modifycircprop('U-GrpBD', 1, self.dict_stator_current_function[3](time))
         femm.mi_modifycircprop('V-GrpBD', 1, self.dict_stator_current_function[4](time))
         femm.mi_modifycircprop('W-GrpBD', 1, self.dict_stator_current_function[5](time))
+
+        return [
+            self.dict_stator_current_function[0](time),
+            self.dict_stator_current_function[1](time),
+            self.dict_stator_current_function[2](time),
+            self.dict_stator_current_function[3](time),
+            self.dict_stator_current_function[4](time),
+            self.dict_stator_current_function[5](time),
+        ]
 
     # def save(self):
         # print('[FEMM_SlidingMesh.py] save to:', self.output_file_name + '.fem')
