@@ -485,7 +485,21 @@
         "femm.Coarse_Mesh": false,
         "femm.deg_per_step": null,
         "femm.MechDeg_IdEqualToNonZeroAngle": 0,
+        "femm.number_cycles_in_2ndTSS": 2.0,
+        "femm.number_of_steps_2ndTSS":32,
+        "femm.number_of_parallel_solve": 1
+    },
+
+    "#041 FEMM PMSM Cogging Torque": {
+        "TORQUE_CURRENT_RATIO": 0,
+        "SUSPENSION_CURRENT_RATIO": 0,
+        "which_filter": "VariableSleeveLength",
+        "delete_results_after_calculation": false,
+        "femm.Coarse_Mesh": false,
+        "femm.deg_per_step": null,
+        "femm.MechDeg_IdEqualToNonZeroAngle": 0,
         "femm.number_cycles_in_2ndTSS": 0.5,
-        "femm.number_of_steps_2ndTSS": 16
+        "femm.number_of_steps_2ndTSS": 64,
+        "femm.number_of_parallel_solve": 1
     }
 }

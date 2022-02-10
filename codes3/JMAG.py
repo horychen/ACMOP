@@ -1,7 +1,106 @@
 import win32com.client
 import os, logging
 import numpy as np
+import utility
 EPS=0.01 # mm
+
+
+class data_manager(object):
+
+    def __init__(self):
+        self.basic_info = []
+        self.time_list = []
+        self.TorCon_list = []
+        self.ForConX_list = []
+        self.ForConY_list = []
+        self.ForConAbs_list = []
+
+        self.jmag_loss_list = None
+        self.femm_loss_list = None
+
+    def unpack(self, bool_more_info=False):
+        if bool_more_info:
+            return self.basic_info, self.time_list, self.TorCon_list, self.ForConX_list, self.ForConY_list, self.ForConAbs_list, \
+                self.DisplacementAngle_list, \
+                self.circuit_current(which='GroupACU'), \
+                self.circuit_current(which='GroupACV'), \
+                self.circuit_current(which='GroupACW'), \
+                self.circuit_current(which='GroupBDU'), \
+                self.circuit_current(which='GroupBDV'), \
+                self.circuit_current(which='GroupBDW'), \
+                self.terminal_voltage(which='GroupACU'), \
+                self.terminal_voltage(which='GroupACV'), \
+                self.terminal_voltage(which='GroupACW'), \
+                self.terminal_voltage(which='GroupBDU'), \
+                self.terminal_voltage(which='GroupBDV'), \
+                self.terminal_voltage(which='GroupBDW'), \
+                self.coil_fluxLinkage(which='GroupACU'), \
+                self.coil_fluxLinkage(which='GroupACV'), \
+                self.coil_fluxLinkage(which='GroupACW'), \
+                self.coil_fluxLinkage(which='GroupBDU'), \
+                self.coil_fluxLinkage(which='GroupBDV'), \
+                self.coil_fluxLinkage(which='GroupBDW')
+        else:
+            return self.basic_info, self.time_list, self.TorCon_list, self.ForConX_list, self.ForConY_list, self.ForConAbs_list
+
+    def terminal_voltage(self, which='GroupBDW'): # 2A 2B 2C 4A 4B 4C
+        return self.Current_dict['Terminal%s [Case 1]'%(which)]
+        # 端点电压是相电压吗？应该是，我们在中性点设置了地电位
+
+    def coil_fluxLinkage(self, which='GroupBDW'):
+        return self.FluxLinkage_dict['CircuitCoil%s'%(which)]
+
+    def circuit_current(self, which='GroupBDW'): # 2A 2B 2C 4A 4B 4C
+        return self.Current_dict['CircuitCoil%s'%(which)]
+
+    def get_voltage_and_current(self, number_of_steps_at_steady_state):
+
+        # key = 'GroupBDW' if DPNV_or_SEPA == True else 'Torque'
+        key = 'Default'
+        try:
+            # 4C <- the C-phase of the 4 pole winding
+            mytime  = self.Current_dict['Time(s)'][-number_of_steps_at_steady_state:]
+            voltage =      self.terminal_voltage()[-number_of_steps_at_steady_state:]
+            current =       self.circuit_current(which=key)[-number_of_steps_at_steady_state:]
+        except KeyError as error:
+            raise error
+
+        # if len(mytime) > len(voltage):
+        #     mytime = mytime[:len(voltage)]
+
+        # print len(mytime), len(voltage), number_of_steps_at_steady_state
+        # print len(mytime), len(voltage)
+        # print len(mytime), len(voltage)
+
+        # for access to plot
+        self.myvoltage = voltage
+        self.mycurrent = current
+        self.mytime    = mytime
+
+    def power_factor(self, number_of_steps_at_steady_state, targetFreq=1e3, numPeriodicalExtension=1000):
+        # number_of_steps_at_steady_state: steps corresponding to half the period 
+
+        # for key, val in self.Current_dict.iteritems():
+        #     if 'Terminal' in key:
+        #         print key, val
+        # quit()
+
+        self.get_voltage_and_current(number_of_steps_at_steady_state)
+        mytime  = self.mytime
+        voltage = self.myvoltage
+        current = self.mycurrent
+
+        # from pylab import *
+        # print len(mytime), len(voltage), len(current)
+        # figure()
+        # plot(mytime, voltage)
+        # plot(mytime, current)
+        # show()
+        power_factor, u, i, phase_diff_ui = utility.compute_power_factor_from_half_period(voltage, current, mytime, targetFreq=targetFreq, numPeriodicalExtension=numPeriodicalExtension)
+        self.ui_info = [power_factor, u, i, phase_diff_ui]
+        return power_factor
+
+
 class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBase
     # JMAG Encapsulation for the JMAG Designer of JSOL Corporation.    
     def __init__(self, fea_config_dict, spec_input_dict=None):
@@ -499,7 +598,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             cond.SetValue("FrequencyOrder", "1-50") # Harmonics up to 50th orders 
         # Check CSV reults for iron loss (You cannot check this for Freq study) # CSV and save space
         study.GetStudyProperties().SetValue("CsvOutputPath", dir_csv_output_folder) # it's folder rather than file!
-        study.GetStudyProperties().SetValue("CsvResultTypes", "Torque;Force;LineCurrent;TerminalVoltage;JouleLoss;TotalDisplacementAngle;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss")
+        # study.GetStudyProperties().SetValue("CsvResultTypes", "Torque;Force;LineCurrent;TerminalVoltage;JouleLoss;TotalDisplacementAngle;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss") # old
+        study.GetStudyProperties().SetValue("CsvResultTypes", "Torque;Force;FEMCoilFlux;LineCurrent;TerminalVoltage;JouleLoss;StoredEnergy;TotalDisplacementAngle;Inductance;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss") # new since 2022
         study.GetStudyProperties().SetValue("DeleteResultFiles", acm_variant.template.fea_config_dict['delete_results_after_calculation'])
         # Terminal Voltage/Circuit Voltage: Check for outputing CSV results 
         study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 8, -13)
@@ -800,13 +900,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
                 # Check if it is a distributed windg???
                 if wily.distributed_or_concentrated == False:
-                    print('[inner_rotor_motor.py] Concentrated winding!')
+                    print('[JMAG.py] Concentrated winding!')
                     UVW    = wily.layer_Y_phases[index_leftlayer]
                     UpDown = wily.layer_Y_signs[index_leftlayer]
                 else:
                     # print('Distributed winding.')
                     if wily.layer_Y_phases[index_leftlayer] != UVW:
-                        print('[inner_rotor_motor.py] [Warning] Potential bug in your winding layout detected.')
+                        print('[JMAG.py] [Warning] Potential bug in your winding layout detected.')
                         raise Exception('Bug in winding layout detected.')
                     # 右层导体的电流方向是正，那么与其串联的一个coil_pitch之处的左层导体就是负！不需要再检查l_leftlayer2了~
                     if UpDown == '+': 
@@ -1319,6 +1419,606 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                     + ', \n\t'.join("%s = %s" % item for item in variant_tuple_list) \
                     + '\n' + '--'*10 + '\n- Template:\n\t' \
                     + ', \n\t'.join("%s = %s" % item for item in template_tuple_list)
+
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    # 从硬盘提取数据
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    @staticmethod
+    def add_plots(axeses, dm, title=None, label=None, zorder=None, time_list=None, sfv=None, torque=None, range_ss=None, alpha=0.7):
+
+        info = '%s' % (title)
+        torque_average = sum(torque[-range_ss:])/len(torque[-range_ss:])
+        info += '\nAverage Torque: %g Nm' % (torque_average)
+        # torque error = torque - avg. torque
+        torque_error = np.array(torque) - torque_average
+        ss_max_torque_error = max(torque_error[-range_ss:]), min(torque_error[-range_ss:])
+        # we use  half of peak-to-peak value to compute error rather than use peak-to-peak value
+        normalized_torque_ripple   = 1.0*(ss_max_torque_error[0] - ss_max_torque_error[1]) / torque_average
+        info += '\nNormalized Torque Ripple: %g %%' % (normalized_torque_ripple*100)
+
+        info += '\nAverage Force Mag: %g N'% (sfv.ss_avg_force_magnitude)
+        # we use half of peak-to-peak value to compute error rather than use peak-to-peak value
+        normalized_force_error_magnitude = sfv.normalized_force_error_magnitude
+        info += '\nNormalized Force Error Mag: %g%%, (+)%g%% (-)%g%%' % (normalized_force_error_magnitude*100,
+                                                                    sfv.ss_max_force_err_abs[0]/sfv.ss_avg_force_magnitude*100,
+                                                                    sfv.ss_max_force_err_abs[1]/sfv.ss_avg_force_magnitude*100)
+        # we use peak value to compute error rather than use peak-to-peak value
+        # 跟Eric讨论过后，确定了悬浮力的角度误差不能用峰峰值的一半，而是要用最大值和最小值中绝对值更大的那一个。
+        force_error_angle = sfv.force_error_angle
+        info += '\nMaximum Force Error Angle: %g [deg], (+)%g deg (-)%g deg' % (force_error_angle,
+                                                                    sfv.ss_max_force_err_ang[0],
+                                                                    sfv.ss_max_force_err_ang[1])
+        info += '\nExtra Info:'
+        info += '\n\tAverage Force Vector: (%g, %g) N' % (sfv.ss_avg_force_vector[0], sfv.ss_avg_force_vector[1])
+        info += '\n\tTorque Ripple (Peak-to-Peak): %g Nm'% ( max(torque[-range_ss:]) - min(torque[-range_ss:]))
+        info += '\n\tForce Mag Ripple (Peak-to-Peak): %g N'% (sfv.ss_max_force_err_abs[0] - sfv.ss_max_force_err_abs[1])
+
+        if axeses is not None:
+            # plot for torque and force
+            ax = axeses[0][0]; ax.plot(time_list, torque,                                           alpha=alpha, label=label, zorder=zorder)
+            ax.plot(time_list, np.ones(len(time_list)) * torque_average, 'k-')
+            ax = axeses[0][1]; ax.plot(time_list, sfv.force_abs,                                    alpha=alpha, label=label, zorder=zorder)
+            ax.plot(time_list, sfv.force_x,                                      alpha=alpha, label=label, zorder=zorder)
+            ax.plot(time_list, sfv.force_y,                                      alpha=alpha, label=label, zorder=zorder)
+            ax.plot(time_list, np.ones(len(time_list)) * sfv.ss_avg_force_magnitude, 'k-')
+            ax = axeses[1][0]; ax.plot(time_list, 100*sfv.force_err_abs/sfv.ss_avg_force_magnitude, label=label, alpha=alpha, zorder=zorder)
+            ax = axeses[1][1]; 
+            ax.plot(time_list, sfv.force_err_ang_old_way,                        label=label, alpha=alpha, zorder=zorder)
+            ax.plot(time_list, sfv.force_err_ang_new_way,                        label=label, alpha=alpha, zorder=zorder)
+            ax.plot(time_list, sfv.force_ang,                        label=label, alpha=alpha, zorder=zorder)
+            ax.plot(time_list, np.ones(len(time_list)) * sfv.ss_avg_force_angle, 'k-')
+
+        # plot for visialization of power factor 
+        # dm.get_voltage_and_current(range_ss)
+        # ax = axeses[2][0]; ax.plot(dm.mytime, dm.myvoltage, label=label, alpha=alpha, zorder=zorder)
+        # ax = axeses[2][0]; ax.plot(dm.mytime, dm.mycurrent, label=label, alpha=alpha, zorder=zorder)
+
+        return info, torque_average, normalized_torque_ripple, sfv.ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle
+
+    @staticmethod
+    def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict, femm_solver, acm_variant=None):
+
+        machine_type = acm_variant.template.machine_type
+
+        # Read TranFEAwi2TSS results
+        
+        # logging.getLogger(__name__).debug('Look into: ' + path_prefix)
+
+        # Torque
+        basic_info = []
+        time_list = []
+        TorCon_list = []
+        with open(path_prefix + study_name + '_torque.csv', 'r') as f:
+            count = 0
+            for row in utility.csv_row_reader(f):
+                count +=1
+                if count<=8:
+                    try:
+                        float(row[1])
+                    except:
+                        continue
+                    else:
+                        basic_info.append((row[0], float(row[1])))
+                else:
+                    time_list.append(float(row[0]))
+                    TorCon_list.append(float(row[1]))
+
+        # Force
+        basic_info = []
+        # time_list = []
+        ForConX_list = []
+        ForConY_list = []
+        with open(path_prefix + study_name + '_force.csv', 'r') as f:
+            count = 0
+            for row in utility.csv_row_reader(f):
+                count +=1
+                if count<=8:
+                    try:
+                        float(row[1])
+                    except:
+                        continue
+                    else:
+                        basic_info.append((row[0], float(row[1])))
+                else:
+                    # time_list.append(float(row[0]))
+                    ForConX_list.append(float(row[1]))
+                    ForConY_list.append(float(row[2]))
+        ForConAbs_list = np.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
+
+        # Current
+        key_list = []
+        Current_dict = dict()
+        with open(path_prefix + study_name + '_circuit_current.csv', 'r') as f:
+            count = 0
+            for row in utility.csv_row_reader(f):
+                count +=1
+                if count<=8:
+                    if 'Time' in row[0]: # Time(s)
+                        for key in row:
+                            key_list.append(key)
+                            Current_dict[key] = []
+                    else:
+                        continue
+                else:
+                    for ind, val in enumerate(row):
+                        Current_dict[key_list[ind]].append(float(val))
+        Current_dict['CircuitCoilDefault'] = Current_dict[key_list[-1]]
+        print(key_list)
+
+        # FluxLinkage (2022)
+        key_list = []
+        FluxLinkage_dict = dict()
+        with open(path_prefix + study_name + '_flux_of_fem_coil.csv', 'r') as f:
+            count = 0
+            for row in utility.csv_row_reader(f):
+                count +=1
+                if count<=8:
+                    if 'Time' in row[0]: # Time(s)
+                        for key in row:
+                            key_list.append(key)
+                            FluxLinkage_dict[key] = []
+                    else:
+                        continue
+                else:
+                    for ind, val in enumerate(row):
+                        FluxLinkage_dict[key_list[ind]].append(float(val))
+        FluxLinkage_dict['CircuitCoilDefault'] = FluxLinkage_dict[key_list[-1]]
+
+        # Displacement angle (2022)
+        DisplacementAngle_list = []
+        with open(path_prefix + study_name + '_total_rotational_displacement.csv', 'r') as f:
+            count = 0
+            for row in utility.csv_row_reader(f):
+                count +=1
+                if count<=8:
+                    pass
+                else:
+                    DisplacementAngle_list.append(float(row[1]))
+
+        # Terminal Voltage 
+        new_key_list = []
+        if fea_config_dict['delete_results_after_calculation'] == False:
+            # file name is by individual_name like ID32-2-4_EXPORT_CIRCUIT_VOLTAGE.csv rather than ID32-2-4Tran2TSS_circuit_current.csv
+            fname = path_prefix + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv"
+            # print 'Terminal Voltage - look into:', fname
+            with open(fname, 'r') as f:
+                count = 0
+                for row in utility.csv_row_reader(f):
+                    count +=1
+                    if count==1: # Time | Terminal1 | Terminal2 | ... | Termial6
+                        if 'Time' in row[0]: # Time, s
+                            for key in row:
+                                new_key_list.append(key) # Yes, you have to use a new key list, because the ind below bgeins at 0.
+                                Current_dict[key] = []
+                        else:
+                            raise Exception('Problem with csv file for terminal voltage.')
+                    else:
+                        for ind, val in enumerate(row):
+                            Current_dict[new_key_list[ind]].append(float(val))
+        key_list += new_key_list
+
+        # Loss
+        # Iron Loss
+        with open(path_prefix + study_name + '_iron_loss_loss.csv', 'r') as f:
+            count = 0
+            for row in utility.csv_row_reader(f):
+                count +=1
+                if 'IM' in machine_type:
+                    if count>8:
+                        rotor_iron_loss = float(row[2]) # Rotor Core
+                        stator_iron_loss = float(row[3]) # Stator Core
+                        print('[utility.py] Iron loss:', stator_iron_loss, rotor_iron_loss)
+                        break
+                elif 'PMSM' in machine_type:
+                    if count>7:
+                        print('[utility.py] This should be 0:', float(row[0]))
+                        rotor_iron_loss = float(row[1]) # Rotor Core
+                        stator_iron_loss = float(row[4]) # Stator Core
+                        print('[utility.py] Iron loss:', stator_iron_loss, rotor_iron_loss)
+                        break                    
+        with open(path_prefix + study_name + '_joule_loss_loss.csv', 'r') as f:
+            count = 0
+            for row in utility.csv_row_reader(f):
+                count +=1
+                if 'IM' in machine_type:
+                    if count>8:
+                        rotor_eddycurrent_loss  = float(row[2]) # Rotor Core
+                        stator_eddycurrent_loss = float(row[3]) # Stator Core
+                        print('[utility.py] Eddy current loss:', stator_eddycurrent_loss, rotor_eddycurrent_loss)
+                        break
+                elif 'PMSM' in machine_type:
+                    if count>7:
+                        rotor_eddycurrent_loss  = float(row[1]) # Rotor Core
+                        stator_eddycurrent_loss = float(row[4]) # Stator Core
+                        print('[utility.py] Eddy current loss:', stator_eddycurrent_loss, rotor_eddycurrent_loss)
+                        break
+        with open(path_prefix + study_name + '_hysteresis_loss_loss.csv', 'r') as f:
+            count = 0
+            for row in utility.csv_row_reader(f):
+                count +=1
+                if 'IM' in machine_type:
+                    if count>8:
+                        rotor_hysteresis_loss = float(row[2]) # Rotor Core
+                        stator_hysteresis_loss = float(row[3]) # Stator Core
+                        print('[utility.py] Hysteresis loss:', stator_hysteresis_loss, rotor_hysteresis_loss)
+                        break
+                elif 'PMSM' in machine_type:
+                    if count>7:
+                        rotor_hysteresis_loss  = float(row[1]) # Rotor Core
+                        stator_hysteresis_loss = float(row[4]) # Stator Core
+                        print('[utility.py] Hysteresis loss:', stator_hysteresis_loss, rotor_hysteresis_loss)
+                        break
+
+        # Joule Loss (Copper and Magnet)
+        rotor_Joule_loss_list = []
+        with open(path_prefix + study_name + '_joule_loss.csv', 'r') as f:
+            count = 0
+            for row in utility.csv_row_reader(f):
+                count +=1
+                if 'IM' in machine_type:
+                    if count == 8:
+                        headers = row
+                        for idx_coil, h in enumerate(headers): # on server there are 3 air regions... while on PC there are 2...
+                            if 'Coil' in h:
+                                break
+
+                    if count>8:
+                        if count==8+1:
+                            if 'Coil' not in headers[idx_coil]:
+                                print('[utility.py]', headers)
+                                raise Exception('Error when load csv data for Coil.')
+                            stator_copper_loss = float(row[idx_coil]) # Coil # it is the same over time, this value does not account for end coil
+
+                        if 'Cage' not in headers[idx_coil-1]:
+                            print('[utility.py]', headers)
+                            raise Exception('Error when load csv data for Cage.')
+                        rotor_Joule_loss_list.append(float(row[idx_coil-1])) # Cage
+
+                elif 'PMSM' in machine_type:
+                    if count == 7: # 少一个slip变量，所以不是8，是7。
+                        headers = row
+                        for idx_coil, h in enumerate(headers):
+                            if 'Coil' in h:
+                                break
+
+                    if count>7:
+                        if count==7+1:
+                            if 'Coil' not in headers[idx_coil]:
+                                print('[utility.py]', headers)
+                                raise Exception('Error when load csv data for Coil.')
+                            stator_copper_loss = float(row[idx_coil]) # Coil # it is the same over time, this value does not account for end coil
+
+                        if 'Magnet' not in headers[idx_coil-1]:
+                            print('[utility.py]', headers)
+                            raise Exception('Error when load csv data for Magnet.')
+                        rotor_Joule_loss_list.append(float(row[idx_coil-1])) # Magnet
+
+        # use the last 1/4 period data to compute average copper loss of Tran2TSS rather than use that of Freq study
+        effective_part = rotor_Joule_loss_list[-int(0.5*fea_config_dict['designer.number_of_steps_2ndTSS']):] # number_of_steps_2ndTSS = steps for half peirod
+        # print(rotor_Joule_loss_list)
+        # print(effective_part)
+        # quit()
+        rotor_Joule_loss = sum(effective_part) / len(effective_part)
+        if 'PMSM' in machine_type:
+            print('[utility.py] Magnet Joule loss:', rotor_Joule_loss)
+
+        if femm_solver is not None:
+            # blockPrint()
+            try:
+                # convert rotor current results (complex number) into its amplitude
+                femm_solver.list_rotor_current_amp = [abs(el) for el in femm_solver.vals_results_rotor_current] # el is complex number
+                # settings not necessarily be consistent with Pyrhonen09's design: , STATOR_SLOT_FILL_FACTOR=0.5, ROTOR_SLOT_FILL_FACTOR=1., TEMPERATURE_OF_COIL=75
+
+                # slot_area_utilizing_ratio = (acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp) / acm_variant.CurrentAmp_per_phase
+                # if slot_area_utilizing_ratio < 1:
+                #     print('Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio, 'which means you are simulating a separate winding? If not, contrats--you found a bug...')
+                #     print('DW, BW, Total:', acm_variant.DriveW_CurrentAmp, acm_variant.BeariW_CurrentAmp, acm_variant.CurrentAmp_per_phase)
+
+                _s, _r, _sAlongStack, _rAlongStack, _Js, _Jr = femm_solver.get_copper_loss_pyrhonen(acm_variant.slot_area_utilizing_ratio*femm_solver.stator_slot_area, 
+                                                                                                                            femm_solver.rotor_slot_area, 
+                                                                                                                            total_CurrentAmp=acm_variant.DriveW_CurrentAmp+acm_variant.BeariW_CurrentAmp)
+                s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = femm_solver.get_copper_loss_Bolognani(acm_variant.slot_area_utilizing_ratio*femm_solver.stator_slot_area, 
+                                                                                                                            femm_solver.rotor_slot_area, 
+                                                                                                                            total_CurrentAmp=acm_variant.DriveW_CurrentAmp+acm_variant.BeariW_CurrentAmp)
+
+                msg1 = 'Pyrhonen : %g, %g | %g, %g | %g, %g ' % (_s, _r, _sAlongStack, _rAlongStack, _Js, _Jr) 
+                msg2 = 'Bolognani: %g, %g | %g, %g | %g, %g ' % (s, r, sAlongStack, rAlongStack, Js, Jr) 
+                logger = logging.getLogger(__name__)
+                logger.debug(msg1)
+                logger.debug(msg2)
+            except Exception as e:
+                raise e
+            # enablePrint()
+        else:
+            SI = acm_variant.template.SI
+            GP = acm_variant.template.d['GP']
+            EX = acm_variant.template.d['EX']
+            wily = EX['wily']
+            copper_loss_parameters = [GP['mm_d_sleeve'].value + GP['mm_d_fixed_air_gap'].value,
+                                GP['mm_w_st'].value,
+                                wily.number_parallel_branch,
+                                EX['DriveW_zQ'],
+                                wily.coil_pitch_y,
+                                acm_variant.template.SI['Qs'],
+                                EX['mm_template_stack_length'],
+                                EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp'], # total current amplitude
+                                GP['mm_r_or'].value,       # mm
+                                GP['mm_r_os'].value*2*1e-3 # m, stator_yoke_diameter_Dsyi
+                                ]
+            # slot_area_utilizing_ratio = (acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp) / acm_variant.CurrentAmp_per_phase
+            # if slot_area_utilizing_ratio < 1:
+            #     print('Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio, 'which means you are simulating a separate winding? If not, contrats--you found a bug...')
+            #     print('DW, BW, Total:', acm_variant.DriveW_CurrentAmp, acm_variant.BeariW_CurrentAmp, acm_variant.CurrentAmp_per_phase)
+            s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(EX['slot_current_utilizing_ratio']*acm_variant.coils.mm2_slot_area*1e-6, copper_loss_parameters=copper_loss_parameters)
+            # s, r, sAlongStack, rAlongStack, Js, Jr = 0, 0, 0, 0, 0, 0
+
+        dm = data_manager()
+        dm.basic_info     = basic_info
+        dm.time_list      = time_list
+        dm.TorCon_list    = TorCon_list
+        dm.ForConX_list   = ForConX_list
+        dm.ForConY_list   = ForConY_list
+        dm.ForConAbs_list = ForConAbs_list
+        dm.Current_dict   = Current_dict
+        dm.key_list       = key_list
+        dm.jmag_loss_list = [   stator_copper_loss, 
+                                rotor_Joule_loss, 
+                                stator_iron_loss+rotor_iron_loss, 
+                                stator_eddycurrent_loss+rotor_eddycurrent_loss, 
+                                stator_hysteresis_loss+rotor_hysteresis_loss ]
+        dm.femm_loss_list = [s, r, sAlongStack, rAlongStack, Js, Jr ]
+        dm.Vol_Cu         = Vol_Cu
+        dm.FluxLinkage_dict = FluxLinkage_dict
+        dm.DisplacementAngle_list = DisplacementAngle_list
+        return dm
+
+    def build_str_results(self, axeses, acm_variant, project_name, tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver=None):
+        # originate from fobj
+
+        machine_type = acm_variant.template.machine_type
+
+        try:
+            self.dm = dm = self.read_csv_results_4_general_purpose(tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver, acm_variant=acm_variant)
+        except Exception as e:
+            print(e)
+            logging.getLogger(__name__).error('Error when loading csv results for Tran2TSS. Check the Report of JMAG Designer. (Maybe Material is not added.)', exc_info=True)
+            msg = 'CSV results are not found. Will re-build and re-run the JMAG project...' 
+            raise utility.ExceptionReTry(msg)
+            # return None
+            # raise e
+
+        if fea_config_dict['designer.number_cycles_in_3rdTSS'] == 0:
+            number_of_steps_at_steady_state = fea_config_dict['designer.number_of_steps_2ndTSS']
+        else:
+            number_of_steps_3rdTSS = fea_config_dict['designer.number_cycles_in_3rdTSS']*self.fea_config_dict['designer.StepPerCycle_3rdTSS']
+            number_of_steps_at_steady_state = number_of_steps_3rdTSS
+        dm.number_of_steps_at_steady_state = number_of_steps_at_steady_state
+
+        basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list = dm.unpack()
+        sfv = utility.suspension_force_vector(ForConX_list, ForConY_list, range_ss=number_of_steps_at_steady_state) # samples in the tail that are in steady state
+        str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle = \
+            self.add_plots( axeses, dm,
+                        title=tran_study_name,
+                        label='Transient FEA w/ 2 Time Step Sections',
+                        zorder=8,
+                        time_list=time_list,
+                        sfv=sfv,
+                        torque=TorCon_list,
+                        range_ss=sfv.range_ss)
+        str_results += '\n\tbasic info:' +   ''.join(  [str(el) for el in basic_info])
+
+        if dm.jmag_loss_list is None:
+            raise Exception('Loss data is not loaded?')
+        else:
+            str_results += '\n\tjmag loss info: '  + ', '.join(['%g'%(el) for el in dm.jmag_loss_list]) # dm.jmag_loss_list = [stator_copper_loss, rotor_copper_loss, stator_iron_loss, stator_eddycurrent_loss, stator_hysteresis_loss]
+
+        str_results += '\n\tfemm loss info: '  + ', '.join(['%g'%(el) for el in dm.femm_loss_list])
+
+        if fea_config_dict['delete_results_after_calculation'] == False:
+            power_factor = dm.power_factor(number_of_steps_at_steady_state, targetFreq=acm_variant.template.d['EX']['DriveW_Freq'])
+            str_results += '\n\tPF: %g' % (power_factor)
+
+        # compute the fitness 
+        rotor_volume = acm_variant.template.get_rotor_volume() 
+        rotor_weight = acm_variant.template.get_rotor_weight()
+        shaft_power  = acm_variant.template.d['EX']['Omega'] * torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
+
+        if 'IM' in acm_variant.template.machine_type:
+            if False: # fea_config_dict['jmag_run_list'][0] == 0
+                # by JMAG only
+                copper_loss  = dm.jmag_loss_list[0] + dm.jmag_loss_list[1] 
+                iron_loss    = dm.jmag_loss_list[2] 
+            else:
+                # by JMAG for iron loss and FEMM for copper loss
+                if dm.femm_loss_list[0] is None: # this will happen for running release_design.py
+                    copper_loss  = dm.jmag_loss_list[0] + dm.jmag_loss_list[1]
+                else:
+                    copper_loss  = dm.femm_loss_list[0] + dm.femm_loss_list[1]
+                iron_loss = dm.jmag_loss_list[2] 
+        elif 'PM' in acm_variant.template.machine_type:
+            # Rotor magnet loss by JMAG
+            magnet_Joule_loss = dm.jmag_loss_list[1]
+                        # Stator copper loss by Binder and Bolognani 2006
+            copper_loss = dm.femm_loss_list[0] + magnet_Joule_loss
+            iron_loss = dm.jmag_loss_list[2] 
+        else:
+            raise Exception('Unknown machine type:', acm_variant.template.machine_type)
+
+        windage_loss = utility.get_windage_loss(acm_variant, acm_variant.template.d['EX']['mm_template_stack_length'])
+
+        # 这样计算效率，输出转矩大的，铁耗大一倍也没关系了，总之就是气隙变得最小。。。要不就不要优化气隙了。。。
+        total_loss   = copper_loss + iron_loss + windage_loss
+        efficiency   = shaft_power / (total_loss + shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
+        str_results  += '\n\teta, windage, total_loss: %g, %g, %g' % (efficiency, windage_loss, total_loss)
+
+        # for easy access to codes
+        machine_results = [power_factor, efficiency, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle]
+        machine_results.extend(dm.jmag_loss_list)
+        if dm.femm_loss_list is None:
+            raise
+        machine_results.extend(dm.femm_loss_list)
+        machine_results.extend([windage_loss, total_loss])
+
+        str_machine_results = ','.join('%g'%(el) for el in machine_results if el is not None) # note that femm_loss_list can be None called by release_design.py
+        
+        cost_function_O1, list_cost_O1 = utility.compute_list_cost(utility.use_weights('O1'), rotor_volume, rotor_weight, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, dm.jmag_loss_list, dm.femm_loss_list, power_factor, total_loss)
+        cost_function_O2, list_cost_O2 = utility.compute_list_cost(utility.use_weights('O2'), rotor_volume, rotor_weight, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, dm.jmag_loss_list, dm.femm_loss_list, power_factor, total_loss)
+
+        ################################################################
+        # NEW CODES for rated performance
+        ################################################################
+        # caculate the fitness
+        print('[utility.py]', '-'*40)
+        print('[utility.py] Calculate the fitness for', acm_variant.name)
+
+        # LOSS
+        if 'IM' in machine_type:
+            stator_copper_loss_along_stack = dm.femm_loss_list[2]
+            rotor_copper_loss_along_stack  = dm.femm_loss_list[3]
+
+            stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack 
+            rotor_copper_loss_in_end_turn  = dm.femm_loss_list[1] - rotor_copper_loss_along_stack
+
+        elif 'PMSM' in machine_type:
+            stator_copper_loss_along_stack = dm.femm_loss_list[2]
+            rotor_copper_loss_along_stack  = magnet_Joule_loss
+
+            stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack 
+            rotor_copper_loss_in_end_turn  = 0
+
+        speed_rpm       = acm_variant.template.SI['ExcitationFreqSimulated'] * 60 / acm_variant.template.SI['p'] # rpm
+        required_torque = acm_variant.template.SI['mec_power'] / (2*np.pi*speed_rpm)*60
+
+        rated_ratio                          = required_torque / torque_average 
+        rated_stack_length_mm                = rated_ratio * acm_variant.template.d['EX']['mm_template_stack_length']
+        rated_stator_copper_loss_along_stack = rated_ratio * stator_copper_loss_along_stack
+        rated_rotor_copper_loss_along_stack  = rated_ratio * rotor_copper_loss_along_stack
+        rated_iron_loss                      = rated_ratio * dm.jmag_loss_list[2]
+        rated_windage_loss                   = utility.get_windage_loss(acm_variant, rated_stack_length_mm)
+
+        # total_loss   = copper_loss + iron_loss + windage_loss
+        rated_total_loss =  rated_stator_copper_loss_along_stack \
+                        + rated_rotor_copper_loss_along_stack \
+                        + stator_copper_loss_in_end_turn \
+                        + rotor_copper_loss_in_end_turn \
+                        + rated_iron_loss \
+                        + rated_windage_loss
+
+
+        # THERMAL
+        if 'IM' in machine_type:
+            stator_current_density = dm.femm_loss_list[4]
+            rotor_current_density  = dm.femm_loss_list[5]
+            # print('Current density [Arms/m^2]:', stator_current_density, rotor_current_density, sep='\n')
+            # if rotor_current_density > 8e6:
+            #     print('rotor_current_density is over 8e6 Arms/m^2')
+        else:
+                                    # 基波电流幅值（在一根导体里的电流，六相逆变器中的GroupBDW相的电流，所以相当于已经考虑了并联支路数了）
+            stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.coils.mm2_slot_area*1e-6/acm_variant.template.d['EX']['DriveW_zQ'])
+            print('[utility.py] Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2'%(stator_current_density))
+            rotor_current_density = 0
+
+        print('[utility.py] Required torque: %g Nm'%(required_torque))
+        print("[utility.py] acm_variant.template.d['EX']['Omega']: %g rad/s"%(acm_variant.template.d['EX']['Omega']))
+        rated_shaft_power  = acm_variant.template.d['EX']['Omega'] * required_torque
+        rated_efficiency   = rated_shaft_power / (rated_total_loss + rated_shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
+
+        rated_rotor_volume = np.pi*(acm_variant.template.d['GP']['mm_r_or'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
+        print('[utility.py] rated_stack_length_mm =', rated_stack_length_mm)
+
+        # This weighted list suggests that peak-to-peak torque ripple of 5% is comparable with Em of 5% or Ea of 1 deg. Ref: Ye gu ECCE 2018
+        # Eric suggests Ea is 1 deg. But I think this may be too much emphasis on Ea so large Trip does not matter anymore (not verified yet).
+        list_weighted_ripples = [normalized_torque_ripple/0.05, normalized_force_error_magnitude/0.05, force_error_angle]
+
+        if 'IM' in machine_type:
+            # - Torque per Rotor Volume
+            f1_IM = - required_torque / rated_rotor_volume
+            f1 = f1_IM
+        elif 'PMSM' in machine_type:
+            # - Cost
+            price_per_volume_steel    = 0.28  * 61023.744 # $/in^3 (M19 Gauge26) # 0.23 for low carbon, semi-processed 24 Gauge electrical steel
+            price_per_volume_copper   = 1.2   * 61023.744 # $/in^3 wire or bar or end-ring
+            price_per_volume_magnet   = 11.61 * 61023.744 # $/in^3 NdFeB PM
+            # price_per_volume_aluminum = 0.88  / 16387.064 # $/in^3 wire or cast Al
+
+            # Vol_Fe = (2*acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
+            Vol_Fe = ( np.pi*(acm_variant.template.d['GP']['mm_r_os'].value*1e-3)**2 - np.pi*(acm_variant.template.d['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
+
+            Vol_PM = (acm_variant.rotorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
+
+            print('[utility.py] Area_Fe', (acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2)
+            print('[utility.py] Area_Cu (est.)', dm.Vol_Cu/(rated_stack_length_mm*1e-3))
+            print('[utility.py] Area_PM', (acm_variant.rotorMagnet.mm2_magnet_area*1e-6))
+            print('[utility.py] Volume_Fe',    Vol_Fe)
+            print('[utility.py] Volume_Cu', dm.Vol_Cu)
+            print('[utility.py] Volume_PM',    Vol_PM)
+            f1_PMSM =    Vol_Fe * price_per_volume_steel \
+                    + dm.Vol_Cu * price_per_volume_copper\
+                    +    Vol_PM * price_per_volume_magnet
+            print('[utility.py] Cost Fe:',   Vol_Fe * price_per_volume_steel )
+            print('[utility.py] Cost Cu:',dm.Vol_Cu * price_per_volume_copper)
+            print('[utility.py] Cost PM:',   Vol_PM * price_per_volume_magnet)
+            f1 = f1_PMSM
+
+        # - Efficiency @ Rated Power
+        f2 = - rated_efficiency
+        # Ripple Performance (Weighted Sum)
+        f3 = sum(list_weighted_ripples)
+
+        FRW = ss_avg_force_magnitude / rotor_weight
+        print('[utility.py] FRW:', FRW, 'Rotor weight:', rotor_weight, 'Stack length:', acm_variant.template.d['EX']['mm_template_stack_length'], 'Rated stack length:', rated_stack_length_mm)
+        rated_rotor_volume = acm_variant.template.get_rotor_volume(stack_length=rated_stack_length_mm) 
+        rated_rotor_weight = acm_variant.template.get_rotor_weight(stack_length=rated_stack_length_mm)
+        print('[utility.py] rated_rotor_volume:', rated_rotor_volume, 'rated_rotor_weight:', rated_rotor_weight)
+
+        rated_results = [   rated_shaft_power, 
+                            rated_efficiency,
+                            rated_total_loss, 
+                            rated_stator_copper_loss_along_stack, 
+                            rated_rotor_copper_loss_along_stack, 
+                            stator_copper_loss_in_end_turn, 
+                            rotor_copper_loss_in_end_turn, 
+                            rated_iron_loss, 
+                            rated_windage_loss,
+                            rated_rotor_volume,
+                            rated_stack_length_mm,  # new!
+                            acm_variant.template.d['EX']['mm_template_stack_length']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
+
+        str_results = '\n-------\n%s-%s\n%d,%d,O1=%g,O2=%g,f1=%g,f2=%g,f3=%g\n%s\n%s\n%s\n' % (
+                        project_name, acm_variant.get_individual_name(), 
+                        int(acm_variant.counter//78), acm_variant.counter, cost_function_O1, cost_function_O2, f1, f2, f3,
+                        str_machine_results,
+                        ','.join(['%g'%(el) for el in rated_results]), # 改为输出 rated_results
+                        ','.join(['%g'%(el) for el in acm_variant.template.build_design_parameters_list()]) ) + str_results
+    
+        # str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, jmag_loss_list, femm_loss_list, power_factor, total_loss, cost_function = results_to_be_unpacked
+
+        # write design evaluation data to file
+        with open(dir_csv_output_folder[:-4] + 'swarm_data.txt', 'a') as f:
+            f.write(str_results)
+
+        # if fea_config_dict['use_weights'] == 'O1':
+        #     cost_function = cost_function_O1
+        # elif fea_config_dict['use_weights'] == 'O2':
+        #     cost_function = cost_function_O2
+        # else:
+        #     raise Exception('Not implemented error.')
+
+        return (cost_function_O1, cost_function_O2), f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle, \
+                project_name, acm_variant.get_individual_name(), \
+                int(acm_variant.counter//78), acm_variant.counter,\
+                power_factor, \
+                rated_ratio, \
+                rated_stack_length_mm, \
+                rated_total_loss, \
+                rated_stator_copper_loss_along_stack, \
+                rated_rotor_copper_loss_along_stack, \
+                stator_copper_loss_in_end_turn, \
+                rotor_copper_loss_in_end_turn, \
+                rated_iron_loss, \
+                rated_windage_loss, \
+                str_results
+    # str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, dm.jmag_loss_list, dm.femm_loss_list, power_factor, total_loss, cost_function
 
 
 if __name__ == '__main__':

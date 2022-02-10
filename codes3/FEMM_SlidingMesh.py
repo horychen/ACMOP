@@ -1,5 +1,6 @@
 #coding:utf-8
 
+from this import d
 import femm
 import numpy as np
 import logging
@@ -13,7 +14,175 @@ import winding_layout
 SELECT_ALL = 4
 EPS = 1e-2 # unit mm
 
-# import FEMM_Solver
+class Individual_Analyzer_FEMM_Edition(object):
+    def __init__(self, p):
+
+        self.p = p
+
+        self.femm_time = []
+        self.femm_rotor_position_mech_deg = []
+
+        self.femm_torque = []
+        self.femm_forces = []
+        self.femm_energy = []
+
+        self.femm_circuitProperties = []
+        self.femm_circuit_currents = []
+        self.femm_circuit_voltages = []
+        self.femm_circuit_fluxLinkages = []
+
+        self.femm_motor_currents_d = []
+        self.femm_motor_currents_q = []
+        self.femm_bearing_currents_d = []
+        self.femm_bearing_currents_q = []
+
+        self.femm_motor_fluxLinkage_d = []
+        self.femm_motor_fluxLinkage_q = []
+        self.femm_bearing_fluxLinkage_d = []
+        self.femm_bearing_fluxLinkage_q = []
+
+    def add(self, time, rotor_position_mech_deg, torque, forces, energy, circuitProperties):
+
+        self.femm_time . append( time )
+        self.femm_rotor_position_mech_deg. append( rotor_position_mech_deg )
+
+        self.femm_torque . append( torque )
+        self.femm_forces . append( forces )
+        self.femm_energy . append( energy )
+        # print('-'*100)
+        # print(circuitProperties)
+        # print(circuitProperties[0])
+        # print(circuitProperties[0][0])
+        # print(circuitProperties[0][0][0])
+        circuit_currents     = list(map(lambda el: el[0], circuitProperties))
+        circuit_voltages     = list(map(lambda el: el[1], circuitProperties))
+        circuit_fluxLinkages = list(map(lambda el: el[2], circuitProperties))
+        self.femm_circuit_currents . append( circuit_currents ) # 6 coils UVW and AC/BD
+        self.femm_circuit_voltages . append( circuit_voltages ) # 6 coils UVW and AC/BD
+        self.femm_circuit_fluxLinkages . append( circuit_fluxLinkages ) # 6 coils UVW and AC/BD
+
+        ''' Get UVW and dq quantities
+        '''
+        def get_motor_and_bearing_quantities_of_DPNV_winding(circuit_currents):
+            circuit_current_coil_U_GrpA = circuit_currents[0]
+            circuit_current_coil_U_GrpB = circuit_currents[3]
+            circuit_current_coil_V_GrpA = circuit_currents[1]
+            circuit_current_coil_V_GrpB = circuit_currents[4]
+            circuit_current_coil_W_GrpA = circuit_currents[2]
+            circuit_current_coil_W_GrpB = circuit_currents[5]
+            motor_current_U   = np.array(circuit_current_coil_U_GrpA) + np.array(circuit_current_coil_U_GrpB)
+            motor_current_V   = np.array(circuit_current_coil_V_GrpA) + np.array(circuit_current_coil_V_GrpB)
+            motor_current_W   = np.array(circuit_current_coil_W_GrpA) + np.array(circuit_current_coil_W_GrpB)
+            bearing_current_U = np.array(circuit_current_coil_U_GrpA) - np.array(circuit_current_coil_U_GrpB)
+            bearing_current_V = np.array(circuit_current_coil_V_GrpA) - np.array(circuit_current_coil_V_GrpB)
+            bearing_current_W = np.array(circuit_current_coil_W_GrpA) - np.array(circuit_current_coil_W_GrpB)
+            return motor_current_U, motor_current_V, motor_current_W, bearing_current_U, bearing_current_V, bearing_current_W
+        motor_current_U, motor_current_V, motor_current_W, bearing_current_U, bearing_current_V, bearing_current_W = get_motor_and_bearing_quantities_of_DPNV_winding(circuit_currents)
+        motor_voltage_U, motor_voltage_V, motor_voltage_W, bearing_voltage_U, bearing_voltage_V, bearing_voltage_W = get_motor_and_bearing_quantities_of_DPNV_winding(circuit_voltages)
+        motor_fluxLinkage_U, motor_fluxLinkage_V, motor_fluxLinkage_W, bearing_fluxLinkage_U, bearing_fluxLinkage_V, bearing_fluxLinkage_W = get_motor_and_bearing_quantities_of_DPNV_winding(circuit_fluxLinkages)
+
+        # Amplitude invariant Clarke transform
+        def amplitude_invariant_Clarke_transform(u,v,w):
+            alpha = 2/3 * (    u - 0.5*v - 0.5*w)
+            beta  = 2/3 * (np.sqrt(3)/2 * (v - w))
+            gamma = 2/3 * (0.5*u + 0.5*v + 0.5*w)
+            return alpha, beta, gamma
+
+        # Currents
+        motor_current_alpha, motor_current_beta, motor_current_gamma = amplitude_invariant_Clarke_transform(motor_current_U, motor_current_V, motor_current_W)
+        bearing_current_alpha, bearing_current_beta, bearing_current_gamma = amplitude_invariant_Clarke_transform(bearing_current_U, bearing_current_V, bearing_current_W)
+        # Fluxes
+        motor_fluxLinkage_alpha, motor_fluxLinkage_beta, motor_fluxLinkage_gamma = amplitude_invariant_Clarke_transform(motor_fluxLinkage_U, motor_fluxLinkage_V, motor_fluxLinkage_W)
+        bearing_fluxLinkage_alpha, bearing_fluxLinkage_beta, bearing_fluxLinkage_gamma = amplitude_invariant_Clarke_transform(bearing_fluxLinkage_U, bearing_fluxLinkage_V, bearing_fluxLinkage_W)
+
+        def Park_transform(alpha, beta, theta):
+            d =  np.cos(theta)*alpha + np.sin(theta)*beta
+            q = -np.sin(theta)*alpha + np.cos(theta)*beta
+            return d, q
+
+        rotor_position_elec_rad = self.p * rotor_position_mech_deg/180*np.pi
+        # Currents
+        motor_current_d, motor_current_q     = Park_transform(motor_current_alpha, motor_current_beta, theta=rotor_position_elec_rad)
+        bearing_current_d, bearing_current_q = Park_transform(bearing_current_alpha, bearing_current_beta, theta=rotor_position_elec_rad)
+        self.femm_motor_currents_d. append( motor_current_d )
+        self.femm_motor_currents_q. append( motor_current_q )
+        self.femm_bearing_currents_d. append( bearing_current_d )
+        self.femm_bearing_currents_q. append( bearing_current_q )
+        # Fluxes
+        motor_fluxLinkage_d, motor_fluxLinkage_q     = Park_transform(motor_fluxLinkage_alpha, motor_fluxLinkage_beta, theta=rotor_position_elec_rad)
+        bearing_fluxLinkage_d, bearing_fluxLinkage_q = Park_transform(bearing_fluxLinkage_alpha, bearing_fluxLinkage_beta, theta=rotor_position_elec_rad)
+        self.femm_motor_fluxLinkage_d. append( motor_fluxLinkage_d )
+        self.femm_motor_fluxLinkage_q. append( motor_fluxLinkage_q )
+        self.femm_bearing_fluxLinkage_d. append( bearing_fluxLinkage_d )
+        self.femm_bearing_fluxLinkage_q. append( bearing_fluxLinkage_q )
+
+    def get_ss_data(self):
+        # Torque
+        torque_average = np.mean(self.femm_torque)
+        torque_error = np.array(self.femm_torque) - torque_average
+        ss_max_torque_error = max(torque_error), min(torque_error)
+        normalized_torque_ripple = (ss_max_torque_error[0] - ss_max_torque_error[1]) / torque_average
+
+        # print('-'*100)
+        # print(self.femm_circuit_currents)
+
+        femm_currents_coil_U_GrpA = list(map(lambda el: el[0], self.femm_circuit_currents))
+        femm_currents_coil_U_GrpB = list(map(lambda el: el[3], self.femm_circuit_currents))
+        femm_currents_coil_V_GrpA = list(map(lambda el: el[1], self.femm_circuit_currents))
+        femm_currents_coil_V_GrpB = list(map(lambda el: el[4], self.femm_circuit_currents))
+        femm_currents_coil_W_GrpA = list(map(lambda el: el[2], self.femm_circuit_currents))
+        femm_currents_coil_W_GrpB = list(map(lambda el: el[5], self.femm_circuit_currents))
+
+        self.motor_current_U   = np.array(femm_currents_coil_U_GrpA) + np.array(femm_currents_coil_U_GrpB)
+        self.motor_current_V   = np.array(femm_currents_coil_V_GrpA) + np.array(femm_currents_coil_V_GrpB)
+        self.motor_current_W   = np.array(femm_currents_coil_W_GrpA) + np.array(femm_currents_coil_W_GrpB)
+        self.bearing_current_U = np.array(femm_currents_coil_U_GrpA) - np.array(femm_currents_coil_U_GrpB)
+        self.bearing_current_V = np.array(femm_currents_coil_V_GrpA) - np.array(femm_currents_coil_V_GrpB)
+        self.bearing_current_W = np.array(femm_currents_coil_W_GrpA) - np.array(femm_currents_coil_W_GrpB)
+
+        # Radial force
+        force_x = list(map(lambda el: el[0], self.femm_forces))
+        force_y = list(map(lambda el: el[1], self.femm_forces))
+        self.sfv = sfv = utility.suspension_force_vector(force_x, force_y)
+        print('[FEMM_SlidingMesh.py] SS data:')
+        print('\t torque_average =', torque_average, 'Nm')
+        print('\t ss_max_torque_error =', ss_max_torque_error , 'Nm')
+        print('\t normalized_torque_ripple =', normalized_torque_ripple, 'Nm')
+        print('\t ss_avg_force_vector =', sfv.ss_avg_force_vector, 'N')
+        print('\t ss_avg_force_magnitude =', sfv.ss_avg_force_magnitude, 'N')
+        print('\t ss_avg_force_angle =', sfv.ss_avg_force_angle, 'deg')
+        print('\t ss_max_force_err_abs =', sfv.ss_max_force_err_abs, 'N')
+        print('\t ss_max_force_err_ang =', sfv.ss_max_force_err_ang, 'deg')
+
+        # spec_performance_dict['Torque'] = None # this is dependent on stack length
+        # spec_performance_dict['ForceAbs'] = None # this is dependent on stack length
+        # spec_performance_dict['RotorWeight'] = None # this is dependent on stack length
+
+        spec_performance_dict = dict()
+        spec_performance_dict['cost_function'] = None
+        spec_performance_dict['f1']  = None
+        spec_performance_dict['f2']  = None
+        spec_performance_dict['f3']  = None
+        spec_performance_dict['FRW'] = None
+        spec_performance_dict['normalized_torque_ripple'] = normalized_torque_ripple
+        spec_performance_dict['normalized_force_error_magnitude'] = np.max(sfv.ss_max_force_err_abs) / sfv.ss_avg_force_magnitude
+        spec_performance_dict['force_error_angle'] = np.max(sfv.ss_max_force_err_ang)
+        spec_performance_dict['project_name'] = None
+        spec_performance_dict['individual_name'] = None
+        spec_performance_dict['number_current_generation'] = None
+        spec_performance_dict['individual_index'] = None
+        spec_performance_dict['power_factor'] = None
+        spec_performance_dict['rated_ratio'] = None
+        spec_performance_dict['rated_stack_length_mm'] = None
+        spec_performance_dict['rated_total_loss'] = None
+        spec_performance_dict['rated_stator_copper_loss_along_stack'] = None
+        spec_performance_dict['rated_rotor_copper_loss_along_stack'] = None
+        spec_performance_dict['stator_copper_loss_in_end_turn'] = None
+        spec_performance_dict['rotor_copper_loss_in_end_turn'] = None
+        spec_performance_dict['rated_iron_loss'] = None
+        spec_performance_dict['rated_windage_loss'] = None
+        spec_performance_dict['str_results'] = None
+        self.spec_performance_dict = spec_performance_dict
 
 class FEMM_SlidingMesh(object):
 
@@ -49,7 +218,7 @@ class FEMM_SlidingMesh(object):
         #     self.im.update_mechanical_parameters(syn_freq=0.0)
         self.add_material()
         self.add_block_labels_static_solver()
-        self.add_sliding_band(deg_innerAngle=0) # modifying parameter here has no effect
+        self.add_sliding_band_and_boundary(deg_innerAngle=0) # modifying parameter here has no effect
         self.update_circuit_excitation(time=0) # modifying parameter here has no effect
         femm.mi_saveas(project_file_name)
         print('[FEMM_SlidingMesh.py] Save as:', project_file_name)
@@ -197,8 +366,10 @@ class FEMM_SlidingMesh(object):
         nwl = wily.number_winding_layer # number of windign layers 
         ampD = EX['DriveW_CurrentAmp']/npb
         ampB = EX['BeariW_CurrentAmp']
-        turnsD = EX['DriveW_zQ']/nwl
-        turnsB = EX['BeariW_zQ']/nwl
+        turnsDPNV = EX['DriveW_zQ']/nwl #* 100 # DEBUG
+        # turnsB = EX['BeariW_zQ']/nwl #* 100 # DEBUG
+        print('[FEMM_SllidingMesh.py] DEBUG ampD, ampB:', ampD, ampB)
+        print('[FEMM_SllidingMesh.py] circuit turns for combined winding:', turnsDPNV)
 
         # static solver
         omegaDrive = 2*np.pi*self.acm_variant.template.d['EX']['DriveW_Freq']
@@ -206,12 +377,18 @@ class FEMM_SlidingMesh(object):
         phase_shift_drive = -120 if wily.CommutatingSequenceD == 1 else 120
         phase_shift_beari = -120 if wily.CommutatingSequenceB == 1 else 120
         self.dict_stator_current_function = []
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=-ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=-ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=-ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=+ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=+ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=+ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) + ampB * np.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         - ampB * np.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         - ampB * np.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         - ampB * np.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         + ampB * np.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         + ampB * np.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
+        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         + ampB * np.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
 
         femm.mi_addcircprop('U-GrpAC', self.dict_stator_current_function[0](0.0), SERIES_CONNECTED)
         femm.mi_addcircprop('V-GrpAC', self.dict_stator_current_function[1](0.0), SERIES_CONNECTED)
@@ -248,7 +425,7 @@ class FEMM_SlidingMesh(object):
                 if not (count > Qs*0.5+EPS): 
                     continue
             # if phase == 'U':
-            self.set_block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsD*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
+            self.set_block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsDPNV*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
 
         # Y layer winding's blocks
         if fraction == 1:
@@ -261,13 +438,13 @@ class FEMM_SlidingMesh(object):
                 THETA += angle_per_slot
                 X = R*np.cos(THETA); Y = R*np.sin(THETA)
 
-                self.set_block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsB*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
+                self.set_block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsDPNV*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
 
         # 危险！FEMM默认把没有设置incircuit的导体都在无限远短接在一起——也就是说，你可能把定子悬浮绕组也短接到鼠笼上去了！
         # 所以，一定要设置好悬浮绕组，而且要用serial-connected，电流给定为 0 A。
 
 
-    def add_sliding_band(self, deg_innerAngle, deg_OuterAngle=0, fraction=1):
+    def add_sliding_band_and_boundary(self, deg_innerAngle, deg_OuterAngle=0, fraction=1):
         # if self.deg_per_step != 0.0:
         #     # 之前用的方法是打开上一个FEM文件，然后将其模型旋转deg_per_step，用不到rotor_position_in_deg的！
         #     # 当然，我们也试过AirGapBoundary（David Meeker推荐的），转动转子不需要重复剖分，但是计算出来的力不准（转矩是准的）
@@ -325,28 +502,26 @@ class FEMM_SlidingMesh(object):
         # Other arc-segment-specific mesh constraints are already done in draw_model()
 
     def run_transient_study(self):
+        # local references
         GP = self.acm_variant.template.d['GP']
         EX = self.acm_variant.template.d['EX']
+        p  = self.acm_variant.template.SI['p']
 
-        deg_pole_span = 180/self.acm_variant.template.SI['p']
+        # figure out initial rotor angle
+        deg_pole_span = 180/p
         initial_rotor_position_mech_deg = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + EX['wily'].deg_winding_U_phase_phase_axis_angle + deg_pole_span
         print('[FEMM_SlidingMesh.py] initial_rotor_position_mech_deg:', initial_rotor_position_mech_deg, 'deg || deg_winding_U_phase_phase_axis_angle:', '', EX['wily'].deg_winding_U_phase_phase_axis_angle)
 
+        # figure out step size
         electrical_period = self.acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
         number_of_steps   = self.acm_variant.template.fea_config_dict['femm.number_of_steps_2ndTSS']
         step_size_sec = electrical_period / number_of_steps
         step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
 
-        self.acm_variant.femm_torque = []
-        self.acm_variant.femm_force  = []
-        self.acm_variant.femm_energy = []
-        self.acm_variant.femm_time   = []
-        self.acm_variant.femm_rotor_position = []
+        # transient FEA with sliding band (air gap boundary in FEMM)
+        print('[FEMM_SlidingMesh.py] Run FEMM solver...')
+        self.acm_variant.analyzer = Individual_Analyzer_FEMM_Edition(p=p)
         for index in range(number_of_steps):
-        # for index, RotorAngle_MechanicalDegrees in enumerate(np.arange(  
-        #         initial_rotor_position_mech_deg, 
-        #         initial_rotor_position_mech_deg+180+step_size_mech_deg, 
-        #         step_size_mech_deg)):
             time                         = index * step_size_sec
             RotorAngle_MechanicalDegrees = index * step_size_mech_deg
             current_sources = self.update_circuit_excitation(time)
@@ -355,24 +530,27 @@ class FEMM_SlidingMesh(object):
             # if index > 0:
             #     femm.mi_setprevious(self.project_file_name[:-4] + f'-{index-1:03d}.ans', 1) # 1: must be incremental permeability (because frozen permability means the permeability is fixed).
             # Starting nonlinear field from previous solution is not possible with current FEMM's function
-            femm.mi_saveas(self.project_file_name[:-4] + f'{index:3d}.fem')
+            femm.mi_saveas(self.project_file_name[:-4] + f'-{index:03d}.fem')
 
             # femm.mi_createmesh() # no need
-            print('[FEMM_SlidingMesh.py] Run FEMMM solver...')
             femm.mi_analyze(1)
 
             # collect results at: index
             femm.mi_loadsolution()
-            self.acm_variant.femm_time.append(time)
-            self.acm_variant.femm_rotor_position.append(RotorAngle_MechanicalDegrees)
             torque = femm.mo_gapintegral('WholeModelSlidingBand',0)
-            force  = femm.mo_gapintegral('WholeModelSlidingBand',1)
+            forces = femm.mo_gapintegral('WholeModelSlidingBand',1)
             energy = femm.mo_gapintegral('WholeModelSlidingBand',2)
-            self.acm_variant.femm_torque.append( torque )
-            self.acm_variant.femm_force .append( force )
-            self.acm_variant.femm_energy.append( energy )
-            print(f'\t {index}, {time*1000} ms, {RotorAngle_MechanicalDegrees} deg : {torque:.2f}, [{force[0]:.2f}, {force[1]:.2f}], {energy:.2f}', end=' | ')
-            print(' A,'.join(f'{current:.1f}' for current in current_sources), 'A')
+            circuitProperties = ( femm.mo_getcircuitproperties('U-GrpAC'),
+                                  femm.mo_getcircuitproperties('V-GrpAC'),
+                                  femm.mo_getcircuitproperties('W-GrpAC'),
+                                  femm.mo_getcircuitproperties('U-GrpBD'),
+                                  femm.mo_getcircuitproperties('V-GrpBD'),
+                                  femm.mo_getcircuitproperties('W-GrpBD') )
+            self.acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
+            print(f'\t {index}, {time*1000} ms, {RotorAngle_MechanicalDegrees} deg : {torque:.2f} Nm, [{forces[0]:.2f} N, {forces[1]:.2f}] N, {energy:.2f} J', end=' | ')
+            print(' A, '.join(f'{current:.1f}' for current in current_sources), 'A')
+            for el in circuitProperties:
+                print('\t\t', el)
             femm.mo_close()
 
             # save field results for incremental study
@@ -380,7 +558,9 @@ class FEMM_SlidingMesh(object):
 
         femm.mi_close()
 
-    def get_transient_results(self):
+    def compute_objectives(self):
+        pass
+    def save_results_to_disk(self):
         pass
 
     def update_circuit_excitation(self, time):

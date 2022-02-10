@@ -3,6 +3,8 @@
 import main_utility, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design # part_initialDesign
 # import winding_layout, PyX_Utility, math # part_winding
 
+from utility import suspension_force_vector
+
 from dataclasses import dataclass
 @dataclass
 class AC_Machine_Optiomization_Wrapper(object):
@@ -163,22 +165,64 @@ class AC_Machine_Optiomization_Wrapper(object):
         # print(x_denorm)
         # raise
 
-        from pylab import plt, np
-
-        fig, axes = plt.subplots(3)
-
-        for angle in np.arange(-15, 16, 5):
-            self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'] = angle
-            print('User shifts the initial rotor position angle by', self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'], 'deg')
+        if True:
+            ''' Default transient FEA
+            '''
             motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
+            motor_design_variant.analyzer.get_ss_data()
+            for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
+                print('\t', k, v)
 
-            axes[0].plot(motor_design_variant.femm_time, motor_design_variant.femm_torque, label=str(angle))
-            axes[1].plot(motor_design_variant.femm_time, motor_design_variant.femm_force , label=str(angle))
-            axes[2].plot(motor_design_variant.femm_time, motor_design_variant.femm_energy, label=str(angle))
-        plt.legend()
-        plt.show()
+            from pylab import plt, np
+            fig, axes = plt.subplots(4)
+            axes[0].plot(motor_design_variant.analyzer.motor_current_U)
+            axes[0].plot(motor_design_variant.analyzer.motor_current_V)
+            axes[0].plot(motor_design_variant.analyzer.motor_current_W)
+            axes[1].plot(motor_design_variant.analyzer.bearing_current_U)
+            axes[1].plot(motor_design_variant.analyzer.bearing_current_V)
+            axes[1].plot(motor_design_variant.analyzer.bearing_current_W)
+            axes[2].plot(motor_design_variant.analyzer.femm_motor_currents_d)
+            axes[2].plot(motor_design_variant.analyzer.femm_motor_currents_q)
+            axes[3].plot(motor_design_variant.analyzer.femm_motor_fluxLinkage_d)
+            axes[3].plot(motor_design_variant.analyzer.femm_motor_fluxLinkage_q)
 
 
+            fig, axes = plt.subplots(8)
+            axes[0].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.femm_torque)
+            axes[1].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.sfv.force_abs)
+            axes[2].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.sfv.force_x)
+            axes[3].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.sfv.force_y)
+            axes[4].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.femm_energy)
+            axes[5].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_currents)))
+            axes[6].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_voltages)))
+            axes[7].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_fluxLinkages)))
+            plt.show()
+        else:
+
+            ''' An example showing how to change the initial angle between between rotor d-axis and current vector.
+                At t=0, current vector is aligned with beta-axis, so we need to align rotor d-axis with the alpha-axis, such that id=0 control is implemented.
+                However, salient pole motor can produce more torque if we apply some id. 
+                In this case, we can sweep variable self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'] to reach maximum torque.
+            '''
+            from pylab import plt, np
+            fig, axes = plt.subplots(5)
+            for angle in np.arange(-3, 3.1, 1):
+                self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'] = angle
+                print('User shifts the initial rotor position angle by', self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'], 'deg')
+                motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
+
+                force_x = list(map(lambda el: el[0], motor_design_variant.femm_force))
+                force_y = list(map(lambda el: el[1], motor_design_variant.femm_force))
+                sfv = suspension_force_vector(force_x, force_y)
+
+                axes[0].plot(motor_design_variant.femm_time, motor_design_variant.femm_torque, label=str(angle))
+                axes[1].plot(motor_design_variant.femm_time, sfv.force_abs, label=str(angle))
+                axes[2].plot(motor_design_variant.femm_time, force_x, label=str(angle))
+                axes[3].plot(motor_design_variant.femm_time, force_y, label=str(angle))
+                axes[4].plot(motor_design_variant.femm_time, motor_design_variant.femm_energy, label=str(angle))
+            for ax in axes:
+                ax.legend()
+            plt.show()
 
         # if returned is not None:
         #     # evaluate design (with json output)

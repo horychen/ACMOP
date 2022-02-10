@@ -5,7 +5,7 @@ import utility, utility_json
 import population, FEMM_Solver, pyrhonen_procedure_as_function
 
 # BPMSM codes
-import JMAG, bearingless_spmsm_design, vernier_motor_design
+import JMAG, bearingless_spmsm_design, vernier_motor_design, FEMM_SlidingMesh
 
 class swarm_data_container(object):
     def __init__(self, swarm_data_raw, fea_config_dict, swarm_data_json=None):
@@ -822,8 +822,8 @@ class acm_designer(object):
         open(output_dir+'swarm_MOO_log.txt', 'a').close()
 
     def init_logger(self, prefix='pygmo_'):
-        # self.logger = utility.myLogger(self.output_dir+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
-        self.logger = utility.myLogger(self.output_dir+'../', prefix=prefix)
+        # self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
+        self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix)
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # Automatic Performance Evaluation (This is just a wraper)
@@ -843,19 +843,15 @@ class acm_designer(object):
         # This is a wrapper for the wrapper, in order to build up a json profile for the design variant
 
         # 这里应该返回新获得的设计，然后可以获得geometry_dict，然后包括x_denorm的信息方便重构设计。
-        motor_design_variant = self.evaluate_design(acm_template, x_denorm, counter, counter_loop)
+        acm_variant = self.evaluate_design(acm_template, x_denorm, counter, counter_loop)
 
         if 'FEMM' in self.select_fea_config_dict:
-            print('femm_torque:', motor_design_variant.femm_torque)
-            print('femm_force :', motor_design_variant.femm_force )
-            print('femm_energy:', motor_design_variant.femm_energy)
+            return acm_variant
 
-            return motor_design_variant
-
-            cost_function, f1, f2, f3, FRW, \
-            normalized_torque_ripple, \
-            normalized_force_error_magnitude, \
-            force_error_angle
+            # cost_function, f1, f2, f3, FRW, \
+            # normalized_torque_ripple, \
+            # normalized_force_error_magnitude, \
+            # force_error_angle
 
         elif 'JMAG' in self.select_fea_config_dict:
 
@@ -875,9 +871,9 @@ class acm_designer(object):
             rotor_copper_loss_in_end_turn, \
             rated_iron_loss, \
             rated_windage_loss, \
-            str_results = motor_design_variant.results_to_be_unpacked
+            str_results = acm_variant.results_to_be_unpacked
 
-            # motor_design_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
+            # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
             spec_performance_dict = dict()
             spec_performance_dict['cost_function'] = cost_function
@@ -904,8 +900,8 @@ class acm_designer(object):
             spec_performance_dict['rated_windage_loss'] = rated_windage_loss
             spec_performance_dict['str_results'] = str_results
 
-            GP = motor_design_variant.template.d['GP']
-            EX = motor_design_variant.template.d['EX']
+            GP = acm_variant.template.d['GP']
+            EX = acm_variant.template.d['EX']
 
             # wily is not json serilizable, so is recordtype type object: acmop_parameters
             wily = EX['wily']
@@ -941,43 +937,85 @@ class acm_designer(object):
                     val['calc'] = None # function .calc cannot be serialized 
 
             big_dict = dict()
-            with open(self.output_dir + self.select_spec + '.json', 'a') as f:
+            with open(self.fea_config_dict['output_dir'] + self.select_spec + '.json', 'a') as f:
                 big_dict[self.select_spec+f'-gen{number_current_generation}-ind{individual_index}'] = {
-                    'Spec inputs'  :         motor_design_variant.template.spec_input_dict,
-                    'x_denorm_dict':         motor_design_variant.template.get_x_denorm_dict_from_geometric_parameters(GP),
+                    'Spec inputs'  :         acm_variant.template.spec_input_dict,
+                    'x_denorm_dict':         acm_variant.template.get_x_denorm_dict_from_geometric_parameters(GP),
                     'Geometric parameters':  list_of_GP_as_dict,
                     'Excitations'  :         EX,
                     'Performance'  :         spec_performance_dict
                     # 'Derived'     :            self.spec.spec_derive_dict,
-                    # 'Geometry'    : motor_design_variant.spec_geometry_dict,
+                    # 'Geometry'    : acm_variant.spec_geometry_dict,
                 }
                 f.write(f',\n"{counter}":')
                 try:
                     json.dump(big_dict, f, indent=4)
                 except Exception as e:
-                    print(f'[acm_designer.py] [Warning] You might need to clean up .json data file yourself at {self.output_dir}\n'*3)
+                    print(f'[acm_designer.py] [Warning] You might need to clean up .json data file yourself at {self.fea_config_dict["output_dir"]}\n'*3)
                     raise e
 
-            utility_json.to_json_recursively(motor_design_variant, motor_design_variant.name, save_here=self.output_dir+'jsonpickle/')
+            utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
 
             EX['wily'] = wily
 
-            # return motor_design_variant
+            # this is for optimization
+            acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
 
-        return cost_function, f1, f2, f3, FRW, \
-        normalized_torque_ripple, \
-        normalized_force_error_magnitude, \
-        force_error_angle
+            # this is for comparison to FEMM
+            acm_variant.analyzer = FEMM_SlidingMesh.Individual_Analyzer_FEMM_Edition(p=wily.p)
+            basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list, \
+                DisplacementAngle_list, \
+                circuit_current_GroupACU, \
+                circuit_current_GroupACV, \
+                circuit_current_GroupACW, \
+                circuit_current_GroupBDU, \
+                circuit_current_GroupBDV, \
+                circuit_current_GroupBDW, \
+                terminal_voltage_GroupACU, \
+                terminal_voltage_GroupACV, \
+                terminal_voltage_GroupACW, \
+                terminal_voltage_GroupBDU, \
+                terminal_voltage_GroupBDV, \
+                terminal_voltage_GroupBDW, \
+                coil_fluxLinkage_GroupACU, \
+                coil_fluxLinkage_GroupACV, \
+                coil_fluxLinkage_GroupACW, \
+                coil_fluxLinkage_GroupBDU, \
+                coil_fluxLinkage_GroupBDV, \
+                coil_fluxLinkage_GroupBDW = self.toolJd.dm.unpack(bool_more_info=True)
+            EX = acm_variant.template.d['EX']
+            electrical_period = acm_variant.template.fea_config_dict['designer.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
+            number_of_steps   = acm_variant.template.fea_config_dict['designer.number_of_steps_2ndTSS']
+            step_size_sec = electrical_period / number_of_steps
+            step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
+
+            # number_of_steps = 
+            RotorAngle_MechanicalDegrees = 0
+            for index in range(-self.toolJd.dm.number_of_steps_at_steady_state, 0):
+                time                         = time_list[index]
+                RotorAngle_MechanicalDegrees = DisplacementAngle_list[index]
+                torque = TorCon_list[index]
+                forces = (ForConX_list[index], ForConY_list[index])
+                energy = 0
+                circuitProperties = ( [ circuit_current_GroupACU[index], terminal_voltage_GroupACU[index], coil_fluxLinkage_GroupACU[index] ],
+                                      [ circuit_current_GroupACV[index], terminal_voltage_GroupACV[index], coil_fluxLinkage_GroupACV[index] ],
+                                      [ circuit_current_GroupACW[index], terminal_voltage_GroupACW[index], coil_fluxLinkage_GroupACW[index] ],
+                                      [ circuit_current_GroupBDU[index], terminal_voltage_GroupBDU[index], coil_fluxLinkage_GroupBDU[index] ],
+                                      [ circuit_current_GroupBDV[index], terminal_voltage_GroupBDV[index], coil_fluxLinkage_GroupBDV[index] ],
+                                      [ circuit_current_GroupBDW[index], terminal_voltage_GroupBDW[index], coil_fluxLinkage_GroupBDW[index] ] )
+                acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
+
+            return acm_variant
 
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # FEA solver and FEA results parser
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def read_swarm_survivor(self, popsize):
-        if not os.path.exists(self.output_dir + 'swarm_survivor.txt'):
+        if not os.path.exists(self.fea_config_dict['output_dir'] + 'swarm_survivor.txt'):
             return None
 
-        with open(self.output_dir + 'swarm_survivor.txt', 'r') as f:
+        with open(self.fea_config_dict['output_dir'] + 'swarm_survivor.txt', 'r') as f:
             buf = f.readlines()
             survivor_data_raw = buf[-popsize:]
             survivor_data = [[float(s) for s in line.split(',')] for line in survivor_data_raw]
@@ -990,22 +1028,22 @@ class acm_designer(object):
         return survivor_data
 
     def write_swarm_survivor(self, pop, counter_fitness_return):
-        with open(self.output_dir + 'swarm_survivor.txt', 'a') as f:
+        with open(self.fea_config_dict['output_dir'] + 'swarm_survivor.txt', 'a') as f:
             f.write('\n---------%d\n'%(counter_fitness_return) \
                     + '\n'.join(','.join('%.16f'%(x) for x in el[0].tolist() + el[1].tolist() ) for el in zip(pop.get_x(), pop.get_f()) )) # convert 2d array to string
 
     def read_swarm_data_old(self, bound_filter=None, read_from_here=None):
         if read_from_here is not None:
-            self.output_dir = read_from_here
-        print('\t', self.output_dir + 'swarm_data.txt')
-        if not os.path.exists(self.output_dir + 'swarm_data.txt'):
-            msg = '\tNo file @ ' + self.output_dir + 'swarm_data.txt'
+            self.fea_config_dict['output_dir'] = read_from_here
+        print('\t', self.fea_config_dict['output_dir'] + 'swarm_data.txt')
+        if not os.path.exists(self.fea_config_dict['output_dir'] + 'swarm_data.txt'):
+            msg = '\tNo file @ ' + self.fea_config_dict['output_dir'] + 'swarm_data.txt'
             print(msg)
             # raise Exception(msg)
             return None
 
-        print('\t\tRead in', self.output_dir + 'swarm_data.txt')
-        with open(self.output_dir + 'swarm_data.txt', 'r') as f:
+        print('\t\tRead in', self.fea_config_dict['output_dir'] + 'swarm_data.txt')
+        with open(self.fea_config_dict['output_dir'] + 'swarm_data.txt', 'r') as f:
             buf = f.readlines()
             buf = buf[1:]
             length_buf = len(buf) 
@@ -1029,16 +1067,16 @@ class acm_designer(object):
 
     def read_swarm_data(self, select_spec, read_from_here=None):
         if read_from_here is not None:
-            self.output_dir = read_from_here
-        print('[acm_designer.py]', self.output_dir + 'swarm_data.txt')
-        if not os.path.exists(self.output_dir + 'swarm_data.txt'):
-            msg = '\tNo file @ ' + self.output_dir + 'swarm_data.txt'
+            self.fea_config_dict['output_dir'] = read_from_here
+        print('[acm_designer.py]', self.fea_config_dict['output_dir'] + 'swarm_data.txt')
+        if not os.path.exists(self.fea_config_dict['output_dir'] + 'swarm_data.txt'):
+            msg = '\tNo file @ ' + self.fea_config_dict['output_dir'] + 'swarm_data.txt'
             print(msg)
             # raise Exception(msg)
             return None
 
-        print('[acm_designer.py]', '\tRead in', self.output_dir + 'swarm_data.txt')
-        with open(self.output_dir + 'swarm_data.txt', 'r') as f:
+        print('[acm_designer.py]', '\tRead in', self.fea_config_dict['output_dir'] + 'swarm_data.txt')
+        with open(self.fea_config_dict['output_dir'] + 'swarm_data.txt', 'r') as f:
             buf = f.readlines()
             buf = buf[1:]
             length_buf = len(buf) 
@@ -1054,15 +1092,15 @@ class acm_designer(object):
 
             self.swarm_data_raw = [buf[i:i+21] for i in range(0, len(buf), 21)]
 
-        print('[acm_designer.py]', self.output_dir, select_spec)
+        print('[acm_designer.py]', self.fea_config_dict['output_dir'], select_spec)
 
-        if os.path.exists(self.output_dir + select_spec+'.json'):
-            with open(self.output_dir + select_spec+'.json', 'r') as f:
+        if os.path.exists(self.fea_config_dict['output_dir'] + select_spec+'.json'):
+            with open(self.fea_config_dict['output_dir'] + select_spec+'.json', 'r') as f:
                 # skip the first line
                 for _ in range(1): next(f)
                 buf = f.read()
                 self.swarm_data_json = json.loads('{\n' + buf + '\n}')
-                print('[acm_designer.py] ACMOP: read in swarm_data_json...', self.output_dir + select_spec+'.json')
+                print('[acm_designer.py] ACMOP: read in swarm_data_json...', self.fea_config_dict['output_dir'] + select_spec+'.json')
                 # print(buf) # debug
         else:
             self.swarm_data_json = None
@@ -1099,7 +1137,7 @@ class acm_designer(object):
         if 'JMAG' in self.select_fea_config_dict:
             # project name
             self.project_name = acm_variant.name
-            self.expected_project_file = self.output_dir + "%s.jproj"%(self.project_name)
+            self.expected_project_file = self.fea_config_dict['output_dir'] + "%s.jproj"%(self.project_name)
 
             # study name
             study_name = acm_variant.name + "-Transient" # Change here and there 
@@ -1110,20 +1148,20 @@ class acm_designer(object):
                 "project_name": self.project_name,
                 "study_name": study_name,
                 "dir_csv_output_folder": self.dir_csv_output_folder,
-                "output_dir": self.output_dir
+                "output_dir": self.fea_config_dict['output_dir']
             }
 
             # Leave the solving task to JMAG
-            self.build_jmag_project(acm_variant, project_meta_data, bool_re_evaluate=bool_re_evaluate)
+            self.toolJd = self.build_jmag_project(acm_variant, project_meta_data, bool_re_evaluate=bool_re_evaluate)
 
             ################################################################
             # Load data for cost function evaluation
             ################################################################
-            acm_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
             if results_to_be_unpacked is not None:
                 if self.fig_main is not None:
                     try:
-                        self.fig_main.savefig(self.output_dir + acm_variant.name + 'results.png', dpi=150)
+                        self.fig_main.savefig(self.fea_config_dict['output_dir'] + acm_variant.name + 'results.png', dpi=150)
                     except Exception as e:
                         print(e)
                         print('\n\n\nIgnore error and continue.')
@@ -1135,7 +1173,8 @@ class acm_designer(object):
                 raise Exception('[acm_designer] results_to_be_unpacked is None.')
 
         elif 'FEMM' in self.select_fea_config_dict:
-            self.build_femm_project(acm_variant)
+            self.toolFEMM = self.build_femm_project(acm_variant)
+            # acm_variant.results_to_be_unpacked = results_to_be_unpacked = toolFEMM.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
             return acm_variant
         else:
             raise Exception('[acm_designer.py] Wrong string of select_fea_config_dict:', self.select_fea_config_dict)
@@ -1216,24 +1255,33 @@ class acm_designer(object):
             print('[inner_rotor_motor.py]---acm_variant.BeariW_CurrentAmp =', acm_variant.BeariW_CurrentAmp)
             print('[inner_rotor_motor.py]---TORQUE_CURRENT_RATIO:', acm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'])
             print('[inner_rotor_motor.py]---SUSPENSION_CURRENT_RATIO:', acm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
+        
+        return toolJd
 
     ''' Create FEMM Project
     '''
     def build_femm_project(self, acm_variant):
         # Leave the solving task to FEMM
 
-        import FEMM_SlidingMesh
-        self.toolFEMM = toolFEMM = FEMM_SlidingMesh.FEMM_SlidingMesh(acm_variant)
+        # 1. Drawer
+        toolFEMM = FEMM_SlidingMesh.FEMM_SlidingMesh(acm_variant)
         toolFEMM.open()
         toolFEMM.probdef(stack_length=acm_variant.template.d['EX']['mm_template_stack_length'], time_harmonic_study_frequency=0)
-
         if toolFEMM.draw_spmsm(acm_variant) != 1: raise Exception('Drawer failed.')
 
-        
+        # 2. Preprocess
         toolFEMM.pre_process(project_file_name=self.acm_variant.template.fea_config_dict['output_dir'] + self.acm_variant.name + '-' + self.acm_variant.ID + '.fem')
-        toolFEMM.run_transient_study()
-        toolFEMM.get_transient_results()
 
+        # 3. Run transient FEA and collect results
+        toolFEMM.run_transient_study()
+
+        # 4. Compute objective
+        toolFEMM.compute_objectives()
+
+        # 5. Save results to dist
+        toolFEMM.save_results_to_disk()
+
+        return toolFEMM
 
     ''' BELOW ARE BOPT-PYTHON CODES for BLIM ONLY
     '''
@@ -1264,12 +1312,12 @@ class acm_designer(object):
             self.project_name          = 'proj%d'%(counter)
         else:
             self.project_name          = 'proj%d-redo%d'%(counter, counter_loop)
-        self.expected_project_file = self.output_dir + "%s.jproj"%(self.project_name)
+        self.expected_project_file = self.fea_config_dict['output_dir'] + "%s.jproj"%(self.project_name)
 
         original_study_name = im_variant.name + "Freq"
         tran2tss_study_name = im_variant.name + 'Tran2TSS'
 
-        self.dir_femm_temp         = self.output_dir + 'femm_temp/'
+        self.dir_femm_temp         = self.fea_config_dict['output_dir'] + 'femm_temp/'
         self.femm_output_file_path = self.dir_femm_temp + original_study_name + '.csv'
 
         # self.jmag_control_state = False
@@ -1748,9 +1796,9 @@ class acm_designer(object):
         if results_to_be_unpacked is not None:
             if self.fig_main is not None:
                 try:
-                    self.fig_main.savefig(self.output_dir + im_variant.name + 'results.png', dpi=150)
+                    self.fig_main.savefig(self.fea_config_dict['output_dir'] + im_variant.name + 'results.png', dpi=150)
                 except Exception as e:
-                    print('Directory exists?', self.output_dir + im_variant.name + 'results.png')
+                    print('Directory exists?', self.fea_config_dict['output_dir'] + im_variant.name + 'results.png')
                     print(e)
                     print('\n\n\nIgnore error and continue.')
                 finally:
@@ -1912,7 +1960,7 @@ class acm_designer(object):
         app.View().ShowMesh() # 3rn btn
         app.View().Zoom(3)
         app.View().Pan(-im_variant.Radius_OuterRotor, 0)
-        app.ExportImageWithSize(self.output_dir + model.GetName() + '.png', 2000, 2000)
+        app.ExportImageWithSize(self.fea_config_dict['output_dir'] + model.GetName() + '.png', 2000, 2000)
         app.View().ShowModel() # 1st btn. close mesh view, and note that mesh data will be deleted if only ouput table results are selected.
   
 

@@ -38,7 +38,13 @@ import utility_json; variant = utility_json.from_json_recursively('p2ps1-Q12y3-0
 variant.build_jmag_project(variant.project_meta_data)
 ```
 
+## Limitations
+
+Though in most cases, a regular motor is simply a bearingless motor (that has a DPNV winding) without suspension excitation.
+However, there is indeed limitation. For now the only limitation I can think of is that in order to implement a DPNV winding, we must enforce the number of parallel branches to be $a=2$. This means, a motor with 3 slots are not allowed. In sitations with $a\ne 2$, results can be easily converted. With that said, one may conclude that this code should be widely applicable to regular motor as well.
+
 ## TODO (FEMM)
+
 - There is no need to draw coils smaller than slots in FEMM and this has been causing too many meshes inside the slots, slowing down FEA in FEMM.
 - The sliding band is drawing inside the region of mechanical air gap. Since the sleeve band is not even modeled in FEMM, maybe we should draw sliding band at the middle of the magnetic air gap. I am not sure if this will improve the meshing quality in the air gap.
 - Magnet eddy current is not yet considered.

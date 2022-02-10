@@ -1,6 +1,6 @@
 #禁止在cache时打印
-def print(*arg, **kwarg):
-    pass
+# def print(*arg, **kwarg):
+#     pass
 
 from pylab import *
 import sys

@@ -38,7 +38,7 @@ class CrossSectInnerRotorStator:
         self.Q = Q               
         self.location = location 
 
-    def draw(self, drawer, bool_draw_whole_model=True):
+    def draw(self, drawer, bool_draw_whole_model=False):
 
         drawer.getSketch(self.name, self.color)
 
