@@ -41,6 +41,8 @@ class Individual_Analyzer_FEMM_Edition(object):
         self.femm_bearing_fluxLinkage_d = []
         self.femm_bearing_fluxLinkage_q = []
 
+        self.flux_density_along_air_gap_Bg = []
+
     def add(self, time, rotor_position_mech_deg, torque, forces, energy, circuitProperties):
 
         self.femm_time . append( time )
@@ -73,9 +75,9 @@ class Individual_Analyzer_FEMM_Edition(object):
             motor_current_U   = np.array(circuit_current_coil_U_GrpA) + np.array(circuit_current_coil_U_GrpB)
             motor_current_V   = np.array(circuit_current_coil_V_GrpA) + np.array(circuit_current_coil_V_GrpB)
             motor_current_W   = np.array(circuit_current_coil_W_GrpA) + np.array(circuit_current_coil_W_GrpB)
-            bearing_current_U = np.array(circuit_current_coil_U_GrpA) - np.array(circuit_current_coil_U_GrpB)
-            bearing_current_V = np.array(circuit_current_coil_V_GrpA) - np.array(circuit_current_coil_V_GrpB)
-            bearing_current_W = np.array(circuit_current_coil_W_GrpA) - np.array(circuit_current_coil_W_GrpB)
+            bearing_current_U = 0.5*(np.array(circuit_current_coil_U_GrpA) - np.array(circuit_current_coil_U_GrpB))
+            bearing_current_V = 0.5*(np.array(circuit_current_coil_V_GrpA) - np.array(circuit_current_coil_V_GrpB))
+            bearing_current_W = 0.5*(np.array(circuit_current_coil_W_GrpA) - np.array(circuit_current_coil_W_GrpB))
             return motor_current_U, motor_current_V, motor_current_W, bearing_current_U, bearing_current_V, bearing_current_W
         motor_current_U, motor_current_V, motor_current_W, bearing_current_U, bearing_current_V, bearing_current_W = get_motor_and_bearing_quantities_of_DPNV_winding(circuit_currents)
         motor_voltage_U, motor_voltage_V, motor_voltage_W, bearing_voltage_U, bearing_voltage_V, bearing_voltage_W = get_motor_and_bearing_quantities_of_DPNV_winding(circuit_voltages)
@@ -368,8 +370,9 @@ class FEMM_SlidingMesh(object):
         ampB = EX['BeariW_CurrentAmp']
         turnsDPNV = EX['DriveW_zQ']/nwl #* 100 # DEBUG
         # turnsB = EX['BeariW_zQ']/nwl #* 100 # DEBUG
-        print('[FEMM_SllidingMesh.py] DEBUG ampD, ampB:', ampD, ampB)
+        print('[FEMM_SllidingMesh.py] DEBUG ampD, ampB, DriveW_CurrentAmp, BeariW_CurrentAmp:', ampD, ampB, EX['DriveW_CurrentAmp'], EX['BeariW_CurrentAmp'])
         print('[FEMM_SllidingMesh.py] circuit turns for combined winding:', turnsDPNV)
+        # quit()
 
         # static solver
         omegaDrive = 2*np.pi*self.acm_variant.template.d['EX']['DriveW_Freq']
