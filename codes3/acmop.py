@@ -20,7 +20,6 @@ class AC_Machine_Optiomization_Wrapper(object):
 
     ''' Derived
     '''
-    # output_dir: str = None
     spec_input_dict: dict = None
     fea_config_dict: dict = None
 
@@ -160,10 +159,8 @@ class AC_Machine_Optiomization_Wrapper(object):
     def part_evaluation(self):
         # build x_denorm for the template design
         x_denorm = self.ad.acm_template.build_x_denorm()
-        # print(self.ad.acm_template.x_denorm_dict)
-        # print(self.ad.acm_template.build_x_denorm)
-        # print(x_denorm)
-        # raise
+        print('[acmop.py] x_denorm:',  x_denorm)
+        print('[acmop.py] x_denorm_dict:', self.ad.acm_template.x_denorm_dict)
 
         if True:
             ''' Default transient FEA
@@ -225,18 +222,6 @@ class AC_Machine_Optiomization_Wrapper(object):
             for ax in axes:
                 ax.legend()
             plt.show()
-
-        # if returned is not None:
-        #     # evaluate design (with json output)
-        #     cost_function, f1, f2, f3, FRW, \
-        #         normalized_torque_ripple, \
-        #         normalized_force_error_magnitude, \
-        #         force_error_angle = returned
-
-        #     print('[acmop.py] part_evaluation:', cost_function, f1, f2, f3, FRW, \
-        #     normalized_torque_ripple, \
-        #     normalized_force_error_magnitude, \
-        #     force_error_angle)
 
         print('[acmop.py] Check several things: 1. the winding initial excitation angle; 2. the rotor d-axis initial position should be orthoganal to winding excitation field.')
 
