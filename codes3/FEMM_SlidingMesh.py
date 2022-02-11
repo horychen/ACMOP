@@ -1,15 +1,10 @@
 #coding:utf-8
-
-from this import d
-import femm
+import femm, logging, os
 import numpy as np
-import logging
-import os
 from collections import OrderedDict
-import utility
+import winding_layout, utility
 from time import sleep
 from time import time as clock_time
-import winding_layout
 
 SELECT_ALL = 4
 EPS = 1e-2 # unit mm
@@ -122,7 +117,7 @@ class Individual_Analyzer_FEMM_Edition(object):
         # Torque
         torque_average = np.mean(self.femm_torque)
         torque_error = np.array(self.femm_torque) - torque_average
-        ss_max_torque_error = max(torque_error), min(torque_error)
+        ss_max_torque_error = (max(torque_error), min(torque_error))
         normalized_torque_ripple = (ss_max_torque_error[0] - ss_max_torque_error[1]) / torque_average
 
         # print('-'*100)
@@ -149,7 +144,7 @@ class Individual_Analyzer_FEMM_Edition(object):
         print('[FEMM_SlidingMesh.py] SS data:')
         print('\t torque_average =', torque_average, 'Nm')
         print('\t ss_max_torque_error =', ss_max_torque_error , 'Nm')
-        print('\t normalized_torque_ripple =', normalized_torque_ripple, 'Nm')
+        print('\t normalized_torque_ripple =', normalized_torque_ripple*100, '%')
         print('\t ss_avg_force_vector =', sfv.ss_avg_force_vector, 'N')
         print('\t ss_avg_force_magnitude =', sfv.ss_avg_force_magnitude, 'N')
         print('\t ss_avg_force_angle =', sfv.ss_avg_force_angle, 'deg')
@@ -667,11 +662,11 @@ class FEMM_SlidingMesh(object):
 
     @staticmethod
     def draw_arc(p1, p2, angle, maxseg=1, center=None, **kwarg):
-        femm.mi_drawarc(p1[0],p1[1],p2[0],p2[1],angle/pi*180,maxseg) # [deg]
+        femm.mi_drawarc(p1[0],p1[1],p2[0],p2[1],angle/np.pi*180,maxseg) # [deg]
 
     @staticmethod
     def add_arc(p1, p2, angle, maxseg=1, center=None, **kwarg):
-        femm.mi_addarc(p1[0],p1[1],p2[0],p2[1],angle/pi*180,maxseg) # [deg]
+        femm.mi_addarc(p1[0],p1[1],p2[0],p2[1],angle/np.pi*180,maxseg) # [deg]
 
     @staticmethod
     def draw_line(p1, p2):
@@ -815,18 +810,18 @@ class FEMM_SlidingMesh(object):
         list_B_magitude = []
         R = im.Radius_OuterRotor + 0.25*im.Length_AirGap
         for i in range(number_of_points):
-            THETA = i / 180.0 * pi
-            X = R*cos(THETA)
-            Y = R*sin(THETA)
+            THETA = i / 180.0 * np.pi
+            X = R*np.cos(THETA)
+            Y = R*np.sin(THETA)
             B_vector_complex = femm.mo_getb(X, Y)
             B_X_complex = B_vector_complex[0]
             B_Y_complex = B_vector_complex[1]
             B_X_real = np.real(B_X_complex)
             B_Y_real = np.real(B_Y_complex)
             # Assume the magnitude is all due to radial component
-            B_magitude = sqrt(B_X_real**2 + B_Y_real**2)
+            B_magitude = np.sqrt(B_X_real**2 + B_Y_real**2)
             inner_product = B_X_real * X + B_Y_real *Y
-            list_B_magitude.append( B_magitude * copysign(1, inner_product) )
+            list_B_magitude.append( B_magitude * utility.copysign(1, inner_product) )
         return list_B_magitude
 
     def has_results(self, dir_run=None):
@@ -925,20 +920,20 @@ class FEMM_SlidingMesh(object):
             vals_results_rotor_current = []
             # R = 0.5*(im.Location_RotorBarCenter + im.Location_RotorBarCenter2)
             R = im.Location_RotorBarCenter # Since 5/23/2019
-            angle_per_slot = 2*pi/im.Qr
-            THETA_BAR = pi - angle_per_slot + EPS # add EPS for the half bar
+            angle_per_slot = 2*np.pi/im.Qr
+            THETA_BAR = np.pi - angle_per_slot + EPS # add EPS for the half bar
             # print 'number of rotor_slot per partial model', self.rotor_slot_per_pole * int(4/fraction)
             for i in range(self.rotor_slot_per_pole * int(4/fraction)):
                 THETA_BAR += angle_per_slot
                 THETA = THETA_BAR
-                X = R*cos(THETA); Y = R*sin(THETA)
+                X = R*np.cos(THETA); Y = R*np.sin(THETA)
                 femm.mo_selectblock(X, Y) # or you can select circuit rA rB ...
                 vals_results_rotor_current.append(femm.mo_blockintegral(7)) # integrate for current
                 femm.mo_clearblock()
             # the other half bar of rA
             THETA_BAR += angle_per_slot
             THETA = THETA_BAR - 2*EPS
-            X = R*cos(THETA); Y = R*sin(THETA)
+            X = R*np.cos(THETA); Y = R*np.sin(THETA)
             femm.mo_selectblock(X, Y)
             vals_results_rotor_current.append(femm.mo_blockintegral(7)) # integrate for current
             femm.mo_clearblock()
@@ -1271,7 +1266,7 @@ class FEMM_SlidingMesh(object):
         Area_conductor_Sc        = Area_slot * STATOR_SLOT_FILL_FACTOR / zQ
         Js = current_rms_value / (a * Area_conductor_Sc)
 
-        coil_span_W = coil_pitch_by_slot_count / Q * (the_radius_m * 2*pi)
+        coil_span_W = coil_pitch_by_slot_count / Q * (the_radius_m * 2*np.pi)
         lav = 2*stack_length_m + 2.4*coil_span_W + 0.1
         mass_Cu             = density_of_copper * Ns * lav * Area_conductor_Sc
         mass_Cu_along_stack = density_of_copper * Ns * (2*stack_length_m) * Area_conductor_Sc
@@ -1306,7 +1301,7 @@ class FEMM_SlidingMesh(object):
         Jr = sum(list_Jr) / len(list_Jr) # take average for Jr
         # print('Jr=%g Arms/m^2'%(Jr))
 
-        coil_span_W = coil_pitch_by_slot_count / Q * (the_radius_m * 2*pi)
+        coil_span_W = coil_pitch_by_slot_count / Q * (the_radius_m * 2*np.pi)
         lav = 2*stack_length_m + 2.4*coil_span_W + 0.1
         mass_Cu             = density_of_copper * Ns * lav * Area_conductor_Sc
         mass_Cu_along_stack = density_of_copper * Ns * (2*stack_length_m) * Area_conductor_Sc
@@ -1322,7 +1317,7 @@ class FEMM_SlidingMesh(object):
         # http://www.femm.info/wiki/SPMLoss
         # % Now, total core loss can be computed in one fell swoop...
         im = self.im
-        samp_freq = 1. / (self.deg_per_step/180.*pi / self.im.Omega)
+        samp_freq = 1. / (self.deg_per_step/180.*np.pi / self.im.Omega)
         print('Sampling frequency is', samp_freq, 'Hz', '<=> deg_per_step is', self.deg_per_step)
 
         # Iron Loss

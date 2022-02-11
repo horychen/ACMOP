@@ -24,7 +24,7 @@
 
 - 2. (OPTIONAL) Create a virtual environment by `conda create -n your-env-name python=3.8.8 pygmo`, and then activate your virtual env by `conda activate your-env-name`.
 
-- 3. Install the rest dependencies from PyPI: `pip install pyx, pyfemm, jsonpickle, recordtype, pint`
+- 3. Install the rest dependencies from PyPI: `pip install pyx pyfemm jsonpickle recordtype`
 
 ## Features
 - Restartable. Upon interrupts, this program is able to re-start from the file "swarm_data.txt" of the current run (or even from a different run).

@@ -1739,7 +1739,7 @@ def get_zQ(SD, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
 
     if SD['coil_pitch_y'] < 0:
         kw1 = 1
-        print(f'[zQ] coil_pitch_y={SD["coil_pitch_y"]}, kw1={kw1}')
+        print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SD["coil_pitch_y"]}, kw1={kw1}')
     else:
         if wily.number_winding_layer == 1:
             # full pitch - easy
@@ -1754,7 +1754,7 @@ def get_zQ(SD, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
         kq1 = sin(1*coil_span_W/pole_pitch_tau_p*np.pi/2)        
         ksq1 = 1
         kw1 = kd1 * kq1 * ksq1
-        print(f'[zQ] coil_pitch_y={SD["coil_pitch_y"]}, kw1={kw1}')
+        print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SD["coil_pitch_y"]}, kw1={kw1}')
 
     alpha_i = 2/np.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
 
@@ -1775,9 +1775,9 @@ def get_zQ(SD, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
     # print(sqrt(2)*desired_emf_Em , SD['ExcitationFreqSimulated'], kw1,  air_gap_flux_Phi_m)
     if no_series_coil_turns_N<1:
         raise Exception('What? no_series_coil_turns_N is negative?')
-    print('[zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_B is', no_series_coil_turns_N)
+    print('[Pyrhonen_procedure_as_function.py] [zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_B is', no_series_coil_turns_N)
     no_series_coil_turns_N = round(no_series_coil_turns_N)
-    print('[zQ] Rounds up to:', no_series_coil_turns_N)
+    print('[Pyrhonen_procedure_as_function.py] [zQ] Rounds up to:', no_series_coil_turns_N)
     backup = no_series_coil_turns_N
     distribution_q = SD['Qs'] / (2*SD['p']*SD['m'])
     bool_we_have_plenty_voltage = True
@@ -1785,9 +1785,9 @@ def get_zQ(SD, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
         no_series_coil_turns_N = min([SD['p']*distribution_q*i for i in range(100,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
     else:
         no_series_coil_turns_N = min([SD['p']*distribution_q*i for i in range(100)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
-    print('[zQ] no_series_coil_turns_N should be multiple of pq:', no_series_coil_turns_N, '= q * p =', distribution_q, '*', SD['p'])
+    print('[Pyrhonen_procedure_as_function.py] [zQ] no_series_coil_turns_N should be multiple of pq:', no_series_coil_turns_N, '= q * p =', distribution_q, '*', SD['p'])
     no_conductors_per_slot_zQ = 2* SD['m'] * no_series_coil_turns_N / SD['Qs'] * number_parallel_branch
-    print('[zQ] =', no_conductors_per_slot_zQ)
+    print('[Pyrhonen_procedure_as_function.py] [zQ] =', no_conductors_per_slot_zQ)
     return no_conductors_per_slot_zQ
 
 #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~

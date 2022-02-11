@@ -1,9 +1,7 @@
-# Install Anaconda3-2021.05-Windows-x86_64 Python 3.8.8 for PYGMO to work
+# Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
+# Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
 
-import main_utility, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design # part_initialDesign
-# import winding_layout, PyX_Utility, math # part_winding
-
-from utility import suspension_force_vector
+import main_utility, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design # for part_initialDesign
 
 from dataclasses import dataclass
 @dataclass
@@ -62,6 +60,8 @@ class AC_Machine_Optiomization_Wrapper(object):
     # Use winding_layout_derivation.py to derive windings defined in class winding_layout_v2 during choosing winding phase.
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def part_winding(self):
+        import winding_layout, PyX_Utility, math # for part_winding
+
         # wily = winding_layout.winding_layout_v2(DPNV_or_SEPA=False, Qs=24, p=2, ps=1)
         # wily = winding_layout.winding_layout_v2(DPNV_or_SEPA=True, Qs=24, p=2, ps=1, coil_pitch_y=6)
         # wily = winding_layout.winding_layout_v2(DPNV_or_SEPA=True, Qs=24, p=1, ps=2, coil_pitch_y=9)
@@ -170,6 +170,7 @@ class AC_Machine_Optiomization_Wrapper(object):
             '''
             motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
             motor_design_variant.analyzer.get_ss_data()
+            print('[acmop.py] Listing spec_performance_dict:')
             for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
                 print('\t', k, v)
 
@@ -205,21 +206,22 @@ class AC_Machine_Optiomization_Wrapper(object):
                 In this case, we can sweep variable self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'] to reach maximum torque.
             '''
             from pylab import plt, np
+            from utility import suspension_force_vector
             fig, axes = plt.subplots(5)
-            for angle in np.arange(-3, 3.1, 1):
+            for angle in np.arange(-15, 15.1, 5):
                 self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'] = angle
                 print('User shifts the initial rotor position angle by', self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'], 'deg')
                 motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
 
-                force_x = list(map(lambda el: el[0], motor_design_variant.femm_force))
-                force_y = list(map(lambda el: el[1], motor_design_variant.femm_force))
+                force_x = list(map(lambda el: el[0], motor_design_variant.analyzer.femm_forces))
+                force_y = list(map(lambda el: el[1], motor_design_variant.analyzer.femm_forces))
                 sfv = suspension_force_vector(force_x, force_y)
 
-                axes[0].plot(motor_design_variant.femm_time, motor_design_variant.femm_torque, label=str(angle))
-                axes[1].plot(motor_design_variant.femm_time, sfv.force_abs, label=str(angle))
-                axes[2].plot(motor_design_variant.femm_time, force_x, label=str(angle))
-                axes[3].plot(motor_design_variant.femm_time, force_y, label=str(angle))
-                axes[4].plot(motor_design_variant.femm_time, motor_design_variant.femm_energy, label=str(angle))
+                axes[0].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.femm_torque, label=str(angle))
+                axes[1].plot(motor_design_variant.analyzer.femm_time, sfv.force_abs, label=str(angle))
+                axes[2].plot(motor_design_variant.analyzer.femm_time, force_x, label=str(angle))
+                axes[3].plot(motor_design_variant.analyzer.femm_time, force_y, label=str(angle))
+                axes[4].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.femm_energy, label=str(angle))
             for ax in axes:
                 ax.legend()
             plt.show()
@@ -472,6 +474,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         #     print(pop.get_x())
         #     print(pop.get_f().tolist())
         #     raise e        
+        pass
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[5] Report Part'
@@ -519,7 +522,53 @@ class AC_Machine_Optiomization_Wrapper(object):
             normalized_force_error_magnitude, \
             force_error_angle = self.ad.evaluate_design_json_wrapper(self.acm_template, x_denorm, counter=self.ad.counter_fitness_called)
 
-def examples(bool_post_processing=True):
+def main():
+    mop = AC_Machine_Optiomization_Wrapper(
+        # select_spec='IM Q24p1y9 Qr32 Round Bar',
+        # select_fea_config_dict = '#019 JMAG IM Nine Variables',
+
+        select_spec            = 'PMSM Q12p4y1 A', #'PMSM Q18p4y2 Beijing ShiDaiChaoQun',
+        # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+        select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
+
+        project_loc            = fr'../_default/',
+        bool_show_GUI          = True
+    )
+
+    #########################
+    # Call the five modules
+    #########################
+    # mop.part_winding() # Module 1
+    # mop.acm_template   # Module 2 (the execution code has been moved to the end of __post_init__ of AC_Machine_Optiomization_Wrapper)
+    if True:
+        mop.part_evaluation() # Module 3
+        # mop.part_optimization(acm_template) # Module 4
+    else:
+        if True:
+            motor_design_variant = mop.reproduce_design_from_jsonpickle('p4ps5-Q12y1-0999') # Module 5 - reproduction of any design variant object
+        else:
+            # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
+            mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5 - visualize swarm data
+
+if __name__ == '__main__':
+    from pylab import np
+    main()
+
+
+    ''' Interactive variable checking examples:
+
+        Example 1:
+        >>> GP = mop.ad.acm_variant.template.d['GP'] 
+        >>> GP['mm_r_ri'].value + GP['mm_d_ri'].value + GP['mm_d_rp'].value 
+        46.7464829275686
+        >>> GP['mm_r_or'] 
+        acmop_parameter(type='derived', name='outer_rotor_radius', value=47.7464829275686, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000130CF961790>)
+
+        Example 2:
+        >>> dir(mop.ad.acm_variant.analyzer)
+    '''
+
+def examples_from_the_publications(bool_post_processing=True):
     # Vernier Machine
     # mop = AC_Machine_Optiomization_Wrapper(
     #         select_fea_config_dict = "#03 JMAG Non-Bearingless Motor Evaluation Setting",
@@ -592,9 +641,5 @@ def examples(bool_post_processing=True):
         if False:
             mop.reproduce_design_from_jsonpickle('p2ps1-Q12y3-0999')
         else:
-            mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5
             # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
-
-from pylab import np
-if __name__ == '__main__':
-    examples()
+            mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5

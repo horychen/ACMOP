@@ -45,7 +45,7 @@ def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2Sw
     # create output folder only when not post-processing? No, sometimes in post-processing we run FEA simulation.
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    print('[main_utility.py] output_dir:', output_dir)
+    # print('[main_utility.py] output_dir:', output_dir)
     with open(output_dir+'acmop-settings.txt', 'w') as f:
         f.write(select_spec + ' | ' + select_fea_config_dict)
     # print(spec_input_dict)
