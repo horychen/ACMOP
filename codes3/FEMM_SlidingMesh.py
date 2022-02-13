@@ -1,8 +1,7 @@
 #coding:utf-8
-import femm, logging, os
+import femm, logging, os, sys, subprocess, winding_layout, utility
 import numpy as np
 from collections import OrderedDict
-import winding_layout, utility
 from time import sleep
 from time import time as clock_time
 
@@ -36,16 +35,23 @@ class Individual_Analyzer_FEMM_Edition(object):
         self.femm_bearing_fluxLinkage_d = []
         self.femm_bearing_fluxLinkage_q = []
 
+        # get dict versions of the lists (to be used in collecting results parallel)
+        self.list_of_attributes = []
+        for attribute in dir(self):
+            if 'femm' in attribute:
+                self.list_of_attributes.append(attribute)
+                exec(f'self.dict_{attribute} = dict()')
+
         self.flux_density_along_air_gap_Bg = []
 
-    def add(self, time, rotor_position_mech_deg, torque, forces, energy, circuitProperties):
+    def add(self, time, rotor_position_mech_deg, torque, forces, energy, circuitProperties, index=None):
 
-        self.femm_time . append( time )
-        self.femm_rotor_position_mech_deg. append( rotor_position_mech_deg )
+        self.add_to_list_or_dict(time, self.femm_time, self.dict_femm_time, index=index)
+        self.add_to_list_or_dict(rotor_position_mech_deg, self.femm_rotor_position_mech_deg, self.dict_femm_rotor_position_mech_deg, index=index)
 
-        self.femm_torque . append( torque )
-        self.femm_forces . append( forces )
-        self.femm_energy . append( energy )
+        self.add_to_list_or_dict(torque, self.femm_torque, self.dict_femm_torque, index=index)
+        self.add_to_list_or_dict(forces, self.femm_forces, self.dict_femm_forces, index=index)
+        self.add_to_list_or_dict(energy, self.femm_energy, self.dict_femm_energy, index=index)
         # print('-'*100)
         # print(circuitProperties)
         # print(circuitProperties[0])
@@ -54,9 +60,9 @@ class Individual_Analyzer_FEMM_Edition(object):
         circuit_currents     = list(map(lambda el: el[0], circuitProperties))
         circuit_voltages     = list(map(lambda el: el[1], circuitProperties))
         circuit_fluxLinkages = list(map(lambda el: el[2], circuitProperties))
-        self.femm_circuit_currents . append( circuit_currents ) # 6 coils UVW and AC/BD
-        self.femm_circuit_voltages . append( circuit_voltages ) # 6 coils UVW and AC/BD
-        self.femm_circuit_fluxLinkages . append( circuit_fluxLinkages ) # 6 coils UVW and AC/BD
+        self.add_to_list_or_dict(circuit_currents, self.femm_circuit_currents, self.dict_femm_circuit_currents, index=index) # 6 coils UVW and AC/BD
+        self.add_to_list_or_dict(circuit_voltages, self.femm_circuit_voltages, self.dict_femm_circuit_voltages, index=index) # 6 coils UVW and AC/BD
+        self.add_to_list_or_dict(circuit_fluxLinkages, self.femm_circuit_fluxLinkages, self.dict_femm_circuit_fluxLinkages, index=index) # 6 coils UVW and AC/BD
 
         ''' Get UVW and dq quantities
         '''
@@ -101,17 +107,26 @@ class Individual_Analyzer_FEMM_Edition(object):
         # Currents
         motor_current_d, motor_current_q     = Park_transform(motor_current_alpha, motor_current_beta, theta=rotor_position_elec_rad)
         bearing_current_d, bearing_current_q = Park_transform(bearing_current_alpha, bearing_current_beta, theta=rotor_position_elec_rad)
-        self.femm_motor_currents_d. append( motor_current_d )
-        self.femm_motor_currents_q. append( motor_current_q )
-        self.femm_bearing_currents_d. append( bearing_current_d )
-        self.femm_bearing_currents_q. append( bearing_current_q )
+        self.add_to_list_or_dict(motor_current_d, self.femm_motor_currents_d, self.dict_femm_motor_currents_d, index=index)
+        self.add_to_list_or_dict(motor_current_q, self.femm_motor_currents_q, self.dict_femm_motor_currents_q, index=index)
+        self.add_to_list_or_dict(bearing_current_d, self.femm_bearing_currents_d, self.dict_femm_bearing_currents_d, index=index)
+        self.add_to_list_or_dict(bearing_current_q, self.femm_bearing_currents_q, self.dict_femm_bearing_currents_q, index=index)
         # Fluxes
         motor_fluxLinkage_d, motor_fluxLinkage_q     = Park_transform(motor_fluxLinkage_alpha, motor_fluxLinkage_beta, theta=rotor_position_elec_rad)
         bearing_fluxLinkage_d, bearing_fluxLinkage_q = Park_transform(bearing_fluxLinkage_alpha, bearing_fluxLinkage_beta, theta=rotor_position_elec_rad)
-        self.femm_motor_fluxLinkage_d. append( motor_fluxLinkage_d )
-        self.femm_motor_fluxLinkage_q. append( motor_fluxLinkage_q )
-        self.femm_bearing_fluxLinkage_d. append( bearing_fluxLinkage_d )
-        self.femm_bearing_fluxLinkage_q. append( bearing_fluxLinkage_q )
+        self.add_to_list_or_dict(motor_fluxLinkage_d, self.femm_motor_fluxLinkage_d, self.dict_femm_motor_fluxLinkage_d, index=index)
+        self.add_to_list_or_dict(motor_fluxLinkage_q, self.femm_motor_fluxLinkage_q, self.dict_femm_motor_fluxLinkage_q, index=index)
+        self.add_to_list_or_dict(bearing_fluxLinkage_d, self.femm_bearing_fluxLinkage_d, self.dict_femm_bearing_fluxLinkage_d, index=index)
+        self.add_to_list_or_dict(bearing_fluxLinkage_q, self.femm_bearing_fluxLinkage_q, self.dict_femm_bearing_fluxLinkage_q, index=index)
+
+    def add_to_list_or_dict(self, el, l, d, index=None):
+        if index is None:
+            l.append(el)
+        else:
+            d[index] = (el)
+
+    def convert_dict_to_list(self):
+        pass
 
     def get_ss_data(self):
         # Torque
@@ -504,6 +519,7 @@ class FEMM_SlidingMesh(object):
         GP = self.acm_variant.template.d['GP']
         EX = self.acm_variant.template.d['EX']
         p  = self.acm_variant.template.SI['p']
+        fea_config_dict = self.acm_variant.template.fea_config_dict
 
         # figure out initial rotor angle
         deg_pole_span = 180/p
@@ -511,50 +527,73 @@ class FEMM_SlidingMesh(object):
         print('[FEMM_SlidingMesh.py] initial_rotor_position_mech_deg:', initial_rotor_position_mech_deg, 'deg || deg_winding_U_phase_phase_axis_angle:', '', EX['wily'].deg_winding_U_phase_phase_axis_angle)
 
         # figure out step size
-        electrical_period = self.acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
-        number_of_steps   = self.acm_variant.template.fea_config_dict['femm.number_of_steps_2ndTSS']
+        electrical_period = fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
+        number_of_steps   = fea_config_dict['femm.number_of_steps_2ndTSS']
         step_size_sec = electrical_period / number_of_steps
         step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
 
         # transient FEA with sliding band (air gap boundary in FEMM)
         print('[FEMM_SlidingMesh.py] Run FEMM solver...')
         self.acm_variant.analyzer = Individual_Analyzer_FEMM_Edition(p=p)
-        for index in range(number_of_steps):
-            time                         = index * step_size_sec
-            RotorAngle_MechanicalDegrees = index * step_size_mech_deg
-            current_sources = self.update_circuit_excitation(time)
-            femm.mi_modifyboundprop('WholeModelSlidingBand', 10, initial_rotor_position_mech_deg+RotorAngle_MechanicalDegrees+self.acm_variant.template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle']) # change inner angle to 
 
-            # if index > 0:
-            #     femm.mi_setprevious(self.project_file_name[:-4] + f'-{index-1:03d}.ans', 1) # 1: must be incremental permeability (because frozen permability means the permeability is fixed).
-            # Starting nonlinear field from previous solution is not possible with current FEMM's function
-            femm.mi_saveas(self.project_file_name[:-4] + f'-{index:03d}.fem')
+        if fea_config_dict['femm.number_of_parallel_solve'] == 1:
+            for index in range(number_of_steps):
 
-            # femm.mi_createmesh() # no need
-            femm.mi_analyze(1)
+                # update excitations
+                time                         = index * step_size_sec
+                RotorAngle_MechanicalDegrees = index * step_size_mech_deg
+                current_sources = self.update_circuit_excitation(time)
 
-            # collect results at: index
-            femm.mi_loadsolution()
-            torque = femm.mo_gapintegral('WholeModelSlidingBand',0)
-            forces = femm.mo_gapintegral('WholeModelSlidingBand',1)
-            energy = femm.mo_gapintegral('WholeModelSlidingBand',2)
-            circuitProperties = ( femm.mo_getcircuitproperties('U-GrpAC'),
-                                  femm.mo_getcircuitproperties('V-GrpAC'),
-                                  femm.mo_getcircuitproperties('W-GrpAC'),
-                                  femm.mo_getcircuitproperties('U-GrpBD'),
-                                  femm.mo_getcircuitproperties('V-GrpBD'),
-                                  femm.mo_getcircuitproperties('W-GrpBD') )
-            self.acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
-            print(f'\t {index}, {time*1000} ms, {RotorAngle_MechanicalDegrees} deg : {torque:.2f} Nm, [{forces[0]:.2f} N, {forces[1]:.2f}] N, {energy:.2f} J', end=' | ')
-            print(' A, '.join(f'{current:.1f}' for current in current_sources), 'A')
-            for el in circuitProperties:
-                print('\t\t', el)
-            femm.mo_close()
+                # update rotor position
+                femm.mi_modifyboundprop('WholeModelSlidingBand', 10, initial_rotor_position_mech_deg+RotorAngle_MechanicalDegrees+self.acm_variant.template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle']) # change inner angle to 
 
-            # save field results for incremental study
-            # femm.mi_saveas('ptemp-acmop.fem')
+                # if index > 0:
+                #     femm.mi_setprevious(self.project_file_name[:-4] + f'-{index-1:03d}.ans', 1) # 1: must be incremental permeability (because frozen permability means the permeability is fixed).
+                # Starting nonlinear field from previous solution is not possible with current FEMM's function
+
+
+                femm.mi_saveas(self.project_file_name[:-4] + f'-{index:03d}.fem')
+                # femm.mi_createmesh() # no need
+                femm.mi_analyze(1)
+
+                # collect results at: index
+                femm.mi_loadsolution()
+                self.collect_femm_results(index, time, RotorAngle_MechanicalDegrees, current_sources)
+
+        else:
+            for index in range(number_of_steps):
+                time                         = index * step_size_sec
+                RotorAngle_MechanicalDegrees = index * step_size_mech_deg
+                current_sources = self.update_circuit_excitation(time)
+                femm.mi_modifyboundprop('WholeModelSlidingBand', 10, initial_rotor_position_mech_deg+RotorAngle_MechanicalDegrees+self.acm_variant.template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle']) # change inner angle to 
+                femm.mi_saveas(self.project_file_name[:-4] + f'-{index:03d}.fem')
+                if os.path.exists(self.project_file_name[:-4] + f'-{index:03d}.ans'):
+                    os.remove(self.project_file_name[:-4] + f'-{index:03d}.ans')
+            self.parallel_solve_transient_FEA(step_size_sec, step_size_mech_deg)
 
         femm.mi_close()
+
+    def collect_femm_results(self, index, time, RotorAngle_MechanicalDegrees, current_sources, bool_parallel=False):
+
+        torque = femm.mo_gapintegral('WholeModelSlidingBand',0)
+        forces = femm.mo_gapintegral('WholeModelSlidingBand',1)
+        energy = femm.mo_gapintegral('WholeModelSlidingBand',2)
+        circuitProperties = ( femm.mo_getcircuitproperties('U-GrpAC'),
+                            femm.mo_getcircuitproperties('V-GrpAC'),
+                            femm.mo_getcircuitproperties('W-GrpAC'),
+                            femm.mo_getcircuitproperties('U-GrpBD'),
+                            femm.mo_getcircuitproperties('V-GrpBD'),
+                            femm.mo_getcircuitproperties('W-GrpBD') )
+        if bool_parallel:
+            self.acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties, index=index)
+        else:
+            self.acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties, index=None)
+        femm.mo_close()
+
+        print(f'\t {index}, {time*1000} ms, {RotorAngle_MechanicalDegrees} deg : {torque:.2f} Nm, [{forces[0]:.2f} N, {forces[1]:.2f}] N, {energy:.2f} J', end=' | ')
+        print(' A, '.join(f'{current:.1f}' for current in current_sources), 'A')
+        for el in circuitProperties:
+            print('\t\t', el)
 
     def compute_objectives(self):
         pass
@@ -584,11 +623,79 @@ class FEMM_SlidingMesh(object):
             self.dict_stator_current_function[5](time),
         ]
 
-    # def save(self):
-        # print('[FEMM_SlidingMesh.py] save to:', self.output_file_name + '.fem')
-        # femm.mi_saveas(self.output_file_name + '.fem')
-        # self.model_rotor_rotate(time)
-        # femm.mi_saveas(fem_file)
+    def parallel_solve_transient_FEA(self, step_size_sec, step_size_mech_deg):
+
+        fea_config_dict = self.acm_variant.template.fea_config_dict
+        number_of_parallel_solve = fea_config_dict['femm.number_of_parallel_solve']
+        number_of_points = fea_config_dict['femm.number_of_steps_2ndTSS']
+        number_of_points_per_solve = number_of_points // number_of_parallel_solve
+        procs = []
+        for i in range(number_of_parallel_solve):
+            proc = subprocess.Popen([sys.executable, 'parasolveSlidingMesh.py', str(i), str(number_of_parallel_solve), str(number_of_points), fea_config_dict['output_dir'], self.project_file_name], bufsize=-1)
+            procs.append(proc)
+
+        for proc in procs:
+            code = proc.wait() # return exit code
+            print('[FEMM_SlidingMesh.py] DEBUG process return code:', code)
+
+        ''' Collecting results on the fly
+        '''
+        list_of_completed_ans_file = [0] * number_of_points
+        flag_run_while = True
+        while flag_run_while:
+            for index, _bool in enumerate(list_of_completed_ans_file):
+                if _bool == 0:
+                    # try to load .ans file
+                    try:
+                        femm.opendocument(self.project_file_name[:-4] + f'-{index:03d}.ans')
+                        time                         = index * step_size_sec
+                        RotorAngle_MechanicalDegrees = index * step_size_mech_deg
+                        self.collect_femm_results(index, time, RotorAngle_MechanicalDegrees, current_sources=[])
+                        list_of_completed_ans_file[index] = True
+
+                        # # get slot area for copper loss calculation
+                        # femm.mo_groupselectblock(11) # fraction is 1 
+                        # self.stator_slot_area = femm.mo_blockintegral(5) / self.im.Qs # unit: m^2 (verified by GUI operation)
+                        # femm.mo_clearblock()
+
+                        # femm.mo_groupselectblock(101)
+                        # self.rotor_slot_area = femm.mo_blockintegral(5) / self.im.Qr
+                        # femm.mo_clearblock()
+
+                        # self.number_of_elements = femm.mo_numelements()
+                        # self.stator_Area_data = []
+                        # self.stator_xy_complex_data = []
+                        # self.rotor_Area_data = []
+                        # self.rotor_xy_complex_data = []
+                        # for id_element in range(1, self.number_of_elements+1):
+                        #     _, _, _, x, y, area, group = femm.mo_getelement(id_element)
+                        #     # consider 1/4 model for loss (this is valid if we presume the suspension two pole field is weak)
+                        #     # Use the mesh info of the initial rotor position 
+                        #     if group == 10: # stator iron
+                        #         new_xy_complex = (x+1j*y) * np.exp(1j* pi/self.im.Qs) # 分割线经过槽
+                        #         if new_xy_complex.real>0 and new_xy_complex.imag>0:
+                        #             self.stator_Area_data.append(area)
+                        #             self.stator_xy_complex_data.append(x+1j*y)
+                        #     elif group == 100: # rotor iron
+                        #         if y>0 and x>0:
+                        #             self.rotor_Area_data.append(area)
+                        #             self.rotor_xy_complex_data.append(x+1j*y)
+                        # self.stator_Bx_data = []
+                        # self.stator_By_data = []
+                        # for i in range(len(self.stator_xy_complex_data)):
+                        #     self.stator_Bx_data.append([])
+                        #     self.stator_By_data.append([])
+                        # self.rotor_Bx_data = []
+                        # self.rotor_By_data = []
+                        # for i in range(len(self.rotor_xy_complex_data)):
+                        #     self.rotor_Bx_data.append([])
+                        #     self.rotor_By_data.append([])
+                        # femm.mo_close()
+
+                    except Exception as e:
+                        raise e
+            flag_run_while = sum(list_of_completed_ans_file) != number_of_points
+            print('\t\t', list_of_completed_ans_file)
 
     def getSketch(self, sketchName, color=None):
         pass
@@ -675,8 +782,6 @@ class FEMM_SlidingMesh(object):
     @staticmethod
     def add_line(p1, p2):
         femm.mi_addsegment(p1[0],p1[1],p2[0],p2[1])
-
-
 
     @staticmethod
     def drawLine(p1, p2):

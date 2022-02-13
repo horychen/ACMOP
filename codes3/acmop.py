@@ -1,7 +1,9 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
 
-import main_utility, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design # for part_initialDesign
+import os, main_utility, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design
+
+from matplotlib import projections # for part_initialDesign
 
 from dataclasses import dataclass
 @dataclass
@@ -31,18 +33,25 @@ class AC_Machine_Optiomization_Wrapper(object):
         4. Update this file with new "select_spec".
         '''
         self.spec_input_dict, self.fea_config_dict = \
-                main_utility.load_settings(self.select_spec, self.select_fea_config_dict, 
+                main_utility.load_settings( self.select_spec, 
+                                            self.select_fea_config_dict, 
                                             project_loc=self.project_loc, 
                                             path2SwarmData=self.path2SwarmData)
         self.fea_config_dict['designer.Show'] = self.bool_show_GUI
+
+        print('[acmop.py] project_loc (user-input):', self.project_loc)
         if self.path2SwarmData is None:
             self.path2SwarmData = self.project_loc + self.select_spec.replace(' ', '_') + '/'
         if self.project_loc is None:
             self.project_loc = os.path.abspath(os.path.join(self.path2SwarmData, '..',))
 
-        print('[acmop.py] project_loc   :', self.project_loc)
-        print('[acmop.py] path2SwarmData:', self.path2SwarmData)
-        print('[acmop.py] output_dir    :', self.fea_config_dict['output_dir'])
+        # Convert to abs path (JMAG requires absolute path)
+        self.project_loc                   = os.path.abspath(self.project_loc) + '/'
+        self.path2SwarmData                = os.path.abspath(self.path2SwarmData) + '/'
+        self.fea_config_dict['output_dir'] = os.path.abspath(self.fea_config_dict['output_dir']) + '/'
+        print('[acmop.py] project_loc (converted) :', self.project_loc)
+        print('[acmop.py] path2SwarmData          :', self.path2SwarmData)
+        print('[acmop.py] output_dir              :', self.fea_config_dict['output_dir'])
 
         r""" <ACMOP parent dir> = D:/DrH/Codes/acmop/
              <Data folder name> = <ACMOP parent dir>/_default/, /_WenboVShapeVernier/, or /_PEMD_2020_swarm_data_collected/_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/
@@ -512,7 +521,7 @@ def main():
         # select_spec='IM Q24p1y9 Qr32 Round Bar',
         # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
-        select_spec            = 'PMSM Q12p4y1 A', #'PMSM Q18p4y2 Beijing ShiDaiChaoQun',
+        select_spec            = 'PMSM Q12p4y1 PEMD-2020', #'PMSM Q18p4y2 Beijing ShiDaiChaoQun',
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
         select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
 

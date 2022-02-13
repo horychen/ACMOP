@@ -486,8 +486,8 @@
         "femm.deg_per_step": null,
         "femm.MechDeg_IdEqualToNonZeroAngle": 0,
         "femm.number_cycles_in_2ndTSS": 1.5,
-        "femm.number_of_steps_2ndTSS": 48,
-        "femm.number_of_parallel_solve": 1
+        "femm.number_of_steps_2ndTSS": 12,
+        "femm.number_of_parallel_solve": 3
     },
 
     "#041 FEMM PMSM Cogging Torque": {

@@ -220,15 +220,17 @@ class variant_machine_as_objects(object):
         # self.template.spec_input_dict = spmsm_template.spec_input_dict
         # self.spec_geometry_dict = spmsm_template.spec_geometry_dict
 
+        SI = self.template.spec_input_dict
+
         #01 Model ID
         # self.model_name_prefix
         self.counter = counter
         self.counter_loop = counter_loop
         if counter is not None:
             if counter_loop == 1:
-                self.name = f"p{self.template.spec_input_dict['p']}ps{self.template.spec_input_dict['ps']}-Q{self.template.spec_input_dict['Qs']}y{self.template.spec_input_dict['coil_pitch_y']}-{counter:04d}"
+                self.name = f"p{SI['p']}ps{SI['ps']}-Q{SI['Qs']}y{SI['coil_pitch_y']}-{counter:04d}"
             else:
-                self.name = f"p{self.template.spec_input_dict['p']}ps{self.template.spec_input_dict['ps']}-Q{self.template.spec_input_dict['Qs']}y{self.template.spec_input_dict['coil_pitch_y']}-{counter:04d}-redo{counter_loop}"
+                self.name = f"p{SI['p']}ps{SI['ps']}-Q{SI['Qs']}y{SI['coil_pitch_y']}-{counter:04d}-redo{counter_loop}"
         else:
             self.name = 'SPMSM_InitialDesign'
         self.ID = 'Q%dp%ds%d'%(self.template.SI['Qs'], self.template.SI['p'],self.template.SI['no_segmented_magnets'])

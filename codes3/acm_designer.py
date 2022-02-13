@@ -809,11 +809,11 @@ class acm_designer(object):
         if not os.path.isdir(self.dir_jsonpickle_folder):
             os.makedirs(self.dir_jsonpickle_folder)
 
-        if fea_config_dict['bool_post_processing'] == False:
-            self.fig_main, self.axeses = plt.subplots(2, 2, sharex=True, dpi=150, figsize=(16, 8), facecolor='w', edgecolor='k')
-            utility.pyplot_clear(self.axeses)
-        else:
-            self.fig_main, self.axeses = None, None
+        # if fea_config_dict['bool_post_processing'] == False:
+        #     self.fig_main, self.axeses = plt.subplots(2, 2, sharex=True, dpi=150, figsize=(16, 8), facecolor='w', edgecolor='k')
+        #     utility.pyplot_clear(self.axeses)
+        # else:
+        #     self.fig_main, self.axeses = None, None
 
         self.folder_to_be_deleted = None
 
@@ -1130,9 +1130,7 @@ class acm_designer(object):
                         template=template,
                         x_denorm=x_denorm,
                         counter=counter,
-                        counter_loop=counter_loop
-                    )
-
+                        counter_loop=counter_loop)
 
         if 'JMAG' in self.select_fea_config_dict:
             # project name
@@ -1157,16 +1155,16 @@ class acm_designer(object):
             ################################################################
             # Load data for cost function evaluation
             ################################################################
-            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
             if results_to_be_unpacked is not None:
-                if self.fig_main is not None:
+                if self.toolJd.fig_main is not None:
                     try:
-                        self.fig_main.savefig(self.fea_config_dict['output_dir'] + acm_variant.name + 'results.png', dpi=150)
+                        self.toolJd.fig_main.savefig(self.fea_config_dict['output_dir'] + acm_variant.name + 'results.png', dpi=150)
                     except Exception as e:
                         print(e)
                         print('\n\n\nIgnore error and continue.')
                     finally:
-                        utility.pyplot_clear(self.axeses)
+                        utility.pyplot_clear(self.toolJd.axeses)
                 # show()
                 return acm_variant 
             else:
@@ -1270,7 +1268,7 @@ class acm_designer(object):
         if toolFEMM.draw_spmsm(acm_variant) != 1: raise Exception('Drawer failed.')
 
         # 2. Preprocess
-        toolFEMM.pre_process(project_file_name=self.acm_variant.template.fea_config_dict['output_dir'] + self.acm_variant.name + '-' + self.acm_variant.ID + '.fem')
+        toolFEMM.pre_process(project_file_name=self.acm_variant.template.fea_config_dict['output_dir'] + self.acm_variant.name + '.fem')
 
         # 3. Run transient FEA and collect results
         toolFEMM.run_transient_study()
@@ -1712,7 +1710,9 @@ class acm_designer(object):
                 ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                 app.GetDataManager().CreateGraphModel(ref1)
                 # app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + im_variant.name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
-                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                print('[acm_designer.py] WriteTable to:', self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                print('[acm_designer.py] WriteTable to (converter):', os.path.abspath(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv"))
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(os.path.abspath(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")) # must be absolute path to JMAG
 
             # TranRef
             # transient_FEA_as_reference(im_variant, slip_freq_breakdown_torque)

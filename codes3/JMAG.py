@@ -1,9 +1,6 @@
-import win32com.client
-import os, logging
-import numpy as np
-import utility
+import win32com.client, os, logging, utility
+from pylab import np, plt
 EPS=0.01 # mm
-
 
 class data_manager(object):
 
@@ -201,6 +198,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             app = self.app
 
         print('[JMAG.py] expected_project_file_path:', expected_project_file_path)
+        print('[JMAG.py] expected_project_file_path (to abs path):', os.path.abspath(expected_project_file_path))
         if os.path.exists(expected_project_file_path):
             print('[JMAG.py] JMAG project exists already. I learned my lessions. I will NOT delete it but create a new one with a different name instead.')
             # os.remove(expected_project_file_path)
@@ -213,7 +211,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             expected_project_file_path = temp_path
 
         app.NewProject("Untitled")
-        app.SaveAs(expected_project_file_path)
+        app.SaveAs(os.path.abspath(expected_project_file_path)) # must be absolute path!
         logger = logging.getLogger(__name__)
         logger.debug('Create JMAG project file: %s'%(expected_project_file_path))
         return app
@@ -602,7 +600,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         study.GetStudyProperties().SetValue("CsvResultTypes", "Torque;Force;FEMCoilFlux;LineCurrent;TerminalVoltage;JouleLoss;StoredEnergy;TotalDisplacementAngle;Inductance;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss") # new since 2022
         study.GetStudyProperties().SetValue("DeleteResultFiles", acm_variant.template.fea_config_dict['delete_results_after_calculation'])
         # Terminal Voltage/Circuit Voltage: Check for outputing CSV results 
-        study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 8, -13)
+        study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 8, -13) # seek WriteTable
         study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 8, -11)
         study.GetCircuit().CreateTerminalLabel("TerminalGroupACW", 8, -9)
         study.GetCircuit().CreateTerminalLabel("TerminalGroupBDU", 23, -13)
@@ -1772,8 +1770,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         dm.DisplacementAngle_list = DisplacementAngle_list
         return dm
 
-    def build_str_results(self, axeses, acm_variant, project_name, tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver=None):
+    # def build_str_results(self, axeses, acm_variant, project_name, tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver=None):
+    def build_str_results(self, acm_variant, project_name, tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver=None):
         # originate from fobj
+
+        if fea_config_dict['bool_post_processing'] == False:
+            self.fig_main, self.axeses = plt.subplots(2, 2, sharex=True, dpi=150, figsize=(16, 8), facecolor='w', edgecolor='k')
+            utility.pyplot_clear(self.axeses)
+        else:
+            self.fig_main, self.axeses = None, None
 
         machine_type = acm_variant.template.machine_type
 
@@ -1797,7 +1802,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list = dm.unpack()
         sfv = utility.suspension_force_vector(ForConX_list, ForConY_list, range_ss=number_of_steps_at_steady_state) # samples in the tail that are in steady state
         str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle = \
-            self.add_plots( axeses, dm,
+            self.add_plots( self.axeses, dm,
                         title=tran_study_name,
                         label='Transient FEA w/ 2 Time Step Sections',
                         zorder=8,
