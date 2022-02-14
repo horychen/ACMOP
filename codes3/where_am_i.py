@@ -41,8 +41,8 @@ def where_am_i_v2(fea_config_dict, bool_post_processing=False):
     # print(os.path.dirname(os.path.realpath(__file__)))
     # print(os.path.abspath(os.path.dirname(__file__)))
 
-    dir_parent = os.path.join(os.path.dirname(__file__), '..') + '/'
-    dir_codes  = os.path.abspath(os.path.dirname(__file__))
+    dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
+    dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
     # dir_femm_files = dir_parent + 'femm_files/'
     pc_name = get_pc_name()
     os.chdir(dir_codes)

@@ -1,9 +1,9 @@
 #coding:utf-8
 import femm, logging, os, sys, subprocess, winding_layout, utility
-import numpy as np
 from collections import OrderedDict
 from time import sleep
 from time import time as clock_time
+from pylab import plt, np
 
 SELECT_ALL = 4
 EPS = 1e-2 # unit mm
@@ -130,7 +130,7 @@ class Individual_Analyzer_FEMM_Edition(object):
 
     def get_ss_data(self):
         # Torque
-        torque_average = np.mean(self.femm_torque)
+        torque_average = self.torque_average = np.mean(self.femm_torque)
         torque_error = np.array(self.femm_torque) - torque_average
         ss_max_torque_error = (max(torque_error), min(torque_error))
         normalized_torque_ripple = (ss_max_torque_error[0] - ss_max_torque_error[1]) / torque_average
@@ -176,9 +176,9 @@ class Individual_Analyzer_FEMM_Edition(object):
         spec_performance_dict['f2']  = None
         spec_performance_dict['f3']  = None
         spec_performance_dict['FRW'] = None
-        spec_performance_dict['normalized_torque_ripple'] = normalized_torque_ripple
-        spec_performance_dict['normalized_force_error_magnitude'] = np.max(sfv.ss_max_force_err_abs) / sfv.ss_avg_force_magnitude
-        spec_performance_dict['force_error_angle'] = np.max(sfv.ss_max_force_err_ang)
+        spec_performance_dict['normalized_torque_ripple'] = self.normalized_torque_ripple = normalized_torque_ripple
+        spec_performance_dict['normalized_force_error_magnitude'] = self.normalized_force_error_magnitude = np.max(sfv.ss_max_force_err_abs) / sfv.ss_avg_force_magnitude
+        spec_performance_dict['force_error_angle'] = self.force_error_angle = np.max(sfv.ss_max_force_err_ang)
         spec_performance_dict['project_name'] = None
         spec_performance_dict['individual_name'] = None
         spec_performance_dict['number_current_generation'] = None
@@ -196,16 +196,223 @@ class Individual_Analyzer_FEMM_Edition(object):
         spec_performance_dict['str_results'] = None
         self.spec_performance_dict = spec_performance_dict
 
+    def compute_objectives(self, acm_variant, select_fea_config_dict, toolFEA):
+        # Power factor
+        # power_factor = self.get_power_factor(ss_time_half_cycle=?, ss_voltage_half_cycle=?, ss_current_half_cycle=?, targetFreq=acm_variant.template.d['EX']['DriveW_Freq'])
+
+        # Rated loss
+        self.get_rated_loss(acm_variant, select_fea_config_dict, toolFEA)
+
+        # machine_results = [power_factor, efficiency, self., normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle]
+
+        pass
+
+    def get_rated_loss(self, acm_variant, select_fea_config_dict, toolFEA):
+        # Mechnical constants        
+        rotor_volume = acm_variant.template.get_rotor_volume() 
+        rotor_weight = acm_variant.template.get_rotor_weight()
+        shaft_power  = acm_variant.template.d['EX']['Omega'] * self.torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
+
+        # Copper loss
+        stator_copper_loss, rotor_copper_loss, stator_copper_loss_along_stack, rotor_copper_loss_along_stack, Js, Jr, Vol_Cu = self.get_copper_loss(acm_variant, femm_solver=None)
+        stator_copper_loss_in_end_turn = stator_copper_loss - stator_copper_loss_along_stack 
+        rotor_copper_loss_in_end_turn  = rotor_copper_loss - rotor_copper_loss_along_stack
+
+        self.get_iron_loss(acm_variant, select_fea_config_dict, toolFEA)
+
+        ''' loss results with axial length: mm_template_stack_length
+        '''
+        windage_loss = utility.get_windage_loss(acm_variant, acm_variant.template.d['EX']['mm_template_stack_length'])
+        total_loss   = stator_copper_loss_along_stack + magnet_Joule_loss + iron_loss + windage_loss
+        efficiency   = shaft_power / (total_loss + shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
+
+        ''' loss results with axial length: rated_stack_length_mm
+        '''
+        speed_rpm       = acm_variant.template.SI['ExcitationFreqSimulated'] * 60 / acm_variant.template.SI['p'] # rpm
+        required_torque = acm_variant.template.SI['mec_power'] / (2*np.pi*speed_rpm)*60
+
+        rated_ratio                          = required_torque / analyzer.torque_average 
+        rated_stack_length_mm                = rated_ratio * acm_variant.template.d['EX']['mm_template_stack_length']
+        rated_stator_copper_loss_along_stack = rated_ratio * stator_copper_loss_along_stack
+        rated_rotor_copper_loss_along_stack  = rated_ratio * rotor_copper_loss_along_stack
+        rated_iron_loss                      = rated_ratio * dm.jmag_loss_list[2]
+        rated_windage_loss                   = utility.get_windage_loss(acm_variant, rated_stack_length_mm)
+
+        # total_loss   = copper_loss + iron_loss + windage_loss
+        rated_total_loss = rated_stator_copper_loss_along_stack \
+                        + rated_rotor_copper_loss_along_stack \
+                        + stator_copper_loss_in_end_turn \
+                        + rotor_copper_loss_in_end_turn \
+                        + rated_iron_loss \
+                        + rated_windage_loss
+
+        # THERMAL
+        if 'IM' in self.acm_variant.machine_type:
+            stator_current_density = Js
+            rotor_current_density  = Jr
+            # print('Current density [Arms/m^2]:', stator_current_density, rotor_current_density, sep='\n')
+            # if rotor_current_density > 8e6:
+            #     print('rotor_current_density is over 8e6 Arms/m^2')
+        else:
+                                    # 基波电流幅值（在一根导体里的电流，六相逆变器中的GroupBDW相的电流，所以相当于已经考虑了并联支路数了）
+            stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.coils.mm2_slot_area*1e-6/acm_variant.template.d['EX']['DriveW_zQ'])
+            print('[utility.py] Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2'%(stator_current_density))
+            rotor_current_density = 0
+
+        print('[utility.py] Required torque: %g Nm'%(required_torque))
+        print("[utility.py] acm_variant.template.d['EX']['Omega']: %g rad/s"%(acm_variant.template.d['EX']['Omega']))
+        rated_shaft_power  = acm_variant.template.d['EX']['Omega'] * required_torque
+        rated_efficiency   = rated_shaft_power / (rated_total_loss + rated_shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
+
+        rated_rotor_volume = np.pi*(acm_variant.template.d['GP']['mm_r_or'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
+        print('[utility.py] rated_stack_length_mm =', rated_stack_length_mm)
+
+        # This weighted list suggests that peak-to-peak torque ripple of 5% is comparable with Em of 5% or Ea of 1 deg. Ref: Ye gu ECCE 2018
+        # Eric suggests Ea is 1 deg. But I think this may be too much emphasis on Ea so large Trip does not matter anymore (not verified yet).
+        list_weighted_ripples = [self.normalized_torque_ripple/0.05, self.sfv.normalized_force_error_magnitude/0.05, self.sfv.force_error_angle]
+
+        if 'IM' in machine_type:
+            # - Torque per Rotor Volume
+            f1_IM = - required_torque / rated_rotor_volume
+            f1 = f1_IM
+        elif 'PMSM' in machine_type:
+            # - Cost
+            price_per_volume_steel    = 0.28  * 61023.744 # $/in^3 (M19 Gauge26) # 0.23 for low carbon, semi-processed 24 Gauge electrical steel
+            price_per_volume_copper   = 1.2   * 61023.744 # $/in^3 wire or bar or end-ring
+            price_per_volume_magnet   = 11.61 * 61023.744 # $/in^3 NdFeB PM
+            # price_per_volume_aluminum = 0.88  / 16387.064 # $/in^3 wire or cast Al
+
+            # Vol_Fe = (2*acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
+            Vol_Fe = ( np.pi*(acm_variant.template.d['GP']['mm_r_os'].value*1e-3)**2 - np.pi*(acm_variant.template.d['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
+
+            Vol_PM = (acm_variant.rotorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
+
+            print('[utility.py] Area_Fe', (acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2)
+            print('[utility.py] Area_Cu (est.)', dm.Vol_Cu/(rated_stack_length_mm*1e-3))
+            print('[utility.py] Area_PM', (acm_variant.rotorMagnet.mm2_magnet_area*1e-6))
+            print('[utility.py] Volume_Fe',    Vol_Fe)
+            print('[utility.py] Volume_Cu', dm.Vol_Cu)
+            print('[utility.py] Volume_PM',    Vol_PM)
+            f1_PMSM =    Vol_Fe * price_per_volume_steel \
+                    + dm.Vol_Cu * price_per_volume_copper\
+                    +    Vol_PM * price_per_volume_magnet
+            print('[utility.py] Cost Fe:',   Vol_Fe * price_per_volume_steel )
+            print('[utility.py] Cost Cu:',dm.Vol_Cu * price_per_volume_copper)
+            print('[utility.py] Cost PM:',   Vol_PM * price_per_volume_magnet)
+            f1 = f1_PMSM
+
+        # - Efficiency @ Rated Power
+        f2 = - rated_efficiency
+        # Ripple Performance (Weighted Sum)
+        f3 = sum(list_weighted_ripples)
+
+        FRW = ss_avg_force_magnitude / rotor_weight
+        print('[utility.py] FRW:', FRW, 'Rotor weight:', rotor_weight, 'Stack length:', acm_variant.template.d['EX']['mm_template_stack_length'], 'Rated stack length:', rated_stack_length_mm)
+        rated_rotor_volume = acm_variant.template.get_rotor_volume(stack_length=rated_stack_length_mm) 
+        rated_rotor_weight = acm_variant.template.get_rotor_weight(stack_length=rated_stack_length_mm)
+        print('[utility.py] rated_rotor_volume:', rated_rotor_volume, 'rated_rotor_weight:', rated_rotor_weight)
+
+        rated_results = [   rated_shaft_power, 
+                            rated_efficiency,
+                            rated_total_loss, 
+                            rated_stator_copper_loss_along_stack, 
+                            rated_rotor_copper_loss_along_stack, 
+                            stator_copper_loss_in_end_turn, 
+                            rotor_copper_loss_in_end_turn, 
+                            rated_iron_loss, 
+                            rated_windage_loss,
+                            rated_rotor_volume,
+                            rated_stack_length_mm,  # new!
+                            acm_variant.template.d['EX']['mm_template_stack_length']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
+
+    def get_copper_loss(self, acm_variant, femm_solver=None):
+        if femm_solver is not None:
+            try:
+                # convert rotor current results (complex number) into its amplitude
+                femm_solver.list_rotor_current_amp = [abs(el) for el in femm_solver.vals_results_rotor_current] # el is complex number
+
+                _s, _r, _sAlongStack, _rAlongStack, _Js, _Jr = femm_solver.get_copper_loss_pyrhonen(acm_variant.slot_area_utilizing_ratio*femm_solver.stator_slot_area, 
+                                                                                                                            femm_solver.rotor_slot_area, 
+                                                                                                                            total_CurrentAmp=acm_variant.DriveW_CurrentAmp+acm_variant.BeariW_CurrentAmp)
+                s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = femm_solver.get_copper_loss_Bolognani(acm_variant.slot_area_utilizing_ratio*femm_solver.stator_slot_area, 
+                                                                                                                            femm_solver.rotor_slot_area, 
+                                                                                                                            total_CurrentAmp=acm_variant.DriveW_CurrentAmp+acm_variant.BeariW_CurrentAmp)
+
+                msg1 = 'Pyrhonen : %g, %g | %g, %g | %g, %g ' % (_s, _r, _sAlongStack, _rAlongStack, _Js, _Jr) 
+                msg2 = 'Bolognani: %g, %g | %g, %g | %g, %g ' % (s, r, sAlongStack, rAlongStack, Js, Jr) 
+                print('[FEMM_SlidingMesh.py] copper loss', msg1)
+                print('[FEMM_SlidingMesh.py] copper loss', msg2)
+                logger = logging.getLogger(__name__)
+                logger.debug(msg1)
+                logger.debug(msg2)
+            except Exception as e:
+                raise e
+        else:
+            SI = acm_variant.template.SI
+            GP = acm_variant.template.d['GP']
+            EX = acm_variant.template.d['EX']
+            wily = EX['wily']
+            copper_loss_parameters = [GP['mm_d_sleeve'].value + GP['mm_d_fixed_air_gap'].value,
+                                GP['mm_w_st'].value,
+                                wily.number_parallel_branch,
+                                EX['DriveW_zQ'],
+                                wily.coil_pitch_y,
+                                acm_variant.template.SI['Qs'],
+                                EX['mm_template_stack_length'],
+                                EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp'], # total current amplitude
+                                GP['mm_r_or'].value,       # mm
+                                GP['mm_r_os'].value*2*1e-3 # m, stator_yoke_diameter_Dsyi
+                                ]
+            s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(EX['slot_current_utilizing_ratio']*acm_variant.coils.mm2_slot_area*1e-6, copper_loss_parameters=copper_loss_parameters)
+
+        return s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu
+
+    def get_iron_loss(self, acm_variant, select_fea_config_dict, toolFEA):
+        if 'JMAG' in select_fea_config_dict:
+            iron_loss = toolFEA.dm.jmag_loss_list[2]
+        elif 'FEMM' in select_fea_config_dict:
+            iron_loss = toolFEA.compute_iron_loss()
+        return iron_loss
+
+    def get_power_factor(self, ss_time_half_cycle, ss_voltage_half_cycle, ss_current_half_cycle, targetFreq=1e3, numPeriodicalExtension=1000):
+        # number_of_steps_at_steady_state: steps corresponding to half the period 
+        # mytime  = ss_time_half_cycle
+        # voltage = ss_voltage_half_cycle
+        # current = ss_current_half_cycle
+
+        # from pylab import *
+        # print len(mytime), len(voltage), len(current)
+        # figure()
+        # plot(mytime, voltage)
+        # plot(mytime, current)
+        # show()
+        power_factor, u, i, phase_diff_ui = utility.compute_power_factor_from_half_period(ss_voltage_half_cycle, ss_current_half_cycle, ss_time_half_cycle, targetFreq=targetFreq, numPeriodicalExtension=numPeriodicalExtension)
+        self.ui_info = [power_factor, u, i, phase_diff_ui]
+        print('[FEMM_SlidingMesh.py] ui_info', self.ui_info)
+        return power_factor
+
+
 class FEMM_SlidingMesh(object):
 
     def __init__(self, acm_variant):
         self.acm_variant = acm_variant
-        # self.vangogh = FEMM_Solver.VanGogh_FEMM(acm_variant)
-
-        self.deg_per_step = acm_variant.template.fea_config_dict['femm.deg_per_step'] # deg, we need this for show_results
-        self.dir_parent    = acm_variant.template.fea_config_dict['dir.parent']
-
         self.rotor_phase_name_list = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+        # local references
+        GP = self.acm_variant.template.d['GP']
+        EX = self.acm_variant.template.d['EX']
+        p  = self.acm_variant.template.SI['p']
+
+        # figure out initial rotor angle
+        deg_pole_span = 180/p
+        self.initial_rotor_position_mech_deg = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + EX['wily'].deg_winding_U_phase_phase_axis_angle + deg_pole_span
+        print('[FEMM_SlidingMesh.py] initial_rotor_position_mech_deg:', self.initial_rotor_position_mech_deg, 'deg || deg_winding_U_phase_phase_axis_angle:', '', EX['wily'].deg_winding_U_phase_phase_axis_angle)
+
+        # figure out step size
+        self.electrical_period = acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
+        self.number_of_steps   = acm_variant.template.fea_config_dict['femm.number_of_steps_2ndTSS']
+        self.step_size_sec = self.electrical_period / self.number_of_steps
+        self.step_size_mech_deg = EX['Omega'] * self.step_size_sec / np.pi * 180
 
     def open(self):
         femm.openfemm(True) # bHide # False for debug
@@ -256,7 +463,7 @@ class FEMM_SlidingMesh(object):
         if self.acm_variant.template.spec_input_dict['Steel'] == 'M19Gauge29':
             # femm.mi_getmaterial('M-19 Steel') # for Stator & Rotor Iron Cores (Nonlinear with B-H curve)
             femm.mi_addmaterial('M19Gauge29',0,0, 0,0, 0,0.3556,0, 0.95) # no lamination for testing consistency with JMAG
-            hdata, bdata = np.loadtxt(self.dir_parent + 'BH/M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1))
+            hdata, bdata = np.loadtxt(self.acm_variant.template.fea_config_dict['dir.parent'] + 'BH/M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1))
             for n in range(0,len(bdata)):
                 femm.mi_addbhpoint('M19Gauge29', bdata[n], hdata[n])
 
@@ -302,6 +509,15 @@ class FEMM_SlidingMesh(object):
 
     def add_block_labels_static_solver(self, fraction=1):
         # add_block_labels_static_solver is implemented with the new general DPNV winding implementation
+
+        self.GroupSummary = {
+            "air_gap"          : 9,
+            "stator_iron_core" : 10,
+            "coils"            : 11,
+            "rotor_iron_core"  : 100,
+            "magnet"           : 101,
+            "shaft"            : 102,
+        }
 
         SERIES_CONNECTED = 1
         PARALLEL_CONNECTED = 0
@@ -516,36 +732,36 @@ class FEMM_SlidingMesh(object):
 
     def run_transient_study(self):
         # local references
-        GP = self.acm_variant.template.d['GP']
-        EX = self.acm_variant.template.d['EX']
-        p  = self.acm_variant.template.SI['p']
+        # GP = self.acm_variant.template.d['GP']
+        # EX = self.acm_variant.template.d['EX']
+        # p  = self.acm_variant.template.SI['p']
         fea_config_dict = self.acm_variant.template.fea_config_dict
 
         # figure out initial rotor angle
-        deg_pole_span = 180/p
-        initial_rotor_position_mech_deg = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + EX['wily'].deg_winding_U_phase_phase_axis_angle + deg_pole_span
-        print('[FEMM_SlidingMesh.py] initial_rotor_position_mech_deg:', initial_rotor_position_mech_deg, 'deg || deg_winding_U_phase_phase_axis_angle:', '', EX['wily'].deg_winding_U_phase_phase_axis_angle)
+        # deg_pole_span = 180/p
+        # initial_rotor_position_mech_deg = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + EX['wily'].deg_winding_U_phase_phase_axis_angle + deg_pole_span
+        # print('[FEMM_SlidingMesh.py] initial_rotor_position_mech_deg:', initial_rotor_position_mech_deg, 'deg || deg_winding_U_phase_phase_axis_angle:', '', EX['wily'].deg_winding_U_phase_phase_axis_angle)
 
         # figure out step size
-        electrical_period = fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
-        number_of_steps   = fea_config_dict['femm.number_of_steps_2ndTSS']
-        step_size_sec = electrical_period / number_of_steps
-        step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
+        # electrical_period = fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
+        # number_of_steps   = fea_config_dict['femm.number_of_steps_2ndTSS']
+        # step_size_sec = electrical_period / number_of_steps
+        # step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
 
         # transient FEA with sliding band (air gap boundary in FEMM)
         print('[FEMM_SlidingMesh.py] Run FEMM solver...')
-        self.acm_variant.analyzer = Individual_Analyzer_FEMM_Edition(p=p)
+        self.acm_variant.analyzer = Individual_Analyzer_FEMM_Edition(p=self.acm_variant.template.SI['p'])
 
         if fea_config_dict['femm.number_of_parallel_solve'] == 1:
-            for index in range(number_of_steps):
+            for index in range(self.number_of_steps):
 
                 # update excitations
-                time                         = index * step_size_sec
-                RotorAngle_MechanicalDegrees = index * step_size_mech_deg
+                time                         = index * self.step_size_sec
+                RotorAngle_MechanicalDegrees = index * self.step_size_mech_deg
                 current_sources = self.update_circuit_excitation(time)
 
                 # update rotor position
-                femm.mi_modifyboundprop('WholeModelSlidingBand', 10, initial_rotor_position_mech_deg+RotorAngle_MechanicalDegrees+self.acm_variant.template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle']) # change inner angle to 
+                femm.mi_modifyboundprop('WholeModelSlidingBand', 10, self.initial_rotor_position_mech_deg+RotorAngle_MechanicalDegrees+self.acm_variant.template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle']) # change inner angle to 
 
                 # if index > 0:
                 #     femm.mi_setprevious(self.project_file_name[:-4] + f'-{index-1:03d}.ans', 1) # 1: must be incremental permeability (because frozen permability means the permeability is fixed).
@@ -561,20 +777,78 @@ class FEMM_SlidingMesh(object):
                 self.collect_femm_results(index, time, RotorAngle_MechanicalDegrees, current_sources)
 
         else:
-            for index in range(number_of_steps):
-                time                         = index * step_size_sec
-                RotorAngle_MechanicalDegrees = index * step_size_mech_deg
+            for index in range(self.number_of_steps):
+                time                         = index * self.step_size_sec
+                RotorAngle_MechanicalDegrees = index * self.step_size_mech_deg
                 current_sources = self.update_circuit_excitation(time)
-                femm.mi_modifyboundprop('WholeModelSlidingBand', 10, initial_rotor_position_mech_deg+RotorAngle_MechanicalDegrees+self.acm_variant.template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle']) # change inner angle to 
+                femm.mi_modifyboundprop('WholeModelSlidingBand', 10, self.initial_rotor_position_mech_deg+RotorAngle_MechanicalDegrees+self.acm_variant.template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle']) # change inner angle to 
                 femm.mi_saveas(self.project_file_name[:-4] + f'-{index:03d}.fem')
                 if os.path.exists(self.project_file_name[:-4] + f'-{index:03d}.ans'):
                     os.remove(self.project_file_name[:-4] + f'-{index:03d}.ans')
-            self.parallel_solve_transient_FEA(step_size_sec, step_size_mech_deg)
+            self.parallel_solve_transient_FEA(self.step_size_sec, self.step_size_mech_deg)
 
         femm.mi_close()
 
     def collect_femm_results(self, index, time, RotorAngle_MechanicalDegrees, current_sources, bool_parallel=False):
 
+        if index == 0:
+            self.initialize_collection_of_field_data()
+
+        rotation_operator = np.exp(1j*RotorAngle_MechanicalDegrees/180*np.pi)
+
+        if True:
+            # Field data @ anywhere
+            for i, el in enumerate(self.list_of_femm_triangle_element):
+                Bx, By = femm.mo_getb(el.x, el.y)
+                self.list_of_femm_triangle_element[i].femm_Bx_list.append(Bx)
+                self.list_of_femm_triangle_element[i].femm_By_list.append(By)
+
+            # compute iron loss here!!!
+            # compute iron loss here!!!
+            # compute iron loss here!!!
+
+            # Show flux density plot by element
+            # plt.figure()
+            # B = np.array([np.sqrt(el.femm_Bx_list[index]**2+el.femm_By_list[index]**2) for el in self.list_of_femm_triangle_element if el.group==10 and el.x>0 and el.y>0]); scaled_B = (B - B.min()) / B.ptp()
+            # plt.scatter( [el.x                                                         for el in self.list_of_femm_triangle_element if el.group==10 and el.x>0 and el.y>0], 
+            #              [el.y                                                         for el in self.list_of_femm_triangle_element if el.group==10 and el.x>0 and el.y>0], 
+            #              edgecolors=plt.cm.copper(scaled_B), color='white', marker='.')
+
+            # B = np.array([np.sqrt(el.femm_Bx_list[index]**2+el.femm_By_list[index]**2) for el in self.list_of_femm_triangle_element if el.group==100 and el.x>0 and el.y>0]); scaled_B = (B - B.min()) / B.ptp()
+            # plt.scatter( [el.x                                                         for el in self.list_of_femm_triangle_element if el.group==100 and el.x>0 and el.y>0], 
+            #              [el.y                                                         for el in self.list_of_femm_triangle_element if el.group==100 and el.x>0 and el.y>0], 
+            #              edgecolors=plt.cm.copper(scaled_B), color='white', marker='.')
+
+            # B = np.array([np.sqrt(el.femm_Bx_list[index]**2+el.femm_By_list[index]**2) for el in self.list_of_femm_triangle_element if el.group==101 and el.x>0 and el.y>0]); scaled_B = (B - B.min()) / B.ptp()
+            # plt.scatter( [el.x                                                         for el in self.list_of_femm_triangle_element if el.group==101 and el.x>0 and el.y>0], 
+            #              [el.y                                                         for el in self.list_of_femm_triangle_element if el.group==101 and el.x>0 and el.y>0], 
+            #              edgecolors=plt.cm.copper(scaled_B), color='white', marker='.')
+            # plt.gca().set_aspect('equal')
+            # plt.show()
+
+        else:
+            # Field data @ stator iron (group==10)
+            for ind, stator_xy_complex_number in enumerate(self.stator_xy_complex_data):
+                # 1. What we need for iron loss evaluation is the B waveform at a fixed point (x,y). 
+                #    For example, (x,y) is the centeroid of element in stator tooth.
+                Bx, By = femm.mo_getb( stator_xy_complex_number.real,
+                                    stator_xy_complex_number.imag)
+                self.stator_Bx_data[ind].append(Bx)
+                self.stator_By_data[ind].append(By)
+
+            # Field data @ rotor iron (group==100)
+            for ind, rotor_xy_complex_number in enumerate(self.rotor_xy_complex_data):
+                # 2. The element at (x,y) is no longer the same element from last rotor position.
+                #    To find the exact element from last rotor position,
+                #    we rotate the (x,y) forward as we rotate the model (rotor), get the B value there: (x,y)*rotation_operator, and correct the (Bx,By)/rotation_operator
+                new_xy_complex = rotor_xy_complex_number * rotation_operator
+                Bx, By = femm.mo_getb( new_xy_complex.real, 
+                                    new_xy_complex.imag )
+                new_BxBy_complex = (Bx + 1j*By) / rotation_operator
+                self.rotor_Bx_data[ind].append(new_BxBy_complex.real)
+                self.rotor_By_data[ind].append(new_BxBy_complex.imag)
+
+        # Torque, force, fluxes
         torque = femm.mo_gapintegral('WholeModelSlidingBand',0)
         forces = femm.mo_gapintegral('WholeModelSlidingBand',1)
         energy = femm.mo_gapintegral('WholeModelSlidingBand',2)
@@ -590,13 +864,23 @@ class FEMM_SlidingMesh(object):
             self.acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties, index=None)
         femm.mo_close()
 
+        # print to screen
         print(f'\t {index}, {time*1000} ms, {RotorAngle_MechanicalDegrees} deg : {torque:.2f} Nm, [{forces[0]:.2f} N, {forces[1]:.2f}] N, {energy:.2f} J', end=' | ')
         print(' A, '.join(f'{current:.1f}' for current in current_sources), 'A')
         for el in circuitProperties:
             print('\t\t', el)
 
-    def compute_objectives(self):
-        pass
+    def compute_objectives(self, select_fea_config_dict):
+
+        self.acm_variant.analyzer.get_ss_data()
+        self.acm_variant.analyzer.compute_objectives(self.acm_variant, select_fea_config_dict, self)
+
+        # Bx = list(map(lambda el: el[0], self.stator_Bx_data))
+        # By = list(map(lambda el: el[0], self.stator_By_data))
+        # plt.plot(Bx, By, 'o')
+        # plt.scatter(x, y, marker='+', s=150, linewidths=4, c=y, cmap=plt.cm.coolwarm)
+        # plt.show()
+
     def save_results_to_disk(self):
         pass
 
@@ -652,50 +936,106 @@ class FEMM_SlidingMesh(object):
                         RotorAngle_MechanicalDegrees = index * step_size_mech_deg
                         self.collect_femm_results(index, time, RotorAngle_MechanicalDegrees, current_sources=[])
                         list_of_completed_ans_file[index] = True
-
-                        # # get slot area for copper loss calculation
-                        # femm.mo_groupselectblock(11) # fraction is 1 
-                        # self.stator_slot_area = femm.mo_blockintegral(5) / self.im.Qs # unit: m^2 (verified by GUI operation)
-                        # femm.mo_clearblock()
-
-                        # femm.mo_groupselectblock(101)
-                        # self.rotor_slot_area = femm.mo_blockintegral(5) / self.im.Qr
-                        # femm.mo_clearblock()
-
-                        # self.number_of_elements = femm.mo_numelements()
-                        # self.stator_Area_data = []
-                        # self.stator_xy_complex_data = []
-                        # self.rotor_Area_data = []
-                        # self.rotor_xy_complex_data = []
-                        # for id_element in range(1, self.number_of_elements+1):
-                        #     _, _, _, x, y, area, group = femm.mo_getelement(id_element)
-                        #     # consider 1/4 model for loss (this is valid if we presume the suspension two pole field is weak)
-                        #     # Use the mesh info of the initial rotor position 
-                        #     if group == 10: # stator iron
-                        #         new_xy_complex = (x+1j*y) * np.exp(1j* pi/self.im.Qs) # 分割线经过槽
-                        #         if new_xy_complex.real>0 and new_xy_complex.imag>0:
-                        #             self.stator_Area_data.append(area)
-                        #             self.stator_xy_complex_data.append(x+1j*y)
-                        #     elif group == 100: # rotor iron
-                        #         if y>0 and x>0:
-                        #             self.rotor_Area_data.append(area)
-                        #             self.rotor_xy_complex_data.append(x+1j*y)
-                        # self.stator_Bx_data = []
-                        # self.stator_By_data = []
-                        # for i in range(len(self.stator_xy_complex_data)):
-                        #     self.stator_Bx_data.append([])
-                        #     self.stator_By_data.append([])
-                        # self.rotor_Bx_data = []
-                        # self.rotor_By_data = []
-                        # for i in range(len(self.rotor_xy_complex_data)):
-                        #     self.rotor_Bx_data.append([])
-                        #     self.rotor_By_data.append([])
-                        # femm.mo_close()
-
                     except Exception as e:
                         raise e
             flag_run_while = sum(list_of_completed_ans_file) != number_of_points
             print('\t\t', list_of_completed_ans_file)
+
+    def initialize_collection_of_field_data(self):
+
+        # get slot area for copper loss calculation
+        # femm.mo_groupselectblock(11) # fraction is 1 
+        # self.stator_slot_area = femm.mo_blockintegral(5) / self.im.Qs # unit: m^2 (verified by GUI operation)
+        # femm.mo_clearblock()
+
+        # femm.mo_groupselectblock(101)
+        # self.rotor_slot_area = femm.mo_blockintegral(5) / self.im.Qr
+        # femm.mo_clearblock()
+
+        self.number_of_elements = femm.mo_numelements()
+        if True:
+            self.list_of_femm_triangle_element = []
+            self.stator_Area_data = []
+            self.stator_xy_complex_data = []
+            self.rotor_Area_data = []
+            self.rotor_xy_complex_data = []
+            print('[FEMM_SlidingMesh.py] DEBUG 1/4 model for computing iron loss...')
+            for id_element in range(1, self.number_of_elements+1):
+                indexNode1, indexNode2, indexNode3, x, y, area, group = femm.mo_getelement(id_element)
+                self.list_of_femm_triangle_element.append(utility.femm_triangle_element(indexNode1, indexNode2, indexNode3, x, y, area, group, [], []))
+            print('[FEMM_SlidingMesh.py] elements:', id_element, self.number_of_elements)
+
+            # debug
+            # colors = {
+            #     9: None,
+            #     10: 'red',
+            #     11: None,
+            #     100: 'black',
+            #     101: 'blue',
+            #     102: None,
+            # }
+            # from pylab import plt
+            # plt.figure()
+            # plt.scatter( [el.x for el in self.list_of_femm_triangle_element if el.group==10 and el.x>0 and el.y>0], 
+            #              [el.y for el in self.list_of_femm_triangle_element if el.group==10 and el.x>0 and el.y>0], 
+            #                                                                 color=colors[10], marker='.')
+            # plt.scatter( [el.x for el in self.list_of_femm_triangle_element if el.group==100 and el.x>0 and el.y>0], 
+            #              [el.y for el in self.list_of_femm_triangle_element if el.group==100 and el.x>0 and el.y>0], 
+            #                                                                 color=colors[100], marker='.')
+            # plt.scatter( [el.x for el in self.list_of_femm_triangle_element if el.group==101 and el.x>0 and el.y>0], 
+            #              [el.y for el in self.list_of_femm_triangle_element if el.group==101 and el.x>0 and el.y>0], 
+            #                                                                 color=colors[101], marker='.')
+            # plt.gca().set_aspect('equal')
+            # plt.show()
+        else:
+            self.stator_Area_data = []
+            self.stator_xy_complex_data = []
+            self.rotor_Area_data = []
+            self.rotor_xy_complex_data = []
+            print('[FEMM_SlidingMesh.py] DEBUG 1/4 model for computing iron loss...')
+            for id_element in range(1, self.number_of_elements+1):
+                _, _, _, x, y, area, group = femm.mo_getelement(id_element)
+
+                # consider 1/4 model for loss (this is valid if we presume the suspension two pole field is weak)
+                # Use the mesh info of the initial rotor position 
+                if group == 10: # stator iron
+                    new_xy_complex = (x+1j*y) * np.exp(1j* np.pi/self.acm_variant.template.SI['Qs']) # 反正是选1/4模型，我们选使得分割线经过槽的1/4模型。
+                    if new_xy_complex.real>0 and new_xy_complex.imag>0:
+                        self.stator_Area_data.append(area)
+                        self.stator_xy_complex_data.append(x+1j*y)
+                elif group == 100: # rotor iron
+                    if y>0 and x>0:
+                        self.rotor_Area_data.append(area)
+                        self.rotor_xy_complex_data.append(x+1j*y)
+                elif group == 101: # magnet
+                    if y>0 and x>0:
+                        self.rotor_Area_data.append(area)
+                        self.rotor_xy_complex_data.append(x+1j*y)
+
+            self.stator_Bx_data = []
+            self.stator_By_data = []
+            for i in range(len(self.stator_xy_complex_data)):
+                self.stator_Bx_data.append([])
+                self.stator_By_data.append([])
+            self.rotor_Bx_data = []
+            self.rotor_By_data = []
+            for i in range(len(self.rotor_xy_complex_data)):
+                self.rotor_Bx_data.append([])
+                self.rotor_By_data.append([])
+
+            # debug
+            from pylab import plt
+            plt.figure()
+            for ind, complex_number in enumerate(self.stator_xy_complex_data):
+                plt.scatter( complex_number.real, complex_number.imag)
+            plt.gca().set_aspect('equal')
+
+            plt.figure()
+            for ind, complex_number in enumerate(self.rotor_xy_complex_data):
+                plt.scatter( complex_number.real, complex_number.imag)        
+            plt.gca().set_aspect('equal')
+
+            plt.show()
 
     def getSketch(self, sketchName, color=None):
         pass
@@ -929,87 +1269,6 @@ class FEMM_SlidingMesh(object):
             list_B_magitude.append( B_magitude * utility.copysign(1, inner_product) )
         return list_B_magitude
 
-    def has_results(self, dir_run=None):
-        # print 'self.freq', self.freq
-        if dir_run == None:
-            dir_run = self.dir_run
-
-        a = [f for f in os.listdir(dir_run) if '.ans' in f].__len__()
-        b = [f for f in os.listdir(dir_run) if '.fem' in f].__len__()
-        if a == 0:
-            if 'no_duplicates.txt' in os.listdir(dir_run):
-                return True # 直接把femm的结果从服务器上拷过来也行
-            else:
-                return False
-        print('[FEMM.has_results] ans count: %d. fem count: %d.' % (a, b))
-        return a == b
-
-    def show_results(self, bool_plot=True):
-
-        if self.flag_eddycurrent_solver == True:
-            print('show results for eddy current solver')
-            return self.show_results_eddycurrent(bool_plot=bool_plot)
-
-        if self.flag_static_solver == True:
-            print('show results for static solver')
-            return self.show_results_static(bool_plot=bool_plot)
-
-        return None
-
-    def show_results_eddycurrent(self, bool_plot):
-        if self.fraction == 1:
-            self.fraction = 2 # this fixes a bug calling femm_integrate_4_current without calling run_frequency_sweeping before
-            raise Exception('You should initialize FEMM Solver with freq!=0')
-    
-        ans_file_list = os.listdir(self.dir_run_sweeping)
-        ans_file_list = [f for f in ans_file_list if '.ans' in f]
-
-        femm.openfemm(True)
-        list_ans_file = []
-        list_torque = []
-        # write results to a data file
-        str_results = ''
-        for ind, f in enumerate( ans_file_list ):
-            # femm.opendocument(self.dir_run_sweeping + f[:-4] + '.fem')
-            # femm.mi_loadsolution()
-            femm.opendocument(self.dir_run_sweeping + f)
-
-            # physical amount on rotor
-            femm.mo_groupselectblock(100)
-            femm.mo_groupselectblock(101)
-            Fx = femm.mo_blockintegral(18) #-- 18 x (or r) part of steady-state weighted stress tensor force
-            Fy = femm.mo_blockintegral(19) #--19 y (or z) part of steady-state weighted stress tensor force
-            torque = femm.mo_blockintegral(22) #-- 22 = Steady-state weighted stress tensor torque
-            femm.mo_clearblock()
-
-            # rotor current
-            # _ = self.femm_integrate_4_current()
-            # # TODO: this is for testing phase
-            # if float(f[3:-6]) == 3:
-            #     print '\n', f[3:-6], 'Hz'
-            #     for el in vals_results_rotor_current:
-            #         print abs(el)
-
-            str_results += "%s %g %g %g\n" % ( f[3:-6], torque, Fx, Fy ) 
-            list_ans_file.append(f)
-            list_torque.append(torque)
-            femm.mo_close() 
-        with open(self.dir_run_sweeping + "eddycurrent_results.txt", "w") as stream:
-            stream.write(str_results)
-
-        # find breakdown torque and slip frequency that we are interested
-        index, breakdown_torque = utility.get_max_and_index(list_torque)
-        slip_freq_breakdown_torque = list_ans_file[index][3:-6]
-        print("FEMM's breakdown data: %s Hz, %g Nm" % (slip_freq_breakdown_torque, breakdown_torque))
-        self.im.update_mechanical_parameters(float(slip_freq_breakdown_torque))
-        # if self.im.slip_freq_breakdown_torque != float(slip_freq_breakdown_torque):
-        #     raise Exception('[DEBUG] JMAG disagrees with FEMM (!= 3 Hz).')
-
-        # write rotor currents to file
-        self.femm_integrate_4_current(self.dir_run_sweeping + list_ans_file[index], self.fraction)
-
-        femm.closefemm()
-
     def femm_integrate_4_current(self, fname, fraction, dir_output=None, returnData=False):
         '''Make sure femm is opened
         Returns:
@@ -1075,136 +1334,6 @@ class FEMM_SlidingMesh(object):
             return None
         else:
             return vals_results_rotor_current, stator_slot_area, rotor_slot_area
-
-
-    def show_results_static(self, bool_plot=True):
-        # Collect results from all the .ans file in the dir_run folder of FEMM.
-
-        # recall that for static FEA, you call show_results once when half .ans files are generated from watchdog
-        self.freq = 0 # needed for 
-
-        # TODO 判断，如果文件存在，且不是空的！
-        # if exists .txt file, then load it
-        missed_ans_file_list = []
-        if os.path.exists(self.dir_run + "static_results.txt"):
-            data = np.loadtxt(self.dir_run + "static_results.txt", unpack=True, usecols=(0,1,2,3))
-
-            # use dict to eliminate duplicates
-            results_dict = {}
-            for i in range(len(data[0])):
-                results_dict[data[0][i]] = (data[1][i], data[2][i], data[3][i]) 
-            keys_without_duplicates = list(OrderedDict.fromkeys(data[0])) # remove duplicated item because it is a dict now!
-            keys_without_duplicates.sort()
-
-            # check for missed .ans files
-            if len( np.arange(0, 180, self.deg_per_step) ) == len(keys_without_duplicates):
-                pass
-            else:
-                for self.rotor_position_in_deg in np.arange(0, 180, self.deg_per_step):
-                    flag_missed = True
-                    for key in keys_without_duplicates:
-                        if int('%04d'%(10*self.rotor_position_in_deg)) == key:
-                            flag_missed = False
-                            break
-                    if flag_missed == True:
-                        missed_ans_file_list.append( self.get_output_file_name(booL_dir=False) + '%04d'%(10*self.rotor_position_in_deg) + '.ans' )
-            print('missed:', missed_ans_file_list)
-
-            # typical print gives: 5 1813 1795 1799.0
-            # print len(missed_ans_file_list), len(data[0]), len(keys_without_duplicates), keys_without_duplicates[-1]
-            # quit()
-
-            # write data without duplicates to file
-            with open(self.dir_run + "static_results_no_duplicates.txt", 'w') as f:
-                for key in keys_without_duplicates:
-                    f.writelines('%g %g %g %g\n' % (key, results_dict[key][0], results_dict[key][1], results_dict[key][2]))
-                print('[FEMM.show_results_static] the last key is', max(keys_without_duplicates), '[begin from 0]. the length of keys is', len(keys_without_duplicates))
-
-            data = np.loadtxt(self.dir_run + "static_results_no_duplicates.txt", unpack=True, usecols=(0,1,2,3))
-
-            last_index = len(data[0])
-        else:
-            last_index = 0
-
-        ans_file_list = os.listdir(self.dir_run)
-        ans_file_list = [f for f in ans_file_list if '.ans' in f]
-
-        # last_index == 0 则说明是第一次运行后处理
-        if last_index > 0:
-            if len(ans_file_list) <= last_index:
-                if bool_plot == True:
-                    self.plot_results(data)
-                return data
-            else:
-                print('There are new .ans files. Now append them')
-
-        # iter ans_file_list and missed_ans_file_list, and write to .txt 
-        femm.openfemm(True) # bHide
-        print('there are total %d .ans files'%(len(ans_file_list)))
-        print('I am going to append the rest %d ones.'%(len(ans_file_list) - last_index))
-        for ind, f in enumerate( ans_file_list[last_index:] + missed_ans_file_list ):
-            if ind >= len(ans_file_list[last_index:]):
-                print('...open missed .ans files')
-                if os.path.exists(self.dir_run + f) == False:
-                    print('run mi_analyze for %s' % (f))
-                    femm.opendocument(self.dir_run + f[:-4] + '.fem')
-                    femm.mi_analyze(1)
-                else:
-                    femm.opendocument(self.dir_run + f[:-4] + '.fem')                    
-            else:
-                print(last_index + ind, end=' ')
-                femm.opendocument(self.dir_run + f[:-4] + '.fem')
-
-            # load solution (if corrupted, re-run)
-            try:
-                femm.mi_loadsolution()
-            except Exception as e:
-                logger = logging.getLogger(__name__)
-                logger.error('The .ans file to this .fem file is corrupted. re-run the .fem file %s'%(f), exc_info=True)
-                femm.opendocument(self.dir_run + f[:-4] + '.fem')
-                femm.mi_analyze(1)
-                femm.mi_loadsolution()
-
-            # get the physical amounts on the rotor
-            try:
-                femm.mo_groupselectblock(100)
-                femm.mo_groupselectblock(101)
-                Fx = femm.mo_blockintegral(18) #-- 18 x (or r) part of steady-state weighted stress tensor force
-                Fy = femm.mo_blockintegral(19) #--19 y (or z) part of steady-state weighted stress tensor force
-                torque = femm.mo_blockintegral(22) #-- 22 = Steady-state weighted stress tensor torque
-                femm.mo_clearblock()
-
-                # Air Gap Boundary for Rotor Motion #5
-                # gap_torque = femm.mo_gapintegral("AGB4RM", 0)
-                # gap_force = femm.mo_gapintegral("AGB4RM", 1)
-                # print gap_force, gap_torque, torque, Fx, Fy
-
-                # write results to a data file
-                with open(self.dir_run + "static_results.txt", "a") as stream:
-                    stream.write("%s %g %g %g\n" % ( f[-8:-4], torque, Fx, Fy ))
-            except Exception as e:
-                logger = logging.getLogger(__name__)
-                logger.error('Encounter error while post-processing (integrating, etc.).', exc_info=True)
-                raise e
-
-            # avoid run out of RAM when there are a thousand of ans files loaded into femm...
-            # if ind % 10 == 0:
-            #     femm.closefemm() 
-            #     femm.openfemm(True)
-            femm.mo_close()  # use mo_ to close .ans file
-            femm.mi_close()  # use mi_ to close .fem file
-
-        print('done. append to static_results.txt.')
-        femm.closefemm()
-
-        try:
-            data
-        except:
-            print('call this method again to plot...')
-            return None
-        if bool_plot == True:
-            self.plot_results(data)
-        return data
 
     def read_Torque_and_B_data(self, ans_file, rotation_operator, handle_torque):
         # (str_rotor_position, rotation_operator):
@@ -1418,21 +1547,18 @@ class FEMM_SlidingMesh(object):
         # print('rotor slot area', rotor_slot_area, 'm^2')
         return stator_copper_loss, rotor_copper_loss, stator_copper_loss_along_stack, rotor_copper_loss_along_stack, Js, Jr
 
-    def get_iron_loss(self, MAX_FREQUENCY=50e3, SLOT_FILL_FACTOR=0.5, TEMPERATURE_OF_COIL=75):
+    def compute_iron_loss(self, MAX_FREQUENCY=50e3, SLOT_FILL_FACTOR=0.5, TEMPERATURE_OF_COIL=75):
         # http://www.femm.info/wiki/SPMLoss
         # % Now, total core loss can be computed in one fell swoop...
-        im = self.im
-        samp_freq = 1. / (self.deg_per_step/180.*np.pi / self.im.Omega)
-        print('Sampling frequency is', samp_freq, 'Hz', '<=> deg_per_step is', self.deg_per_step)
 
         # Iron Loss
         # % Dividing the result by cs corrects for the lamination stacking factor
-        if 'M19' in self.im.spec_input_dict['Steel'] or 'M15' in self.im.spec_input_dict['Steel']:
+        if 'M19' in self.acm_variant.template.SI['Steel'] or 'M15' in self.acm_variant.template.SI['Steel']:
             # M-19 Steel
             ce = 0.530 # % Eddy current coefficient in (Watt/(meter^3 * T^2 * Hz^2)
             ch = 143.  # % Hysteresis coefficient in (Watts/(meter^3 * T^2 * Hz)
             cs = 0.95  # % Lamination stacking factor (nondimensional)
-        elif self.im.spec_input_dict['Steel'] == 'Arnon5':
+        elif self.acm_variant.template.SI['Steel'] == 'Arnon5':
             # %Arnon7
             ce = 0.07324 # % Eddy current coefficient in (Watt/(meter^3 * T^2 * Hz^2)
             ch = 187.6   # % Hysteresis coefficient in (Watts/(meter^3 * T^2 * Hz)
@@ -1444,60 +1570,13 @@ class FEMM_SlidingMesh(object):
         # owire   = (58.*1e6) / (1+TEMPERATURE_OF_COIL*0.004) # % conductivity of the wire in S/m at prescribed deltaT
         # cePhase = SLOT_FILL_FACTOR * (pi**2/8.) * dwire**2 *owire
 
-        # dff = MyLowestHarmonic*thisFrequency*w.*(w<(ns/2));  
-        try:
-            NFFT = self.number_ans
-        except:
-            NFFT = len(np.arange(0, 180, self.deg_per_step))
+        # dff = MyLowestHarmonic*thisFrequency*w.*(w<(ns/2));
+        # try:
+        #     NFFT = self.number_ans
+        # except Exception as e:
+        #     NFFT = len(np.arange(0, 180, self.deg_per_step))
+        #     raise(e)
 
-        dft_freq = 0.5*samp_freq*np.linspace(0,1,NFFT/2+1)
-        print(dft_freq[1])
-        dft_freq = dft_freq + im.slip_freq_breakdown_torque
-        print(dft_freq[1])
-
-        stator_eddycurrent_loss = 0.0
-        stator_hysteresis_loss = 0.0
-        rotor_eddycurrent_loss = 0.0
-        rotor_hysteresis_loss = 0.0
-        stator_volume = 0.0
-        rotor_volume = 0.0
-        # prox_loss = 0.0
-
-        # DEBUG:
-        # for id_element in range(self.number_ans):
-        # for id_element in range(self.number_of_elements):
-
-        # Element-wise calculation
-        try:
-            self.stator_Area_data
-        except:
-            # def what_loadtxt_should_be_doing(fname):
-            #     data = []
-            #     with open(fname, 'r') as f:
-            #         read_iterator = csv_reader(f, delimiter =' ')
-            #         for ind, row in enumerate(self.whole_row_reader(read_iterator)):
-            #             print row
-            #             data.append([float(el) for el in row])
-            #     return data
-            # self.stator_Bx_data   = what_loadtxt_should_be_doing(self.dir_run + 'stator_Bx_data.txt')
-            # self.stator_By_data   = what_loadtxt_should_be_doing(self.dir_run + 'stator_By_data.txt')
-            # self.stator_Area_data = what_loadtxt_should_be_doing(self.dir_run + 'stator_Area_data.txt')
-            # self.rotor_Bx_data    = what_loadtxt_should_be_doing(self.dir_run + 'rotor_Bx_data.txt')
-            # self.rotor_By_data    = what_loadtxt_should_be_doing(self.dir_run + 'rotor_By_data.txt')
-            # self.rotor_Area_data  = what_loadtxt_should_be_doing(self.dir_run + 'rotor_Area_data.txt')
-
-            self.stator_Bx_data   = np.loadtxt(self.dir_run + 'stator_Bx_data.txt'  )
-            self.stator_By_data   = np.loadtxt(self.dir_run + 'stator_By_data.txt'  )
-            self.stator_Area_data = np.loadtxt(self.dir_run + 'stator_Area_data.txt')
-            self.rotor_Bx_data    = np.loadtxt(self.dir_run + 'rotor_Bx_data.txt'   )
-            self.rotor_By_data    = np.loadtxt(self.dir_run + 'rotor_By_data.txt'   )
-            self.rotor_Area_data  = np.loadtxt(self.dir_run + 'rotor_Area_data.txt' )
-    
-        # print np.shape(self.stator_Bx_data)
-        # print np.shape(self.stator_Bx_data[0])
-        # quit()
-
-        from pylab import subplots, show
         if False:
             def test(Bx_data, base_freq):
                 print('There are in total', len(Bx_data), 'elements per step.')
@@ -1519,73 +1598,125 @@ class FEMM_SlidingMesh(object):
             test(self.rotor_By_data, 1)
             show()
 
-
-        # remove noises in frequency domain to estimate correct power spectrum
-        # https://dsp.stackexchange.com/questions/9054/removing-noise-from-audio-using-fourier-transform-in-matlab
-        # https://dsp.stackexchange.com/questions/6220/why-is-it-a-bad-idea-to-filter-by-zeroing-out-fft-bins
-        # https://www.mathworks.com/help/matlab/math/fourier-transforms.html
-
         global threshold 
-        def remove_noises(bxfft, threshold_tunner=0.3): # square window in freq domain
+        def remove_noises(bxfft, threshold_tuner=0.3): # square window in freq domain
+            # remove noises in frequency domain to estimate correct power spectrum
+            # https://dsp.stackexchange.com/questions/9054/removing-noise-from-audio-using-fourier-transform-in-matlab
+            # https://dsp.stackexchange.com/questions/6220/why-is-it-a-bad-idea-to-filter-by-zeroing-out-fft-bins
+            # https://www.mathworks.com/help/matlab/math/fourier-transforms.html
             global threshold 
-            threshold = threshold_tunner * np.mean(bxfft)
+            threshold = threshold_tuner * np.mean(bxfft)
             noises_places = np.where(bxfft<threshold, 0, 1)
             bxfft *= noises_places
             # print 'threshold', threshold
             return bxfft
 
-        # Stator iron loss
-        stator_eddycurrent_loss_dft = np.zeros(len(dft_freq))
-        stator_hysteresis_loss_dft = np.zeros(len(dft_freq))
-        for id_element, area_element in enumerate(self.stator_Area_data):
-            stator_Bx_waveform = self.stator_Bx_data[id_element]
-            stator_By_waveform = self.stator_By_data[id_element]
-            bxfft = utility.singleSidedDFT(stator_Bx_waveform, samp_freq)
-            byfft = utility.singleSidedDFT(stator_By_waveform, samp_freq)
+        if self.acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']<1:
+            raise Exception('At least one cycle is needed to be solved for calculating machine losses, but number_cycles_in_2ndTSS is', self.acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'])
+        NFFT = self.acm_variant.template.fea_config_dict['femm.number_of_steps_2ndTSS'] # length of the flux density component (Bx or By) waveform
+        samp_freq = 1 / self.step_size_sec
+        dft_freq = 0.5*samp_freq*np.linspace(0,1,int(NFFT/2+1))
+        print('[FEMM_SlidingMesh.py] DFT resolution is:', dft_freq[1], 'Hz, and dft_freq is', dft_freq)
 
-            # # test remove noises in spectrum
-            # index_enough = -1
-            # fig_dft, axes_dft = subplots(4,1, sharex=True)
-            # axes_dft[3].plot(dft_freq[:index_enough], bxfft[:index_enough], '>',alpha=0.4)
+        stator_eddycurrent_loss_harmonics = np.zeros(len(dft_freq))
+        stator_hysteresis_loss_harmonics = np.zeros(len(dft_freq))
+        stator_volume = 0.0
+        rotor_eddycurrent_loss_harmonics = np.zeros(len(dft_freq))
+        rotor_hysteresis_loss_harmonics = np.zeros(len(dft_freq))
+        rotor_volume = 0.0
+        magnet_eddycurrent_loss_harmonics = np.zeros(len(dft_freq))
+        magnet_volume = 0.0
+        coil_proximity_loss_harmonics = np.zeros(len(dft_freq))
 
-            bxfft = remove_noises(bxfft)
-            byfft = remove_noises(byfft)
+        plt.figure()
+        plt.plot(self.list_of_femm_triangle_element[0].femm_Bx_list, self.list_of_femm_triangle_element[0].femm_By_list, color='k')
+        plt.plot(self.list_of_femm_triangle_element[100].femm_Bx_list, self.list_of_femm_triangle_element[100].femm_By_list, color='r')
+        plt.plot(self.list_of_femm_triangle_element[1000].femm_Bx_list, self.list_of_femm_triangle_element[1000].femm_By_list, color='b')
+        plt.plot(self.list_of_femm_triangle_element[10000].femm_Bx_list, self.list_of_femm_triangle_element[10000].femm_By_list, color='g')
+        plt.show()
 
+        for el in self.list_of_femm_triangle_element:
+
+            bxfft = utility.singleSidedDFT(el.femm_Bx_list, samp_freq)
+            byfft = utility.singleSidedDFT(el.femm_By_list, samp_freq)
+
+                # # test remove noises in spectrum
+                # index_enough = -1
+                # fig_dft, axes_dft = plt.subplots(4,1, sharex=True)
+                # axes_dft[3].plot(dft_freq[:index_enough], bxfft[:index_enough], '>',alpha=0.4)
+                # _bxfft = remove_noises(bxfft)
+                # _byfft = remove_noises(byfft)
+                # # test remove noises in spectrum
+                # axes_dft[0].plot(dft_freq[:index_enough], stator_eddycurrent_loss_harmonics[:index_enough], '+',alpha=0.4)
+                # axes_dft[0].set_xlabel('Frequency [Hz]')
+                # axes_dft[0].set_ylabel('Stator\nEddy\nCurrent\nLoss [W]')
+                # axes_dft[1].plot(dft_freq[:index_enough], stator_hysteresis_loss_harmonics[:index_enough], '^',alpha=0.4)
+                # axes_dft[1].set_xlabel('Frequency [Hz]')
+                # axes_dft[1].set_ylabel('Stator\nHysteresis\nLoss [W]')
+                # axes_dft[2].plot(dft_freq[:index_enough], _bxfft[:index_enough], '>',alpha=0.4)
+                # axes_dft[2].plot(dft_freq[:index_enough], np.ones(len(dft_freq[:index_enough]))*threshold)
+                # axes_dft[3].plot(dft_freq[:index_enough], np.ones(len(dft_freq[:index_enough]))*threshold)
+                # plt.show()
+
+            # bxfft = remove_noises(bxfft)
+            # byfft = remove_noises(byfft)
             bsq = (bxfft*bxfft) + (byfft*byfft) # the sqaure of the amplitude of each harmonic component of flux density
-            volume_element = (area_element*1e-6) * (im.stack_length*1e-3) # # Compute the volume of each element in units of meter^3            
 
-            stator_eddycurrent_loss_dft += (ce*dft_freq**2 * volume_element/cs ) * bsq
-            stator_hysteresis_loss_dft  += (ch*dft_freq    * volume_element/cs ) * bsq
-            stator_volume += volume_element
+            volume_element = (el.area*1e-6) * (self.acm_variant.template.d['EX']['mm_template_stack_length']*1e-3) # Compute the volume of each element in units of meter^3
 
-            # # test remove noises in spectrum
-            # axes_dft[0].plot(dft_freq[:index_enough], stator_eddycurrent_loss_dft[:index_enough], '+',alpha=0.4)
-            # axes_dft[0].set_xlabel('Frequency [Hz]')
-            # axes_dft[0].set_ylabel('Stator\nEddy\nCurrent\nLoss [W]')
-            # axes_dft[1].plot(dft_freq[:index_enough], stator_hysteresis_loss_dft[:index_enough], '^',alpha=0.4)
-            # axes_dft[1].set_xlabel('Frequency [Hz]')
-            # axes_dft[1].set_ylabel('Stator\nHysteresis\nLoss [W]')
-            # axes_dft[2].plot(dft_freq[:index_enough], bxfft[:index_enough], '>',alpha=0.4)
-            # axes_dft[2].plot(dft_freq[:index_enough], np.ones(len(dft_freq[:index_enough]))*threshold)
-            # axes_dft[3].plot(dft_freq[:index_enough], np.ones(len(dft_freq[:index_enough]))*threshold)
-            # show()
+            # iron loss (stator)
+            if el.group == self.GroupSummary['stator_iron_core']:
+                stator_eddycurrent_loss_harmonics += (ce*dft_freq**2 * volume_element/cs ) * bsq
+                stator_hysteresis_loss_harmonics  += (ch*dft_freq    * volume_element/cs ) * bsq
+                stator_volume += volume_element
 
+            # iron loss (rotor)
+            if el.group == self.GroupSummary['rotor_iron_core']:
+                rotor_eddycurrent_loss_harmonics += (ce*dft_freq**2 * volume_element/cs ) * bsq
+                rotor_hysteresis_loss_harmonics  += (ch*dft_freq    * volume_element/cs ) * bsq
+                rotor_volume += volume_element
+
+            # proximity loss
+            # if el.group == self.GroupSummary['coils']:
+            #     coil_proximity_loss_harmonics  += 0
+
+            # magnet (eddy current) loss
+            # if el.group == self.GroupSummary['magnet']:
+            #     magnet_eddycurrent_loss_harmonics  += 0
+
+        print('[FEMM_SlidingMesh.py] DEBUG signal lengths:', NFFT, len(dft_freq), len(bxfft))
+
+        try:
+            index_enough = next(ind for ind, el in enumerate(dft_freq) if el > MAX_FREQUENCY) # 50e3 Hz is enough 10 times base frequency 500 Hz
+        except StopIteration:
+            index_enough = None
+
+        stator_eddycurrent_loss = sum( stator_eddycurrent_loss_harmonics[:index_enough] ) 
+        stator_hysteresis_loss  = sum( stator_hysteresis_loss_harmonics[:index_enough] )
+        rotor_eddycurrent_loss  = sum( rotor_eddycurrent_loss_harmonics[:index_enough] ) 
+        rotor_hysteresis_loss   = sum( rotor_hysteresis_loss_harmonics[:index_enough]  )
+
+        print(  stator_eddycurrent_loss,
+                stator_hysteresis_loss,
+                stator_volume,
+                rotor_eddycurrent_loss,
+                rotor_hysteresis_loss,
+                rotor_volume)
+
+        '''
         # find the index of dft_freq that corresponds to 50e3 Hz, because higher results are contaminated by noises in fourier analysis
-        index_enough = next(ind for ind, el in enumerate(dft_freq) if el > MAX_FREQUENCY) # 50e3 Hz is enough 10 times base frequency 500 Hz
-        stator_eddycurrent_loss = sum( stator_eddycurrent_loss_dft[:index_enough] ) 
-        stator_hysteresis_loss  = sum( stator_hysteresis_loss_dft[:index_enough] )
 
-        fig_dft, axes_dft = subplots(4,1, sharex=True)
-        axes_dft[0].plot(dft_freq[:index_enough], stator_eddycurrent_loss_dft[:index_enough], '+',alpha=0.4)
+        fig_dft, axes_dft = plt.subplots(4,1, sharex=True)
+        axes_dft[0].plot(dft_freq[:index_enough], stator_eddycurrent_loss_harmonics[:index_enough], '+',alpha=0.4)
         axes_dft[0].set_xlabel('Frequency [Hz]')
         axes_dft[0].set_ylabel('Stator\nEddy\nCurrent\nLoss [W]')
-        axes_dft[1].plot(dft_freq[:index_enough], stator_hysteresis_loss_dft[:index_enough], '^',alpha=0.4)
+        axes_dft[1].plot(dft_freq[:index_enough], stator_hysteresis_loss_harmonics[:index_enough], '^',alpha=0.4)
         axes_dft[1].set_xlabel('Frequency [Hz]')
         axes_dft[1].set_ylabel('Stator\nHysteresis\nLoss [W]')
 
         # Rotor iron loss
-        rotor_eddycurrent_loss_dft = np.zeros(len(dft_freq))
-        rotor_hysteresis_loss_dft = np.zeros(len(dft_freq))
+        rotor_eddycurrent_loss_harmonics = np.zeros(len(dft_freq))
+        rotor_hysteresis_loss_harmonics = np.zeros(len(dft_freq))
         for id_element, area_element in enumerate(self.rotor_Area_data):
             rotor_Bx_waveform = self.rotor_Bx_data[id_element]
             rotor_By_waveform = self.rotor_By_data[id_element]
@@ -1598,51 +1729,26 @@ class FEMM_SlidingMesh(object):
             bsq = (bxfft*bxfft) + (byfft*byfft) # the sqaure of the amplitude of each harmonic component of flux density
             volume_element = (area_element*1e-6) * (im.stack_length*1e-3) # # Compute the volume of each element in units of meter^3
 
-            rotor_eddycurrent_loss_dft += (ce*dft_freq**2 * volume_element/cs ) * bsq
-            rotor_hysteresis_loss_dft  += (ch*dft_freq    * volume_element/cs ) * bsq
+            rotor_eddycurrent_loss_harmonics += (ce*dft_freq**2 * volume_element/cs ) * bsq
+            rotor_hysteresis_loss_harmonics  += (ch*dft_freq    * volume_element/cs ) * bsq
             rotor_volume += volume_element
-        rotor_eddycurrent_loss = sum( rotor_eddycurrent_loss_dft[:index_enough] ) 
-        rotor_hysteresis_loss  = sum( rotor_hysteresis_loss_dft[:index_enough]  )
+        rotor_eddycurrent_loss = sum( rotor_eddycurrent_loss_harmonics[:index_enough] ) 
+        rotor_hysteresis_loss  = sum( rotor_hysteresis_loss_harmonics[:index_enough]  )
 
-        axes_dft[2].plot(dft_freq[:index_enough], rotor_eddycurrent_loss_dft[:index_enough], '+',alpha=0.4)
+        axes_dft[2].plot(dft_freq[:index_enough], rotor_eddycurrent_loss_harmonics[:index_enough], '+',alpha=0.4)
         axes_dft[2].set_xlabel('Frequency [Hz]')
         axes_dft[2].set_ylabel('\nRotor\nEddy Current\nLoss [W]')
-        axes_dft[3].plot(dft_freq[:index_enough], rotor_hysteresis_loss_dft[:index_enough], '^',alpha=0.4)
+        axes_dft[3].plot(dft_freq[:index_enough], rotor_hysteresis_loss_harmonics[:index_enough], '^',alpha=0.4)
         axes_dft[3].set_xlabel('Frequency [Hz]')
         axes_dft[3].set_ylabel('\nRotor\nHysteresis\nLoss [W]')
-
-
-        # # Stator iron loss
-        # for id_element, area_element in enumerate(self.stator_Area_data):             
-        #     stator_Bx_waveform = self.stator_Bx_data[id_element]
-        #     stator_By_waveform = self.stator_By_data[id_element]
-        #     bxfft = utility.singleSidedDFT(stator_Bx_waveform, samp_freq)
-        #     byfft = utility.singleSidedDFT(stator_By_waveform, samp_freq)
-        #     bsq = (bxfft*bxfft) + (byfft*byfft) # the sqaure of the amplitude of each harmonic component of flux density
-        #     volume_element = (area_element*1e-6) * (im.stack_length*1e-3) # # Compute the volume of each element in units of meter^3
-        #     stator_eddycurrent_loss += ( ce*np.dot(dft_freq**2, bsq) * volume_element ) / cs
-        #     stator_hysteresis_loss  += ( ch*np.dot(dft_freq, bsq) * volume_element ) / cs
-        #     stator_volume += volume_element
-
-        # # Rotor iron loss
-        # for id_element, area_element in enumerate(self.rotor_Area_data):
-        #     rotor_Bx_waveform = self.rotor_Bx_data[id_element]
-        #     rotor_By_waveform = self.rotor_By_data[id_element]
-        #     bxfft = utility.singleSidedDFT(rotor_Bx_waveform, samp_freq)
-        #     byfft = utility.singleSidedDFT(rotor_By_waveform, samp_freq)
-        #     bsq = (bxfft*bxfft) + (byfft*byfft) # the sqaure of the amplitude of each harmonic component of flux density
-        #     volume_element = (area_element*1e-6) * (im.stack_length*1e-3) # # Compute the volume of each element in units of meter^3
-        #     rotor_eddycurrent_loss += ( ce*np.dot(dft_freq**2, bsq) * volume_element ) / cs
-        #     rotor_hysteresis_loss  += ( ch*np.dot(dft_freq, bsq) * volume_element ) / cs
-        #     rotor_volume += volume_element
-
+        '''
             # Copper Loss - Stator Winding Proximity Effect (Rotor side is neglected because the slip frequency is low)
             # this should be done with g==2, i.e., field data on coil area
             # % and prox losses can be totalled up in a similar way as iron loss
             # prox_loss += np.dot(cePhase * dft_freq**2, bsq) * volume_element
 
-        # we use only 1/4 model for the loss calculation
-        number_of_fraction = 4
+        # Did you use 1/4 model for the loss calculation?
+        number_of_fraction = 1
         return ( number_of_fraction*stator_eddycurrent_loss, 
                  number_of_fraction*stator_hysteresis_loss, 
                  number_of_fraction*rotor_eddycurrent_loss, 
@@ -1650,8 +1756,8 @@ class FEMM_SlidingMesh(object):
                  number_of_fraction*stator_volume, 
                  number_of_fraction*rotor_volume )
 
-# def get_magnet_loss(self):
-    # pass
+def get_magnet_loss(self):
+    pass
     # % Add up eddy current losses in the magnets
     # % Magnet properties
     # RotorMagnets = Num_pole;

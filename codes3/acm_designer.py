@@ -989,7 +989,6 @@ class acm_designer(object):
             step_size_sec = electrical_period / number_of_steps
             step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
 
-            # number_of_steps = 
             RotorAngle_MechanicalDegrees = 0
             for index in range(-self.toolJd.dm.number_of_steps_at_steady_state, 0):
                 time                         = time_list[index]
@@ -1004,7 +1003,7 @@ class acm_designer(object):
                                       [ circuit_current_GroupBDV[index], terminal_voltage_GroupBDV[index], coil_fluxLinkage_GroupBDV[index] ],
                                       [ circuit_current_GroupBDW[index], terminal_voltage_GroupBDW[index], coil_fluxLinkage_GroupBDW[index] ] )
                 acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
-
+            acm_variant.analyzer.get_ss_data()
             return acm_variant
 
 
@@ -1274,7 +1273,7 @@ class acm_designer(object):
         toolFEMM.run_transient_study()
 
         # 4. Compute objective
-        toolFEMM.compute_objectives()
+        toolFEMM.compute_objectives(self.select_fea_config_dict)
 
         # 5. Save results to dist
         toolFEMM.save_results_to_disk()

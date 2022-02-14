@@ -6,6 +6,7 @@ import angle_error_nick
 
 from recordtype import recordtype
 acmop_parameter = recordtype('acmop_parameter', 'type, name, value, bounds, calc')
+femm_triangle_element = recordtype('femm_triangle_element', 'indexNode1, indexNode2, indexNode3, x, y, area, group, femm_Bx_list, femm_By_list')
 EPS = 1e-2 # unit: mm
 
 def my_execfile(filename, g=None, l=None):
@@ -430,7 +431,7 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     R     = Shaft[1]*1e-3 # radius of air gap
     delta = Shaft[3]*1e-3 # length of air gap
     
-    print('[utility.py] DEBUG L, R, delta =', L, R, delta)
+    print('[utility.py] DEBUG windage: L, R, delta =', L, R, delta)
     print('\tRadius version old:', im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['EX']['mm_mechanical_air_gap_length'])
     print('\tRadius version new:', im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['GP']['mm_d_sleeve'].value)
 

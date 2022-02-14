@@ -1843,7 +1843,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         elif 'PM' in acm_variant.template.machine_type:
             # Rotor magnet loss by JMAG
             magnet_Joule_loss = dm.jmag_loss_list[1]
-                        # Stator copper loss by Binder and Bolognani 2006
+            # Stator copper loss by Binder and Bolognani 2006
             copper_loss = dm.femm_loss_list[0] + magnet_Joule_loss
             iron_loss = dm.jmag_loss_list[2] 
         else:

@@ -175,8 +175,7 @@ class AC_Machine_Optiomization_Wrapper(object):
             ''' Default transient FEA
             '''
             motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
-            motor_design_variant.analyzer.get_ss_data()
-            print('[acmop.py] Listing spec_performance_dict:')
+            print('[acmop.py] Listing analyzer.spec_performance_dict:')
             for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
                 print('\t', k, v)
 

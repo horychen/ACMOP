@@ -483,10 +483,9 @@
         "delete_results_after_calculation": false, 
 
         "femm.Coarse_Mesh": false,
-        "femm.deg_per_step": null,
         "femm.MechDeg_IdEqualToNonZeroAngle": 0,
-        "femm.number_cycles_in_2ndTSS": 1.5,
-        "femm.number_of_steps_2ndTSS": 12,
+        "femm.number_cycles_in_2ndTSS": 1,
+        "femm.number_of_steps_2ndTSS": 16,
         "femm.number_of_parallel_solve": 3
     },
 
@@ -496,7 +495,6 @@
         "which_filter": "VariableSleeveLength",
         "delete_results_after_calculation": false,
         "femm.Coarse_Mesh": false,
-        "femm.deg_per_step": null,
         "femm.MechDeg_IdEqualToNonZeroAngle": 0,
         "femm.number_cycles_in_2ndTSS": 0.5,
         "femm.number_of_steps_2ndTSS": 64,

@@ -31,21 +31,43 @@ def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2Sw
     fea_config_dict = raw_fea_config_dicts[select_fea_config_dict]
     fea_config_dict['bool_post_processing'] = bool_post_processing
 
-    import where_am_i
-    where_am_i.where_am_i_v2(fea_config_dict, bool_post_processing)
+    # import where_am_i
+    # where_am_i.where_am_i_v2(fea_config_dict, bool_post_processing)
+    def get_pc_name():
+        import platform
+        import socket
+        n1 = platform.node()
+        n2 = socket.gethostname()
+        n3 = os.environ["COMPUTERNAME"]
+        if n1 == n2 == n3:
+            return n1
+        elif n1 == n2:
+            return n1
+        elif n1 == n3:
+            return n1
+        elif n2 == n3:
+            return n2
+        else:
+            raise Exception("Computer names are not equal to each other.")
+
+    dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
+    dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
+    pc_name = get_pc_name()
+    os.chdir(dir_codes)
+    print('[main_utility.py] CD to:', dir_codes)
+    fea_config_dict['dir.parent'] = dir_parent
+    fea_config_dict['pc_name']    = pc_name
+
     if path2SwarmData is None:
         path2SwarmData = project_loc + select_spec.replace(' ', '_')+'/'
     if project_loc is None:
         project_loc = os.path.abspath(os.path.join(path2SwarmData, '..',))
 
-    fea_config_dict['output_dir'] = path2SwarmData
-
-    output_dir = fea_config_dict['output_dir'] #[:-1] + r'_json_files/'
+    output_dir = fea_config_dict['output_dir'] = path2SwarmData
 
     # create output folder only when not post-processing? No, sometimes in post-processing we run FEA simulation.
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    # print('[main_utility.py] output_dir:', output_dir)
     with open(output_dir+'acmop-settings.txt', 'w') as f:
         f.write(select_spec + ' | ' + select_fea_config_dict)
     # print(spec_input_dict)
