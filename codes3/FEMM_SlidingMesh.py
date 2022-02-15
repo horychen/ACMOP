@@ -520,10 +520,18 @@ class Individual_Analyzer_FEMM_Edition(object):
             # Make a vector representing the frequency associated with each harmonic
             # The last half of the entries are zeroed out so that we don't count each
             # harmonic twice--the upper half of the FFT a mirror of the lower half
-            w = np.arange(self.ns)
+            w_ = np.arange(self.ns)
             MyLowestHarmonic = self.p
-            w=MyLowestHarmonic*thisFrequency*w*(w<(self.ns/2))
-            print('Freuqencies/Harmonics:', w)
+            if acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'] == 0.5:
+                # the flux density can be extended to get the other half for calcuting iron losses 
+                raise Exception('Iron loss cannot be calcultated because the DFT resolution is higher than flux density waveform fundamental frequency.')
+            elif acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'] < 1 :
+                raise Exception('Iron loss cannot be calcultated because the DFT resolution is higher than flux density waveform fundamental frequency.')
+
+            DFT_RESOLUTION_1 = MyLowestHarmonic*thisFrequency / acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']
+            w = DFT_RESOLUTION_1*w_ * (w_<(self.ns/2))
+            DFT_RESOLUTION_2 = MyLowestHarmonic*thisFrequency # this is correct only when acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'] = 1
+            print('Freuqencies/Harmonics:', w, DFT_RESOLUTION_1, DFT_RESOLUTION_2)
 
             # iron loss (Dividing the result by cs corrects for the lamination stacking factor)
             if 'M19' in acm_variant.template.SI['Steel'] or 'M15' in acm_variant.template.SI['Steel']:
@@ -593,7 +601,9 @@ class FEMM_SlidingMesh(object):
         # figure out step size
         self.electrical_period = acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
         self.number_of_steps   = acm_variant.template.fea_config_dict['femm.number_of_steps_2ndTSS']
-        self.step_size_sec = self.electrical_period / self.number_of_steps
+        self.step_size_sec = self.electrical_period / (self.number_of_steps-1)  # <--- Explanation of -1 here:
+                                                                                # In order to have full DFT resolution, we need to actually run one more point than the specified {fea_config_dict['femm.number_of_steps_2ndTSS']=}")
+                                                                                # Or, we can make the step_size_sec larger such that self.step_size_sec * self.number_of_steps > one electrical period (i.e., self.step_size_sec * (self.number_of_steps-1) === one electrical period)
         self.step_size_mech_deg = EX['Omega'] * self.step_size_sec / np.pi * 180
 
     def open(self):
@@ -927,7 +937,7 @@ class FEMM_SlidingMesh(object):
         # figure out step size
         # electrical_period = fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
         # number_of_steps   = fea_config_dict['femm.number_of_steps_2ndTSS']
-        # step_size_sec = electrical_period / number_of_steps
+        # step_size_sec = electrical_period / (number_of_steps-1)
         # step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
 
         # transient FEA with sliding band (air gap boundary in FEMM)
