@@ -11,7 +11,7 @@
         "femm.Coarse_Mesh": false,
         "femm.MechDeg_IdEqualToNonZeroAngle": 0,
         "femm.number_cycles_in_2ndTSS": 1,
-        "femm.number_of_steps_2ndTSS": 120,
+        "femm.number_of_steps_2ndTSS": 48,
         "femm.number_of_parallel_solve": 4
     },
 

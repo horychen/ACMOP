@@ -498,10 +498,10 @@ class Individual_Analyzer_FEMM_Edition(object):
         bsq  = (bxfft*bxfft) + (byfft*byfft)
 
         # Compute the volume of each element in units of meter**3
-        stack_length = self.probinfo[3-1] # Length of the machine in the into-the-page direction
-        lengthunits  = self.probinfo[4-1] # Length of drawing unit in meters
-        self.v       = self.a*stack_length*lengthunits**2
-        print('LOSS-DEBUG, stack_length, lengthunits:',  stack_length, lengthunits)
+        stack_length_m = self.probinfo[3-1] # Length of the machine in the into-the-page direction
+        lengthunits    = self.probinfo[4-1] # Length of drawing unit in meters
+        self.v         = self.a*stack_length_m*lengthunits**2
+        print('LOSS-DEBUG, stack_length_m, lengthunits:', stack_length_m, lengthunits)
 
         # compute fft of A at the center of each element
         Afft = matlab_fft(self.A)*(2/self.ns)
@@ -515,7 +515,7 @@ class Individual_Analyzer_FEMM_Edition(object):
         Jm = Afft - np.dot(Jo, g3.T)
 
         if True:
-            thisFrequency = acm_variant.template.d['EX']['Omega'] # thisSpeed/60 # mechanical speed in Hz
+            thisFrequency = acm_variant.template.d['EX']['Omega']/(2*np.pi) # thisSpeed/60 # mechanical speed in Hz
 
             # Make a vector representing the frequency associated with each harmonic
             # The last half of the entries are zeroed out so that we don't count each
@@ -523,6 +523,7 @@ class Individual_Analyzer_FEMM_Edition(object):
             w = np.arange(self.ns)
             MyLowestHarmonic = self.p
             w=MyLowestHarmonic*thisFrequency*w*(w<(self.ns/2))
+            print('Freuqencies/Harmonics:', w)
 
             # iron loss (Dividing the result by cs corrects for the lamination stacking factor)
             if 'M19' in acm_variant.template.SI['Steel'] or 'M15' in acm_variant.template.SI['Steel']:
