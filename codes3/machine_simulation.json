@@ -10,8 +10,8 @@
         "delete_results_after_calculation": false,
         "femm.Coarse_Mesh": false,
         "femm.MechDeg_IdEqualToNonZeroAngle": 0,
-        "femm.number_cycles_in_2ndTSS": 2,
-        "femm.number_of_steps_2ndTSS": 24,
+        "femm.number_cycles_in_2ndTSS": 1,
+        "femm.number_of_steps_2ndTSS": 32,
         "femm.number_of_parallel_solve": 4
     },
 

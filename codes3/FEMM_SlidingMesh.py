@@ -525,8 +525,10 @@ class Individual_Analyzer_FEMM_Edition(object):
             if acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'] == 0.5:
                 # the flux density can be extended to get the other half for calcuting iron losses 
                 raise Exception('Iron loss cannot be calcultated because the DFT resolution is higher than flux density waveform fundamental frequency.')
-            elif acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'] < 1 :
+            elif acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'] < 1:
                 raise Exception('Iron loss cannot be calcultated because the DFT resolution is higher than flux density waveform fundamental frequency.')
+            elif acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'] > 1:
+                print('[Warning] More than 1 cycle is not beneficial for iron loss calculation as there is no anti-aliasing filter applied to flux density waveform and if high frequency component is present, then aliasing will ruins your results if you have many bins between 0 Hz and fundamental frequency.]')
 
             DFT_RESOLUTION_1 = MyLowestHarmonic*thisFrequency / acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']
             w = DFT_RESOLUTION_1*w_ * (w_<(self.ns/2))
@@ -549,6 +551,21 @@ class Individual_Analyzer_FEMM_Edition(object):
             rotor_loss  = np.dot(np.dot((ch*w+ce*w*w), bsq), (self.v*g1)) / cs
             stator_loss = np.dot(np.dot((ch*w+ce*w*w), bsq), (self.v*g2)) / cs
 
+            fig, axes = plt.subplots(3)
+            x, y1, y2, y3 = [], [], [], []
+            for jj in range(int(self.ns)):
+                # _w = (w==jj*MyLowestHarmonic*thisFrequency)
+                # if sum(_w) == 0: raise
+                _w = (w==w[jj]) * w[jj]
+                _rotor_loss  = np.dot(np.dot((ch*_w+ce*_w*_w), bsq), (self.v*g1)) / cs
+                _stator_loss = np.dot(np.dot((ch*_w+ce*_w*_w), bsq), (self.v*g2)) / cs
+                # plt.scatter(jj*MyLowestHarmonic*thisFrequency, _stator_loss)
+                x.append(w[jj])
+                y1.append(_rotor_loss)
+                y2.append(_stator_loss)
+            ax=axes[0]; ax.stem(x, y1); ax.set_ylabel('Rotor loss [W]')
+            ax=axes[1]; ax.stem(x, y2); ax.set_ylabel('Stator loss [W]')
+
             # and prox losses can be totalled up in a similar way
             g4 = (self.g==self.GroupSummary['coils'])
             WindingFill = acm_variant.template.SI['WindingFill']
@@ -570,6 +587,21 @@ class Individual_Analyzer_FEMM_Edition(object):
             omag = 0.556*10**6 # conductivity of sintered NdFeB in S/m
             magnet_loss = 0.5 * np.dot((omag*(2*np.pi*w)**2), np.dot((np.abs(Jm)**2), self.v)) # g3 is already taken into account in variable Jm
                         # 0.5 = (1/sqrt(2)) ** 2, the peak value Jm should be converted to RMS value for calculating loss power
+
+
+            for jj in range(int(self.ns)):
+                _w = (w==w[jj]) * w[jj]
+                _magnet_loss = 0.5 * np.dot((omag*(2*np.pi*_w)**2), np.dot((np.abs(Jm)**2), self.v))
+                y3.append(_magnet_loss)
+            ax=axes[2]; ax.stem(x, y3); ax.set_ylabel('Magnet loss [W]')
+            _f = (w<w[8])
+            _rotor_loss  = np.dot(np.dot((ch*_f*w+ce*_f*w*w), bsq), (self.v*g1)) / cs
+            _stator_loss = np.dot(np.dot((ch*_f*w+ce*_f*w*w), bsq), (self.v*g2)) / cs
+            _magnet_loss = 0.5 * np.dot((omag*(2*np.pi*_f*w)**2), np.dot((np.abs(Jm)**2), self.v))
+            print(f'[FEMM_SlidingMesh.py] Conservative iron loss: {_rotor_loss}< {rotor_loss}; {_stator_loss} < {stator_loss}')
+            print(f'[FEMM_SlidingMesh.py] Conservative magnet loss: {_magnet_loss}< {magnet_loss}')
+
+
 
             total_loss = rotor_loss + stator_loss + prox_loss + PhaseOhmic + magnet_loss
             print('LOSS-DEBUG: rotor_loss, stator_loss, prox_loss, PhaseOhmic, magnet_loss')
