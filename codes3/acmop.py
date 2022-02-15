@@ -132,7 +132,7 @@ class AC_Machine_Optiomization_Wrapper(object):
             U_phase.plotFuncObj(U_phase.winding_func)
             U_phase.fig_plotFuncObj.savefig(mop.output_dir + 'winding_function.png')
             U_phase.plot2piFft(U_phase.winding_func, Fs=1/(2*np.pi/3600), L=32000*2**4) # 在2pi的周期内取360个点
-            U_phase.fig_plot2piFft.savefig(mop.output_dir + 'winding_function_DFT.png')
+            U_phase.fig_plot2piFft.savefig(mop.output_dir + 'winding_function_·.png')
             plt.show()
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~

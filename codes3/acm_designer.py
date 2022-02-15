@@ -1244,14 +1244,14 @@ class acm_designer(object):
             acm_variant.BeariW_CurrentAmp = acm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
 
             slot_area_utilizing_ratio = (acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp) / acm_variant.CurrentAmp_per_phase
-            print('[inner_rotor_motor.py]---Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio)
+            print('[acm_designer.py]---Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio)
 
-            print('[inner_rotor_motor.py]---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
-            print('[inner_rotor_motor.py]---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
-            print('[inner_rotor_motor.py]---acm_variant.DriveW_CurrentAmp =', acm_variant.DriveW_CurrentAmp)
-            print('[inner_rotor_motor.py]---acm_variant.BeariW_CurrentAmp =', acm_variant.BeariW_CurrentAmp)
-            print('[inner_rotor_motor.py]---TORQUE_CURRENT_RATIO:', acm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'])
-            print('[inner_rotor_motor.py]---SUSPENSION_CURRENT_RATIO:', acm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
+            print('[acm_designer.py]---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
+            print('[acm_designer.py]---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
+            print('[acm_designer.py]---acm_variant.DriveW_CurrentAmp =', acm_variant.DriveW_CurrentAmp)
+            print('[acm_designer.py]---acm_variant.BeariW_CurrentAmp =', acm_variant.BeariW_CurrentAmp)
+            print('[acm_designer.py]---TORQUE_CURRENT_RATIO:', acm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'])
+            print('[acm_designer.py]---SUSPENSION_CURRENT_RATIO:', acm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
         
         return toolJd
 

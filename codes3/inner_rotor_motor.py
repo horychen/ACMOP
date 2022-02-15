@@ -133,10 +133,11 @@ class template_machine_as_numbers(object):
             EX['mm_mechanical_air_gap_length'] = SI['minimum_mechanical_air_gap_length_mm']
             # THERMAL Properties
             EX['Js']                = SI['Js'] # Arms/mm^2 im_OP['Js'] 
-            EX['fill_factor']       = SI['space_factor_kCu'] # im_OP['fill_factor'] 
+            EX['WindingFill']       = SI['WindingFill'] # SI['space_factor_kCu'] is obsolete
             # MOTOR Winding Excitation Properties
             EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_or'].value*2*1e-3) # TODO:
             EX['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SI) # TODO:
+            print('[inner_rotor_motor.py] DriveW_CurrentAmp is initialized as:', EX['DriveW_CurrentAmp'], 'A (considering the specified voltage). This will be overwritten by Js-constraint later.')
             EX['DriveW_Freq']       = SI['ExcitationFreqSimulated']
             EX['DriveW_Rs']         = 1.0 # TODO: Must be greater than zero to let JMAG work
             EX['DriveW_poles']      = SI['p']*2

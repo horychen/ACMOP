@@ -1699,69 +1699,69 @@ class desgin_specification(object):
 
 
 # Public Access Utility Funcitons for Initial Design
-def get_stator_phase_current_rms(SD):
-    no_phase_m = SD['m']
-    stator_phase_voltage_rms = SD['VoltageRating'] / np.sqrt(3)
-    stator_phase_current_rms = SD['mec_power'] / (no_phase_m*SD['guess_efficiency']*stator_phase_voltage_rms*SD['guess_power_factor'])
+def get_stator_phase_current_rms(SI):
+    no_phase_m = SI['m']
+    stator_phase_voltage_rms = SI['VoltageRating'] / np.sqrt(3)
+    stator_phase_current_rms = SI['mec_power'] / (no_phase_m*SI['guess_efficiency']*stator_phase_voltage_rms*SI['guess_power_factor'])
     return stator_phase_current_rms
 
-def get_mm_template_stack_length(SD, rotor_outer_radius_r_or):
+def get_mm_template_stack_length(SI, rotor_outer_radius_r_or):
 
-    if SD['TangentialStress'] is None:
+    if SI['TangentialStress'] is None:
         print('[pyrhonen_procedure_as_function.py] TangentialStress is not specified, so the stack length of the tempalte is not estimated. Return 100 mm instead.')
         return 100 # 100 mm
 
-    speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
-    # rotor_outer_radius_r_or = eric_specify_tip_speed_get_radius(SD['tip_speed'], speed_rpm)
-    required_torque = SD['mec_power']/(2*np.pi*speed_rpm)*60
-    rotor_volume_Vr = required_torque/(2*SD['TangentialStress'])
+    speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
+    # rotor_outer_radius_r_or = eric_specify_tip_speed_get_radius(SI['tip_speed'], speed_rpm)
+    required_torque = SI['mec_power']/(2*np.pi*speed_rpm)*60
+    rotor_volume_Vr = required_torque/(2*SI['TangentialStress'])
     m_stack_length = rotor_volume_Vr / (np.pi * rotor_outer_radius_r_or**2)
     return 1e3*m_stack_length # m -> mm
 
-def get_zQ(SD, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
+def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
 
-    stator_phase_voltage_rms = SD['VoltageRating'] / np.sqrt(3)
+    stator_phase_voltage_rms = SI['VoltageRating'] / np.sqrt(3)
     desired_emf_Em = 0.95 * stator_phase_voltage_rms 
 
-    if SD['DPNV_or_SEPA'] is None:
+    if SI['DPNV_or_SEPA'] is None:
         # Regular Motor Winding
         number_parallel_branch = wily.number_parallel_branch
     else:
-        if SD['DPNV_or_SEPA']:
+        if SI['DPNV_or_SEPA']:
             # DPNV
             number_parallel_branch = 2
         else:
             # Separate
             number_parallel_branch = 1
-    speed_rpm = SD['ExcitationFreqSimulated'] * 60 / SD['p'] # rpm
+    speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
-    pole_pitch_tau_p = np.pi*stator_inner_diameter_Dis/(2*SD['p'])
+    pole_pitch_tau_p = np.pi*stator_inner_diameter_Dis/(2*SI['p'])
 
-    if SD['coil_pitch_y'] < 0:
+    if SI['coil_pitch_y'] < 0:
         kw1 = 1
-        print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SD["coil_pitch_y"]}, kw1={kw1}')
+        print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SI["coil_pitch_y"]}, kw1={kw1}')
     else:
         if wily.number_winding_layer == 1:
             # full pitch - easy
             coil_span_W = pole_pitch_tau_p
         else: 
             # short pitch (not tested)
-            stator_slot_pitch_tau_us = np.pi * stator_inner_diameter_Dis / SD['Qs']
-            coil_span_W = SD['coil_pitch_y'] * stator_slot_pitch_tau_us
+            stator_slot_pitch_tau_us = np.pi * stator_inner_diameter_Dis / SI['Qs']
+            coil_span_W = SI['coil_pitch_y'] * stator_slot_pitch_tau_us
             # for 2 pole motor, the recommended short pitch is 0.7. --p76
 
-        kd1 = 2*sin(1/SD['m']*np.pi/2)/(SD['Qs']/(SD['m']*SD['p'])*sin(1*np.pi*SD['p']/SD['Qs']))
+        kd1 = 2*sin(1/SI['m']*np.pi/2)/(SI['Qs']/(SI['m']*SI['p'])*sin(1*np.pi*SI['p']/SI['Qs']))
         kq1 = sin(1*coil_span_W/pole_pitch_tau_p*np.pi/2)        
         ksq1 = 1
         kw1 = kd1 * kq1 * ksq1
-        print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SD["coil_pitch_y"]}, kw1={kw1}')
+        print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SI["coil_pitch_y"]}, kw1={kw1}')
 
     alpha_i = 2/np.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
 
     # guess_air_gap_flux_density_B = 0.9 # T
-    guess_air_gap_flux_density_B = SD['guess_air_gap_flux_density_B']
+    guess_air_gap_flux_density_B = SI['guess_air_gap_flux_density_B']
 
-    mm_stack_length = get_mm_template_stack_length(SD, rotor_outer_diameter_Dr/2)
+    mm_stack_length = get_mm_template_stack_length(SI, rotor_outer_diameter_Dr/2)
     air_gap_length_delta = 0.5*(stator_inner_diameter_Dis - rotor_outer_diameter_Dr)
     # print(stator_inner_diameter_Dis, rotor_outer_diameter_Dr, air_gap_length_delta)
     # quit()
@@ -1771,22 +1771,22 @@ def get_zQ(SD, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
     air_gap_flux_Phi_m = alpha_i * guess_air_gap_flux_density_B * pole_pitch_tau_p * stack_length_eff
     # print(alpha_i, guess_air_gap_flux_density_B,  pole_pitch_tau_p,  stack_length_eff)
 
-    no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi*SD['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
-    # print(sqrt(2)*desired_emf_Em , SD['ExcitationFreqSimulated'], kw1,  air_gap_flux_Phi_m)
+    no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi*SI['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
+    # print(sqrt(2)*desired_emf_Em , SI['ExcitationFreqSimulated'], kw1,  air_gap_flux_Phi_m)
     if no_series_coil_turns_N<1:
         raise Exception('What? no_series_coil_turns_N is negative?')
     print('[Pyrhonen_procedure_as_function.py] [zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_B is', no_series_coil_turns_N)
     no_series_coil_turns_N = round(no_series_coil_turns_N)
     print('[Pyrhonen_procedure_as_function.py] [zQ] Rounds up to:', no_series_coil_turns_N)
     backup = no_series_coil_turns_N
-    distribution_q = SD['Qs'] / (2*SD['p']*SD['m'])
+    distribution_q = SI['Qs'] / (2*SI['p']*SI['m'])
     bool_we_have_plenty_voltage = True
     if bool_we_have_plenty_voltage:
-        no_series_coil_turns_N = min([SD['p']*distribution_q*i for i in range(100,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
+        no_series_coil_turns_N = min([SI['p']*distribution_q*i for i in range(100,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
     else:
-        no_series_coil_turns_N = min([SD['p']*distribution_q*i for i in range(100)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
-    print('[Pyrhonen_procedure_as_function.py] [zQ] no_series_coil_turns_N should be multiple of pq:', no_series_coil_turns_N, '= q * p =', distribution_q, '*', SD['p'])
-    no_conductors_per_slot_zQ = 2* SD['m'] * no_series_coil_turns_N / SD['Qs'] * number_parallel_branch
+        no_series_coil_turns_N = min([SI['p']*distribution_q*i for i in range(100)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
+    print('[Pyrhonen_procedure_as_function.py] [zQ] no_series_coil_turns_N should be multiple of pq:', no_series_coil_turns_N, '= q * p =', distribution_q, '*', SI['p'])
+    no_conductors_per_slot_zQ = 2* SI['m'] * no_series_coil_turns_N / SI['Qs'] * number_parallel_branch
     print('[Pyrhonen_procedure_as_function.py] [zQ] =', no_conductors_per_slot_zQ)
     return no_conductors_per_slot_zQ
 

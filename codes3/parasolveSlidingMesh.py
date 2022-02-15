@@ -16,9 +16,10 @@ project_file_name = sys.argv[5]
 print('[parasolveSlidingMesh.py] ParaSolve instance ID:', id_solver)
 
 femm.openfemm(True) # bHide
+# femm.smartmesh(0)
 femm.callfemm_noeval('smartmesh(0)')
 # this is essential to reduce elements counts from >50000 to ~20000.
-print('mi_smartmesh is off')
+# print('mi_smartmesh is off')
 
 for index in range(id_solver, number_of_points, number_of_parallel_solve):
 
@@ -27,11 +28,18 @@ for index in range(id_solver, number_of_points, number_of_parallel_solve):
 
     tic = time()
     femm.opendocument(project_file_name[:-4] + f'-{index:03d}.fem')
+    # femm.mi_smartmesh(0)
+    # femm.mi_saveas(f'temp-{id_solver}.fem')
     try:
         femm.mi_analyze(1) # None for inherited. 1 for a minimized window,
+        # femm.mi_loadsolution()
+        # femm.mo_smooth('off') # flux smoothing algorithm is off
+        # nn = femm.mo_numelements()
+        # print('number of element is', nn)
+        # femm.mo_close()
     except Exception as error:
-            print(error.args)
-            raise error
+        print(error.args)
+        raise error
         # print 'Is it: Material properties have not been defined for all regions? Check the following file:'
         # print i, fem_file_list[i]
     femm.mi_close()
