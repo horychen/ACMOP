@@ -52,11 +52,12 @@ class Problem_BearinglessInductionDesign(object):
 
             # try:
             if True:
+                acm_variant = ad.evaluate_design_json_wrapper(ad.spec.acm_template, x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
+
                 cost_function, f1, f2, f3, FRW, \
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \
-                force_error_angle = \
-                    ad.evaluate_design_json_wrapper(ad.spec.acm_template, x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
+                force_error_angle = acm_variant.results_for_optimization
 
                 # remove folder .jfiles to save space (we have to generate it first in JMAG Designer to have field data and voltage profiles)
                 if ad.solver.folder_to_be_deleted is not None and os.path.isdir(ad.solver.folder_to_be_deleted):

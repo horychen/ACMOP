@@ -821,7 +821,7 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
     Vol_Cu_along_stack = area_copper_S_Cu * (stack_length_m) * Q
     stator_copper_loss_along_stack = rho_Copper * Vol_Cu_along_stack * Js**2
 
-    print('[utility.py] Stator current [Arms]:', current_rms_value, 'Js:', Js)
+    print('[utility.py] current_rms_value [Arms]:', current_rms_value, 'Js:', Js)
 
     if rotor_slot_area is not None:
         raise Exception('Not supported')
@@ -1031,7 +1031,7 @@ class Goertzel_Data_Struct(object):
         print(numSamples)
         return None
 
-def compute_power_factor_from_half_period(voltage, current, mytime, targetFreq=1e3, numPeriodicalExtension=1000): # 目标频率默认是1000Hz
+def compute_power_factor_from_half_period(voltage, current, mytime, targetFreq=1e3, numPeriodicalExtension=1000): # 目标频率默认是1e3Hz
 
     gs_u = Goertzel_Data_Struct("Goertzel Struct for Voltage\n")
     gs_i = Goertzel_Data_Struct("Goertzel Struct for Current\n")
@@ -1065,6 +1065,32 @@ def compute_power_factor_from_half_period(voltage, current, mytime, targetFreq=1
     power_factor = math.cos(gs_i.phase-gs_u.phase)
     return power_factor, gs_u.ampl, gs_i.ampl, phase_difference_in_deg
     
+def compute_power_factor_from_full_period(voltage, current, mytime, targetFreq=1e3, numPeriodicalExtension=1000): # 目标频率默认是1e3Hz
+
+    gs_u = Goertzel_Data_Struct("Goertzel Struct for Voltage\n")
+    gs_i = Goertzel_Data_Struct("Goertzel Struct for Current\n")
+
+    TS = mytime[-1] - mytime[-2]
+
+    voltage *= numPeriodicalExtension
+    current *= numPeriodicalExtension
+
+    N_SAMPLE = len(voltage)
+    gs_u.goertzel_offline(targetFreq, 1./TS, voltage)
+    gs_i.goertzel_offline(targetFreq, 1./TS, current)
+
+    gs_u.ampl = math.sqrt(gs_u.real*gs_u.real + gs_u.imag*gs_u.imag) 
+    gs_u.phase = math.atan2(gs_u.imag, gs_u.real)
+
+    gs_i.ampl = math.sqrt(gs_i.real*gs_i.real + gs_i.imag*gs_i.imag) 
+    gs_i.phase = math.atan2(gs_i.imag, gs_i.real)
+
+    print('[utility.py] DEBUG PF, gs_u.ampl:', gs_u.ampl)
+    print('[utility.py] DEBUG PF, gs_i.ampl:', gs_i.ampl)
+
+    phase_difference_in_deg = ((gs_i.phase-gs_u.phase)/math.pi*180)
+    power_factor = math.cos(gs_i.phase-gs_u.phase)
+    return power_factor, gs_u.ampl, gs_i.ampl, phase_difference_in_deg
 
 
 

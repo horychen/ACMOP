@@ -846,12 +846,8 @@ class acm_designer(object):
         acm_variant = self.evaluate_design(acm_template, x_denorm, counter, counter_loop)
 
         if 'FEMM' in self.select_fea_config_dict:
+            acm_variant.results_for_optimization = acm_variant.analyzer.build_results_for_optimization()
             return acm_variant
-
-            # cost_function, f1, f2, f3, FRW, \
-            # normalized_torque_ripple, \
-            # normalized_force_error_magnitude, \
-            # force_error_angle
 
         elif 'JMAG' in self.select_fea_config_dict:
 
@@ -1120,16 +1116,11 @@ class acm_designer(object):
 
         # get local design variant
         if 'SPMSM' in template.machine_type:
-            function = bearingless_spmsm_design.bearingless_spmsm_design_variant
+            self.acm_variant = acm_variant = bearingless_spmsm_design.bearingless_spmsm_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         elif 'PMVM' in template.machine_type:
-            function = vernier_motor_design.vernier_motor_VShapePM_design_variant
+            self.acm_variant = acm_variant = vernier_motor_design.vernier_motor_VShapePM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         else:
             raise Exception('Not supported machine_type:', template.machine_type)
-        self.acm_variant = acm_variant = function(
-                        template=template,
-                        x_denorm=x_denorm,
-                        counter=counter,
-                        counter_loop=counter_loop)
 
         if 'JMAG' in self.select_fea_config_dict:
             # project name
@@ -1273,10 +1264,12 @@ class acm_designer(object):
         toolFEMM.run_transient_study()
 
         # 4. Compute objective
-        toolFEMM.compute_objectives(self.select_fea_config_dict)
+        acm_variant.analyzer.get_ss_data()
+        acm_variant.analyzer._compute_objectives(acm_variant, self.select_fea_config_dict, toolFEMM)
+        # acm_variant.analyzer.build_spec_performance_dict()
 
         # 5. Save results to dist
-        toolFEMM.save_results_to_disk()
+        acm_variant.analyzer.save_results_to_disk()
 
         return toolFEMM
 

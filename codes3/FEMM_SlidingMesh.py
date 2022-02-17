@@ -133,7 +133,7 @@ class Individual_Analyzer_FEMM_Edition(object):
         torque_average = self.torque_average = np.mean(self.femm_torque)
         torque_error = np.array(self.femm_torque) - torque_average
         ss_max_torque_error = (max(torque_error), min(torque_error))
-        normalized_torque_ripple = (ss_max_torque_error[0] - ss_max_torque_error[1]) / torque_average
+        normalized_torque_ripple = self.normalized_torque_ripple = (ss_max_torque_error[0] - ss_max_torque_error[1]) / torque_average
 
         # print('-'*100)
         # print(self.femm_circuit_currents)
@@ -166,39 +166,14 @@ class Individual_Analyzer_FEMM_Edition(object):
         print('\t ss_max_force_err_abs =', sfv.ss_max_force_err_abs, 'N')
         print('\t ss_max_force_err_ang =', sfv.ss_max_force_err_ang, 'deg')
 
-        # spec_performance_dict['Torque'] = None # this is dependent on stack length
-        # spec_performance_dict['ForceAbs'] = None # this is dependent on stack length
-        # spec_performance_dict['RotorWeight'] = None # this is dependent on stack length
 
-        spec_performance_dict = dict()
-        spec_performance_dict['cost_function'] = None
-        spec_performance_dict['f1']  = None
-        spec_performance_dict['f2']  = None
-        spec_performance_dict['f3']  = None
-        spec_performance_dict['FRW'] = None
-        spec_performance_dict['normalized_torque_ripple'] = self.normalized_torque_ripple = normalized_torque_ripple
-        spec_performance_dict['normalized_force_error_magnitude'] = self.normalized_force_error_magnitude = np.max(sfv.ss_max_force_err_abs) / sfv.ss_avg_force_magnitude
-        spec_performance_dict['force_error_angle'] = self.force_error_angle = np.max(sfv.ss_max_force_err_ang)
-        spec_performance_dict['project_name'] = None
-        spec_performance_dict['individual_name'] = None
-        spec_performance_dict['number_current_generation'] = None
-        spec_performance_dict['individual_index'] = None
-        spec_performance_dict['power_factor'] = None
-        spec_performance_dict['rated_ratio'] = None
-        spec_performance_dict['rated_stack_length_mm'] = None
-        spec_performance_dict['rated_total_loss'] = None
-        spec_performance_dict['rated_stator_copper_loss_along_stack'] = None
-        spec_performance_dict['rated_rotor_copper_loss_along_stack'] = None
-        spec_performance_dict['stator_copper_loss_in_end_turn'] = None
-        spec_performance_dict['rotor_copper_loss_in_end_turn'] = None
-        spec_performance_dict['rated_iron_loss'] = None
-        spec_performance_dict['rated_windage_loss'] = None
-        spec_performance_dict['str_results'] = None
-        self.spec_performance_dict = spec_performance_dict
+    def save_results_to_disk(self):
+        pass
 
-    def compute_objectives(self, acm_variant, select_fea_config_dict, toolFEA):
+    def _compute_objectives(self, acm_variant, select_fea_config_dict, toolFEA):
         # Power factor
-        # power_factor = self.get_power_factor(ss_time_half_cycle=?, ss_voltage_half_cycle=?, ss_current_half_cycle=?, targetFreq=acm_variant.template.d['EX']['DriveW_Freq'])
+        flux, current, time = list(map(lambda el: el[0], self.femm_circuit_fluxLinkages)), list(map(lambda el: el[0], self.femm_circuit_currents)), self.femm_time
+        power_factor = self.get_power_factor_from_flux(flux, current, time, targetFreq=acm_variant.template.d['EX']['DriveW_Freq'])
 
         # Rated loss
         rated_total_loss, total_loss, \
@@ -319,6 +294,46 @@ class Individual_Analyzer_FEMM_Edition(object):
 
         # machine_results = [power_factor, efficiency, self., normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle]
 
+        # Build spec performance dict
+        spec_performance_dict = dict()
+        spec_performance_dict['cost_function'] = None
+        spec_performance_dict['f1']  = f1
+        spec_performance_dict['f2']  = f2
+        spec_performance_dict['f3']  = f3
+        spec_performance_dict['FRW'] = FRW
+        spec_performance_dict['normalized_torque_ripple'] = self.normalized_torque_ripple
+        spec_performance_dict['normalized_force_error_magnitude'] = self.normalized_force_error_magnitude = np.max(self.sfv.ss_max_force_err_abs) / self.sfv.ss_avg_force_magnitude
+        spec_performance_dict['force_error_angle'] = self.force_error_angle = np.max(self.sfv.ss_max_force_err_ang)
+        spec_performance_dict['project_name'] = acm_variant.name
+        spec_performance_dict['individual_name'] = acm_variant.get_individual_name()
+        spec_performance_dict['number_current_generation'] = int(acm_variant.counter//78), 
+        spec_performance_dict['individual_index'] = acm_variant.counter
+        spec_performance_dict['power_factor'] = power_factor
+        spec_performance_dict['rated_ratio'] = rated_ratio
+        spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
+        spec_performance_dict['rated_total_loss'] = rated_total_loss
+        spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
+        spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
+        spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
+        spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
+        spec_performance_dict['rated_iron_loss'] = rated_iron_loss
+        spec_performance_dict['rated_windage_loss'] = rated_windage_loss
+        spec_performance_dict['rated_magnet_Joule_loss'] = rated_magnet_Joule_loss
+        spec_performance_dict['str_results'] = ''
+        # spec_performance_dict['Torque'] = None # this is dependent on stack length
+        # spec_performance_dict['ForceAbs'] = None # this is dependent on stack length
+        # spec_performance_dict['RotorWeight'] = None # this is dependent on stack length
+        self.spec_performance_dict = spec_performance_dict
+
+    def build_results_for_optimization(self):
+        return  self.spec_performance_dict['cost_function'], \
+                self.spec_performance_dict['f1'], \
+                self.spec_performance_dict['f2'], \
+                self.spec_performance_dict['f3'], \
+                self.spec_performance_dict['FRW'], \
+                self.spec_performance_dict['normalized_torque_ripple'], \
+                self.spec_performance_dict['normalized_force_error_magnitude'], \
+                self.spec_performance_dict['force_error_angle']
 
     def get_rated_loss(self, acm_variant, select_fea_config_dict, toolFEA):
 
@@ -429,21 +444,12 @@ class Individual_Analyzer_FEMM_Edition(object):
             iron_loss = r+s
         return iron_loss, prox_loss, magnet_Joule_loss
 
-    def get_power_factor(self, ss_time_half_cycle, ss_voltage_half_cycle, ss_current_half_cycle, targetFreq=1e3, numPeriodicalExtension=1000):
-        # number_of_steps_at_steady_state: steps corresponding to half the period 
-        # mytime  = ss_time_half_cycle
-        # voltage = ss_voltage_half_cycle
-        # current = ss_current_half_cycle
-
-        # from pylab import *
-        # print len(mytime), len(voltage), len(current)
-        # figure()
-        # plot(mytime, voltage)
-        # plot(mytime, current)
-        # show()
-        power_factor, u, i, phase_diff_ui = utility.compute_power_factor_from_half_period(ss_voltage_half_cycle, ss_current_half_cycle, ss_time_half_cycle, targetFreq=targetFreq, numPeriodicalExtension=numPeriodicalExtension)
-        self.ui_info = [power_factor, u, i, phase_diff_ui]
-        print('[FEMM_SlidingMesh.py] ui_info', self.ui_info)
+    def get_power_factor_from_flux(self, flux, current, time, targetFreq=1e3, numPeriodicalExtension=1000):
+        _, psi, i, phase_diff_psii_deg = utility.compute_power_factor_from_full_period(flux, current, time, targetFreq=targetFreq, numPeriodicalExtension=numPeriodicalExtension)
+        power_factor = np.cos((90 - phase_diff_psii_deg)/180*np.pi)
+        self.psii_info = [power_factor, psi, i, phase_diff_psii_deg]
+        print('[FEMM_SlidingMesh.py] psii_info = [power_factor, psi, i, phase_diff_psii_deg]:', self.psii_info)
+        print('\t This power factor is internal displacement power factor of the fundamental emf and fundamental current, which is approximately the actual fundamental displacement power factor.')
         return power_factor
 
     def iron_loss_preparing_data_matrices(self, index):
@@ -588,13 +594,17 @@ class Individual_Analyzer_FEMM_Edition(object):
             magnet_loss = 0.5 * np.dot((omag*(2*np.pi*w)**2), np.dot((np.abs(Jm)**2), self.v)) # g3 is already taken into account in variable Jm
                         # 0.5 = (1/sqrt(2)) ** 2, the peak value Jm should be converted to RMS value for calculating loss power
 
-
             for jj in range(int(self.ns)):
                 _w = (w==w[jj]) * w[jj]
                 _magnet_loss = 0.5 * np.dot((omag*(2*np.pi*_w)**2), np.dot((np.abs(Jm)**2), self.v))
                 y3.append(_magnet_loss)
             ax=axes[2]; ax.stem(x, y3); ax.set_ylabel('Magnet loss [W]')
-            _f = (w<w[8])
+            try:
+                w[8]
+                _f = (w<w[8])
+            except IndexError:
+                _f = 1
+                print('Conservative loss can not be needed because there are not enough points.')
             _rotor_loss  = np.dot(np.dot((ch*_f*w+ce*_f*w*w), bsq), (self.v*g1)) / cs
             _stator_loss = np.dot(np.dot((ch*_f*w+ce*_f*w*w), bsq), (self.v*g2)) / cs
             _magnet_loss = 0.5 * np.dot((omag*(2*np.pi*_f*w)**2), np.dot((np.abs(Jm)**2), self.v))
@@ -1073,19 +1083,6 @@ class FEMM_SlidingMesh(object):
         for el in circuitProperties:
             print('\t\t', el)
 
-    def compute_objectives(self, select_fea_config_dict):
-
-        self.acm_variant.analyzer.get_ss_data()
-        self.acm_variant.analyzer.compute_objectives(self.acm_variant, select_fea_config_dict, self)
-
-        # Bx = list(map(lambda el: el[0], self.stator_Bx_data))
-        # By = list(map(lambda el: el[0], self.stator_By_data))
-        # plt.plot(Bx, By, 'o')
-        # plt.scatter(x, y, marker='+', s=150, linewidths=4, c=y, cmap=plt.cm.coolwarm)
-        # plt.show()
-
-    def save_results_to_disk(self):
-        pass
 
     def update_circuit_excitation(self, time):
         # rotor current
@@ -1118,32 +1115,52 @@ class FEMM_SlidingMesh(object):
         number_of_points_per_solve = number_of_points // number_of_parallel_solve
         procs = []
         for i in range(number_of_parallel_solve):
-            proc = subprocess.Popen([sys.executable, 'parasolveSlidingMesh.py', str(i), str(number_of_parallel_solve), str(number_of_points), fea_config_dict['output_dir'], self.project_file_name], bufsize=-1)
+            proc = subprocess.Popen([sys.executable, 'parasolveSlidingMesh.py', 
+                                        str(i), 
+                                        str(number_of_parallel_solve), 
+                                        str(number_of_points), 
+                                        fea_config_dict['output_dir'], 
+                                        self.project_file_name], 
+                                        number_of_points,
+                                        self.GroupSummary["stator_iron_core"],
+                                        self.GroupSummary["coils"],
+                                        self.GroupSummary["rotor_iron_core"],
+                                        self.GroupSummary["magnet"],
+                                        bufsize=-1, 
+                )#stderr=subprocess.PIPE, stdout=subprocess.PIPE)
             procs.append(proc)
 
         for proc in procs:
             code = proc.wait() # return exit code
-            print('[FEMM_SlidingMesh.py] DEBUG process return code:', code)
+            stdout, stderr = proc.communicate()
+            # print('[FEMM_SlidingMesh.py] DEBUG process return code:', code)
+            # print('\tDEBUG parasolve| stdout:', stdout)
+            # print('\t               | stderr:', stderr)
 
-        ''' Collecting results after all .fem files are solved (easy to code but apparently this takes more time for colelcting)
-        '''
-        list_of_completed_ans_file = [0] * number_of_points
-        flag_run_while = True
-        print('[FEMM_SlidingMesh.py] Start collecting .ans results one by one...')
-        while flag_run_while:
-            for index, _bool in enumerate(list_of_completed_ans_file):
-                if _bool == 0:
-                    # try to load .ans file
-                    try:
-                        femm.opendocument(self.project_file_name[:-4] + f'-{index:03d}.ans')
-                        time                         = index * step_size_sec
-                        RotorAngle_MechanicalDegrees = index * step_size_mech_deg
-                        self.collect_femm_results(index, time, RotorAngle_MechanicalDegrees, current_sources=[])
-                        list_of_completed_ans_file[index] = True
-                    except Exception as e:
-                        raise e
-            flag_run_while = sum(list_of_completed_ans_file) != number_of_points
-            print('\t\t', list_of_completed_ans_file)
+        if True:
+            with open('file.pkl', 'rb') as pickle_load:
+                lst = pickle.load(pickle_load)
+            print(lst) # prints [1,2,3,4,5]
+        else:
+            ''' Collecting results after all .fem files are solved (easy to code but apparently this takes more time for colelcting)
+            '''
+            list_of_completed_ans_file = [0] * number_of_points
+            flag_run_while = True
+            print('[FEMM_SlidingMesh.py] Start collecting .ans results one by one...')
+            while flag_run_while:
+                for index, _bool in enumerate(list_of_completed_ans_file):
+                    if _bool == 0:
+                        # try to load .ans file
+                        try:
+                            femm.opendocument(self.project_file_name[:-4] + f'-{index:03d}.ans')
+                            time                         = index * step_size_sec
+                            RotorAngle_MechanicalDegrees = index * step_size_mech_deg
+                            self.collect_femm_results(index, time, RotorAngle_MechanicalDegrees, current_sources=[])
+                            list_of_completed_ans_file[index] = True
+                        except Exception as e:
+                            raise e
+                flag_run_while = sum(list_of_completed_ans_file) != number_of_points
+                print('\t\t', list_of_completed_ans_file)
 
     def initialize_collection_of_field_data(self):
 

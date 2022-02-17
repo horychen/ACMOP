@@ -520,7 +520,7 @@ def main():
         # select_spec='IM Q24p1y9 Qr32 Round Bar',
         # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
-        select_spec            = 'PMSM Q12p4y1 PEMD-2020', #'PMSM Q18p4y2 Beijing ShiDaiChaoQun',
+        select_spec            = 'PMSM Q24p1y9 PEMD', #'PMSM Q12p4y1 PEMD-2020', #'PMSM Q18p4y2 Beijing ShiDaiChaoQun',
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
         select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
 
