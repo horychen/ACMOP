@@ -1,5 +1,7 @@
 #coding:utf-8
-import femm, logging, os, sys, subprocess, winding_layout, utility
+import femm, logging, os, sys, subprocess, winding_layout, utility, pickle
+
+from scipy.fft import idst
 from collections import OrderedDict
 from time import sleep
 from time import time as clock_time
@@ -166,6 +168,35 @@ class Individual_Analyzer_FEMM_Edition(object):
         print('\t ss_max_force_err_abs =', sfv.ss_max_force_err_abs, 'N')
         print('\t ss_max_force_err_ang =', sfv.ss_max_force_err_ang, 'deg')
 
+    def input_paraSolveResults(self,z,a,g,probinfo,b,A,M, step_size_sec,step_size_mech_deg):
+        self.z = z
+        self.a = a
+        self.g = g
+        self.probinfo = probinfo
+        self.b = b
+        self.A = A
+
+        self.M = M
+        print('M =', M)
+        # print(type(M))
+        # print(M[0,0])
+        # print(type(M[0,0]))
+        # quit()
+
+        for index in range(self.ns):
+            time                         = index * step_size_sec
+            RotorAngle_MechanicalDegrees = index * step_size_mech_deg
+
+            torque = M[index,0]
+            forces = [M[index,1], M[index,2]]
+            energy = M[index,3]
+            circuitProperties = (   [ M[index,4],  M[index,10],  M[index,16] ],
+                                    [ M[index,5],  M[index,11],  M[index,17] ],
+                                    [ M[index,6],  M[index,12],  M[index,18] ],
+                                    [ M[index,7],  M[index,13],  M[index,19] ],
+                                    [ M[index,8],  M[index,14],  M[index,20] ],
+                                    [ M[index,9],  M[index,15],  M[index,21] ] )
+            self.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
 
     def save_results_to_disk(self):
         pass
@@ -1114,39 +1145,53 @@ class FEMM_SlidingMesh(object):
         number_of_points = fea_config_dict['femm.number_of_steps_2ndTSS']
         number_of_points_per_solve = number_of_points // number_of_parallel_solve
         procs = []
-        for i in range(number_of_parallel_solve):
+        for id_solver in range(number_of_parallel_solve):
             proc = subprocess.Popen([sys.executable, 'parasolveSlidingMesh.py', 
-                                        str(i), 
+                                        str(id_solver), 
                                         str(number_of_parallel_solve), 
                                         str(number_of_points), 
                                         fea_config_dict['output_dir'], 
-                                        self.project_file_name], 
-                                        number_of_points,
-                                        self.GroupSummary["stator_iron_core"],
-                                        self.GroupSummary["coils"],
-                                        self.GroupSummary["rotor_iron_core"],
-                                        self.GroupSummary["magnet"],
-                                        bufsize=-1, 
+                                        self.project_file_name, 
+                                        str(self.GroupSummary["stator_iron_core"]),
+                                        str(self.GroupSummary["coils"]),
+                                        str(self.GroupSummary["rotor_iron_core"]),
+                                        str(self.GroupSummary["magnet"]) 
+                                    ], bufsize=-1, 
                 )#stderr=subprocess.PIPE, stdout=subprocess.PIPE)
             procs.append(proc)
 
         for proc in procs:
             code = proc.wait() # return exit code
             stdout, stderr = proc.communicate()
-            # print('[FEMM_SlidingMesh.py] DEBUG process return code:', code)
             # print('\tDEBUG parasolve| stdout:', stdout)
             # print('\t               | stderr:', stderr)
+        if code == 1:
+            raise Exception('Subprocess failed to execute.')
+        print('[FEMM_SlidingMesh.py] DEBUG process return code:', code)
 
+        print('[FEMM_SlidingMesh.py] Start collecting .ans results one by one...')
         if True:
-            with open('file.pkl', 'rb') as pickle_load:
-                lst = pickle.load(pickle_load)
-            print(lst) # prints [1,2,3,4,5]
+            for id_solver in range(number_of_parallel_solve):
+                with open(f'paraResults{id_solver}.pkl', 'rb') as pickle_load:
+                    paraResults = pickle.load(pickle_load)
+                if id_solver == 0:
+                    b = paraResults['b']
+                    A = paraResults['A']
+                    M = paraResults['M']
+                    z = paraResults['z']
+                    a = paraResults['a']
+                    g = paraResults['g']
+                    probinfo = paraResults['probinfo']
+                else:
+                    b += paraResults['b']
+                    A += paraResults['A']
+                    M += paraResults['M']
+            self.acm_variant.analyzer.input_paraSolveResults(z,a,g,probinfo,b,A,M, self.step_size_sec, self.step_size_mech_deg)
         else:
             ''' Collecting results after all .fem files are solved (easy to code but apparently this takes more time for colelcting)
             '''
             list_of_completed_ans_file = [0] * number_of_points
             flag_run_while = True
-            print('[FEMM_SlidingMesh.py] Start collecting .ans results one by one...')
             while flag_run_while:
                 for index, _bool in enumerate(list_of_completed_ans_file):
                     if _bool == 0:

@@ -542,9 +542,9 @@ def main():
         else:
             # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
             mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5 - visualize swarm data
+    return mop
 
 if __name__ == '__main__':
-    from pylab import np
     main()
 
 

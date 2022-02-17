@@ -985,7 +985,6 @@ class acm_designer(object):
             step_size_sec = electrical_period / number_of_steps
             step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
 
-            RotorAngle_MechanicalDegrees = 0
             for index in range(-self.toolJd.dm.number_of_steps_at_steady_state, 0):
                 time                         = time_list[index]
                 RotorAngle_MechanicalDegrees = DisplacementAngle_list[index]
