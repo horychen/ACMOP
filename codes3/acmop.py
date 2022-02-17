@@ -236,7 +236,7 @@ class AC_Machine_Optiomization_Wrapper(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[4] Optimization Part' Multi-Objective Optimization
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    def part_optimization(self, acm_template):
+    def part_optimization(self):
         ad = self.ad
         ad.init_logger(prefix='acmdm')
 
@@ -260,13 +260,12 @@ class AC_Machine_Optiomization_Wrapper(object):
 
         # [4.3] MOO (need to share global variables to the Problem class)
         from acm_designer import get_bad_fintess_values
-        import logging, builtins
-        import utility_moo
+        import logging, builtins, utility_moo
         import pygmo as pg
         ad.counter_fitness_called = 0
         ad.counter_fitness_return = 0
         builtins.ad = ad # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable
-        import codes3.Problem_BearinglessSynchronousDesign # must import this after __builtins__.ad = ad
+        import Problem_BearinglessSynchronousDesign # must import this after __builtins__.ad = ad
         # print('[acmop.py]', builtins.ad)
 
         ################################################################
@@ -275,7 +274,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         #   The magic method __init__ cannot be fined for UDP class
         ################################################################
         # [4.3.1] Basic setup
-        _, prob, popsize = codes3.Problem_BearinglessSynchronousDesign.get_prob_and_popsize()
+        _, prob, popsize = Problem_BearinglessSynchronousDesign.get_prob_and_popsize()
 
         print('[acmop.py]', '-'*40 + '\n[acmop.py] Pop size is', popsize)
 
@@ -299,7 +298,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
             # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
             print('[acmop.py] Check swarm_data.txt...')
-            number_of_chromosome = ad.solver.read_swarm_data(self.select_spec)
+            number_of_chromosome = ad.   read_swarm_data(self.select_spec)
 
             # case 1: swarm_data.txt exists
             if number_of_chromosome is not None:
@@ -322,13 +321,13 @@ class AC_Machine_Optiomization_Wrapper(object):
                 if True:
                     # 继续从swarm_survivor.txt中读取数据，注意，survivor总是是完整的一代的，除非popsize被修改了。
                     print('\tCheck swarm_survivor.txt...', end='')
-                    ad.solver.survivor = ad.solver.read_swarm_survivor(popsize)
+                    ad.   survivor = ad.   read_swarm_survivor(popsize)
 
-                    # 如果发现ad.solver.survivor是None，那就说明是初始化pop的时候被中断了，此时就用swarm_data来生成pop。
-                    if ad.solver.survivor is not None:
+                    # 如果发现ad.   survivor是None，那就说明是初始化pop的时候被中断了，此时就用swarm_data来生成pop。
+                    if ad.   survivor is not None:
                         print('Found survivor!\nRestart the optimization based on the swarm_survivor.txt.')
 
-                        if len(ad.solver.survivor) != popsize:
+                        if len(ad.   survivor) != popsize:
                             print('popsize is reduced') # 如果popsize增大了，read_swarm_survivor(popsize)就会报错了，因为-----不能被split后转为float
                             raise Exception('This is a feature not tested. However, you can cheat to change popsize by manually modify swarm_data.txt or swarm_survivor.txt.')
                     else:
@@ -347,10 +346,10 @@ class AC_Machine_Optiomization_Wrapper(object):
                 # 初始化population，如果ad.flag_do_not_evaluate_when_init_pop是False，那么就说明是 new run，否则，整代个体的fitness都是[0,0,0]。
                 pop = pg.population(prob, size=popsize)
                 if self.fea_config_dict['bool_re_evaluate_wo_csv']:
-                    swarm_data_backup = ad.solver.swarm_data[::] # This is going to be over-written in next line
+                    swarm_data_backup = ad.   swarm_data[::] # This is going to be over-written in next line
                     swarm_data_on_pareto_front, _ = get_sorted_swarm_data_from_the_archive(prob, popsize, path_to_archive)
                     ad.flag_do_not_evaluate_when_init_pop = True # When you call function get_sorted_swarm_data_from_the_archive, flag_do_not_evaluate_when_init_pop is set to False at the end. Sometimes we do not want this, for example, restarting restart re-evaluation without csv.
-                    ad.solver.swarm_data = swarm_data_backup
+                    ad.   swarm_data = swarm_data_backup
                     for i in range(popsize):
                         # print(path_to_archive, ':', swarm_data_on_pareto_front[i][::-1])
                         pop.set_xf(i, swarm_data_on_pareto_front[i][:-3], swarm_data_on_pareto_front[i][-3:])
@@ -364,7 +363,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                     if number_of_chromosome <= popsize:
                         for i in range(popsize):
                             if i < number_of_chromosome: #number_of_finished_chromosome_in_current_generation:
-                                pop.set_xf(i, ad.solver.swarm_data[i][:-3], ad.solver.swarm_data[i][-3:])
+                                pop.set_xf(i, ad.   swarm_data[i][:-3], ad.   swarm_data[i][-3:])
                             else:
                                 print('[acmop.py] Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
                                 ad.flag_do_not_evaluate_when_init_pop = False
@@ -374,7 +373,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
                     else:
                         # 新办法，直接从swarm_data.txt（相当于archive）中判断出当前最棒的群体
-                        swarm_data_on_pareto_front = utility_moo.learn_about_the_archive(prob, ad.solver.swarm_data, popsize, fea_config_dict)
+                        swarm_data_on_pareto_front = utility_moo.learn_about_the_archive(prob, ad.   swarm_data, popsize, fea_config_dict)
                         # print(swarm_data_on_pareto_front)
                         for i in range(popsize):
                             pop.set_xf(i, swarm_data_on_pareto_front[i][:-3], swarm_data_on_pareto_front[i][-3:])
@@ -388,7 +387,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                 number_of_finished_iterations = 0 # 实际上跑起来它不是零，而是一，因为我们认为初始化的一代也是一代。或者，我们定义number_of_finished_iterations = number_of_chromosome // popsize
 
                 # case 2-A: swarm_data.txt does not exist and this is a whole new run.
-                if not self.fea_config_dict['bool_re_evaluate_wo_csv']:
+                if 'bool_re_evaluate_wo_csv' not in self.fea_config_dict.keys() or self.fea_config_dict['bool_re_evaluate_wo_csv'] == False:
                     print('[acmop.py] Nothing exists in swarm_data.txt.\nThis is a whole new run.')
                     ad.flag_do_not_evaluate_when_init_pop = False
                     pop = pg.population(prob, size=popsize)
@@ -402,6 +401,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                     swarm_data_on_pareto_front, _ = get_sorted_swarm_data_from_the_archive(prob, popsize, path_to_archive)
                     ad.flag_do_not_evaluate_when_init_pop = False
                     for i in range(popsize):
+                        path_to_archive = self.path2SwarmData
                         print(path_to_archive, ':', swarm_data_on_pareto_front[i][::-1])
                         pop.set_x(i, swarm_data_on_pareto_front[i][:-3]) # re-evaluate this guy
 
@@ -417,7 +417,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         # 初始化以后，pop.problem.get_fevals()就是popsize，但是如果大于popsize，说明“pop.set_x(i, pop_array[i]) # evaluate this guy”被调用了，说明还没输出过 survivors 数据，那么就写一下。
         if pop.problem.get_fevals() > popsize:
             print('[acmop.py] Write survivors.')
-            ad.solver.write_swarm_survivor(pop, ad.counter_fitness_return)
+            ad.   write_swarm_survivor(pop, ad.counter_fitness_return)
 
 
         ################################################################
@@ -439,7 +439,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         #   Begin optimization
         ################################################################
         # [4.3.4] Begin optimization
-        number_of_chromosome = ad.solver.read_swarm_data(self.select_spec)
+        number_of_chromosome = ad.   read_swarm_data(self.select_spec)
         number_of_finished_iterations = number_of_chromosome // popsize
         number_of_iterations = 20
         logger = logging.getLogger(__name__)
@@ -453,7 +453,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                 pop = algo.evolve(pop)
 
                 msg += 'Write survivors to file. '
-                ad.solver.write_swarm_survivor(pop, ad.counter_fitness_return)
+                ad.   write_swarm_survivor(pop, ad.counter_fitness_return)
 
                 hv = pg.hypervolume(pop)
                 quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
@@ -535,7 +535,8 @@ def main():
     # mop.acm_template   # Module 2 (the execution code has been moved to the end of __post_init__ of AC_Machine_Optiomization_Wrapper)
     if True:
         mop.part_evaluation() # Module 3
-        # mop.part_optimization(acm_template) # Module 4
+    elif True:
+        mop.part_optimization() # Module 4
     else:
         if True:
             motor_design_variant = mop.reproduce_design_from_jsonpickle('p4ps5-Q12y1-0999') # Module 5 - reproduction of any design variant object

@@ -37,8 +37,9 @@ class Problem_BearinglessSynchronousDesign(object):
         counter_loop = 0
         stuck_at = 0
         while True:
-            if ad.fea_config_dict['bool_re_evaluate']:
+            if 'bool_re_evaluate' in ad.fea_config_dict.keys() and ad.fea_config_dict['bool_re_evaluate']:
                 if ad.counter_fitness_return >= len(ad.solver.swarm_data):
+                    raise Exception('ad.counter_fitness_return >= len(ad.solver.swarm_data)')
                     quit()
                 x_denorm = ad.solver.swarm_data[ad.counter_fitness_return][:-3]
                 print('[Problem_BlessSyn]', ad.solver.swarm_data[ad.counter_fitness_return])
@@ -51,21 +52,23 @@ class Problem_BearinglessSynchronousDesign(object):
 
             # if True:
             try:
+                acm_variant = ad.evaluate_design_json_wrapper(ad.acm_template, x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
+
                 cost_function, f1, f2, f3, FRW, \
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \
-                force_error_angle = \
-                    ad.evaluate_design_json_wrapper(ad.acm_template, x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
+                force_error_angle = acm_variant.results_for_optimization
 
-                # remove folder .jfiles to save space (we have to generate it first in JMAG Designer to have field data and voltage profiles)
-                if ad.solver.folder_to_be_deleted is not None and os.path.isdir(ad.solver.folder_to_be_deleted):
-                    try:
-                        shutil.rmtree(ad.solver.folder_to_be_deleted) # .jfiles directory
-                    except PermissionError as error:
-                        print(error)
-                        print('Skip deleting this folder...')
-                # update to be deleted when JMAG releases the use
-                ad.solver.folder_to_be_deleted = ad.solver.expected_project_file[:-5]+'jfiles'
+                # For JMAG, remove folder ".jfiles" to save space (we have to generate it first in JMAG Designer to have field data and voltage profiles)
+                if 'JMAG' in ad.select_fea_config_dict:
+                    if ad.   folder_to_be_deleted is not None and os.path.isdir(ad.   folder_to_be_deleted):
+                        try:
+                            shutil.rmtree(ad.   folder_to_be_deleted) # .jfiles directory
+                        except PermissionError as error:
+                            print(error)
+                            print('Skip deleting this folder...')
+                    # update to be deleted when JMAG releases the use
+                    ad.   folder_to_be_deleted = ad.   expected_project_file[:-5]+'jfiles'
 
             except KeyboardInterrupt as error:
                 raise error

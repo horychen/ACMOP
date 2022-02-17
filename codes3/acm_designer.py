@@ -838,6 +838,64 @@ class acm_designer(object):
         else:
             raise Exception(f'{acm_template.name} is not regognized as a valid machine type.')
 
+    def save_to_disk(self, counter, acm_variant, spec_performance_dict, GP, EX):
+        
+        # wily is not json serilizable, so is recordtype type object: acmop_parameters
+        wily = EX['wily']
+        EX['wily'] = {
+            'layer_X_phases': wily.layer_X_phases,
+            'layer_X_signs': wily.layer_X_signs,
+            'coil_pitch_y': wily.coil_pitch_y,
+            'layer_Y_phases': wily.layer_Y_phases,
+            'layer_Y_signs': wily.layer_Y_signs,
+            #
+            'grouping_AC': wily.grouping_AC,
+            'number_parallel_branch': wily.number_parallel_branch,
+            'number_winding_layer': wily.number_winding_layer,
+            #
+            'bool_3PhaseCurrentSource': wily.bool_3PhaseCurrentSource,
+            'CommutatingSequenceD': wily.CommutatingSequenceD,
+            'CommutatingSequenceB': wily.CommutatingSequenceB,
+            #
+            'deg_winding_U_phase_phase_axis_angle': wily.deg_winding_U_phase_phase_axis_angle,
+            #
+            'Qs': wily.Qs,
+            'p': wily.p,
+            'ps': wily.ps,
+            'pr': wily.pr,
+            'SPP': wily.SPP,
+            #
+            'dict_coil_connection': wily.dict_coil_connection,
+        }
+        list_of_GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
+        for parameter_key_val_pair in list_of_GP_as_dict:
+            # print('DEBUG', parameter_key_val_pair)
+            for key, val in parameter_key_val_pair.items():
+                val['calc'] = None # function .calc cannot be serialized 
+
+        number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//78), 
+        individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
+        print('[acm_designer.py] DEBUG counter = acm_variant.counter,', counter, acm_variant.counter)
+
+        big_dict = dict()
+        with open(self.fea_config_dict['output_dir'] + self.select_spec + '.json', 'a') as f:
+            big_dict[self.select_spec+f'-gen{number_current_generation}-ind{individual_index}'] = {
+                'Spec inputs'  :         acm_variant.template.spec_input_dict,
+                'x_denorm_dict':         acm_variant.template.get_x_denorm_dict_from_geometric_parameters(GP),
+                'Geometric parameters':  list_of_GP_as_dict,
+                'Excitations'  :         EX,
+                'Performance'  :         spec_performance_dict
+                # 'Derived'     :            self.spec.spec_derive_dict,
+                # 'Geometry'    : acm_variant.spec_geometry_dict,
+            }
+            f.write(f',\n"{counter}":')
+            try:
+                json.dump(big_dict, f, indent=4)
+            except Exception as e:
+                print(f'[acm_designer.py] [Warning] You might need to clean up .json data file yourself at {self.fea_config_dict["output_dir"]}\n'*3)
+                raise e
+
+        EX['wily'] = wily
 
     def evaluate_design_json_wrapper(self, acm_template, x_denorm=None, counter=999, counter_loop=1):
         # This is a wrapper for the wrapper, in order to build up a json profile for the design variant
@@ -847,6 +905,13 @@ class acm_designer(object):
 
         if 'FEMM' in self.select_fea_config_dict:
             acm_variant.results_for_optimization = acm_variant.analyzer.build_results_for_optimization()
+
+            # Save to disk
+            self.save_to_disk(counter, acm_variant, spec_performance_dict, GP, EX)
+
+            # save object (acm_variant) to disk
+            utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
+
             return acm_variant
 
         elif 'JMAG' in self.select_fea_config_dict:
@@ -899,106 +964,59 @@ class acm_designer(object):
             GP = acm_variant.template.d['GP']
             EX = acm_variant.template.d['EX']
 
-            # wily is not json serilizable, so is recordtype type object: acmop_parameters
-            wily = EX['wily']
-            EX['wily'] = {
-                'layer_X_phases': wily.layer_X_phases,
-                'layer_X_signs': wily.layer_X_signs,
-                'coil_pitch_y': wily.coil_pitch_y,
-                'layer_Y_phases': wily.layer_Y_phases,
-                'layer_Y_signs': wily.layer_Y_signs,
-                #
-                'grouping_AC': wily.grouping_AC,
-                'number_parallel_branch': wily.number_parallel_branch,
-                'number_winding_layer': wily.number_winding_layer,
-                #
-                'bool_3PhaseCurrentSource': wily.bool_3PhaseCurrentSource,
-                'CommutatingSequenceD': wily.CommutatingSequenceD,
-                'CommutatingSequenceB': wily.CommutatingSequenceB,
-                #
-                'deg_winding_U_phase_phase_axis_angle': wily.deg_winding_U_phase_phase_axis_angle,
-                #
-                'Qs': wily.Qs,
-                'p': wily.p,
-                'ps': wily.ps,
-                'pr': wily.pr,
-                'SPP': wily.SPP,
-                #
-                'dict_coil_connection': wily.dict_coil_connection,
-            }
-            list_of_GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
-            for parameter_key_val_pair in list_of_GP_as_dict:
-                # print('DEBUG', parameter_key_val_pair)
-                for key, val in parameter_key_val_pair.items():
-                    val['calc'] = None # function .calc cannot be serialized 
+            # Save to disk
+            self.save_to_disk(counter, acm_variant, spec_performance_dict, GP, EX)
 
-            big_dict = dict()
-            with open(self.fea_config_dict['output_dir'] + self.select_spec + '.json', 'a') as f:
-                big_dict[self.select_spec+f'-gen{number_current_generation}-ind{individual_index}'] = {
-                    'Spec inputs'  :         acm_variant.template.spec_input_dict,
-                    'x_denorm_dict':         acm_variant.template.get_x_denorm_dict_from_geometric_parameters(GP),
-                    'Geometric parameters':  list_of_GP_as_dict,
-                    'Excitations'  :         EX,
-                    'Performance'  :         spec_performance_dict
-                    # 'Derived'     :            self.spec.spec_derive_dict,
-                    # 'Geometry'    : acm_variant.spec_geometry_dict,
-                }
-                f.write(f',\n"{counter}":')
-                try:
-                    json.dump(big_dict, f, indent=4)
-                except Exception as e:
-                    print(f'[acm_designer.py] [Warning] You might need to clean up .json data file yourself at {self.fea_config_dict["output_dir"]}\n'*3)
-                    raise e
-
+            # save object (acm_variant) to disk
             utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
-
-            EX['wily'] = wily
 
             # this is for optimization
             acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
 
             # this is for comparison to FEMM
-            acm_variant.analyzer = FEMM_SlidingMesh.Individual_Analyzer_FEMM_Edition(p=wily.p)
-            basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list, \
-                DisplacementAngle_list, \
-                circuit_current_GroupACU, \
-                circuit_current_GroupACV, \
-                circuit_current_GroupACW, \
-                circuit_current_GroupBDU, \
-                circuit_current_GroupBDV, \
-                circuit_current_GroupBDW, \
-                terminal_voltage_GroupACU, \
-                terminal_voltage_GroupACV, \
-                terminal_voltage_GroupACW, \
-                terminal_voltage_GroupBDU, \
-                terminal_voltage_GroupBDV, \
-                terminal_voltage_GroupBDW, \
-                coil_fluxLinkage_GroupACU, \
-                coil_fluxLinkage_GroupACV, \
-                coil_fluxLinkage_GroupACW, \
-                coil_fluxLinkage_GroupBDU, \
-                coil_fluxLinkage_GroupBDV, \
-                coil_fluxLinkage_GroupBDW = self.toolJd.dm.unpack(bool_more_info=True)
-            EX = acm_variant.template.d['EX']
-            electrical_period = acm_variant.template.fea_config_dict['designer.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
-            number_of_steps   = acm_variant.template.fea_config_dict['designer.number_of_steps_2ndTSS']
-            step_size_sec = electrical_period / number_of_steps
-            step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
+            def compare_with_FEMM():
+                acm_variant.analyzer = FEMM_SlidingMesh.Individual_Analyzer_FEMM_Edition(p=wily.p)
+                basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list, \
+                    DisplacementAngle_list, \
+                    circuit_current_GroupACU, \
+                    circuit_current_GroupACV, \
+                    circuit_current_GroupACW, \
+                    circuit_current_GroupBDU, \
+                    circuit_current_GroupBDV, \
+                    circuit_current_GroupBDW, \
+                    terminal_voltage_GroupACU, \
+                    terminal_voltage_GroupACV, \
+                    terminal_voltage_GroupACW, \
+                    terminal_voltage_GroupBDU, \
+                    terminal_voltage_GroupBDV, \
+                    terminal_voltage_GroupBDW, \
+                    coil_fluxLinkage_GroupACU, \
+                    coil_fluxLinkage_GroupACV, \
+                    coil_fluxLinkage_GroupACW, \
+                    coil_fluxLinkage_GroupBDU, \
+                    coil_fluxLinkage_GroupBDV, \
+                    coil_fluxLinkage_GroupBDW = self.toolJd.dm.unpack(bool_more_info=True)
+                EX = acm_variant.template.d['EX']
+                electrical_period = acm_variant.template.fea_config_dict['designer.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
+                number_of_steps   = acm_variant.template.fea_config_dict['designer.number_of_steps_2ndTSS']
+                step_size_sec = electrical_period / number_of_steps
+                step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
 
-            for index in range(-self.toolJd.dm.number_of_steps_at_steady_state, 0):
-                time                         = time_list[index]
-                RotorAngle_MechanicalDegrees = DisplacementAngle_list[index]
-                torque = TorCon_list[index]
-                forces = (ForConX_list[index], ForConY_list[index])
-                energy = 0
-                circuitProperties = ( [ circuit_current_GroupACU[index], terminal_voltage_GroupACU[index], coil_fluxLinkage_GroupACU[index] ],
-                                      [ circuit_current_GroupACV[index], terminal_voltage_GroupACV[index], coil_fluxLinkage_GroupACV[index] ],
-                                      [ circuit_current_GroupACW[index], terminal_voltage_GroupACW[index], coil_fluxLinkage_GroupACW[index] ],
-                                      [ circuit_current_GroupBDU[index], terminal_voltage_GroupBDU[index], coil_fluxLinkage_GroupBDU[index] ],
-                                      [ circuit_current_GroupBDV[index], terminal_voltage_GroupBDV[index], coil_fluxLinkage_GroupBDV[index] ],
-                                      [ circuit_current_GroupBDW[index], terminal_voltage_GroupBDW[index], coil_fluxLinkage_GroupBDW[index] ] )
-                acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
-            acm_variant.analyzer.get_ss_data()
+                for index in range(-self.toolJd.dm.number_of_steps_at_steady_state, 0):
+                    time                         = time_list[index]
+                    RotorAngle_MechanicalDegrees = DisplacementAngle_list[index]
+                    torque = TorCon_list[index]
+                    forces = (ForConX_list[index], ForConY_list[index])
+                    energy = 0
+                    circuitProperties = ( [ circuit_current_GroupACU[index], terminal_voltage_GroupACU[index], coil_fluxLinkage_GroupACU[index] ],
+                                        [ circuit_current_GroupACV[index], terminal_voltage_GroupACV[index], coil_fluxLinkage_GroupACV[index] ],
+                                        [ circuit_current_GroupACW[index], terminal_voltage_GroupACW[index], coil_fluxLinkage_GroupACW[index] ],
+                                        [ circuit_current_GroupBDU[index], terminal_voltage_GroupBDU[index], coil_fluxLinkage_GroupBDU[index] ],
+                                        [ circuit_current_GroupBDV[index], terminal_voltage_GroupBDV[index], coil_fluxLinkage_GroupBDV[index] ],
+                                        [ circuit_current_GroupBDW[index], terminal_voltage_GroupBDW[index], coil_fluxLinkage_GroupBDW[index] ] )
+                    acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
+                acm_variant.analyzer.get_ss_data()
+            compare_with_FEMM()
             return acm_variant
 
 
@@ -1107,6 +1125,9 @@ class acm_designer(object):
         # quit()
         return int(number_of_chromosome)
 
+    def read_swarm_data_json(self, ):
+        pass
+
     def fea_wrapper(self, template, x_denorm, counter, counter_loop, bool_re_evaluate=False):
         logger = logging.getLogger(__name__)
         msg = 'Run FEA for individual #%d'%(counter)
@@ -1165,7 +1186,6 @@ class acm_designer(object):
             return acm_variant
         else:
             raise Exception('[acm_designer.py] Wrong string of select_fea_config_dict:', self.select_fea_config_dict)
-
 
     ''' Produce JMAG Project
     '''
@@ -1264,11 +1284,9 @@ class acm_designer(object):
 
         # 4. Compute objective
         acm_variant.analyzer.get_ss_data()
-        acm_variant.analyzer._compute_objectives(acm_variant, self.select_fea_config_dict, toolFEMM)
-        # acm_variant.analyzer.build_spec_performance_dict()
+        acm_variant.analyzer._compute_objectives(acm_variant, self.select_fea_config_dict, toolFEMM) # generate spec_performance_dict
 
-        # 5. Save results to dist
-        acm_variant.analyzer.save_results_to_disk()
+        # 5. Save results to dist (this is done in acm_designer.py)
 
         return toolFEMM
 

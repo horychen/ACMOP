@@ -177,7 +177,7 @@ class Individual_Analyzer_FEMM_Edition(object):
         self.A = A
 
         self.M = M
-        print('M =', M)
+        # print('M =', M)
         # print(type(M))
         # print(M[0,0])
         # print(type(M[0,0]))
@@ -197,9 +197,6 @@ class Individual_Analyzer_FEMM_Edition(object):
                                     [ M[index,8],  M[index,14],  M[index,20] ],
                                     [ M[index,9],  M[index,15],  M[index,21] ] )
             self.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
-
-    def save_results_to_disk(self):
-        pass
 
     def _compute_objectives(self, acm_variant, select_fea_config_dict, toolFEA):
         # Power factor
