@@ -229,9 +229,9 @@ class variant_machine_as_objects(object):
         self.counter_loop = counter_loop
         if counter is not None:
             if counter_loop == 1:
-                self.name = f"p{SI['p']}ps{SI['ps']}-Q{SI['Qs']}y{SI['coil_pitch_y']}-{counter:04d}"
+                self.name = f"p{SI['p']}ps{SI['ps']}-Q{SI['Qs']}y{SI['coil_pitch_y']}-{counter}"
             else:
-                self.name = f"p{SI['p']}ps{SI['ps']}-Q{SI['Qs']}y{SI['coil_pitch_y']}-{counter:04d}-redo{counter_loop}"
+                self.name = f"p{SI['p']}ps{SI['ps']}-Q{SI['Qs']}y{SI['coil_pitch_y']}-{counter}-redo{counter_loop}"
         else:
             self.name = 'SPMSM_InitialDesign'
         self.ID = 'Q%dp%ds%d'%(self.template.SI['Qs'], self.template.SI['p'],self.template.SI['no_segmented_magnets'])

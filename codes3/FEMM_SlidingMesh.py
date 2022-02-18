@@ -326,7 +326,7 @@ class Individual_Analyzer_FEMM_Edition(object):
         spec_performance_dict = dict()
         spec_performance_dict['cost_function'] = None
         spec_performance_dict['f1']  = f1
-        spec_performance_dict['f2']  = f2
+        spec_performance_dict['f2']  = float(f2)
         spec_performance_dict['f3']  = f3
         spec_performance_dict['FRW'] = FRW
         spec_performance_dict['normalized_torque_ripple'] = self.normalized_torque_ripple
@@ -334,19 +334,19 @@ class Individual_Analyzer_FEMM_Edition(object):
         spec_performance_dict['force_error_angle'] = self.force_error_angle = np.max(self.sfv.ss_max_force_err_ang)
         spec_performance_dict['project_name'] = acm_variant.name
         spec_performance_dict['individual_name'] = acm_variant.get_individual_name()
-        spec_performance_dict['number_current_generation'] = int(acm_variant.counter//78), 
+        spec_performance_dict['number_current_generation'] = 'Test' if type(acm_variant.counter)==type("") else int(acm_variant.counter//acm_variant.template.fea_config_dict["moo.popsize"])
         spec_performance_dict['individual_index'] = acm_variant.counter
         spec_performance_dict['power_factor'] = power_factor
         spec_performance_dict['rated_ratio'] = rated_ratio
         spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
-        spec_performance_dict['rated_total_loss'] = rated_total_loss
+        spec_performance_dict['rated_total_loss'] = float(rated_total_loss)
         spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
         spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
         spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
         spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
-        spec_performance_dict['rated_iron_loss'] = rated_iron_loss
+        spec_performance_dict['rated_iron_loss'] = float(rated_iron_loss)
         spec_performance_dict['rated_windage_loss'] = rated_windage_loss
-        spec_performance_dict['rated_magnet_Joule_loss'] = rated_magnet_Joule_loss
+        spec_performance_dict['rated_magnet_Joule_loss'] = float(rated_magnet_Joule_loss)
         spec_performance_dict['str_results'] = ''
         # spec_performance_dict['Torque'] = None # this is dependent on stack length
         # spec_performance_dict['ForceAbs'] = None # this is dependent on stack length

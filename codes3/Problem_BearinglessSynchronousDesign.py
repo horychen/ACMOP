@@ -170,7 +170,7 @@ class Problem_BearinglessSynchronousDesign(object):
                 f3 
                 print('f1,f2,f3:',f1,f2,f3)
 
-                try:
+                if ad.acm_template.fea_config_dict['moo.apply_constraints']==True:
                     # Constraints (Em<0.2 and Ea<10 deg):
                     # if abs(normalized_torque_ripple)>=0.2 or abs(normalized_force_error_magnitude) >= 0.2 or abs(force_error_angle) > 10 or SafetyFactor < 1.5:
                     # if abs(normalized_torque_ripple)>=0.2 or abs(normalized_force_error_magnitude) >= 0.2 or abs(force_error_angle) > 10 or FRW < 1:
@@ -187,11 +187,6 @@ class Problem_BearinglessSynchronousDesign(object):
                             print('\tFRW < 0.5 | (=%f)' % (FRW))
                         f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
                     print('f1,f2,f3:',f1,f2,f3)
-                except:
-                    msg = 'This design causes an error in JMAG and hence is discarded..'
-                    print(msg)
-                    logger = logging.getLogger(__name__)
-                    logger.warn(msg)
 
                 break
 
@@ -199,6 +194,7 @@ class Problem_BearinglessSynchronousDesign(object):
         print('[Problem_BlessSyn] Fitness: %d, %d\n----------------'%(ad.counter_fitness_called, ad.counter_fitness_return))
         # raise KeyboardInterrupt
         return [f1, f2, f3]
+        # return [f1, f2, torque_ripple]
 
     # Return number of objectives
     def get_nobj(self):
@@ -216,8 +212,7 @@ class Problem_BearinglessSynchronousDesign(object):
         return "Bearingless PMSM Design"
 
 import pygmo as pg
-def get_prob_and_popsize():
+def get_prob():
     udp = Problem_BearinglessSynchronousDesign()
     prob = pg.problem(udp)
-    popsize = 78
-    return udp, prob, popsize
+    return udp, prob #, popsize

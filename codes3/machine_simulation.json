@@ -12,7 +12,10 @@
         "femm.MechDeg_IdEqualToNonZeroAngle": 0,
         "femm.number_cycles_in_2ndTSS": 1,
         "femm.number_of_steps_2ndTSS": 12,
-        "femm.number_of_parallel_solve": 4
+        "femm.number_of_parallel_solve": 4,
+        "moo.popsize": 15,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true
     },
 
     "#041 FEMM PMSM Cogging Torque": {

@@ -1995,7 +1995,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         str_results = '\n-------\n%s-%s\n%d,%d,O1=%g,O2=%g,f1=%g,f2=%g,f3=%g\n%s\n%s\n%s\n' % (
                         project_name, acm_variant.get_individual_name(), 
-                        int(acm_variant.counter//78), acm_variant.counter, cost_function_O1, cost_function_O2, f1, f2, f3,
+                        int(acm_variant.counter//acm_variant.template.fea_config_dict["moo.popsize"]), acm_variant.counter, cost_function_O1, cost_function_O2, f1, f2, f3,
                         str_machine_results,
                         ','.join(['%g'%(el) for el in rated_results]), # 改为输出 rated_results
                         ','.join(['%g'%(el) for el in acm_variant.template.build_design_parameters_list()]) ) + str_results
@@ -2015,7 +2015,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         return (cost_function_O1, cost_function_O2), f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle, \
                 project_name, acm_variant.get_individual_name(), \
-                int(acm_variant.counter//78), acm_variant.counter,\
+                int(acm_variant.counter//acm_variant.template.fea_config_dict["moo.popsize"]), acm_variant.counter,\
                 power_factor, \
                 rated_ratio, \
                 rated_stack_length_mm, \

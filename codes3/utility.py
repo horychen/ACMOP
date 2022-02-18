@@ -1219,7 +1219,7 @@ def fobj_list(l_torque_average, l_ss_avg_force_magnitude, l_normalized_torque_ri
 
 
 class SwarmDataAnalyzer(object):
-    """docstring for SwarmDataAnalyzer"""
+    """ This is Obsolete """
     def __init__(self, sw, spec, dir_run=None, run_integer=None, bool_sensitivity_analysis=True):
 
         number_of_variant = sw.fea_config_dict['local_sensitivity_analysis_number_of_variants'] + 1

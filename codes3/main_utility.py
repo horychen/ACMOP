@@ -102,7 +102,7 @@ def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dic
     udp = Problem_BearinglessSynchronousDesign()
     import pygmo as pg
     prob = pg.problem(udp)
-    popsize = 78
+    popsize = fea_config_dict["moo.popsize"]
 
     swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(prob, _swarm_data, popsize, fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
     print(len(swarm_data_on_pareto_front), len(swarm_data_on_pareto_front[0]))

@@ -157,23 +157,24 @@ class Problem_BearinglessInductionDesign(object):
         print('f1,f2,f3:',f1,f2,f3)
 
         # Constraints (Em<0.2 and Ea<10 deg):
-        # if abs(normalized_torque_ripple)>=0.2 or abs(normalized_force_error_magnitude) >= 0.2 or abs(force_error_angle) > 10:
-        if abs(normalized_torque_ripple)>=0.3 or abs(normalized_force_error_magnitude) >= 0.3 or abs(force_error_angle) > 10 or FRW < 0.75:
-            print('Constraints are violated:')
-            if abs(normalized_torque_ripple)>=0.3:
-                print('\tabs(normalized_torque_ripple)>=0.3')
-            if abs(normalized_force_error_magnitude) >= 0.3:
-                print('\tabs(normalized_force_error_magnitude) >= 0.3')
-            if abs(force_error_angle) > 10:
-                print('\tabs(force_error_angle) > 10')
-            if FRW < 0.75:
-                print('\tFRW < 0.75')
-            f1, f2, f3 = get_bad_fintess_values()
-        print('f1,f2,f3:',f1,f2,f3)
+        if ad.spec.acm_template.fea_config_dict['moo.apply_constraints']==True:
+            # if abs(normalized_torque_ripple)>=0.2 or abs(normalized_force_error_magnitude) >= 0.2 or abs(force_error_angle) > 10:
+            if abs(normalized_torque_ripple)>=0.3 or abs(normalized_force_error_magnitude) >= 0.3 or abs(force_error_angle) > 10 or FRW < 0.75:
+                print('Constraints are violated:')
+                if abs(normalized_torque_ripple)>=0.3:
+                    print('\tabs(normalized_torque_ripple)>=0.3')
+                if abs(normalized_force_error_magnitude) >= 0.3:
+                    print('\tabs(normalized_force_error_magnitude) >= 0.3')
+                if abs(force_error_angle) > 10:
+                    print('\tabs(force_error_angle) > 10')
+                if FRW < 0.75:
+                    print('\tFRW < 0.75')
+                f1, f2, f3 = get_bad_fintess_values()
+            print('f1,f2,f3:',f1,f2,f3)
 
-        ad.counter_fitness_return += 1
-        print('Fitness: %d, %d\n----------------'%(ad.counter_fitness_called, ad.counter_fitness_return))
-        return [f1, f2, f3]
+            ad.counter_fitness_return += 1
+            print('Fitness: %d, %d\n----------------'%(ad.counter_fitness_called, ad.counter_fitness_return))
+            return [f1, f2, f3]
 
     # Return number of objectives
     def get_nobj(self):
@@ -199,11 +200,10 @@ class Problem_BearinglessInductionDesign(object):
         return "Bearingless Induction Motor Design"
 
 import pygmo as pg
-def get_prob_and_popsize():
+def get_prob():
     udp = Problem_BearinglessInductionDesign()
     prob = pg.problem(udp)
-    popsize = 78
-    return udp, prob, popsize
+    return udp, prob
 
 print('Module Problem_BearinglessInductionDesign is imported...')
 

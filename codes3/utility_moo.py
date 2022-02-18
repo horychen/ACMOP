@@ -460,7 +460,7 @@ def my_print(ad, pop, _):
     fits, vectors = pop.get_f(), pop.get_x()
     ndf, dl, dc, ndr = pg.fast_non_dominated_sorting(fits)
 
-    with open(ad.solver.output_dir+'MOO_log.txt', 'a', encoding='utf-8') as fname:
+    with open(ad.fea_config_dict['output_dir']+'MOO_log.txt', 'a', encoding='utf-8') as fname:
         print('-'*40, 'Generation:', _, file=fname)
         for rank_minus_1, front in enumerate(ndf):
             print('Rank/Tier', rank_minus_1+1, front, file=fname)
