@@ -9,29 +9,34 @@ import JMAG, bearingless_spmsm_design, vernier_motor_design, FEMM_SlidingMesh
 
 class Swarm_Data_Analyzer(object):
     def __init__(self, fname):
-        with open(fname, 'r') as f:
-            buf = f.read()
-            swarm_data_as_dict = json.loads('{'+buf[1:]+'}')
-            del buf
-            if 'Test' in swarm_data_as_dict.keys():
-                del swarm_data_as_dict['Test']
-        self.number_of_chromosome = len(swarm_data_as_dict)
+        if not os.path.exists(fname):
+            self.number_of_chromosome = 0
+            self.swarm_data_xf = None
+        else:
+            with open(fname, 'r') as f:
+                buf = f.read()
+                swarm_data_as_dict = json.loads('{'+buf[1:]+'}')
+                del buf
+                if 'Test' in swarm_data_as_dict.keys():
+                    del swarm_data_as_dict['Test']
+            self.number_of_chromosome = len(swarm_data_as_dict)
         # print(self.number_of_chromosome)
         # quit()
 
-        def decode(v):
-            return list(v.values())[0]
+            def decode(v):
+                return list(v.values())[0]
 
-        # for k,v in swarm_data_as_dict.items():
-        #     print(decode(v)['x_denorm_dict'])
-        #     print(list(decode(v)['x_denorm_dict'].values()))
-        #     print(decode(v)['Performance']['f1'])
-        #     print(decode(v)['Performance']['f2'])
-        #     print(decode(v)['Performance']['f3'])
-        self.swarm_data_xf = [list(decode(v)['x_denorm_dict'].values()) + [decode(v)['Performance']['f1'], decode(v)['Performance']['f2'], decode(v)['Performance']['f3']] for v in swarm_data_as_dict.values()]
-        for ind, xf in enumerate(self.swarm_data_xf):
-            print(ind, ',\t'.join([f'{el:.2f}' for el in xf]))
+            # for k,v in swarm_data_as_dict.items():
+            #     print(decode(v)['x_denorm_dict'])
+            #     print(list(decode(v)['x_denorm_dict'].values()))
+            #     print(decode(v)['Performance']['f1'])
+            #     print(decode(v)['Performance']['f2'])
+            #     print(decode(v)['Performance']['f3'])
+            self.swarm_data_xf = [list(decode(v)['x_denorm_dict'].values()) + [decode(v)['Performance']['f1'], decode(v)['Performance']['f2'], decode(v)['Performance']['f3']] for v in swarm_data_as_dict.values()]
+            for ind, xf in enumerate(self.swarm_data_xf):
+                print(ind, ',\t'.join([f'{el:.2f}' for el in xf]))
 
+        return
         #     self.deg_alpha_st = []
         #     self.mm_w_st = []
         #     self.mm_r_si = []
