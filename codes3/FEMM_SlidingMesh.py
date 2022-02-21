@@ -441,7 +441,7 @@ class Individual_Analyzer_FEMM_Edition(object):
             GP = acm_variant.template.d['GP']
             EX = acm_variant.template.d['EX']
             wily = EX['wily']
-            copper_loss_parameters = [GP['mm_d_sleeve'].value + GP['mm_d_fixed_air_gap'].value,
+            copper_loss_parameters = [GP['mm_d_sleeve'].value + GP['mm_d_mech_air_gap'].value,
                                 GP['mm_w_st'].value,
                                 wily.number_parallel_branch,
                                 EX['DriveW_zQ'],
@@ -557,8 +557,8 @@ class Individual_Analyzer_FEMM_Edition(object):
             w_ = np.arange(self.ns)
             MyLowestHarmonic = self.p
             if acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'] == 0.5:
-                # the flux density can be extended to get the other half for calcuting iron losses 
-                raise Exception('Iron loss cannot be calcultated because the DFT resolution is higher than flux density waveform fundamental frequency.')
+                raise Exception('Iron loss cannot be calcultated because the DFT resolution is higher than flux density waveform fundamental frequency. \
+                                But the flux density can be extended to get the other half for calcuting iron losses (not implemented yet).')
             elif acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'] < 1:
                 raise Exception('Iron loss cannot be calcultated because the DFT resolution is higher than flux density waveform fundamental frequency.')
             elif acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS'] > 1:
@@ -671,9 +671,10 @@ class FEMM_SlidingMesh(object):
         # figure out step size
         self.electrical_period = acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
         self.number_of_steps   = acm_variant.template.fea_config_dict['femm.number_of_steps_2ndTSS']
-        self.step_size_sec = self.electrical_period / (self.number_of_steps-1)  # <--- Explanation of -1 here:
-                                                                                # In order to have full DFT resolution, we need to actually run one more point than the specified {fea_config_dict['femm.number_of_steps_2ndTSS']=}")
-                                                                                # Or, we can make the step_size_sec larger such that self.step_size_sec * self.number_of_steps > one electrical period (i.e., self.step_size_sec * (self.number_of_steps-1) === one electrical period)
+        #self.step_size_sec = self.electrical_period / (self.number_of_steps-1)  # <--- Explanation of -1 here:
+                                                                                 # In order to have exact DFT resolution, we need to actually run one more point than the specified {fea_config_dict['femm.number_of_steps_2ndTSS']=}")
+                                                                                 # Or, we can make the step_size_sec larger such that self.step_size_sec * self.number_of_steps > one electrical period (i.e., self.step_size_sec * (self.number_of_steps-1) === one electrical period)
+        self.step_size_sec = self.electrical_period / (self.number_of_steps)     # nah, we will go with this to avoid spectrum leakage (the above comment is bullshit...)
         self.step_size_mech_deg = EX['Omega'] * self.step_size_sec / np.pi * 180
 
     def open(self):
@@ -947,8 +948,8 @@ class FEMM_SlidingMesh(object):
         #     # femm.mi_zoomnatural()
 
         GP = self.acm_variant.template.d['GP']
-        Point_Stator = [GP['mm_r_si'].value - 0.3*GP['mm_d_fixed_air_gap'].value, 0]
-        Point_Rotor  = [GP['mm_r_si'].value - 0.6*GP['mm_d_fixed_air_gap'].value, 0]
+        Point_Stator = [GP['mm_r_si'].value - 0.3*GP['mm_d_mech_air_gap'].value, 0]
+        Point_Rotor  = [GP['mm_r_si'].value - 0.6*GP['mm_d_mech_air_gap'].value, 0]
         self.drawArc([0,0], Point_Stator, [-Point_Stator[0], Point_Stator[1]])
         self.drawArc([0,0],               [-Point_Stator[0], Point_Stator[1]], Point_Stator)
         self.drawArc([0,0], Point_Rotor,  [-Point_Rotor[0], Point_Rotor[1]])

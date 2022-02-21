@@ -271,7 +271,8 @@ class AC_Machine_Optiomization_Wrapper(object):
 
             # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
             print(f'[acmop.py] Check for swarm data from: {self.select_spec}.json ...')
-            swarm_data_file = ad.   read_swarm_data_json(self.select_spec)
+            self.ad.acm_template.build_x_denorm()
+            swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
             number_of_chromosome = ad.swarm_analyzer.number_of_chromosome
 
             # case 1: swarm_data.txt exists # Restarting feature related codes
@@ -370,7 +371,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         ################################################################
         # [4.3.4] Begin optimization
         # number_of_chromosome = ad.   read_swarm_data(self.select_spec)
-        swarm_data_file = ad.   read_swarm_data_json(self.select_spec)
+        swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
         number_of_chromosome = ad.swarm_analyzer.number_of_chromosome
         number_of_finished_iterations = number_of_chromosome // popsize
         number_of_iterations = 50

@@ -14,11 +14,16 @@ from collections import OrderedDict, namedtuple
 
 def derive_mm_r_si(GP,SI):
     # (option 1) depends on split_ratio and r_os
-    GP       ['mm_r_si'].value = GP['mm_r_os'].value * GP['split_ratio'].value
-    return GP['mm_r_si'].value
+    # GP       ['mm_r_si'].value = GP['mm_r_os'].value * GP['split_ratio'].value
+    # return GP['mm_r_si'].value
+
         # (option 2) depends on d_sy (which is bad, as d_sy is also derived) and r_os
         # GP['mm_r_si'].value = GP['mm_r_os'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_sp'].value
         # return GP['mm_r_si'].value
+
+    # (option 3) depends on r_or and air gap length
+    GP       ['mm_r_si'].value = GP['mm_r_or'].value + GP['mm_d_sleeve'].value + GP['mm_d_mech_air_gap'].value
+    return GP['mm_r_si'].value
 
 def derive_deg_alpha_so(GP,SI):
     # this allows a square tooth tip, or else the tooth tip might be pointy
@@ -29,12 +34,25 @@ def derive_mm_d_sp(GP,SI):
     GP       ['mm_d_sp'].value = 1.5*GP['mm_d_so'].value
     return GP['mm_d_sp'].value
 
+
+
 def derive_mm_d_sy(GP,SI):
     GP       ['mm_d_sy'].value = GP['mm_r_os'].value - GP['mm_r_si'].value - GP['mm_d_st'].value - GP['mm_d_sp'].value
     return GP['mm_d_sy'].value
 
+def derive_mm_r_os(GP,SI):
+    # (option 1)
+    # GP       ['mm_r_os'].value = GP['mm_r_si'].value + GP['mm_d_sp'].value + GP['mm_d_st'].value + GP['mm_d_sy'].value
+    # return GP['mm_r_os'].value
+    # 用d_sy导出r_os可以避免d_sy为负的bug
+
+    # (option 2)
+    GP['mm_r_os'].value = GP['mm_r_si'].value / GP['split_ratio'].value
+    return GP['mm_r_os'].value
+
+
 def derive_mm_r_or(GP,SI):
-    GP       ['mm_r_or'].value = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_fixed_air_gap'].value
+    GP       ['mm_r_or'].value = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
     return GP['mm_r_or'].value
 
 def derive_mm_r_ri(GP,SI):
@@ -58,23 +76,26 @@ class template_machine_as_numbers(object):
 
         # 初始化搜索空间
         geometric_parameters = OrderedDict({
+            # ROTOR
+            "mm_r_or"           : acmop_parameter("fixed",    "outer_rotor_radius",            None, [None, None], lambda GP,SI:None), #derive_mm_r_or(GP,SI)),
+            "mm_d_mech_air_gap" : acmop_parameter("fixed",    "mechanical_air_gap_length",     None, [None, None], lambda GP,SI:None),
+            "mm_d_sleeve"       : acmop_parameter("free",     "sleeve_length",                 None, [None, None], lambda GP,SI:None),
+            "split_ratio"       : acmop_parameter("free",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SI:None),
+            "mm_r_ri"           : acmop_parameter("derived",  "inner_rotor_radius",            None, [None, None], lambda GP,SI:derive_mm_r_ri(GP,SI)),
             # STATOR                          Type       Name                          Value  Bounds       Calc
             "deg_alpha_st" : acmop_parameter("free",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
-            "mm_d_so"      : acmop_parameter("free",    "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
-            "mm_d_st"      : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:None),
-            "mm_r_os"      : acmop_parameter("free",    "outer_stator_radius"        , None, [None, None], lambda GP,SI:None),
             "mm_w_st"      : acmop_parameter("free",    "stator_tooth_width"         , None, [None, None], lambda GP,SI:None),
-            "mm_r_si"      : acmop_parameter("derived", "inner_stator_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si     (GP,SI)),
+            "mm_d_st"      : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:None),
+            "mm_d_so"      : acmop_parameter("free",    "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
             "deg_alpha_so" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_so(GP,SI)),
-            "mm_d_sp"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_sp     (GP,SI)),
-            "mm_d_sy"      : acmop_parameter("derived", "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy     (GP,SI)),
-            # ROTOR
-            "mm_d_fixed_air_gap": acmop_parameter("fixed",    "mechanical_air_gap_length",     None, [None, None], lambda GP,SI:None),
-            "mm_d_sleeve"       : acmop_parameter("fixed",    "sleeve_length",                 None, [None, None], lambda GP,SI:None),
-            "split_ratio"       : acmop_parameter("free",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SI:None),
-            "mm_r_or"           : acmop_parameter("derived",  "outer_rotor_radius",            None, [None, None], lambda GP,SI:derive_mm_r_or(GP,SI)),
-            "mm_r_ri"           : acmop_parameter("derived",  "inner_rotor_radius",            None, [None, None], lambda GP,SI:derive_mm_r_ri(GP,SI)),
+            "mm_d_sp"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_sp(GP,SI)),
+            "mm_r_si"      : acmop_parameter("derived", "inner_stator_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si(GP,SI)),
+            "mm_r_os"      : acmop_parameter("derived", "outer_stator_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_os(GP,SI)),
+            "mm_d_sy"      : acmop_parameter("derived", "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy(GP,SI)),
         })
+        for k, v in geometric_parameters.items():
+            if v.type == 'derived' and v.calc is None:
+                raise Exception('calc method is not defined for the derived acmop_parameter:', v)
         # all in one place
         self.d = {
             "which_filter": fea_config_dict['which_filter'],
@@ -90,7 +111,7 @@ class template_machine_as_numbers(object):
             self.d['GP']['mm_d_sleeve'].type = "free"
         elif 'VariableStatorSlotDepth_VariableStatorYokeDepth' in self.d['which_filter']:
             # IM
-            self.d['GP']['mm_d_fixed_air_gap'].type = "free"
+            self.d['GP']['mm_d_mech_air_gap'].type = "free"
         else:
             raise Exception(f"Not defined: {self.d['which_filter']}")
 
@@ -114,11 +135,10 @@ class template_machine_as_numbers(object):
     def define_search_space(self, GP, original_template_neighbor_bounds):
         # 定义搜索空间，determine bounds
         self.bounds_denorm = []
-        for key, val in original_template_neighbor_bounds.items():
-            parameter = GP[key]
-            parameter.bounds = val
+        for key, parameter in GP.items(): # Make sure the order of the bounds_denorm is consistent with free parameters' order in GP.
             if parameter.type == 'free':
-                self.bounds_denorm.append(val)
+                parameter.bounds = original_template_neighbor_bounds[key]
+                self.bounds_denorm.append(parameter.bounds)
         print(f'[inner_rotor_motor.py] template BOUNDS_denorm in R^{len(self.bounds_denorm)}:', self.bounds_denorm)
         return self.bounds_denorm
     def get_other_properties_after_geometric_parameters_are_initialized(self, GP, SI):
@@ -189,7 +209,7 @@ class template_machine_as_numbers(object):
         for key, new_val in zip(x_denorm_dict.keys(), x_denorm):
             x_denorm_dict[key] = new_val
         return x_denorm_dict
-    def update_geometric_parametes_using_x_denorm_dict(self, x_denorm_dict):
+    def update_geometric_parameters_using_x_denorm_dict(self, x_denorm_dict):
         # Update Free Parameters (a.k.a. x_denorm)
         for key, val in x_denorm_dict.items():
             self.d['GP'][key].value = val
@@ -203,7 +223,6 @@ class template_machine_as_numbers(object):
         for key, parameter in self.d['GP'].items():
             if parameter.type == 'derived':
                 parameter.value = parameter.calc(self.d['GP'], self.SI)
-                # print(parameter)
                 if parameter.value<=0:
                     raise Exception('Error: Negative derived parameter', str(parameter))
         return self.d['GP']
@@ -245,7 +264,7 @@ class variant_machine_as_objects(object):
             if verbose:
                 for k,v in x_denorm_dict.items():
                     print('\t', k,v)
-            GP = self.template.update_geometric_parametes_using_x_denorm_dict(x_denorm_dict)
+            GP = self.template.update_geometric_parameters_using_x_denorm_dict(x_denorm_dict)
 
         print('[inner_rotor_motor.py] DEBUG x_denorm length is', len(x_denorm), x_denorm)
 

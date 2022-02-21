@@ -58,12 +58,9 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
 
     def Bianchi2006(self, fea_config_dict, SI, GP, EX):
 
-        air_gap_flux_density_B = SI['guess_air_gap_flux_density_B']
-        # air_gap_flux_density_B = 0.9
-
-        stator_tooth_flux_density_B_ds = SI['guess_stator_tooth_flux_density_B_ds']
-        # stator_tooth_flux_density_B_ds = 1.5
-
+        # inputs: air gap flux density
+        air_gap_flux_density_B = SI['guess_air_gap_flux_density_B'] # 0.9 T
+        stator_tooth_flux_density_B_ds = SI['guess_stator_tooth_flux_density_B_ds'] # 1.5 T
         stator_yoke_flux_density_Bys = SI['guess_stator_yoke_flux_density_Bys']
 
         if SI['p'] >= 2:
@@ -76,14 +73,14 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             alpha_rm_over_alpha_rp = 0.75
             # stator_yoke_flux_density_Bys = 1.5
 
-        # ureg = pint.UnitRegistry()
-        stator_outer_diameter_Dse = 0.225 #* ureg.meter
+        # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
+        stator_outer_diameter_Dse = 0.225 # this is related to the stator current density and should be determined by Js and power.
+        sleeve_length = 3
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
         rotor_outer_radius_r_or = pyrhonen_procedure_as_function.eric_specify_tip_speed_get_radius(SI['tip_speed'], speed_rpm)
         rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
-        sleeve_length = 3
         stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SI['minimum_mechanical_air_gap_length_mm'])*1e-3 # m (sleeve 3 mm, air gap 0.75 mm)
         stator_inner_diameter_Dis = stator_inner_radius_r_is*2
         split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
@@ -110,16 +107,22 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP['mm_d_so'].value              = 1 # mm
         GP['mm_d_sp'].value              = 1.5*GP['mm_d_so'].value
         GP['mm_d_st'].value              = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - GP['mm_r_si'].value - GP['mm_d_sp'].value  # mm
+        # print(GP['mm_d_st'].value)
+        # print (1e3*stator_outer_diameter_Dse)
+        # print(1e3*stator_yoke_height_h_ys)
+        # print(GP['mm_r_si'].value)
+        # print (GP['mm_d_sp'].value)
+        # quit()
         GP['mm_d_sy'].value              = 1e3*stator_yoke_height_h_ys # mm
         GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
         # ROTOR
         GP['mm_d_sleeve'].value          = sleeve_length
-        GP['mm_d_fixed_air_gap'].value   = SI['minimum_mechanical_air_gap_length_mm']
+        GP['mm_d_mech_air_gap'].value    = SI['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
         GP['mm_d_pm'].value              = 4  # mm
         GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is epirically specified
         GP['mm_r_or'].value              = 1e3*rotor_outer_radius_r_or
-        GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_fixed_air_gap'].value
+        GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
         # SPMSM specific
         GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
         GP['mm_d_rp'].value              = 3  # mm
@@ -150,19 +153,21 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         original_template_neighbor_bounds = {
             # STATOR
             "deg_alpha_st": [ 0.35*360/Q, 0.9*360/Q],
-            "mm_d_so":      [  0.5,   5],                                                       
-            "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.2*GP['mm_d_st'].value],                
-            "mm_r_os":      [1.0*GP['mm_r_os'].value, 1.2*GP['mm_r_os'].value], 
-            "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],                
+            "mm_d_so":      [  0.5,   5],
+            "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
+            # "mm_r_os":      [1.0*GP['mm_r_os'].value, 1.2*GP['mm_r_os'].value],
+            "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value],
+            "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
             # ROTOR
             "mm_d_sleeve":  [3,   6],
-            "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
+            # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
+            "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30>)")
             "mm_d_pm":      [2.5, 7],
-            "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],                              
+            "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],
             # SPMSM specific
-            "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],                                     
-            "mm_d_rp":      [2.5,   6],                                                         
-            "deg_alpha_rs": [0.8*360/(2*p)/s,        0.975*360/(2*p)/s],                               
+            "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],
+            "mm_d_rp":      [2.5,   6],
+            "deg_alpha_rs": [0.8*360/(2*p)/s,        0.975*360/(2*p)/s],
             "mm_d_rs":      [2.5,   6]
         }
         return original_template_neighbor_bounds

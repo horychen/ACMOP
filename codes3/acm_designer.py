@@ -8,7 +8,7 @@ import population, FEMM_Solver, pyrhonen_procedure_as_function
 import JMAG, bearingless_spmsm_design, vernier_motor_design, FEMM_SlidingMesh
 
 class Swarm_Data_Analyzer(object):
-    def __init__(self, fname):
+    def __init__(self, fname, desired_x_denorm_dict):
         if not os.path.exists(fname):
             self.number_of_chromosome = 0
             self.swarm_data_xf = None
@@ -32,7 +32,24 @@ class Swarm_Data_Analyzer(object):
             #     print(decode(v)['Performance']['f1'])
             #     print(decode(v)['Performance']['f2'])
             #     print(decode(v)['Performance']['f3'])
-            self.swarm_data_xf = [list(decode(v)['x_denorm_dict'].values()) + [decode(v)['Performance']['f1'], decode(v)['Performance']['f2'], decode(v)['Performance']['f3']] for v in swarm_data_as_dict.values()]
+
+            print('[acm_designer.py] Archive order:', list(list(swarm_data_as_dict.values())[0].values())[0]['x_denorm_dict'].keys() )
+            print('\tThe desired order is:', desired_x_denorm_dict.keys())
+            print('---'*30)
+            ''' 目前只支持重新跑优化的时候减少自由的几何参数，如果要增加自由的几何参数，则要从GP里面拿出来对应的参数的取值。其实也很简单啦。
+            '''
+            def sort_as_desired(x_denorm_dict):
+                return [x_denorm_dict[key] for key in desired_x_denorm_dict.keys()]
+                x_denorm = []
+                for key in desired_x_denorm_dict.keys():
+                    if key not in x_denorm_dict:
+                        x_denorm.append(decode(v)['Geometric parameters'][key]) # pseudo code for showing the concept, this will not work.
+                    else:
+                        x_denorm.append(x_denorm_dict[key])
+            self.swarm_data_xf = [
+                                    sort_as_desired(decode(v)['x_denorm_dict']) + [ decode(v)['Performance']['f1'], decode(v)['Performance']['f2'], decode(v)['Performance']['f3'] ]
+                                    for v in swarm_data_as_dict.values() # v is individual
+                                 ]
             for ind, xf in enumerate(self.swarm_data_xf):
                 print(ind, ',\t'.join([f'{el:.2f}' for el in xf]))
 
@@ -1292,8 +1309,8 @@ class acm_designer(object):
         # quit()
         return int(number_of_chromosome)
 
-    def read_swarm_data_json(self, select_spec):
-        self.swarm_analyzer = Swarm_Data_Analyzer(self.fea_config_dict['output_dir'] + select_spec + '.json')
+    def read_swarm_data_json(self, select_spec, desired_x_denorm_dict):
+        self.swarm_analyzer = Swarm_Data_Analyzer(self.fea_config_dict['output_dir'] + select_spec + '.json', desired_x_denorm_dict)
         self.swarm_data = self.swarm_analyzer.swarm_data_xf
         return self.fea_config_dict['output_dir'] + select_spec + '.json'
 
