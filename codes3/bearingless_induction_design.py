@@ -22,13 +22,13 @@ class bearingless_induction_template(inner_rotor_motor.template_machine_as_numbe
 
         # 初始化搜索空间
         GP = self.d['GP']
-        OP = self.d['OP']
-        SD = self.SD
+        EX = self.d['EX']
+        SI = self.SI
         childGP = OrderedDict({
             # IM Peculiar
-            "mm_d_ro"       : acmop_parameter("free",   "rotor_slot_open_depth",    None, [None, None], lambda GP,SD:None),
-            "mm_w_rt"       : acmop_parameter("free",   "rotor_tooth_width",        None, [None, None], lambda GP,SD:None),
-            "deg_alpha_rt"  : acmop_parameter("free",   "rotor_tooth_span_angle",   None, [None, None], lambda GP,SD:None),
+            "mm_d_ro"       : acmop_parameter("free",   "rotor_slot_open_depth",    None, [None, None], lambda GP,SI:None),
+            "mm_w_rt"       : acmop_parameter("free",   "rotor_tooth_width",        None, [None, None], lambda GP,SI:None),
+            "deg_alpha_rt"  : acmop_parameter("free",   "rotor_tooth_span_angle",   None, [None, None], lambda GP,SI:None),
         })
         GP.update(childGP)
 
@@ -54,14 +54,14 @@ class bearingless_induction_template(inner_rotor_motor.template_machine_as_numbe
                 rotor_outer_diameter_Dr   = 2.0*rotor_outer_radius_r_or
                 split_ratio               = stator_inner_diameter_Dis / stator_outer_diameter_Dse
 
-                OP['stator_slot_area'] = stator_slot_area = np.pi/(4*SD['Qs']) * ((stator_outer_diameter_Dse - 2*stator_yoke_height_h_ys)**2 - stator_inner_diameter_Dis**2) - stator_tooth_width_b_ds * stator_tooth_height_h_ds
+                EX['stator_slot_area'] = stator_slot_area = np.pi/(4*SI['Qs']) * ((stator_outer_diameter_Dse - 2*stator_yoke_height_h_ys)**2 - stator_inner_diameter_Dis**2) - stator_tooth_width_b_ds * stator_tooth_height_h_ds
 
-                slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / SD['Qs']
+                slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / SI['Qs']
                 kov = 1.8 # \in [1.6, 2.0]
-                OP['end_winding_length_Lew'] = end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (SD['coil_pitch_y'] - 1)
+                EX['end_winding_length_Lew'] = end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (SI['coil_pitch_y'] - 1)
 
-                Q = SD['Qs']
-                p = SD['p']
+                Q = SI['Qs']
+                p = SI['p']
                 # STATOR
                 GP['deg_alpha_st'].value         = 360/Q - 2 # deg
                 GP['deg_alpha_so'].value         = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
@@ -74,7 +74,7 @@ class bearingless_induction_template(inner_rotor_motor.template_machine_as_numbe
                 GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
                 # ROTOR
                 GP['mm_d_sleeve'].value          = 0.0
-                GP['mm_d_fixed_air_gap'].value   = sgd['Length_AirGap']
+                GP['mm_d_mech_air_gap'].value    = sgd['Length_AirGap']
                 GP['split_ratio'].value          = split_ratio
                 GP['mm_r_or'].value              = 1e3*rotor_outer_radius_r_or
                 GP['mm_r_ri'].value              = sgd['Radius_Shaft']
@@ -101,13 +101,13 @@ class bearingless_induction_template(inner_rotor_motor.template_machine_as_numbe
         # Template's Other Properties (Shared by the swarm)
         self.obsolete_template
 
-    def get_template_neighbor_bounds(self, GP, SD):
+    def get_template_neighbor_bounds(self, GP, SI):
         ''' The bounds are determined around the template design.
         '''
 
-        Q = self.SD['Qs']
-        p = self.SD['p']
-        s = self.SD['no_segmented_magnets']
+        Q = self.SI['Qs']
+        p = self.SI['p']
+        s = self.SI['no_segmented_magnets']
 
         GP = self.d['GP']
 
@@ -133,7 +133,7 @@ class bearingless_induction_template(inner_rotor_motor.template_machine_as_numbe
 
     def build_design_parameters_list(self):
         GP = self.d['GP']
-        SD = self.SD
+        SI = self.SI
         # obsolete feature
         design_parameters = [
             0.0,
@@ -178,8 +178,8 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
 
         # 检查几何变量之间是否有冲突
         GP = self.template.d['GP']
-        SD = self.template.SD
-        self.check_invalid_design(GP, SD)
+        SI = self.template.SI
+        self.check_invalid_design(GP, SI)
 
         im_variant = population.bearingless_induction_motor_design.local_design_variant(template, 0, counter, x_denorm)
 
@@ -194,8 +194,8 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
         #                     mm_r_ri      = GP['mm_r_ri'].value, # inner radius of rotor: class type DimLinear
         #                     mm_d_rp      = GP['mm_d_rp'].value, # interpolar iron thickness: class type DimLinear
         #                     mm_d_rs      = GP['mm_d_rs'].value, # inter segment iron thickness: class type DimLinear
-        #                     p = template.SD['p'], # Set pole-pairs to 2
-        #                     s = template.SD['no_segmented_magnets'], # Set magnet segments/pole to 4
+        #                     p = template.SI['p'], # Set pole-pairs to 2
+        #                     s = template.SI['no_segmented_magnets'], # Set magnet segments/pole to 4
         #                     location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0))
 
         # self.shaft = CrossSectInnerNotchedRotor.CrossSectShaft(name = 'Shaft',
@@ -218,7 +218,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
         #                                     mm_r_st = 0.0, # =0
         #                                     mm_r_sf = 0.0, # =0
         #                                     mm_r_sb = 0.0, # =0
-        #                                     Q = template.SD['Qs'],
+        #                                     Q = template.SI['Qs'],
         #                                     location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
         #                                     )
 
@@ -234,6 +234,6 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
         # #03 Mechanical Parameters
         # self.update_mechanical_parameters()
 
-    def check_invalid_design(self, GP, SD):
+    def check_invalid_design(self, GP, SI):
         pass
 

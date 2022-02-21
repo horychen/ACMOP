@@ -40,7 +40,7 @@ for index in range(id_solver, ns, number_of_parallel_solve):
     # femm.mi_smartmesh(0)
     # femm.mi_saveas(f'temp-{id_solver}.fem')
     femm.mi_analyze(1) # None for inherited. 1 for a minimized window,
-    print(index, project_file_name[:-4] + f'-{index:03d}.fem', time() - tic, 's', end='(solve time). Total time:')
+    print(f'{index:02d}', project_file_name[:-4] + f'-{index:03d}.fem | Solving time: {time() - tic:.1f} s ', end='')
     femm.mi_loadsolution()
     # femm.mo_smooth('off') # flux smoothing algorithm is off
 
@@ -124,7 +124,7 @@ for index in range(id_solver, ns, number_of_parallel_solve):
     femm.mo_close()
     femm.mi_close()
     toc = time()
-    print(toc - tic, 's')
+    print(f'Total time: {toc - tic:.1f} s.')
 femm.closefemm()
 
 paraResults['b'] = b

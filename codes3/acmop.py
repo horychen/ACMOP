@@ -1,7 +1,7 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
 
-import os, main_utility, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design
+import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design
 
 from matplotlib import projections # for part_initialDesign
 
@@ -32,8 +32,8 @@ class AC_Machine_Optiomization_Wrapper(object):
         3. Run Pole-specific_winding_with_neutral_plate_the_design_table_generator.py to get a new rotor winding layout and paste the code into winding_layout.py
         4. Update this file with new "select_spec".
         '''
-        self.spec_input_dict, self.fea_config_dict = \
-                main_utility.load_settings( self.select_spec, 
+        self.spec_input_dict, self.fea_config_dict = self.load_settings( 
+                                            self.select_spec, 
                                             self.select_fea_config_dict, 
                                             project_loc=self.project_loc, 
                                             path2SwarmData=self.path2SwarmData)
@@ -267,13 +267,12 @@ class AC_Machine_Optiomization_Wrapper(object):
             pop = pg.population(prob, size=popsize) 
         # Add Restarting Feature when generating pop
         else:
-            from main_utility import get_sorted_swarm_data_from_the_archive
 
             # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
             print(f'[acmop.py] Check for swarm data from: {self.select_spec}.json ...')
             self.ad.acm_template.build_x_denorm()
             swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
-            number_of_chromosome = ad.swarm_analyzer.number_of_chromosome
+            number_of_chromosome = ad.analyzer.number_of_chromosome
 
             # case 1: swarm_data.txt exists # Restarting feature related codes
             if number_of_chromosome != 0:
@@ -372,7 +371,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         # [4.3.4] Begin optimization
         # number_of_chromosome = ad.   read_swarm_data(self.select_spec)
         swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
-        number_of_chromosome = ad.swarm_analyzer.number_of_chromosome
+        number_of_chromosome = ad.analyzer.number_of_chromosome
         number_of_finished_iterations = number_of_chromosome // popsize
         number_of_iterations = 50
         logger = logging.getLogger(__name__)
@@ -418,11 +417,10 @@ class AC_Machine_Optiomization_Wrapper(object):
         # refer to D:\DrH\Codes\visualize
 
         ## Do `streamlit run visualize.py` and find an optimal design first
-        self.ad.solver.output_dir = self.path2SwarmData
-        number_of_chromosome = self.ad.solver.read_swarm_data(self.select_spec) # ad.solver.swarm_data 在此处被赋值
+        number_of_chromosome = self.ad.read_swarm_data_json(self.select_spec) # ad.swarm_data 在此处被赋值
 
-        _swarm_data          = self.ad.solver.swarm_data
-        _swarm_project_names = self.ad.solver.swarm_data_container.project_names
+        _swarm_data          = self.ad.swarm_data
+        _swarm_project_names = self.ad.swarm_data_container.project_names
 
         best_index = _swarm_project_names.index(project_name)
         best_chromosome = _swarm_data[best_index]
@@ -434,13 +432,68 @@ class AC_Machine_Optiomization_Wrapper(object):
 
     def reproduce_design_from_x_denorm_and_acm_template(self, best_chromosome):
         # re-build the jmag project
+        import numpy as np
         x_denorm = np.array(best_chromosome[:-3]) 
 
         # evaluate design (with json output)
-        cost_function, f1, f2, f3, FRW, \
-            normalized_torque_ripple, \
-            normalized_force_error_magnitude, \
-            force_error_angle = self.ad.evaluate_design_json_wrapper(self.acm_template, x_denorm, counter=self.ad.counter_fitness_called)
+        _ = self.ad.evaluate_design_json_wrapper(self.acm_template, x_denorm, counter=self.ad.counter_fitness_called)
+
+    @staticmethod
+    def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2SwarmData=None, bool_post_processing=False):
+        __file__dirname_as_in_python39 = os.path.dirname(os.path.abspath(__file__))
+
+        with open((__file__dirname_as_in_python39)+'/machine_specifications.json', 'r') as f:
+            raw_specs = json.load(f)
+        with open((__file__dirname_as_in_python39)+'/machine_simulation.json', 'r') as f:
+            raw_fea_config_dicts = json.load(f)
+
+        spec_input_dict = raw_specs[select_spec]['Inputs']
+        fea_config_dict = raw_fea_config_dicts[select_fea_config_dict]
+        fea_config_dict['bool_post_processing'] = bool_post_processing
+
+        # import where_am_i
+        # where_am_i.where_am_i_v2(fea_config_dict, bool_post_processing)
+        def get_pc_name():
+            import platform
+            import socket
+            n1 = platform.node()
+            n2 = socket.gethostname()
+            n3 = os.environ["COMPUTERNAME"]
+            if n1 == n2 == n3:
+                return n1
+            elif n1 == n2:
+                return n1
+            elif n1 == n3:
+                return n1
+            elif n2 == n3:
+                return n2
+            else:
+                raise Exception("Computer names are not equal to each other.")
+
+        dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
+        dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
+        pc_name = get_pc_name()
+        os.chdir(dir_codes)
+        print('[acmop.py] CD to:', dir_codes)
+        fea_config_dict['dir.parent'] = dir_parent
+        fea_config_dict['pc_name']    = pc_name
+
+        if path2SwarmData is None:
+            path2SwarmData = project_loc + select_spec.replace(' ', '_')+'/'
+        if project_loc is None:
+            project_loc = os.path.abspath(os.path.join(path2SwarmData, '..',))
+
+        output_dir = fea_config_dict['output_dir'] = path2SwarmData
+
+        # create output folder only when not post-processing? No, sometimes in post-processing we run FEA simulation.
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        with open(output_dir+'acmop-settings.txt', 'w') as f:
+            f.write(select_spec + ' | ' + select_fea_config_dict)
+        # print(spec_input_dict)
+        # quit()
+
+        return spec_input_dict, fea_config_dict
 
 def main():
     mop = AC_Machine_Optiomization_Wrapper(
@@ -460,12 +513,11 @@ def main():
     #########################
     # mop.part_winding() # Module 1
     # mop.acm_template   # Module 2 (the execution code has been moved to the end of __post_init__ of AC_Machine_Optiomization_Wrapper)
-    if False:
-        mop.part_evaluation() # Module 3
-    elif True:
+    if True:
+        # mop.part_evaluation() # Module 3
         mop.part_optimization() # Module 4
     else:
-        if True:
+        if False:
             motor_design_variant = mop.reproduce_design_from_jsonpickle('p4ps5-Q12y1-0999') # Module 5 - reproduction of any design variant object
         else:
             # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
