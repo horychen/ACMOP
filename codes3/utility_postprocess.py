@@ -331,13 +331,13 @@ class SwarmAnalyzer(object):
 
         for ind, ad in enumerate(ad_list_sorted):
             builtins.ad = ad # 
-            print(f'\n[{ind+1}]', ad.select_spec, len(ad.solver.swarm_data),  '\n')
+            print(f'\n[{ind+1}]', ad.select_spec, len(ad.analyzer.swarm_data_xf),  '\n')
 
-            Qs = ad.solver.spec_input_dict['Qs']
-            ps = ad.solver.spec_input_dict['ps']
-            p  = ad.solver.spec_input_dict['p']
-            if 'Qr' in ad.solver.spec_input_dict:
-                Qr = ad.solver.spec_input_dict['Qr']
+            Qs = ad.spec_input_dict['Qs']
+            ps = ad.spec_input_dict['ps']
+            p  = ad.spec_input_dict['p']
+            if 'Qr' in ad.spec_input_dict:
+                Qr = ad.spec_input_dict['Qr']
                 label = f'p{p}Qr{Qr}Qs{Qs}ps{ps}'
             else:
                 label = f'p{p}ps{ps}Qs{Qs}'
@@ -346,10 +346,10 @@ class SwarmAnalyzer(object):
 
             # 绘制 Pareto front
             sys.stdout = open(os.devnull, 'w')
-            scatter_handle, more_info, auto_optimal_designs = self.pareto_front_plot_script(ad.solver.swarm_data, fig, ax, marker, label, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+            scatter_handle, more_info, auto_optimal_designs = self.pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
             sys.stdout = sys.__stdout__
 
-            df_dict[ad.select_spec] = [label, len(ad.solver.swarm_data), more_info[0][1], auto_optimal_designs[0], auto_optimal_designs[1], auto_optimal_designs[2]] # tier 1 size
+            df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], auto_optimal_designs[0], auto_optimal_designs[1], auto_optimal_designs[2]] # tier 1 size
             # print(more_info)
             # print(auto_optimal_designs)
             # break
@@ -366,7 +366,7 @@ class SwarmAnalyzer(object):
         return df, fig
 
     def performance_table_plus_donut_chart(self, df_dict, ad, select_spec, _best_index, _best_individual_data):
-        swarm_data_container = ad.solver.swarm_data_container
+        swarm_data_container = ad.swarm_data_container
 
         # print('\tBest:', _best_index, _best_individual_data)
 
@@ -403,12 +403,12 @@ class SwarmAnalyzer(object):
 
         # print('\n'.join([el for el in dir(ad) if not el.startswith('__')]))
         # print()
-        # print('\n'.join([el for el in dir(ad.solver) if not el.startswith('__')]))
+        # print('\n'.join([el for el in dir(ad) if not el.startswith('__')]))
         fig = self.donut_chart(total_loss, sizes, 
-                    ad.solver.spec_input_dict['Qs'], 
-                    ad.solver.spec_input_dict['p'],
-                    ad.solver.spec_input_dict['ps'],
-                    ad.solver.spec_input_dict['Qr'] if 'Qr' in ad.solver.spec_input_dict.keys() else None,
+                    ad.spec_input_dict['Qs'], 
+                    ad.spec_input_dict['p'],
+                    ad.spec_input_dict['ps'],
+                    ad.spec_input_dict['Qr'] if 'Qr' in ad.spec_input_dict.keys() else None,
                     )
         return list_of_table_column, fig
 
@@ -492,7 +492,7 @@ class SwarmAnalyzer(object):
 
             # 读取 Swarm data
             ad = ad_list[ind]
-            # ad.solver.swarm_data
+            # ad.swarm_data
 
             # 手动选择最优个体
             _best_index, _best_individual_data = None, None
@@ -506,7 +506,7 @@ class SwarmAnalyzer(object):
                 st.write('There is only one individual left, do you want to re-produce it?')
                 number_of_one_optimal_design_selected += 1
 
-                # print(dir(ad.solver.swarm_data_container))
+                # print(dir(ad.swarm_data_container))
                 list_of_table_column, fig = self.performance_table_plus_donut_chart(df_dict, ad, specification, _best_index, _best_individual_data)
                 dict_of_list_of_table_column[specification] = list_of_table_column
 
@@ -601,19 +601,19 @@ class SwarmAnalyzer(object):
     '''
     @staticmethod
     def get_sorted_swarm_data_from_the_archive(prob, popsize, path_to_archive, bool_absolute_path=False):
-        output_dir_backup = ad.solver.output_dir
+        output_dir_backup = ad.output_dir
         if not bool_absolute_path:
-            ad.solver.output_dir = ad.solver.fea_config_dict['dir.parent'] + path_to_archive
+            ad.output_dir = ad.fea_config_dict['dir.parent'] + path_to_archive
         else:
-            ad.solver.output_dir = path_to_archive
-        number_of_chromosome = ad.solver.read_swarm_data(ad.bound_filter)
+            ad.output_dir = path_to_archive
+        number_of_chromosome = ad.read_swarm_data(ad.bound_filter)
         if number_of_chromosome is None:
-            raise Exception('Correct path?', ad.solver.output_dir)
-        ad.solver.output_dir = output_dir_backup
+            raise Exception('Correct path?', ad.output_dir)
+        ad.output_dir = output_dir_backup
 
         ad.flag_do_not_evaluate_when_init_pop = True
         pop = pg.population(prob, size=popsize)
-        swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(prob, ad.solver.swarm_data, popsize, ad.solver.fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
+        swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(prob, ad.swarm_data, popsize, ad.solver.fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
         ad.flag_do_not_evaluate_when_init_pop = False
         return swarm_data_on_pareto_front, more_info
 

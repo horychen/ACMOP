@@ -917,7 +917,8 @@ def main_derivation():
     Slot_Pole_Combinations = [  
                                 # (15, 30, 2, 3, 10, 0),
                                 # (3, 24, 1, 2, 9, 0),
-                                (3, 48, 2, 1, 12, 0), # XSQ
+                                (3, 18, 2, 1, 1, 0), # David Meeker SPMLoss example  https://femm.info/wiki/spmloss
+                                # (3, 48, 2, 1, 12, 0), # XSQ
                                 # (3, 9, 4, 5, 1, 0), # Slessinv TIE.R1
                                 # (3, 18, 4, 5, 2, 0), # Slessinv TIE.R1 750W Servo
                                 # (3, 27, 3, 2, 4, 0), # 0 <--- 这个如果作绕组你会发现W相的Group AC和Group BD的阴影刚好差了一点角度，导致三相AC/BD分组不对称。

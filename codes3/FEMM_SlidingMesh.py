@@ -525,6 +525,8 @@ class Individual_Analyzer_FEMM_Edition(object):
         def matlab_fft(matrix_input):
             return np.fft.fft(matrix_input.T).T
 
+        bool_plot = False
+
         # Compute the square of the amplitude of each harmonic at the centroid of
         # each element in the mesh. Matlab's built-in FFT function makes this easy.
         bxfft = np.abs(matlab_fft(np.real(self.b))) * (2/self.ns)
@@ -535,7 +537,7 @@ class Individual_Analyzer_FEMM_Edition(object):
         stack_length_m = self.probinfo[3-1] # Length of the machine in the into-the-page direction
         lengthunits    = self.probinfo[4-1] # Length of drawing unit in meters
         self.v         = self.a*stack_length_m*lengthunits**2
-        print('LOSS-DEBUG, stack_length_m, lengthunits:', stack_length_m, lengthunits)
+        # print('LOSS-DEBUG, stack_length_m, lengthunits:', stack_length_m, lengthunits)
 
         # compute fft of A at the center of each element
         Afft = matlab_fft(self.A)*(2/self.ns)
@@ -585,20 +587,23 @@ class Individual_Analyzer_FEMM_Edition(object):
             rotor_loss  = np.dot(np.dot((ch*w+ce*w*w), bsq), (self.v*g1)) / cs
             stator_loss = np.dot(np.dot((ch*w+ce*w*w), bsq), (self.v*g2)) / cs
 
-            fig, axes = plt.subplots(3)
-            x, y1, y2, y3 = [], [], [], []
-            for jj in range(int(self.ns)):
-                # _w = (w==jj*MyLowestHarmonic*thisFrequency)
-                # if sum(_w) == 0: raise
-                _w = (w==w[jj]) * w[jj]
-                _rotor_loss  = np.dot(np.dot((ch*_w+ce*_w*_w), bsq), (self.v*g1)) / cs
-                _stator_loss = np.dot(np.dot((ch*_w+ce*_w*_w), bsq), (self.v*g2)) / cs
-                # plt.scatter(jj*MyLowestHarmonic*thisFrequency, _stator_loss)
-                x.append(w[jj])
-                y1.append(_rotor_loss)
-                y2.append(_stator_loss)
-            ax=axes[0]; ax.stem(x, y1); ax.set_ylabel('Rotor loss [W]')
-            ax=axes[1]; ax.stem(x, y2); ax.set_ylabel('Stator loss [W]')
+            if bool_plot: 
+                fig, axes = plt.subplots(3, sharex=True)
+                x, y1, y2, y3 = [], [], [], []
+                for jj in range(int(self.ns)):
+                    # _w = (w==jj*MyLowestHarmonic*thisFrequency)
+                    # if sum(_w) == 0: raise
+                    _w = (w==w[jj]) * w[jj]
+                    _rotor_loss  = np.dot(np.dot((ch*_w+ce*_w*_w), bsq), (self.v*g1)) / cs
+                    _stator_loss = np.dot(np.dot((ch*_w+ce*_w*_w), bsq), (self.v*g2)) / cs
+                    # plt.scatter(jj*MyLowestHarmonic*thisFrequency, _stator_loss)
+                    x.append(w[jj])
+                    y1.append(_rotor_loss)
+                    y2.append(_stator_loss)
+                ax=axes[0]; ax.stem(x, y1); ax.set_ylabel('Rotor loss [W]')
+                ax=axes[1]; ax.stem(x, y2); ax.set_ylabel('Stator loss [W]')
+                plt.figure(); plt.plot(np.abs(self.b)*g1.T)
+                plt.figure(); plt.plot(np.abs(self.b)*g2.T)
 
             # and prox losses can be totalled up in a similar way
             g4 = (self.g==self.GroupSummary['coils'])
@@ -622,11 +627,16 @@ class Individual_Analyzer_FEMM_Edition(object):
             magnet_loss = 0.5 * np.dot((omag*(2*np.pi*w)**2), np.dot((np.abs(Jm)**2), self.v)) # g3 is already taken into account in variable Jm
                         # 0.5 = (1/sqrt(2)) ** 2, the peak value Jm should be converted to RMS value for calculating loss power
 
-            for jj in range(int(self.ns)):
-                _w = (w==w[jj]) * w[jj]
-                _magnet_loss = 0.5 * np.dot((omag*(2*np.pi*_w)**2), np.dot((np.abs(Jm)**2), self.v))
-                y3.append(_magnet_loss)
-            ax=axes[2]; ax.stem(x, y3); ax.set_ylabel('Magnet loss [W]')
+            if bool_plot: 
+                for jj in range(int(self.ns)):
+                    _w = (w==w[jj]) * w[jj]
+                    _magnet_loss = 0.5 * np.dot((omag*(2*np.pi*_w)**2), np.dot((np.abs(Jm)**2), self.v))
+                    y3.append(_magnet_loss)
+                ax=axes[2]; ax.stem(x, y3); ax.set_ylabel('Magnet loss [W]')
+                ax.set_xlabel('Frequency [Hz]')
+                plt.figure(); plt.plot(self.A*g3.T)
+                plt.show()
+                quit()
             try:
                 w[8]
                 _f = (w<w[8])
@@ -638,8 +648,6 @@ class Individual_Analyzer_FEMM_Edition(object):
             _magnet_loss = 0.5 * np.dot((omag*(2*np.pi*_f*w)**2), np.dot((np.abs(Jm)**2), self.v))
             print(f'[FEMM_SlidingMesh.py] Conservative iron loss: {_rotor_loss}< {rotor_loss}; {_stator_loss} < {stator_loss}')
             print(f'[FEMM_SlidingMesh.py] Conservative magnet loss: {_magnet_loss}< {magnet_loss}')
-
-
 
             total_loss = rotor_loss + stator_loss + prox_loss + PhaseOhmic + magnet_loss
             print('LOSS-DEBUG: rotor_loss, stator_loss, prox_loss, PhaseOhmic, magnet_loss')
@@ -684,11 +692,11 @@ class FEMM_SlidingMesh(object):
     def probdef(self, stack_length=100, time_harmonic_study_frequency=0):
         self.time_harmonic_study_frequency = time_harmonic_study_frequency
         # femm.smartmesh(False) <- This will not work due to bug of femm.__init__ 
-        femm.callfemm_noeval('smartmesh(0)') # call this before probdef?
+        # femm.callfemm_noeval('smartmesh(0)') # call this before probdef?
         femm.mi_probdef(time_harmonic_study_frequency, 'millimeters', 'planar', 1e-8, # must < 1e-8
                         stack_length, 18, 1) # The acsolver parameter (default: 0) specifies which solver is to be used for AC problems: 0 for successive approximation, 1 for Newton.
                                              # 1 for 'I intend to try the acsolver of Newton, as this is the default for JMAG@[Nonlinear Calculation] Setting Panel in the [Study Properties] Dialog Box'
-        # femm.callfemm_noeval('mi_smartmesh(0)') # call this after probdef?
+        femm.callfemm_noeval('mi_smartmesh(0)') # call this after probdef?
         self.bool_automesh = False # setting to false gives no effect?
 
         femm.smartmesh(-1) # let mi_smartmesh deside. You must turn it off in parasolver.py
@@ -791,11 +799,13 @@ class FEMM_SlidingMesh(object):
                 MESH_SIZE_STEEL    = 2 * 6    # 4
                 MESH_SIZE_AIR      = 2 * 0.75 # 0.5 
                 MESH_SIZE_COPPER   = 2 * 10   # 8
+                MESH_SIZE_MAGNET   = 2 * 6
             elif self.acm_variant.template.fea_config_dict['femm.Coarse_Mesh_Level'] == 3:
                 MESH_SIZE_ALUMINUM = 1 * 6    # 3
                 MESH_SIZE_STEEL    = 1 * 6    # 4
                 MESH_SIZE_AIR      = 1 * 0.75 # 0.5 
                 MESH_SIZE_COPPER   = 1 * 10   # 8
+                MESH_SIZE_MAGNET   = 1 * 6
             else:
                 raise Exception('Invalid femm.Coarse_Mesh_Level.')
         else:
@@ -803,6 +813,7 @@ class FEMM_SlidingMesh(object):
             MESH_SIZE_STEEL    = 4
             MESH_SIZE_AIR      = 0.5 
             MESH_SIZE_COPPER   = 8
+            MESH_SIZE_MAGNET   = 4
 
         GP = self.acm_variant.template.d['GP']
 
@@ -842,7 +853,7 @@ class FEMM_SlidingMesh(object):
         femm.mi_getmaterial('N40')
         for _ in range(2*self.acm_variant.template.SI['p']):
             X, Y = R*np.cos(THETA), R*np.sin(THETA)
-            self.set_block_label(101, 'N40', (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh, magdir=THETA/np.pi*180 + _%2*180)
+            self.set_block_label(101, 'N40', (X, Y), MESH_SIZE_MAGNET, automesh=self.bool_automesh, magdir=THETA/np.pi*180 + _%2*180)
             deg_alpha_rp = 360 / (2*self.acm_variant.template.SI['p'])
             THETA += deg_alpha_rp / 180 * np.pi
 
@@ -1058,7 +1069,7 @@ class FEMM_SlidingMesh(object):
 
         rotation_operator = np.exp(1j*RotorAngle_MechanicalDegrees/180*np.pi)
 
-        if False:
+        if False: # bool_plot
             if index == 0:
                 self.initialize_collection_of_field_data()
 
