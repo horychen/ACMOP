@@ -24,7 +24,7 @@ print('[parasolveSlidingMesh.py] ParaSolve instance ID:', id_solver)
 
 femm.openfemm(True) # bHide
 # femm.smartmesh(0)
-femm.callfemm_noeval('smartmesh(0)')
+# femm.callfemm_noeval('smartmesh(0)')
 # this is essential to reduce elements counts from >50000 to ~20000.
 # print('mi_smartmesh is off')
 
@@ -37,7 +37,7 @@ for index in range(id_solver, ns, number_of_parallel_solve):
 
     tic = time()
     femm.opendocument(project_file_name[:-4] + f'-{index:03d}.fem')
-    # femm.mi_smartmesh(0)
+    femm.mi_smartmesh(0)
     # femm.mi_saveas(f'temp-{id_solver}.fem')
     femm.mi_analyze(1) # None for inherited. 1 for a minimized window,
     print(f'{index:02d}', project_file_name[:-4] + f'-{index:03d}.fem | Solving time: {time() - tic:.1f} s ', end='')
