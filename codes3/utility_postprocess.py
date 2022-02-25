@@ -239,6 +239,115 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
 import acmop, os, sys, builtins
 import pandas as pd
 
+
+def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dict=None, z_filter=None,
+                            bool_return_more_details=False):
+    import utility_moo
+
+    from Problem_BearinglessSynchronousDesign import Problem_BearinglessSynchronousDesign
+    ad.flag_do_not_evaluate_when_init_pop = True # this is very important, or else Problem_BearinglessSynchronousDesign.fitness() will invoke JMAG Designer as unexpected.
+    udp = Problem_BearinglessSynchronousDesign()
+    import pygmo as pg
+    prob = pg.problem(udp)
+    popsize = fea_config_dict["moo.popsize"]
+
+    swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(prob, _swarm_data, popsize, fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
+    print(len(swarm_data_on_pareto_front), len(swarm_data_on_pareto_front[0]))
+
+    # list_of_swarm_data_on_pareto_front.append(swarm_data_on_pareto_front)
+
+    fits = [el[-3:] for el in swarm_data_on_pareto_front]
+    list_alpha_st = [el[0] for el in swarm_data_on_pareto_front]
+    list_ripple_sum = [el[-1] for el in swarm_data_on_pareto_front]
+    scatter_handle, auto_optimal_designs = utility_moo.my_2p5d_plot_non_dominated_fronts(fits, comp=[0,1], marker=marker, up_to_rank_no=1, ax=ax, fig=fig, no_colorbar=True, z_filter=z_filter, label=label, bool_return_auto_optimal_design=True)
+
+    if bool_return_more_details:
+        return scatter_handle, more_info, auto_optimal_designs
+    else:
+        return scatter_handle
+    # ripple_ax = plt.figure().gca()
+    # ripple_ax.plot(list_alpha_st, list_ripple_sum, 'ko')
+    # ripple_ax.set_xlabel('alpha_st')
+    # ripple_ax.set_ylabel('ripple sum')
+    pass
+
+def pareto_front_plot_color_bar_etc(scatter_handle, fig, ax, font, bool_no_limit=False, settings=1):
+    # color bar
+    cbar_ax = fig.add_axes([0.875, 0.15, 0.02, 0.7])
+    cbar_ax.get_yaxis().labelpad = 10
+    clb = fig.colorbar(scatter_handle, cax=cbar_ax)
+    clb.ax.set_ylabel('Ripple Performance Sum [1]', rotation=270, labelpad=14)
+    if not bool_no_limit:
+        if settings == 1:
+            ax.legend()
+            ax.set_xlim([50, 250])
+            ax.set_ylim([-99, -75])
+
+            # refernce line
+            ax.plot(np.arange(50,250), np.ones(200)*-97, '--k')
+            ax.text( 31, -97.3, '$-97$', fontdict=font)
+            # ax.set_yticks([-75, -85, -90, -95, -97], [-75, -85, -90, -95, -97])
+
+        elif settings == 2:
+            ax.legend()
+            ax.set_xlim([115, 195])
+            ax.set_ylim([-98.5, -90])
+
+            # refernce line
+            ax.plot(np.arange(50,250), np.ones(200)*-97, '--k')
+            ax.text( 31, -97.3, '$-97$', fontdict=font)
+            # ax.set_yticks([-75, -85, -90, -95, -97], [-75, -85, -90, -95, -97])
+
+        elif settings == 3:
+            ax.legend()
+            ax.set_xlim([120, 250])
+            ax.set_ylim([-98.5, -90])
+
+            ax.plot(np.arange(120,250), np.ones(130)*-97, '--k')
+            # ax.text( 31, -97.3, '$-97$', fontdict=font)
+
+        elif settings == 4:
+            ax.legend(loc='upper left')
+            ax.set_xlim([-40000, -15000])
+            ax.set_ylim([-97.2, -95])
+            ax.grid()
+            ax.set_xlabel(r'$\rm {-TRV}$ [$\rm Nm/m^3$]')
+
+        elif settings == 5:
+            ax.legend(loc='best')
+            # ax.set_xlim([-30000, -8000])
+            # ax.set_ylim([-94, -89])
+            ax.grid(True)
+            ax.set_xlabel(r'$\rm {-TRV}$ [$\rm Nm/m^3$]')
+
+        else:
+            ax.legend(loc='best')
+            ax.grid(True)
+            ax.set_xlabel(r'$\rm {-TRV}$ [$\rm Nm/m^3$]')
+
+
+    # Eric asked about non-transparent legend
+    from pylab import mpl
+    mpl.rcParams["legend.framealpha"] = None # default is 0.8 # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.legend.html
+    mpl.rcParams["legend.shadow"] = True
+    ax.legend().set_zorder(555)
+
+    # from pylab import plt
+        # fig.tight_layout() # not compatable to use with color bar
+        # fig.savefig(r'./Figure_Combined_Pareto_Front.eps', format='eps', dpi=1000)
+        # fig.savefig(r'./Figure_Combined_Pareto_Front.png', format='png', dpi=600)
+        # fig.savefig(r'./Figure_Combined_Pareto_Front.svg', format='svg', dpi=1000) # fast
+    # fig.savefig(r'./Figure_Combined_Pareto_Front.pdf', format='pdf', dpi=600)
+    return fig
+
+
+
+
+
+
+
+
+
 class SwarmAnalyzer(object):
     def __init__(self, path2acmop):
         self.path2acmop = path2acmop if path2acmop[-1] == '/' else path2acmop+'/'
@@ -346,7 +455,7 @@ class SwarmAnalyzer(object):
 
             # 绘制 Pareto front
             sys.stdout = open(os.devnull, 'w')
-            scatter_handle, more_info, auto_optimal_designs = self.pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+            scatter_handle, more_info, auto_optimal_designs = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
             sys.stdout = sys.__stdout__
 
             df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], auto_optimal_designs[0], auto_optimal_designs[1], auto_optimal_designs[2]] # tier 1 size
@@ -359,7 +468,7 @@ class SwarmAnalyzer(object):
         # st.table(df) #  df.style.format("{:.2%}")
 
         # 绘制 Pareto front 的Z轴（云图色彩）
-        fig = self.pareto_front_plot_color_bar_etc(scatter_handle, fig, ax, font, settings=None)
+        fig = pareto_front_plot_color_bar_etc(scatter_handle, fig, ax, font, settings=None)
         fname = f'{os.path.dirname(__file__)}/ParetoFrontOverlapped-{builtins.folder_of_collection}.pdf'
         print('[utility_postprocess.py] save to ', fname)
         fig.savefig(fname, format='pdf', dpi=400, transparent=True) # 不能用bbox_inches='tight'，否则colorbar 会偏
@@ -617,105 +726,105 @@ class SwarmAnalyzer(object):
         ad.flag_do_not_evaluate_when_init_pop = False
         return swarm_data_on_pareto_front, more_info
 
-    @staticmethod
-    def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dict=None, z_filter=None,
-                                bool_return_more_details=False):
-        import utility_moo
 
-        from Problem_BearinglessSynchronousDesign import Problem_BearinglessSynchronousDesign
-        ad.flag_do_not_evaluate_when_init_pop = True # this is very important, or else Problem_BearinglessSynchronousDesign.fitness() will invoke JMAG Designer as unexpected.
-        udp = Problem_BearinglessSynchronousDesign()
-        import pygmo as pg
-        prob = pg.problem(udp)
-        popsize = fea_config_dict["moo.popsize"]
+''' Below is tailored for ACMOP
+'''
 
-        swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(prob, _swarm_data, popsize, fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
-        print(len(swarm_data_on_pareto_front), len(swarm_data_on_pareto_front[0]))
+# def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, 
+#                             fea_config_dict=None, z_filter=None,
+#                             bool_return_more_details=False):
+#     import utility_moo
 
-        # list_of_swarm_data_on_pareto_front.append(swarm_data_on_pareto_front)
+#     from Problem_BearinglessSynchronousDesign import Problem_BearinglessSynchronousDesign
+#     ad.flag_do_not_evaluate_when_init_pop = True # this is very important, or else Problem_BearinglessSynchronousDesign.fitness() will invoke JMAG Designer as unexpected.
+#     udp = Problem_BearinglessSynchronousDesign()
+#     import pygmo as pg
+#     prob = pg.problem(udp)
+#     popsize = fea_config_dict["moo.popsize"]
 
-        fits = [el[-3:] for el in swarm_data_on_pareto_front]
-        list_alpha_st = [el[0] for el in swarm_data_on_pareto_front]
-        list_ripple_sum = [el[-1] for el in swarm_data_on_pareto_front]
-        scatter_handle, auto_optimal_designs = utility_moo.my_2p5d_plot_non_dominated_fronts(fits, comp=[0,1], marker=marker, up_to_rank_no=1, ax=ax, fig=fig, no_colorbar=True, z_filter=z_filter, label=label, bool_return_auto_optimal_design=True)
+#     swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(prob, _swarm_data, popsize, fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
+#     print(len(swarm_data_on_pareto_front), len(swarm_data_on_pareto_front[0]))
 
-        if bool_return_more_details:
-            return scatter_handle, more_info, auto_optimal_designs
+#     # list_of_swarm_data_on_pareto_front.append(swarm_data_on_pareto_front)
+
+#     fits = [el[-3:] for el in swarm_data_on_pareto_front]
+#     list_alpha_st = [el[0] for el in swarm_data_on_pareto_front]
+#     list_ripple_sum = [el[-1] for el in swarm_data_on_pareto_front]
+#     scatter_handle, auto_optimal_designs = utility_moo.my_2p5d_plot_non_dominated_fronts(fits, comp=[0,1], marker=marker, up_to_rank_no=1, ax=ax, fig=fig, no_colorbar=True, z_filter=z_filter, label=label, bool_return_auto_optimal_design=True)
+
+#     if bool_return_more_details:
+#         return scatter_handle, more_info, auto_optimal_designs
+#     else:
+#         return scatter_handle
+#     # ripple_ax = plt.figure().gca()
+#     # ripple_ax.plot(list_alpha_st, list_ripple_sum, 'ko')
+#     # ripple_ax.set_xlabel('alpha_st')
+#     # ripple_ax.set_ylabel('ripple sum')
+
+
+def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None):
+    def get_plot():
+        # mpl.style.use('classic')
+        mpl.rcParams['mathtext.fontset'] = 'stix'
+        # mpl.rcParams['font.family'] = 'STIXGeneral'
+        mpl.rcParams['font.family'] = 'sans-serif' # (Streamlit) 2021-03-16 20:37:40.259 font.family must be one of (serif, sans-serif, cursive, monospace) when text.usetex is True. serif will be used by default. 
+        mpl.rcParams['legend.fontsize'] = 12.5
+        mpl.rcParams['font.size'] = 14.0
+        font = {'family' : 'Times New Roman', #'serif',
+                'color' : 'darkblue',
+                'weight' : 'normal',
+                'size' : 14,}
+        textfont = {'family' : 'Times New Roman', #'serif',
+                    'color' : 'darkblue',
+                    'weight' : 'normal',
+                    'size' : 11.5,}
+        # plt.rc('text', usetex=True) # https://github.com/matplotlib/matplotlib/issues/4495/
+        # plt.rc('pgf', texsystem='pdflatex')
+        fig, ax = plt.subplots(figsize=(8,5), constrained_layout=False)
+        fig.set_rasterized(True) # https://stackoverflow.com/questions/19638773/matplotlib-plots-lose-transparency-when-saving-as-ps-eps
+        plt.subplots_adjust(left=None, bottom=None, right=0.85, top=None, wspace=None, hspace=None)
+
+        return fig, ax, font
+    fig, ax, font = get_plot()
+    df_dict = dict()
+
+    for ind, (folder, mop) in enumerate(swarm_dict.items()):
+        ad = builtins.ad = mop.ad
+        Qs = ad.spec_input_dict['Qs']
+        ps = ad.spec_input_dict['ps']
+        p  = ad.spec_input_dict['p']
+        if 'Qr' in ad.spec_input_dict:
+            Qr = ad.spec_input_dict['Qr']
+            label = f'p{p}ps{ps}Qs{Qs}Qr{Qr}'
         else:
-            return scatter_handle
-        # ripple_ax = plt.figure().gca()
-        # ripple_ax.plot(list_alpha_st, list_ripple_sum, 'ko')
-        # ripple_ax.set_xlabel('alpha_st')
-        # ripple_ax.set_ylabel('ripple sum')
+            label = f'p{p}ps{ps}Qs{Qs}'
+        marker = f'${ind+1}$'
 
-    @staticmethod
-    def pareto_front_plot_color_bar_etc(scatter_handle, fig, ax, font, bool_no_limit=False, settings=1):
-        # color bar
-        cbar_ax = fig.add_axes([0.875, 0.15, 0.02, 0.7])
-        cbar_ax.get_yaxis().labelpad = 10
-        clb = fig.colorbar(scatter_handle, cax=cbar_ax)
-        clb.ax.set_ylabel('Ripple Performance Sum [1]', rotation=270, labelpad=14)
-        if not bool_no_limit:
-            if settings == 1:
-                ax.legend()
-                ax.set_xlim([50, 250])
-                ax.set_ylim([-99, -75])
+        print([len(el) for el in ad.analyzer.swarm_data_xf])
 
-                # refernce line
-                ax.plot(np.arange(50,250), np.ones(200)*-97, '--k')
-                ax.text( 31, -97.3, '$-97$', fontdict=font)
-                # ax.set_yticks([-75, -85, -90, -95, -97], [-75, -85, -90, -95, -97])
+        # 绘制 Pareto front
+        # utility.blockPrint()
+        scatter_handle, more_info, auto_optimal_designs = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+        # utility.enablePrint()
 
-            elif settings == 2:
-                ax.legend()
-                ax.set_xlim([115, 195])
-                ax.set_ylim([-98.5, -90])
+        df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], 
+                                    [round(el,1) for el in auto_optimal_designs[0]], 
+                                    [round(el,1) for el in auto_optimal_designs[1]], 
+                                    [round(el,1) for el in auto_optimal_designs[2]]] # tier 1 size
+        # print(more_info)
+        # print(auto_optimal_designs)
+        # break
 
-                # refernce line
-                ax.plot(np.arange(50,250), np.ones(200)*-97, '--k')
-                ax.text( 31, -97.3, '$-97$', fontdict=font)
-                # ax.set_yticks([-75, -85, -90, -95, -97], [-75, -85, -90, -95, -97])
+    # 列出基本信息表，包括自动选择的最优个体参数，
+    df = pd.DataFrame(data=df_dict, index=['label', 'archive size', 'Rank 1 PF size', 'Low Cost Design', 'High Efficiency Design', 'Low Ripple Design']).T
+    # st.table(df) #  df.style.format("{:.2%}")
 
-            elif settings == 3:
-                ax.legend()
-                ax.set_xlim([120, 250])
-                ax.set_ylim([-98.5, -90])
-
-                ax.plot(np.arange(120,250), np.ones(130)*-97, '--k')
-                # ax.text( 31, -97.3, '$-97$', fontdict=font)
-
-            elif settings == 4:
-                ax.legend(loc='upper left')
-                ax.set_xlim([-40000, -15000])
-                ax.set_ylim([-97.2, -95])
-                ax.grid()
-                ax.set_xlabel(r'$\rm {-TRV}$ [$\rm Nm/m^3$]')
-
-            elif settings == 5:
-                ax.legend(loc='best')
-                # ax.set_xlim([-30000, -8000])
-                # ax.set_ylim([-94, -89])
-                ax.grid(True)
-                ax.set_xlabel(r'$\rm {-TRV}$ [$\rm Nm/m^3$]')
-
-            else:
-                ax.legend(loc='best')
-                ax.grid(True)
-                ax.set_xlabel(r'$\rm {-TRV}$ [$\rm Nm/m^3$]')
-
-
-        # Eric asked about non-transparent legend
-        from pylab import mpl
-        mpl.rcParams["legend.framealpha"] = None # default is 0.8 # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.legend.html
-        mpl.rcParams["legend.shadow"] = True
-        ax.legend().set_zorder(555)
-
-        # from pylab import plt
-            # fig.tight_layout() # not compatable to use with color bar
-            # fig.savefig(r'./Figure_Combined_Pareto_Front.eps', format='eps', dpi=1000)
-            # fig.savefig(r'./Figure_Combined_Pareto_Front.png', format='png', dpi=600)
-            # fig.savefig(r'./Figure_Combined_Pareto_Front.svg', format='svg', dpi=1000) # fast
-        # fig.savefig(r'./Figure_Combined_Pareto_Front.pdf', format='pdf', dpi=600)
-        return fig
-
-
+    # 绘制 Pareto front 的Z轴（云图色彩）
+    fig = pareto_front_plot_color_bar_etc(scatter_handle, fig, ax, font, settings=None)
+    if output_dir is None:
+        fname = f'{os.path.dirname(__file__)}/ParetoFrontOverlapped-{ad.select_spec.replace(" ", "_")}.pdf' # builtins.folder_of_collection
+    else:
+        fname = f'{output_dir}ParetoFrontOverlapped-{ad.select_spec.replace(" ", "_")}.pdf' # builtins.folder_of_collection
+    print('[utility_postprocess.py] save to ', fname)
+    fig.savefig(fname, format='pdf', dpi=400, transparent=True) # 不能用bbox_inches='tight'，否则colorbar 会偏
+    return df, fig

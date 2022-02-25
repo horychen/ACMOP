@@ -11,7 +11,7 @@ SELECT_ALL = 4
 EPS = 1e-2 # unit mm
 
 class Individual_Analyzer_FEMM_Edition(object):
-    def __init__(self, p, ns, GroupSummary):
+    def __init__(self, p=None, ns=None, GroupSummary=None):
 
         self.p = p # number of pole pairs
         self.ns = ns # number of steps/points
@@ -40,10 +40,10 @@ class Individual_Analyzer_FEMM_Edition(object):
         self.femm_bearing_fluxLinkage_q = []
 
         # get dict versions of the lists (to be used in collecting results parallel)
-        self.list_of_attributes = []
+        self.list_of_time_domain_attributes = []
         for attribute in dir(self):
             if 'femm' in attribute:
-                self.list_of_attributes.append(attribute)
+                self.list_of_time_domain_attributes.append(attribute)
                 exec(f'self.dict_{attribute} = dict()')
 
     def add(self, time, rotor_position_mech_deg, torque, forces, energy, circuitProperties, index=None):
@@ -659,6 +659,21 @@ class Individual_Analyzer_FEMM_Edition(object):
             print('[FEMM_SlidingMesh.py] DEBUG vmag, vsiron, vriron, vcoil:', vmag, vsiron, vriron, vcoil, 'mm2')
 
             return [thisFrequency*60, rotor_loss, stator_loss, magnet_loss, PhaseOhmic, prox_loss, total_loss]
+
+    def load_time_domain_data(self):
+        import pandas as pd
+        df = pd.read_pickle(self.fea_config_dict['output_dir']+self.select_spec)
+        for key in self.list_of_time_domain_attributes:
+            exec(f'self.{key} = df.{key}')
+        print('DEBUG FEMM load data:', self.femm_torque)
+
+    def save_time_domain_data(self):
+        import pandas as pd
+        df_dict = {}
+        for key in self.list_of_time_domain_attributes:
+            exec(f'df_dict[{key}] = self.{key}')
+        df = pd.DataFrame.from_dict(df_dict)
+        df.to_pickle(self.fea_config_dict['output_dir']+self.select_spec)
 
 class FEMM_SlidingMesh(object):
 
