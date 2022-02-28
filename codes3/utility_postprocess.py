@@ -10,11 +10,13 @@
 
 # Consider to replace this with CjhStylePlot
 from pylab import mpl, plt, np
+
 def get_plot():
     # mpl.style.use('classic')
     mpl.rcParams['mathtext.fontset'] = 'stix'
     # mpl.rcParams['font.family'] = 'STIXGeneral'
-    mpl.rcParams['font.family'] = 'sans-serif' # (Streamlit) 2021-03-16 20:37:40.259 font.family must be one of (serif, sans-serif, cursive, monospace) when text.usetex is True. serif will be used by default. 
+    # mpl.rcParams['font.family'] = 'sans-serif' # (Streamlit) 2021-03-16 20:37:40.259 font.family must be one of (serif, sans-serif, cursive, monospace) when text.usetex is True. serif will be used by default. 
+    mpl.rcParams['font.family'] = 'Times New Roman'
     mpl.rcParams['legend.fontsize'] = 12.5
     mpl.rcParams['font.size'] = 14.0
     font = {'family' : 'Times New Roman', #'serif',
@@ -28,7 +30,7 @@ def get_plot():
     # plt.rc('text', usetex=True) # https://github.com/matplotlib/matplotlib/issues/4495/
     # plt.rc('pgf', texsystem='pdflatex')
     fig, ax = plt.subplots(figsize=(8,5), constrained_layout=False)
-    fig.set_rasterized(True) # https://stackoverflow.com/questions/19638773/matplotlib-plots-lose-transparency-when-saving-as-ps-eps
+    # fig.set_rasterized(True) # https://stackoverflow.com/questions/19638773/matplotlib-plots-lose-transparency-when-saving-as-ps-eps
     plt.subplots_adjust(left=None, bottom=None, right=0.85, top=None, wspace=None, hspace=None)
 
     return fig, ax, font
@@ -38,9 +40,10 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
     OC = upper_bound_objectives[0] # ripple performance
     OB = upper_bound_objectives[1] # -efficiency
     OA = upper_bound_objectives[2] # -TRV
+    # print('888888888888888888', upper_bound_objectives, OC, OB, OA)
     return_tuples = []
     for idx, chromosome in enumerate(_swarm_data):
-        if chromosome[-1] < OC and chromosome[-2] < OB and chromosome[-3] < OA:
+        if chromosome[-1] <= OC and chromosome[-2] <= OB and chromosome[-3] <= OA:
             # print('\n', idx, _swarm_project_names[idx], chromosome[::-1])
             return_tuples.append((idx, _swarm_project_names[idx], chromosome[::-1]))
 
@@ -251,18 +254,23 @@ def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dic
     prob = pg.problem(udp)
     popsize = fea_config_dict["moo.popsize"]
 
-    swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(prob, _swarm_data, popsize, fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
-    print(len(swarm_data_on_pareto_front), len(swarm_data_on_pareto_front[0]))
+    swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(
+        prob, _swarm_data, popsize, 
+        fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
+    print('[utility_postprocess.py]', len(swarm_data_on_pareto_front), len(swarm_data_on_pareto_front[0]))
 
     # list_of_swarm_data_on_pareto_front.append(swarm_data_on_pareto_front)
 
     fits = [el[-3:] for el in swarm_data_on_pareto_front]
     list_alpha_st = [el[0] for el in swarm_data_on_pareto_front]
     list_ripple_sum = [el[-1] for el in swarm_data_on_pareto_front]
-    scatter_handle, auto_optimal_designs = utility_moo.my_2p5d_plot_non_dominated_fronts(fits, comp=[0,1], marker=marker, up_to_rank_no=1, ax=ax, fig=fig, no_colorbar=True, z_filter=z_filter, label=label, bool_return_auto_optimal_design=True)
+    scatter_handle, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = utility_moo.my_2p5d_plot_non_dominated_fronts(\
+        fits, comp=[0,1], marker=marker, up_to_rank_no=1, ax=ax, fig=fig, no_colorbar=True, \
+        z_filter=z_filter, label=label, \
+        bool_return_auto_optimal_design=True, swarm_data_on_pareto_front=swarm_data_on_pareto_front)
 
     if bool_return_more_details:
-        return scatter_handle, more_info, auto_optimal_designs
+        return scatter_handle, more_info, auto_optimal_designs_fitnesses, auto_optimal_designs_xf
     else:
         return scatter_handle
     # ripple_ax = plt.figure().gca()
@@ -438,6 +446,7 @@ class SwarmAnalyzer(object):
         else:
             ad_list_sorted = [ad_list[排名-1] for 排名 in builtins.order ]
 
+        print('[utility_postprocess.py] ')
         for ind, ad in enumerate(ad_list_sorted):
             builtins.ad = ad # 
             print(f'\n[{ind+1}]', ad.select_spec, len(ad.analyzer.swarm_data_xf),  '\n')
@@ -455,7 +464,7 @@ class SwarmAnalyzer(object):
 
             # 绘制 Pareto front
             sys.stdout = open(os.devnull, 'w')
-            scatter_handle, more_info, auto_optimal_designs = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+            scatter_handle, more_info, auto_optimal_designs_fitnesses = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
             sys.stdout = sys.__stdout__
 
             df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], auto_optimal_designs[0], auto_optimal_designs[1], auto_optimal_designs[2]] # tier 1 size
@@ -490,6 +499,7 @@ class SwarmAnalyzer(object):
                           swarm_data_container.l_power_factor[0]) ]
         df_dict[select_spec] = list_of_table_column
 
+        print('[utility_postprocess.py] ')
         print('-'*len(select_spec) + '\tTRV, FRW, Trip, Em, Ea, eta, TRV, PF')
         print('\t', select_spec, ', '.join(list_of_table_column))
         print('\trated_total_loss                    :', swarm_data_container.l_rated_total_loss                    [_best_index], 'W')
@@ -527,7 +537,7 @@ class SwarmAnalyzer(object):
         #colors # https://www.schemecolor.com/color/green
         # colors = ['#C766A1','#F49762','#FFEC8A','#A1D47B', '#32D081', '#CCEFAB', '#F66867', '#F7DD7D', '#5BC5EA', '#3D93DD']
         colors = ['#C766A1','#F49762','#FFEC8A','#A1D47B']
-        labels = ['Iron', 'Magnet', 'Copper', 'Windage']
+        labels = ['Iron', 'Rotor\\Joule', 'Stator\\Joule', 'Windage']
 
         #explsion
         explode = tuple([0.025 for i in range(len(labels))]) # (0.025,0.025,0.025,0.025,0.025,0.025)
@@ -730,6 +740,122 @@ class SwarmAnalyzer(object):
 ''' Below is tailored for ACMOP
 '''
 
+def call_selection_criteria(ad, upper_bound_objectives, best_idx=None, proj_name=None):
+    return selection_criteria(ad, 
+                            ad.analyzer.swarm_data_xf, 
+                            ad.analyzer.swarm_data_project_names, 
+                            upper_bound_objectives=upper_bound_objectives, 
+                                best_idx=best_idx, proj_name=proj_name,
+                                # best_idx=-1, proj_name='NONE', 
+                                # best_idx=1867, proj_name='proj1868-PS-variant0-1868_IDBLIM-PS-variant0-1868', 
+                                Q=ad.spec_input_dict['Qs'], p=ad.spec_input_dict['p'])
+
+def donut_chart(total_loss, sizes, Qs, p, ps, Qr=None, output_dir=None):
+    print('\t[utility_postprocess.py] Validate:', np.sum(sizes)*total_loss, '=', total_loss)
+    print('\t', sizes, total_loss)
+
+    #colors # https://www.schemecolor.com/color/green
+    # colors = ['#C766A1','#F49762','#FFEC8A','#A1D47B', '#32D081', '#CCEFAB', '#F66867', '#F7DD7D', '#5BC5EA', '#3D93DD']
+    colors = ['#C766A1','#F49762','#FFEC8A','#A1D47B']
+    # labels = ['Iron', 'Magnet', 'Copper', 'Windage']
+    labels = ['Iron', 'Rotor\nJoule', 'Stator\nJoule', 'Windage']
+
+    #explsion
+    explode = tuple([0.025 for i in range(len(labels))]) # (0.025,0.025,0.025,0.025,0.025,0.025)
+
+    import matplotlib as mpl
+    mpl.rcParams['font.size'] = 15.0
+    mpl.rcParams['font.family'] = ['Times New Roman']
+    mpl.rcParams['font.family'] = 'sans-serif'
+    font = {'family' : 'Times New Roman', #'serif',
+        'color' : 'darkblue',
+        'weight' : 'normal',
+        'size' : 14,}
+    fig = plt.figure()
+    ax1 = plt.gca()
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5, edgecolor='white')
+    ax1.text(-0.30, 0, r'Total: $%.0f$ W'%(total_loss), color='tomato', bbox=props, fontsize=20)
+    patches, texts, autotexts = ax1.pie(sizes, colors = colors, labels=labels, autopct='%1.0f%%', startangle=0, pctdistance=0.50, explode = explode, normalize=True) # MatplotlibDeprecationWarning: normalize=None does not normalize if the sum is less than 1 but this behavior is deprecated since 3.3 until two minor releases later. After the deprecation period the default value will be normalize=True. To prevent normalization pass normalize=False
+    [ _.set_fontsize(20) for _ in texts]
+    [ _.set_fontsize(20) for _ in autotexts]
+    #draw circle
+    centre_circle = plt.Circle((0,0),0.70,fc='white')
+    ax1.add_artist(centre_circle)
+    # Equal aspect ratio ensures that pie is drawn as a circle
+    ax1.axis('equal')  
+
+    # plt.tight_layout()
+    # fig.tight_layout()
+    if output_dir is not None:
+        if Qr is not None:
+            # figname = f'{os.path.dirname(__file__)}/Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}Qr{Qr}-{builtins.folder_of_collection}.pdf'
+            figname = f'{output_dir}Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}Qr{Qr}-{ad.select_spec.replace(" ", "_")}.pdf'
+        else:
+            # figname = f'{os.path.dirname(__file__)}/Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}-{builtins.folder_of_collection}.pdf'
+            figname = f'{output_dir}Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}-{ad.select_spec.replace(" ", "_")}.pdf'
+        fig.savefig(figname, format='pdf', dpi=600, bbox_inches='tight', pad_inches=0.0, transparent=True)
+        print('\tSave donuts loss chart to', figname, '\n')
+        # https://medium.com/@kvnamipara/a-better-visualisation-of-pie-charts-by-matplotlib-935b7667d77f
+
+    # 如果转速可以变化，可以画成Stack Plots
+    # https://www.youtube.com/watch?v=xN-Supd4H38
+    # ax1.legend(loc=(0.05, 0.07))
+
+    return fig
+
+def performance_table_plus_donut_chart(ad, folder_as_select_spec, _best_index, _best_individual_data, output_dir=None):
+
+    ad.analyzer.prepare_data_for_post_processing()
+
+    # print('\tBest:', _best_index, _best_individual_data)
+
+    list_of_table_column = ['%.3f'%(el) for el in
+                    (   ad.analyzer.TRV[_best_index]/1000,
+                        ad.analyzer.FRW[_best_index],
+                        ad.analyzer.TorqueRipple[_best_index]*100,
+                        ad.analyzer.Em[_best_index]*100,
+                        ad.analyzer.Ea[_best_index],
+                        ad.analyzer.RatedEfficiency[_best_index],
+                        ad.analyzer.Cost[_best_index],
+                        # -_best_individual_data[-2]*100, # +effciency
+                        # -_best_individual_data[-3],     # TRV or -cost
+                        ad.analyzer.PowerFactor[_best_index]) ]
+    # df_dict[folder_as_select_spec] = list_of_table_column
+
+    print('[utility_postprocess.py] ')
+    print('-'*len(folder_as_select_spec) + '\tTRV, FRW, Trip, Em, Ea, eta, TRV, PF')
+    print('\t', folder_as_select_spec, ', '.join(list_of_table_column))
+    print('\trated_total_loss                    :', ad.analyzer.l_rated_total_loss                    [_best_index], 'W')
+    print('\trated_stator_copper_loss_along_stack:', ad.analyzer.l_rated_stator_copper_loss_along_stack[_best_index], 'W')
+    print('\trated_rotor_copper_loss_along_stack :', ad.analyzer.l_rated_rotor_copper_loss_along_stack [_best_index], 'W')
+    print('\tstator_copper_loss_in_end_turn      :', ad.analyzer.l_stator_copper_loss_in_end_turn      [_best_index], 'W')
+    print('\trotor_copper_loss_in_end_turn       :', ad.analyzer.l_rotor_copper_loss_in_end_turn       [_best_index], 'W')
+    print('\trated_iron_loss                     :', ad.analyzer.l_rated_iron_loss                     [_best_index], 'W')
+    print('\trated_windage_loss                  :', ad.analyzer.l_rated_windage_loss                  [_best_index], 'W')
+    print('\trated_magnet_Joule_loss             :', ad.analyzer.l_rated_magnet_Joule_loss             [_best_index], 'W')
+    # print('\trated_rotor_volume                  :', ad.analyzer.RatedVol    [_best_index], 'm3')
+    # print('\trated_rotor_weight                  :', ad.analyzer.RatedWeight [_best_index], 'N')
+    print('\trated_stack_length                  :', ad.analyzer.RatedStkLen [_best_index], 'mm')
+    total_loss = ad.analyzer.l_rated_total_loss[_best_index]
+    sizes_in_percentage = np.array( [ ad.analyzer.l_rated_iron_loss[_best_index],
+                        ad.analyzer.l_rated_magnet_Joule_loss[_best_index] + ad.analyzer.l_rated_rotor_copper_loss_along_stack [_best_index] + ad.analyzer.l_rotor_copper_loss_in_end_turn[_best_index], # <- l_rotor_copper_loss_in_end_turn only exists for IM, there is no l_rotor_copper_loss_in_end_turn for PM motor.
+                        ad.analyzer.l_rated_stator_copper_loss_along_stack[_best_index] + ad.analyzer.l_stator_copper_loss_in_end_turn[_best_index], 
+                        ad.analyzer.l_rated_windage_loss[_best_index]
+                        ]
+                    ) / total_loss
+
+    # print('\n'.join([el for el in dir(ad) if not el.startswith('__')]))
+    # print()
+    # print('\n'.join([el for el in dir(ad) if not el.startswith('__')]))
+    fig = donut_chart(total_loss, sizes_in_percentage, 
+                ad.spec_input_dict['Qs'], 
+                ad.spec_input_dict['p'],
+                ad.spec_input_dict['ps'],
+                ad.spec_input_dict['Qr'] if 'Qr' in ad.spec_input_dict.keys() else None,
+                output_dir=output_dir
+                )
+    return list_of_table_column, fig
+
 # def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, 
 #                             fea_config_dict=None, z_filter=None,
 #                             bool_return_more_details=False):
@@ -762,7 +888,7 @@ class SwarmAnalyzer(object):
 #     # ripple_ax.set_ylabel('ripple sum')
 
 
-def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None):
+def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None, bool_return_auto_optimal_designs_xf=True):
     def get_plot():
         # mpl.style.use('classic')
         mpl.rcParams['mathtext.fontset'] = 'stix'
@@ -781,12 +907,13 @@ def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None):
         # plt.rc('text', usetex=True) # https://github.com/matplotlib/matplotlib/issues/4495/
         # plt.rc('pgf', texsystem='pdflatex')
         fig, ax = plt.subplots(figsize=(8,5), constrained_layout=False)
-        fig.set_rasterized(True) # https://stackoverflow.com/questions/19638773/matplotlib-plots-lose-transparency-when-saving-as-ps-eps
+        # fig.set_rasterized(True) # https://stackoverflow.com/questions/19638773/matplotlib-plots-lose-transparency-when-saving-as-ps-eps
         plt.subplots_adjust(left=None, bottom=None, right=0.85, top=None, wspace=None, hspace=None)
-
         return fig, ax, font
     fig, ax, font = get_plot()
     df_dict = dict()
+    optimal_fitness_dict = dict()
+    optimal_xf_dict = dict()
 
     for ind, (folder, mop) in enumerate(swarm_dict.items()):
         ad = builtins.ad = mop.ad
@@ -800,17 +927,21 @@ def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None):
             label = f'p{p}ps{ps}Qs{Qs}'
         marker = f'${ind+1}$'
 
-        print([len(el) for el in ad.analyzer.swarm_data_xf])
+        # print([len(el) for el in ad.analyzer.swarm_data_xf])
 
         # 绘制 Pareto front
         # utility.blockPrint()
-        scatter_handle, more_info, auto_optimal_designs = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+        scatter_handle, more_info, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
         # utility.enablePrint()
 
+        # Save to dictionaries
         df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], 
-                                    [round(el,1) for el in auto_optimal_designs[0]], 
-                                    [round(el,1) for el in auto_optimal_designs[1]], 
-                                    [round(el,1) for el in auto_optimal_designs[2]]] # tier 1 size
+                                    [round(el,1) for el in auto_optimal_designs_fitnesses[0]], 
+                                    [round(el,1) for el in auto_optimal_designs_fitnesses[1]], 
+                                    [round(el,1) for el in auto_optimal_designs_fitnesses[2]]] # tier 1 size
+        optimal_fitness_dict[ad.select_spec] = auto_optimal_designs_fitnesses
+        optimal_xf_dict[ad.select_spec] = auto_optimal_designs_xf
+
         # print(more_info)
         # print(auto_optimal_designs)
         # break
@@ -825,6 +956,13 @@ def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None):
         fname = f'{os.path.dirname(__file__)}/ParetoFrontOverlapped-{ad.select_spec.replace(" ", "_")}.pdf' # builtins.folder_of_collection
     else:
         fname = f'{output_dir}ParetoFrontOverlapped-{ad.select_spec.replace(" ", "_")}.pdf' # builtins.folder_of_collection
-    print('[utility_postprocess.py] save to ', fname)
+    print('[utility_postprocess.py] save Pareto Front Plot to ', fname)
     fig.savefig(fname, format='pdf', dpi=400, transparent=True) # 不能用bbox_inches='tight'，否则colorbar 会偏
-    return df, fig
+
+    if bool_return_auto_optimal_designs_xf:
+        # auto_optimal_designs_xf = []
+        # for fitness in auto_optimal_designs_fitnesses:
+        #     auto_optimal_designs_xf.append(SwarmAnalyzer.call_selection_criteria(ad, fitness[::-1])) # 我也不知道为什么fitness要倒过来……改为：OC, OB, OA
+        return df, fig, optimal_fitness_dict, optimal_xf_dict
+    else:
+        return df, fig

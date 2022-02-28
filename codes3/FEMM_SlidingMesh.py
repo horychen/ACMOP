@@ -266,11 +266,11 @@ class Individual_Analyzer_FEMM_Edition(object):
         # Eric suggests Ea is 1 deg. But I think this may be too much emphasis on Ea so large Trip does not matter anymore (not verified yet).
         list_weighted_ripples = [self.normalized_torque_ripple/0.05, self.sfv.normalized_force_error_magnitude/0.05, self.sfv.force_error_angle]
 
-        if 'IM' in acm_variant.template.machine_type:
-            # - Torque per Rotor Volume
-            f1_IM = - required_torque / rated_rotor_volume
-            f1 = f1_IM
-        elif 'PMSM' in acm_variant.template.machine_type:
+
+        # Torque per Rotor Volume
+        TRV = required_torque / rated_rotor_volume
+
+        if True:
             # - Cost
             price_per_volume_steel    = 0.28  * 61023.744 # $/in^3 (M19 Gauge26) # 0.23 for low carbon, semi-processed 24 Gauge electrical steel
             price_per_volume_copper   = 1.2   * 61023.744 # $/in^3 wire or bar or end-ring
@@ -280,7 +280,10 @@ class Individual_Analyzer_FEMM_Edition(object):
             # Vol_Fe = (2*acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
             Vol_Fe = ( np.pi*(acm_variant.template.d['GP']['mm_r_os'].value*1e-3)**2 - np.pi*(acm_variant.template.d['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
 
-            Vol_PM = (acm_variant.rotorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
+            if 'PMSM' in acm_variant.template.machine_type:
+                Vol_PM = (acm_variant.rotorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
+            elif 'IM' in acm_variant.template.machine_type:
+                Vol_PM = 0.0
 
             print('[Loss-FEMMSlidingMesh.py] Gross-Area_Fe', (acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2        *1e6, 'mm^2')
             print('[Loss-FEMMSlidingMesh.py] Gross-Area_Cu (est.)',   Vol_Cu/(rated_stack_length_mm*1e-3)                     *1e6, 'mm^2')
@@ -288,18 +291,27 @@ class Individual_Analyzer_FEMM_Edition(object):
             print('[Loss-FEMMSlidingMesh.py] Gross-Volume_Fe',    Vol_Fe, 'm^3')
             print('[Loss-FEMMSlidingMesh.py] Gross-Volume_Cu',    Vol_Cu, 'm^3')
             print('[Loss-FEMMSlidingMesh.py] Gross-Volume_PM',    Vol_PM, 'm^3')
-            f1_PMSM =    Vol_Fe * price_per_volume_steel \
+            Cost =    Vol_Fe * price_per_volume_steel \
                     +    Vol_Cu * price_per_volume_copper\
                     +    Vol_PM * price_per_volume_magnet
             print('[Loss-FEMMSlidingMesh.py] Cost Fe: $', Vol_Fe * price_per_volume_steel )
             print('[Loss-FEMMSlidingMesh.py] Cost Cu: $', Vol_Cu * price_per_volume_copper)
             print('[Loss-FEMMSlidingMesh.py] Cost PM: $', Vol_PM * price_per_volume_magnet)
-            f1 = f1_PMSM
 
-        # - Efficiency @ Rated Power
-        f2 = - rated_efficiency
-        # Ripple Performance (Weighted Sum)
-        f3 = sum(list_weighted_ripples)
+        # if 'IM' in acm_variant.template.machine_type:
+        # elif 'PMSM' in acm_variant.template.machine_type:
+        if acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'TorqueDensity':
+            f1 = -TRV
+        elif acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'Cost':
+            f1 = Cost
+
+        if acm_variant.template.fea_config_dict["moo.fitness_OB"] == 'Efficiency':
+            # - Efficiency @ Rated Power
+            f2 = - rated_efficiency
+
+        if acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'BearinglessRippleSum':
+            # Ripple Performance (Weighted Sum)
+            f3 = sum(list_weighted_ripples)
 
         FRW = self.sfv.ss_avg_force_magnitude / rotor_weight
         print('[Loss-FEMMSlidingMesh.py] FRW:', FRW, ', Rotor weight:', rotor_weight, '[N], Stack length:', acm_variant.template.d['EX']['mm_template_stack_length'], 'mm, Rated stack length:', rated_stack_length_mm, 'mm')
@@ -328,6 +340,10 @@ class Individual_Analyzer_FEMM_Edition(object):
         spec_performance_dict['f1']  = f1
         spec_performance_dict['f2']  = float(f2)
         spec_performance_dict['f3']  = f3
+        spec_performance_dict['Cost'] = Cost
+        spec_performance_dict['RatedEfficiency'] = float(rated_efficiency)
+        spec_performance_dict['BearinglessRippleSum'] = sum(list_weighted_ripples)
+        spec_performance_dict['TRV'] = TRV
         spec_performance_dict['FRW'] = FRW
         spec_performance_dict['normalized_torque_ripple'] = self.normalized_torque_ripple
         spec_performance_dict['normalized_force_error_magnitude'] = self.normalized_force_error_magnitude = np.max(self.sfv.ss_max_force_err_abs) / self.sfv.ss_avg_force_magnitude
@@ -347,6 +363,8 @@ class Individual_Analyzer_FEMM_Edition(object):
         spec_performance_dict['rated_iron_loss'] = float(rated_iron_loss)
         spec_performance_dict['rated_windage_loss'] = rated_windage_loss
         spec_performance_dict['rated_magnet_Joule_loss'] = float(rated_magnet_Joule_loss)
+        spec_performance_dict['rated_rotor_volume'] = rated_rotor_volume
+        spec_performance_dict['rated_rotor_weight'] = rated_rotor_weight
         spec_performance_dict['str_results'] = ''
         # spec_performance_dict['Torque'] = None # this is dependent on stack length
         # spec_performance_dict['ForceAbs'] = None # this is dependent on stack length
@@ -667,13 +685,13 @@ class Individual_Analyzer_FEMM_Edition(object):
             exec(f'self.{key} = df.{key}')
         print('DEBUG FEMM load data:', self.femm_torque)
 
-    def save_time_domain_data(self):
+    def save_time_domain_data(self, counter):
         import pandas as pd
         df_dict = {}
         for key in self.list_of_time_domain_attributes:
             exec(f'df_dict[{key}] = self.{key}')
         df = pd.DataFrame.from_dict(df_dict)
-        df.to_pickle(self.fea_config_dict['output_dir']+self.select_spec)
+        df.to_pickle(self.fea_config_dict['output_dir']+self.select_spec+f'ind{counter:94d}')
 
 class FEMM_SlidingMesh(object):
 
@@ -1196,20 +1214,20 @@ class FEMM_SlidingMesh(object):
         print('[FEMM_SlidingMesh.py] Start collecting .ans results one by one...')
         if True:
             for id_solver in range(number_of_parallel_solve):
-                with open(f'paraResults{id_solver}.pkl', 'rb') as pickle_load:
-                    paraResults = pickle.load(pickle_load)
+                with open(f'parallelResults{id_solver}.pkl', 'rb') as pickle_load:
+                    parallelResults = pickle.load(pickle_load)
                 if id_solver == 0:
-                    b = paraResults['b']
-                    A = paraResults['A']
-                    M = paraResults['M']
-                    z = paraResults['z']
-                    a = paraResults['a']
-                    g = paraResults['g']
-                    probinfo = paraResults['probinfo']
+                    b = parallelResults['b']
+                    A = parallelResults['A']
+                    M = parallelResults['M']
+                    z = parallelResults['z']
+                    a = parallelResults['a']
+                    g = parallelResults['g']
+                    probinfo = parallelResults['probinfo']
                 else:
-                    b += paraResults['b']
-                    A += paraResults['A']
-                    M += paraResults['M']
+                    b += parallelResults['b']
+                    A += parallelResults['A']
+                    M += parallelResults['M']
             self.acm_variant.analyzer.input_paraSolveResults(z,a,g,probinfo,b,A,M, self.step_size_sec, self.step_size_mech_deg)
         else:
             ''' Collecting results after all .fem files are solved (easy to code but apparently this takes more time for colelcting)

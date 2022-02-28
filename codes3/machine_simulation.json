@@ -16,7 +16,11 @@
         "femm.number_of_parallel_solve": 8,
         "moo.popsize": 15,
         "moo.apply_constraints": false,
-        "moo.save_acm_variant_object_as_jsonpickle": true
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#041 FEMM PMSM Cogging Torque": {

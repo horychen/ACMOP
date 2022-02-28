@@ -1,5 +1,6 @@
 .*/
 
+streamllit_user_session_data.json
 *.pkl
 
 # temp

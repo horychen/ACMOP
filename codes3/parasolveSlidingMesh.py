@@ -29,7 +29,7 @@ femm.openfemm(True) # bHide
 # print('mi_smartmesh is off')
 
 bool_initialized = False
-paraResults = {}
+parallelResults = {}
 for index in range(id_solver, ns, number_of_parallel_solve):
 
     if os.path.exists(project_file_name[:-4] + f'-{index:03d}.ans'):
@@ -127,15 +127,15 @@ for index in range(id_solver, ns, number_of_parallel_solve):
     print(f'Total time: {toc - tic:.1f} s.')
 femm.closefemm()
 
-paraResults['b'] = b
-paraResults['A'] = A
-paraResults['M'] = M
+parallelResults['b'] = b
+parallelResults['A'] = A
+parallelResults['M'] = M
 # print(id_solver, M)
 if id_solver == 0:
-    paraResults['z'] = z
-    paraResults['a'] = a
-    paraResults['g'] = g
-    paraResults['probinfo'] = probinfo
+    parallelResults['z'] = z
+    parallelResults['a'] = a
+    parallelResults['g'] = g
+    parallelResults['probinfo'] = probinfo
 import pickle
-with open(f'paraResults{id_solver}.pkl', 'wb') as pickle_file:
-    pickle.dump(paraResults, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+with open(f'parallelResults{id_solver}.pkl', 'wb') as pickle_file:
+    pickle.dump(parallelResults, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)

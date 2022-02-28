@@ -42,7 +42,7 @@ def my_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_rank_no=
                 break
 
     return ax
-def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_rank_no=1, no_text=True, ax=None, fig=None, no_colorbar=False, z_filter=None, label=None, bool_return_auto_optimal_design=False):
+def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_rank_no=1, no_text=True, ax=None, fig=None, no_colorbar=False, z_filter=None, label=None, bool_return_auto_optimal_design=False, swarm_data_on_pareto_front=None):
     # this is adapted from pygmo package but there is a bug therein so I write my own function (I also initiated an issue at their Github page and they acknowledge the issue).
 
     # from pylab import mpl
@@ -56,7 +56,7 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_ran
 
     # We plot
     # fronts, dl, dc, ndr = pg.fast_non_dominated_sorting(points)
-    fronts, _, _, _= pg.fast_non_dominated_sorting(points)
+    fronts, _, _, _= pg.fast_non_dominated_sorting(points) # TODO: There is no need to sort again, the passed-in data is already sorted?
 
     # We define the colors of the fronts (grayscale from black to white)
     cl = list(zip(np.linspace(0.9, 0.1, len(fronts)),
@@ -72,52 +72,61 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_ran
         count += 1
 
         # Frist compute the points coordinates
-        x_scale = 1
-        y_scale = 1
-        z_scale = 1
-        if comp[0] == 1: # efficency
-            x_scale = 100
-        if comp[1] == 1: # efficency
-            y_scale = 100
-        if z_comp == 1: # efficency
-            z_scale = 100
+        x_scale = 100 if comp[0] == 1 else 1 # efficency's dimension is [%]
+        y_scale = 100 if comp[1] == 1 else 1 # efficency's dimension is [%]
+        z_scale = 100 if z_comp  == 1 else 1 # efficency's dimension is [%]
+
         x = [points[idx][comp[0]]*x_scale for idx in front]
         y = [points[idx][comp[1]]*y_scale for idx in front]
-        z = [points[idx][z_comp] *z_scale for idx in front]
+        z = [points[idx][z_comp ]*z_scale for idx in front]
+        swarm_data_xf_at_this_front = [swarm_data_on_pareto_front[idx] for idx in front] # TODO: There is no need to sort again, the passed-in data is already sorted?
 
         # # We plot the points
         # for idx in front:
         #     ax.plot(points[idx][comp[0]], points[idx][comp[1]], marker=marker, color=cl[ndr])
 
-        # Then sort them by the first objective
-        tmp = [(a, b, c) for a, b, c in zip(x, y, z)]
-        tmp = sorted(tmp, key=lambda k: k[0])
-        # Now plot using step
-        ax.step([coords[0] for coords in tmp], 
-                [coords[1] for coords in tmp], color=cl[ndr], where='post')
+        if True:
+            # Then sort them by the first objective
+            tmp = [(a, b, c) for a, b, c in zip(x, y, z)]
+            tmp = sorted(tmp, key=lambda k: k[0])
+            # Now plot using step
+            ax.step([coords[0] for coords in tmp], 
+                    [coords[1] for coords in tmp], color=cl[ndr], where='post')
 
         # Now add color according to the value of the z-axis variable usign scatter
         if z_filter is not None:
             z = np.array(z)
+            z_filtered_swarm_data_xf_at_this_front = [xf for z_value, xf in zip(z, swarm_data_xf_at_this_front) if z_value<z_filter]
             x = np.array(x)[z<z_filter]
             y = np.array(y)[z<z_filter]
             z = z[z<z_filter]
+            if len(z) != len(z_filtered_swarm_data_xf_at_this_front):
+                raise Exception('[New Regular!] Apply swarm_data_xf to this function!')
             print('Cost, -Efficency, Ripple Sum')
             min_a_design = None; min_a_value = 99999999.0
             min_b_design = None; min_b_value = 99999999.0
             min_c_design = None; min_c_value = 99999999.0
-            for a,b,c in zip(x,y,z):
+            if len(z_filtered_swarm_data_xf_at_this_front) != len(z):
+                raise Exception('[New Regular!] Apply swarm_data_xf to this function!')
+            for (design_xf,a,b,c) in zip(z_filtered_swarm_data_xf_at_this_front,x,y,z):
+                # print('DEBUG', design_xf[-5:],a,b,c)
                 if a < min_a_value: 
                     min_a_value = a; 
                     min_a_design = (a,b,c)
+                    min_a_design_xf = design_xf
                 if b < min_b_value: 
                     min_b_value = b; 
                     min_b_design = (a,b,c)
+                    min_b_design_xf = design_xf
                 if c < min_c_value: 
                     min_c_value = c; 
                     min_c_design = (a,b,c)
-                print(a,b,c)
-            auto_optimal_design = (min_a_design, min_b_design, min_c_design)
+                    min_c_design_xf = design_xf
+            auto_optimal_design_fitnesses = (min_a_design, min_b_design, min_c_design)
+            auto_optimal_design_xf        = (min_a_design_xf, min_b_design_xf, min_c_design_xf)
+            print('A', auto_optimal_design_fitnesses)
+            print('B', auto_optimal_design_xf[-5:])
+            print('C', len(x), len(z_filtered_swarm_data_xf_at_this_front))
             # scatter_handle = ax.scatter(x, y, c=z,  edgecolor=None, alpha=0.5, cmap='Spectral', marker=marker, zorder=99, vmin=0, vmax=z_filter, label=label) #'viridis'    Spectral
             scatter_handle = ax.scatter(x, y, c=z,  edgecolor=None, alpha=0.5, cmap='plasma', marker=marker, zorder=99, vmin=0, vmax=z_filter, label=label)
                 # ValueError: Colormap Option A is not recognized. Possible values are: Accent, Accent_r, Blues, Blues_r, BrBG, BrBG_r, BuGn, BuGn_r, BuPu, BuPu_r, CMRmap, CMRmap_r, Dark2, Dark2_r, GnBu, GnBu_r, Greens, Greens_r, Greys, Greys_r, OrRd, OrRd_r, Oranges, Oranges_r, PRGn, PRGn_r, Paired, Paired_r, Pastel1, Pastel1_r, Pastel2, Pastel2_r, PiYG, PiYG_r, PuBu, PuBuGn, PuBuGn_r, PuBu_r, PuOr, PuOr_r, PuRd, PuRd_r, Purples, Purples_r, RdBu, RdBu_r, RdGy, RdGy_r, RdPu, RdPu_r, RdYlBu, RdYlBu_r, RdYlGn, RdYlGn_r, Reds, Reds_r, Set1, Set1_r, Set2, Set2_r, Set3, Set3_r, Spectral, Spectral_r, Wistia, Wistia_r, YlGn, YlGnBu, YlGnBu_r, YlGn_r, YlOrBr, YlOrBr_r, YlOrRd, YlOrRd_r, afmhot, afmhot_r, autumn, autumn_r, binary, binary_r, bone, bone_r, brg, brg_r, bwr, bwr_r, cividis, cividis_r, cool, cool_r, coolwarm, coolwarm_r, copper, copper_r, cubehelix, cubehelix_r, flag, flag_r, gist_earth, gist_earth_r, gist_gray, gist_gray_r, gist_heat, gist_heat_r, gist_ncar, gist_ncar_r, gist_rainbow, gist_rainbow_r, gist_stern, gist_stern_r, gist_yarg, gist_yarg_r, gnuplot, gnuplot2, gnuplot2_r, gnuplot_r, gray, gray_r, hot, hot_r, hsv, hsv_r, inferno, inferno_r, jet, jet_r, magma, magma_r, nipy_spectral, nipy_spectral_r, ocean, ocean_r, pink, pink_r, plasma, plasma_r, prism, prism_r, rainbow, rainbow_r, seismic, seismic_r, spring, spring_r, summer, summer_r, tab10, tab10_r, tab20, tab20_r, tab20b, tab20b_r, tab20c, tab20c_r, terrain, terrain_r, twilight, twilight_r, twilight_shifted, twilight_shifted_r, viridis, viridis_r, winter, winter_r
@@ -134,6 +143,7 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_ran
                 # ['Pastel1', 'Pastel2', 'Paired', 'Accent', 'Dark2', 'Set1', 'Set2', 'Set3', 'tab10', 'tab20', 'tab20b', 'tab20c']
                 # Miscellaneous
                 # ['flag', 'prism', 'ocean', 'gist_earth', 'terrain', 'gist_stern', 'gnuplot', 'gnuplot2', 'CMRmap', 'cubehelix', 'brg', 'hsv', 'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar']                                                                                    
+            pass
         else:
             scatter_handle = ax.scatter(x, y, c=z,  edgecolor=None, alpha=0.5, cmap='Spectral', marker=marker, zorder=99) #'viridis'
 
@@ -210,9 +220,9 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_ran
             if count >= up_to_rank_no:
                 break
     # Y730
-    # fig.savefig(r'C:\Users\horyc\Desktop/'+ '2p5D-%d%d.png'%(comp[0],comp[1]), dpi=300)
+    fig.savefig(r'C:\Users\horyc\Desktop/'+ '2p5D-%d%d.png'%(comp[0],comp[1]), dpi=300)
     if bool_return_auto_optimal_design:
-        return scatter_handle, auto_optimal_design
+        return scatter_handle, auto_optimal_design_fitnesses, auto_optimal_design_xf
     else:
         return scatter_handle
 def my_3d_plot_non_dominated_fronts(pop, paretoPoints, fea_config_dict, az=180, comp=[0, 1, 2], plot_option=1):
@@ -475,7 +485,7 @@ def my_print(ad, pop, _):
 
 def learn_about_the_archive(prob, swarm_data, popsize, fea_config_dict=None, len_s01=None, len_s02=None, bool_plot_and_show=False, bool_more_info=False):
     number_of_chromosome = len(swarm_data)
-    print('Archive size:', number_of_chromosome)
+    print('[utility_moo.py] Archive size:', number_of_chromosome)
     # for el in swarm_data:
     #     print('\t', el)
 
@@ -484,7 +494,7 @@ def learn_about_the_archive(prob, swarm_data, popsize, fea_config_dict=None, len
         pop_archive.set_xf(i, swarm_data[i][:-3], swarm_data[i][-3:])
 
     sorted_index = pg.sort_population_mo(points=pop_archive.get_f())
-    print('Sorted by domination rank and crowding distance:', len(sorted_index))
+    print('[utility_moo.py] Sorted by domination rank and crowding distance:', len(sorted_index))
     print('\t', sorted_index)
 
     # 这段代码对于重建种群来说不是必须的，单单sort_population_mo（包含fast_non_dominated_sorting和crowding_distance）就够了，
@@ -505,23 +515,26 @@ def learn_about_the_archive(prob, swarm_data, popsize, fea_config_dict=None, len
             if ind1 == 0:
                 rank1_ParetoPoints = fits_at_this_front
                 if len(front) < popsize:
-                    print('There are not enough chromosomes (%d) belonging to domination rank 1 (the best Pareto front).\nWill use rank 2 or lower to reach popsize of %d.'%(len(front), popsize))
+                    print('[utility_moo.py] There are not enough chromosomes (%d) belonging to domination rank 1 (the best Pareto front).\nWill use rank 2 or lower to reach popsize of %d.'%(len(front), popsize))
 
             # this crwdsit should be already sorted as well
             if len(fits_at_this_front) >= 2: # or else error:  A non dominated front must contain at least two points: 1 detected.
                 crwdst = pg.crowding_distance(fits_at_this_front)
             else:
-                print('A non dominated front must contain at least two points: 1 detected.')
+                print('[utility_moo.py] A non dominated front must contain at least two points: 1 detected.')
                 crwdst = [999999]
 
 
             more_info.append((rank_minus_1+1, len(front), len(sorted_index_at_this_front)))
-            print('\nRank/Tier', rank_minus_1+1, 'chromosome count:', len(front), len(sorted_index_at_this_front))
-            # print('\t', sorted_index_at_this_front.tolist())
-            # print('\t', crwdst)
-            print('\tindex in pop\t|\tcrowding distance')
-            for index, cd in zip(sorted_index_at_this_front, crwdst):
-                print('\t', index, '\t\t\t|', cd)
+            if rank_minus_1 <= 2:
+                print('\n\tRank/Tier', rank_minus_1+1, 'chromosome count:', len(front), len(sorted_index_at_this_front))
+                # print('\t', sorted_index_at_this_front.tolist())
+                # print('\t', crwdst)
+                print('\tindex in pop\t|\tcrowding distance')
+                for index, cd in zip(sorted_index_at_this_front, crwdst):
+                    print('\t', index, '\t\t\t|', cd)
+            else:
+                print('\n\tRank/Tier', rank_minus_1+1, 'chromosome count:', len(front), len(sorted_index_at_this_front), '(details are omitted)')
             ind1 = ind2
 
     sorted_vectors = [vectors[index].tolist() for index in sorted_index]

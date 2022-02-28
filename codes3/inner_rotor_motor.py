@@ -203,7 +203,7 @@ class template_machine_as_numbers(object):
         # 先拿个模板来，但是几何尺寸的变量值是旧的
         x_denorm_dict = self.get_x_denorm_dict_from_geometric_parameters(self.d['GP'])
 
-        print('[inner_rotor_motor.py] DEBUG x_denorm_dict:', x_denorm_dict.keys())
+        # print('[inner_rotor_motor.py] DEBUG x_denorm_dict:', x_denorm_dict.keys())
 
         # 对模板进行遍历，挨个把新的几何尺寸的值从x_denorm中读取出来并更新x_denorm_dict
         for key, new_val in zip(x_denorm_dict.keys(), x_denorm):
@@ -266,7 +266,7 @@ class variant_machine_as_objects(object):
                     print('\t', k,v)
             GP = self.template.update_geometric_parameters_using_x_denorm_dict(x_denorm_dict)
 
-        print('[inner_rotor_motor.py] DEBUG x_denorm length is', len(x_denorm), x_denorm)
+        # print('[inner_rotor_motor.py] DEBUG x_denorm length is', len(x_denorm), x_denorm)
 
         #test: yes, it is by reference!
         # print(self.template.d['GP'])

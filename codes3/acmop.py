@@ -2,6 +2,9 @@
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
 
 import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design
+# from codes3.population import VanGogh_JMAG
+
+import VanGogh_Cairo
 
 from matplotlib import projections # for part_initialDesign
 
@@ -174,7 +177,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         if True:
             ''' Default transient FEA
             '''
-            motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
+            motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm, counter='Initial')
             print('[acmop.py] Listing analyzer.spec_performance_dict:')
             for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
                 print('\t', k, v)
@@ -231,6 +234,17 @@ class AC_Machine_Optiomization_Wrapper(object):
             plt.show()
 
         print('[acmop.py] Check several things: 1. the winding initial excitation angle; 2. the rotor d-axis initial position should be orthoganal to winding excitation field.')
+
+    def part_evaluation_geometry(self, xf=[], counter='Cairo'):
+        print('\n ------- part_evaluation_geometry -------')
+        x_denorm = self.ad.acm_template.build_x_denorm()
+        print('--------xf is ', xf)
+        if xf != []:
+            x_denorm = xf[:len(x_denorm)]
+        acm_variant = self.ad.build_acm_variant(self.ad.acm_template, x_denorm, counter=counter)
+        toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=acm_variant.template.d['GP']['mm_r_os'].value*2.1, 
+                                                            height_in_points=acm_variant.template.d['GP']['mm_r_os'].value*2.1 )
+        toolCairo.draw_spmsm(acm_variant)
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[4] Optimization Part' Multi-Objective Optimization
@@ -515,7 +529,8 @@ def main():
     # mop.acm_template   # Module 2 (the execution code has been moved to the end of __post_init__ of AC_Machine_Optiomization_Wrapper)
     if True:
         # mop.part_evaluation() # Module 3
-        mop.part_optimization() # Module 4
+        mop.part_evaluation_geometry()
+        # mop.part_optimization() # Module 4
     else:
         if False:
             motor_design_variant = mop.reproduce_design_from_jsonpickle('p4ps5-Q12y1-0999') # Module 5 - reproduction of any design variant object

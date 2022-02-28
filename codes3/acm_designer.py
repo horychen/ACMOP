@@ -22,7 +22,7 @@ class Swarm_Data_Analyzer(object):
                 if 'Test' in swarm_data_as_dict.keys():
                     del swarm_data_as_dict['Test']
             self.number_of_chromosome = len(swarm_data_as_dict)
-
+            self.swarm_data_as_dict = swarm_data_as_dict
 
             ''' 2. Get swarm_data_xf
             '''
@@ -30,9 +30,10 @@ class Swarm_Data_Analyzer(object):
             #     for k2, v2 in v1.items():
             #         print(k1, k2, v2)
 
-            print('[acm_designer.py] Archive order:', list(list(swarm_data_as_dict.values())[0].values())[0]['x_denorm_dict'].keys() )
-            print('\tThe desired order is:', desired_x_denorm_dict.keys())
-            print('---'*30)
+            # DEBUG
+            # print('[acm_designer.py] Archive order:', list(list(swarm_data_as_dict.values())[0].values())[0]['x_denorm_dict'].keys() )
+            # print('\tThe desired order is:', desired_x_denorm_dict.keys())
+            # print('---'*30)
             def sort_as_desired(x_denorm_dict, desired_x_denorm_dict=None):
                 if desired_x_denorm_dict is None:
                     return list(x_denorm_dict.values())
@@ -52,59 +53,78 @@ class Swarm_Data_Analyzer(object):
                                     ]
             self.number_of_free_variables = len(self.swarm_data_xf[0]) - 3
 
-            print('[acm_designer.py]')
-            for ind, xf in enumerate(self.swarm_data_xf):
-                print(f'{ind:04d}', ',\t'.join([f'{el:.2f}' for el in xf]))
+            # DEBUG
+            # print('[acm_designer.py]')
+            # for ind, xf in enumerate(self.swarm_data_xf):
+            #     print(f'{ind:04d}', ',\t'.join([f'{el:.2f}' for el in xf]))
+
+            ''' 3. Get the list of other attribute by individuals (not needed for optimization)
+            '''
+                # self.swarm_data_project_names = [ self.decode(v)['Performance']['project_name'] for v in swarm_data_as_dict.values() ]
+                # self.prepare_data_for_post_processing(swarm_data_as_dict)
+            self.swarm_data_project_names = self.get_metric_of_the_whole_swarm('project_name')
 
     @staticmethod
     def decode(d):
         return list(d.values())[0]
 
+    def get_metric_of_the_whole_swarm(self, metric):
+        return [ self.decode(v)['Performance'][metric] for v in self.swarm_data_as_dict.values() ]
     def prepare_data_for_post_processing(self):
 
         ''' 3. Get the list of other attribute by individuals (not needed for optimization)
         '''
-        self.swarm_data_project_names = [ self.decode(v)['Performance']['project_name'] for v in swarm_data_as_dict.values() ]
-
         # self.machine_data.append([float(x) for x in raw[3].split(',')])
         # self.rated_data.append(  [float(x) for x in raw[4].split(',')])
-        # self.FRW.append(individual_FRW)
-        # self.Em.append(individual_Em)
-        # self.Ea.append(individual_Ea)
-        # self.RatedVol.append(individual_rated_rotor_volume)
-        # self.RatedWeight.append(individual_rated_rotor_weight)
-        # self.RatedStkLen.append(individual_rated_stack_length)
+        self.FRW = self.get_metric_of_the_whole_swarm('FRW')
+        self.Em = self.get_metric_of_the_whole_swarm('normalized_force_error_magnitude')
+        self.Ea = self.get_metric_of_the_whole_swarm('force_error_angle')
+        self.Tripple = self.get_metric_of_the_whole_swarm('normalized_torque_ripple')
+        # self.RatedVol = self.get_metric_of_the_whole_swarm('rated_rotor_volume')
+        # self.RatedWeight = self.get_metric_of_the_whole_swarm('rated_rotor_weight')
+        self.RatedStkLen = self.get_metric_of_the_whole_swarm('rated_stack_length_mm')
 
-        # self.l_OA = [raw[-3] for raw in self.swarm_data_xf]
-        # self.l_OB = [raw[-2] for raw in self.swarm_data_xf]
-        # self.l_OC = [raw[-1] for raw in self.swarm_data_xf]
-        # self.l_design_parameters = [raw[:-3] for raw in self.swarm_data_xf]
+        # self.f1 = [raw[-3] for raw in self.swarm_data_xf]
+        # self.f2 = [raw[-2] for raw in self.swarm_data_xf]
+        # self.f3 = [raw[-1] for raw in self.swarm_data_xf]
 
-        # # [power_factor, efficiency, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle]
-        # self.l_power_factor                     = [raw[0] for raw in self.machine_data]
-        # self.l_efficiency                       = [raw[1] for raw in self.machine_data]
-        # self.l_torque_average                   = [raw[2] for raw in self.machine_data]
-        # self.l_normalized_torque_ripple         = [raw[3] for raw in self.machine_data]
-        # self.l_ss_avg_force_magnitude           = [raw[4] for raw in self.machine_data]
-        # self.l_normalized_force_error_magnitude = [raw[5] for raw in self.machine_data]
-        # self.l_force_error_angle                = [raw[6] for raw in self.machine_data]
+        # [power_factor, efficiency, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle]
+        self.PowerFactor            = self.get_metric_of_the_whole_swarm('power_factor')
+        try:
+            self.Cost                = self.get_metric_of_the_whole_swarm('Cost')
+        except:
+            self.Cost                = np.array(self.get_metric_of_the_whole_swarm('f1'))
+        try:
+            self.TRV                = self.get_metric_of_the_whole_swarm('TRV')
+        except:
+            self.TRV                = - np.array(self.get_metric_of_the_whole_swarm('f1'))
+        try:
+            self.RatedEfficiency    = self.get_metric_of_the_whole_swarm('RatedEfficiency')
+        except:
+            self.RatedEfficiency    = - np.array(self.get_metric_of_the_whole_swarm('f2'))
+        self.TorqueRipple           = self.get_metric_of_the_whole_swarm('normalized_torque_ripple')
+        # self.torque_average                   = [raw[2] for raw in self.machine_data]
+        # self.ss_avg_force_magnitude           = [raw[4] for raw in self.machine_data]
+        # self.normalized_force_error_magnitude = [raw[5] for raw in self.machine_data]
+        # self.force_error_angle                = [raw[6] for raw in self.machine_data]
 
         # self.l_rated_shaft_power                    = [raw[0] for raw in self.rated_data]
         # self.l_rated_efficiency                     = [raw[1] for raw in self.rated_data]
-        # self.l_rated_total_loss                     = [raw[2] for raw in self.rated_data]
-        # self.l_rated_stator_copper_loss_along_stack = [raw[3] for raw in self.rated_data]
-        # self.l_rated_rotor_copper_loss_along_stack  = [raw[4] for raw in self.rated_data]
-        # self.l_stator_copper_loss_in_end_turn       = [raw[5] for raw in self.rated_data]
-        # self.l_rotor_copper_loss_in_end_turn        = [raw[6] for raw in self.rated_data]
-        # self.l_rated_iron_loss                      = [raw[7] for raw in self.rated_data]
-        # self.l_rated_windage_loss                   = [raw[8] for raw in self.rated_data]
-        # self.l_rated_rotor_volume                   = [raw[9] for raw in self.rated_data]
-        # self.l_rated_rotor_weight                   = [(V*8050*9.8) for V in self.l_rated_rotor_volume] # density of rotor is estimated to be that of steraw of 8050 g/cm^3
-        # self.l_rated_stack_length                   = [raw[10] for raw in self.rated_data] # new!
+        self.l_rated_total_loss                     = self.get_metric_of_the_whole_swarm('rated_total_loss') # [raw[2] for raw in self.rated_data]
+        self.l_rated_stator_copper_loss_along_stack = self.get_metric_of_the_whole_swarm('rated_stator_copper_loss_along_stack') # [raw[3] for raw in self.rated_data]
+        self.l_rated_rotor_copper_loss_along_stack  = self.get_metric_of_the_whole_swarm('rated_rotor_copper_loss_along_stack') # [raw[4] for raw in self.rated_data]
+        self.l_stator_copper_loss_in_end_turn       = self.get_metric_of_the_whole_swarm('stator_copper_loss_in_end_turn') # [raw[5] for raw in self.rated_data]
+        self.l_rotor_copper_loss_in_end_turn        = self.get_metric_of_the_whole_swarm('rotor_copper_loss_in_end_turn') # [raw[6] for raw in self.rated_data]
+        self.l_rated_iron_loss                      = self.get_metric_of_the_whole_swarm('rated_iron_loss') # [raw[7] for raw in self.rated_data]
+        self.l_rated_windage_loss                   = self.get_metric_of_the_whole_swarm('rated_windage_loss') # [raw[8] for raw in self.rated_data]
+        self.l_rated_magnet_Joule_loss              = self.get_metric_of_the_whole_swarm('rated_magnet_Joule_loss')
+        # self.l_rated_rotor_volume                   = self.get_metric_of_the_whole_swarm('rated_rotor_volume') # [raw[9] for raw in self.rated_data]
+        # self.l_rated_rotor_weight                   = self.get_metric_of_the_whole_swarm('rated_rotor_weight') # [(V*8050*9.8) for V in self.l_rated_rotor_volume] # density of rotor is estimated to be that of steraw of 8050 g/cm^3
+        self.l_rated_stack_length                   = self.get_metric_of_the_whole_swarm('rated_stack_length_mm') # [raw[10] for raw in self.rated_data] # new!
         # self.l_original_stack_length                = [raw[11] for raw in self.rated_data] # new!
         # self.l_original_rotor_weight                = [weight/rated*ori for weight, rated, ori in zip(self.l_rated_rotor_weight, self.l_rated_stack_length, self.l_original_stack_length)]
 
-        # # TODO: change to EX['mec_power'] and EX['the_speed']
+        # TODO: change to EX['mec_power'] and EX['the_speed']
         # required_torque = 50e3 / (30000/60*2*np.pi)         # TODO: should use rated stack length and torque average to compute this
         # self.l_TRV = [required_torque/raw for raw in self.l_rated_rotor_volume]
         # self.l_FRW = [F/W for W, F in zip(self.l_original_rotor_weight, self.l_ss_avg_force_magnitude)] # FRW
@@ -935,7 +955,7 @@ class acm_designer(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # Automatic Performance Evaluation (This is just a wraper)
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    def evaluate_design(self, acm_template, x_denorm, counter=999, counter_loop=1):
+    def evaluate_design(self, acm_template, x_denorm, counter, counter_loop=1):
         if 'PM' in acm_template.name:
             return self.fea_wrapper(acm_template, x_denorm, counter, counter_loop)
 
@@ -1018,7 +1038,7 @@ class acm_designer(object):
             EX = acm_variant.template.d['EX']
             self.save_to_disk(counter, acm_variant, acm_variant.analyzer.spec_performance_dict, GP, EX)
 
-            acm_variant.analyzer.save_time_domain_data() # TODO
+            acm_variant.analyzer.save_time_domain_data(counter) # TODO
 
             # Save also the object (acm_variant) to disk, but this takes a lot of disk space!
             if self.fea_config_dict['moo.save_acm_variant_object_as_jsonpickle'] == True:
@@ -1128,7 +1148,7 @@ class acm_designer(object):
                                         [ circuit_current_GroupBDW[index], terminal_voltage_GroupBDW[index], coil_fluxLinkage_GroupBDW[index] ] )
                     acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
                 acm_variant.analyzer.get_ss_data()
-            acm_variant.analyzer.save_time_domain_data() # TODO
+            acm_variant.analyzer.save_time_domain_data(counter) # TODO
             compare_with_FEMM()
             return acm_variant
 
@@ -1246,6 +1266,15 @@ class acm_designer(object):
         self.swarm_data = self.analyzer.swarm_data_xf
         return self.fea_config_dict['output_dir'] + select_spec + '.json'
 
+    def build_acm_variant(self, template, x_denorm, counter, counter_loop=1):
+        if 'SPMSM' in template.machine_type:
+            acm_variant = bearingless_spmsm_design.bearingless_spmsm_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        elif 'PMVM' in template.machine_type:
+            acm_variant = vernier_motor_design.vernier_motor_VShapePM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        else:
+            raise Exception('Not supported machine_type:', template.machine_type)
+        return acm_variant
+
     def fea_wrapper(self, template, x_denorm, counter, counter_loop, bool_re_evaluate=False):
         logger = logging.getLogger(__name__)
         msg = f'Run FEA for individual #{counter}'
@@ -1253,12 +1282,7 @@ class acm_designer(object):
         # print(msg)
 
         # get local design variant
-        if 'SPMSM' in template.machine_type:
-            self.acm_variant = acm_variant = bearingless_spmsm_design.bearingless_spmsm_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-        elif 'PMVM' in template.machine_type:
-            self.acm_variant = acm_variant = vernier_motor_design.vernier_motor_VShapePM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-        else:
-            raise Exception('Not supported machine_type:', template.machine_type)
+        acm_variant = self.build_acm_variant(template, x_denorm, counter, counter_loop)
 
         if 'JMAG' in self.select_fea_config_dict:
             # project name
@@ -1422,10 +1446,10 @@ class acm_designer(object):
         # quit()
 
         # TODO: Change indivudal name to be more useful
-        if counter_loop == 1:
-            im_variant.name = 'ind%d'%(counter)
-        else:
-            im_variant.name = 'ind%d-redo%d'%(counter, counter_loop)
+        # if counter_loop == 1:
+        #     im_variant.name = 'ind%d'%(counter)
+        # else:
+        #     im_variant.name = 'ind%d-redo%d'%(counter, counter_loop)
         # im_variant.spec = im_template.spec
         self.im_variant = im_variant
         self.femm_solver = FEMM_Solver.FEMM_Solver(self.im_variant, flag_read_from_jmag=False, freq=50) # eddy+static

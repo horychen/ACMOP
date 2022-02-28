@@ -213,9 +213,15 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
         # 初始化父类
         super(bearingless_spmsm_design_variant, self).__init__(template, x_denorm, counter, counter_loop)
 
-        # 检查几何变量之间是否有冲突
+        # Give it a name
+        self.name = f'ind{counter}'
+        self.name += f'-redo{counter_loop}' if counter_loop > 1 else ''
+
+        # Get geometric parameters and spec input
         GP = self.template.d['GP']
         SI = self.template.SI
+
+        # 检查几何变量之间是否有冲突
         self.check_invalid_design(GP, SI)
 
         # Parts

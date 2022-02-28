@@ -877,7 +877,11 @@ class Winding_Derivation(object):
 
         for ZONE in ['A', 'B', 'C']:
             pcc = [i for _angle, i in self.connection_star_raw_dict[ZONE]]
-            ncc = [i for _angle, i in self.connection_star_raw_dict[ZONE.lower()]]
+            try:
+                ncc = [i for _angle, i in self.connection_star_raw_dict[ZONE.lower()]]
+            except KeyError:
+                print('负60度相带里没有槽电势矢量，所以abc不存在于connection_star_raw_dict.keys()。')
+                ncc = [] # no negative connected coils
 
             if p_or_ps == self.ps or bool_study_suspension_subharmonics:
                 # suspension winding has different connection patten from the torque winding
@@ -916,8 +920,9 @@ def main_derivation():
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [  
                                 # (15, 30, 2, 3, 10, 0),
+                                (3, 12, 4, 5, 1, 0), # PEMD p4ps5
                                 # (3, 24, 1, 2, 9, 0),
-                                (3, 18, 2, 1, 1, 0), # David Meeker SPMLoss example  https://femm.info/wiki/spmloss
+                                # (3, 18, 2, 1, 1, 0), # David Meeker SPMLoss example  https://femm.info/wiki/spmloss
                                 # (3, 48, 2, 1, 12, 0), # XSQ
                                 # (3, 9, 4, 5, 1, 0), # Slessinv TIE.R1
                                 # (3, 18, 4, 5, 2, 0), # Slessinv TIE.R1 750W Servo
@@ -931,20 +936,19 @@ def main_derivation():
                                 # (3, 18, 2, 3, 4, 0), # 7            # ISMB 2021 Winding (No asymmetry in working harmonics)
                                 # (3, 18, 2, 3, 5, 0), # 8
                                 # (3, 18, 2, 3, 3, 0), # 9
-                                  # (3, 36, 2, 3, 8, 0), # 10
-                                  # (3, 36, 2, 3, 9, 0), # 11
-                                  # (3, 36, 2, 3, 7, 0), # 12
-                                  # (3, 27, 2, 3, 6, 0), # 13
-                                  # (3, 36, 2, 3,    8,   0), # Dec. 15, 2020
-                                  # (3, 36, 4, 5,    3,   0), # Jan. 19, 2021
-                                  # (3, 18, 8, 7,    1,   0), # Mar. 25, 2021 哔哩哔哩：一介介一
-                                  # (3, 18, 2, 3, 4, 0),                
-                                  # (3, 36, 3, 4, 5, 0),              # ISMB 2021 Winding design 7
-                                  # (3, 18, 3, 4, 2, 0), # phase asymmetry
-                                  # (3, 18, 3, 4, 3, 0), # phase asymmetry
-                                  # (3, 24, 4, 5, 3, 0),
-                                  # (3, 12, 5, 6, 1, 0), # SH-WuJi
-                                #  m, Q, p, ps, y, turn function bias (turn_func_bias)
+                                #   (3, 36, 2, 3, 8, 0), # 10
+                                #   (3, 36, 2, 3, 9, 0), # 11
+                                #   (3, 36, 2, 3, 7, 0), # 12
+                                #   (3, 27, 2, 3, 6, 0), # 13
+                                #   (3, 36, 2, 3,    8,   0), # Dec. 15, 2020
+                                #   (3, 36, 4, 5,    3,   0), # Jan. 19, 2021
+                                #   (3, 18, 8, 7,    1,   0), # Mar. 25, 2021 哔哩哔哩：一介介一
+                                #   (3, 18, 2, 3, 4, 0),
+                                #   (3, 36, 3, 4, 5, 0),              # ISMB 2021 Winding design 7
+                                #   (3, 18, 3, 4, 2, 0), # phase asymmetry
+                                #   (3, 18, 3, 4, 3, 0), # phase asymmetry
+                                #   (3, 24, 4, 5, 3, 0),
+                                #   (3, 12, 5, 6, 1, 0), # SH-WuJi
                              ]
     bool_double_layer_winding = True
 
