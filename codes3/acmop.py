@@ -297,7 +297,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                 # 如果刚好整除，把余数0改为popsize
                 if number_of_finished_chromosome_in_current_generation == 0:
                     number_of_finished_chromosome_in_current_generation = popsize
-                    print(f'\tThere are {number_of_chromosome} chromosomes found in {swarm_data_file}.')
+                    print(f'\tThere are {number_of_chromosome} chromosomes found in {ad.swarm_data_file}.')
                     print('\tWhat is the odds! The script just stopped when the evaluation of the whole pop is finished.')
                     print('\tSet number_of_finished_chromosome_in_current_generation to popsize %d'%(number_of_finished_chromosome_in_current_generation))
 
@@ -529,8 +529,8 @@ def main():
     # mop.acm_template   # Module 2 (the execution code has been moved to the end of __post_init__ of AC_Machine_Optiomization_Wrapper)
     if True:
         # mop.part_evaluation() # Module 3
-        mop.part_evaluation_geometry()
-        # mop.part_optimization() # Module 4
+        # mop.part_evaluation_geometry()
+        mop.part_optimization() # Module 4
     else:
         if False:
             motor_design_variant = mop.reproduce_design_from_jsonpickle('p4ps5-Q12y1-0999') # Module 5 - reproduction of any design variant object

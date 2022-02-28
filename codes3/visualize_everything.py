@@ -278,10 +278,12 @@ else:
                     return df_performancce, fig_donut
 
         # [1.1, -0.93, 170]
-        df_performancce, fig_donut = select_optimal_designs_manually(selected_specifications)
-        if df_performancce is not None:
+        _ = select_optimal_designs_manually(selected_specifications)
+        if _ is not None:
+            df_performancce, fig_donut = _
             st.table(df_performancce)
             pyplot_width(fig_donut)
+            # mop.ad.acm_variant.analyzer.load_time_domain_data(_best_index) # TODO
 
         # save user input filters as json file
         with open(f'{os.path.dirname(__file__)}/streamllit_user_session_data.json', 'w') as f:

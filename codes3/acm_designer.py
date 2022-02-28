@@ -965,8 +965,8 @@ class acm_designer(object):
         else:
             raise Exception(f'{acm_template.name} is not regognized as a valid machine type.')
 
-    def save_to_disk(self, counter, acm_variant, spec_performance_dict, GP, EX):
-        
+    def save_to_disk(self, acm_variant, spec_performance_dict, GP, EX):
+
         # wily is not json serilizable, so is recordtype type object: acmop_parameters
         wily = EX['wily']
         EX['wily'] = {
@@ -1002,7 +1002,6 @@ class acm_designer(object):
 
         number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
         individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
-        print('[acm_designer.py] DEBUG counter = acm_variant.counter,', counter, acm_variant.counter)
 
         big_dict = dict()
         with open(self.fea_config_dict['output_dir'] + self.select_spec + '.json', 'a') as f:
@@ -1015,7 +1014,7 @@ class acm_designer(object):
                 # 'Derived'     :        self.spec.spec_derive_dict,
                 # 'Geometry'    :        acm_variant.spec_geometry_dict,
             }
-            f.write(f',\n"{counter}":')
+            f.write(f',\n"{acm_variant.counter}":')
             try:
                 json.dump(big_dict, f, indent=4)
             except Exception as e:
@@ -1033,16 +1032,17 @@ class acm_designer(object):
         if 'FEMM' in self.select_fea_config_dict:
             acm_variant.results_for_optimization = acm_variant.analyzer.build_results_for_optimization()
 
-            # Save to disk
+            # Save spec_performance_dict and others to disk
             GP = acm_variant.template.d['GP']
             EX = acm_variant.template.d['EX']
-            self.save_to_disk(counter, acm_variant, acm_variant.analyzer.spec_performance_dict, GP, EX)
-
-            acm_variant.analyzer.save_time_domain_data(counter) # TODO
+            self.save_to_disk(acm_variant, acm_variant.analyzer.spec_performance_dict, GP, EX)
 
             # Save also the object (acm_variant) to disk, but this takes a lot of disk space!
             if self.fea_config_dict['moo.save_acm_variant_object_as_jsonpickle'] == True:
                 utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
+
+            # Save time domain data to disk
+            acm_variant.analyzer.save_time_domain_data(self.fea_config_dict['output_dir']+self.select_spec+f'-ind{counter:04d}.pkl')
 
             return acm_variant
 
@@ -1097,7 +1097,7 @@ class acm_designer(object):
             EX = acm_variant.template.d['EX']
 
             # Save to disk
-            self.save_to_disk(counter, acm_variant, spec_performance_dict, GP, EX)
+            self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
 
             # save object (acm_variant) to disk
             utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
@@ -1264,7 +1264,8 @@ class acm_designer(object):
         if select_spec is None: select_spec = self.select_spec
         self.analyzer = Swarm_Data_Analyzer(self.fea_config_dict['output_dir'] + select_spec + '.json', desired_x_denorm_dict)
         self.swarm_data = self.analyzer.swarm_data_xf
-        return self.fea_config_dict['output_dir'] + select_spec + '.json'
+        self.swarm_data_file = self.fea_config_dict['output_dir'] + select_spec + '.json'
+        return self.swarm_data_file
 
     def build_acm_variant(self, template, x_denorm, counter, counter_loop=1):
         if 'SPMSM' in template.machine_type:
@@ -1419,7 +1420,7 @@ class acm_designer(object):
         if toolFEMM.draw_spmsm(acm_variant) != 1: raise Exception('Drawer failed.')
 
         # 2. Preprocess
-        toolFEMM.pre_process(project_file_name=self.acm_variant.template.fea_config_dict['output_dir'] + self.acm_variant.name + '.fem')
+        toolFEMM.pre_process(project_file_name=acm_variant.template.fea_config_dict['output_dir'] + acm_variant.name + '.fem')
 
         # 3. Run transient FEA and collect results
         toolFEMM.run_transient_study()
@@ -1428,8 +1429,9 @@ class acm_designer(object):
         acm_variant.analyzer.get_ss_data()
         acm_variant.analyzer._compute_objectives(acm_variant, self.select_fea_config_dict, toolFEMM) # generate spec_performance_dict
 
-        # 5. Save results to dist (this is done in acm_designer.py)
+        # 5. Save results to dist (this is done in evaluate_json_wrapper)
 
+        self.acm_variant = acm_variant
         return toolFEMM
 
     ''' BELOW ARE BOPT-PYTHON CODES for BLIM ONLY

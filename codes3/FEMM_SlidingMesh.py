@@ -678,20 +678,29 @@ class Individual_Analyzer_FEMM_Edition(object):
 
             return [thisFrequency*60, rotor_loss, stator_loss, magnet_loss, PhaseOhmic, prox_loss, total_loss]
 
-    def load_time_domain_data(self):
-        import pandas as pd
-        df = pd.read_pickle(self.fea_config_dict['output_dir']+self.select_spec)
-        for key in self.list_of_time_domain_attributes:
-            exec(f'self.{key} = df.{key}')
-        print('DEBUG FEMM load data:', self.femm_torque)
+    def load_time_domain_data(self, counter):
+        # import pandas as pd
+        # df = pd.read_pickle(self.fea_config_dict['output_dir']+self.select_spec)
+        # for key in self.list_of_time_domain_attributes:
+        #     exec(f'self.{key} = df.{key}')
+        # print('DEBUG FEMM load data:', self.femm_torque)
 
-    def save_time_domain_data(self, counter):
-        import pandas as pd
-        df_dict = {}
+        with open(F"self.fea_config_dict['output_dir']+self.select_spec+f'ind{counter:04d}.pkl", 'rb') as pickle_file:
+            timeDomainData_dict = pickle.load(pickle_file)
+
+        for key, value in timeDomainData_dict:
+            exec(f'self.{key} = timeDomainData_dict["{key}"]')
+
+    def save_time_domain_data(self, fname):
+        timeDomainData_dict = {}
         for key in self.list_of_time_domain_attributes:
-            exec(f'df_dict[{key}] = self.{key}')
-        df = pd.DataFrame.from_dict(df_dict)
-        df.to_pickle(self.fea_config_dict['output_dir']+self.select_spec+f'ind{counter:94d}')
+            exec(f'timeDomainData_dict["{key}"] = self.{key}')
+        # df.to_pickle(self.fea_config_dict['output_dir']+self.select_spec+f'ind{counter:04d}')
+
+        with open(fname, 'wb') as pickle_file:
+            pickle.dump(timeDomainData_dict, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+        # print('[FEMMSlidingMesh.py] Time domain data saved to:', F"self.fea_config_dict['output_dir']+self.select_spec+f'ind{counter:04d}.pkl")
 
 class FEMM_SlidingMesh(object):
 
@@ -1092,9 +1101,11 @@ class FEMM_SlidingMesh(object):
                 current_sources = self.update_circuit_excitation(time)
                 femm.mi_modifyboundprop('WholeModelSlidingBand', 10, self.initial_rotor_position_mech_deg+RotorAngle_MechanicalDegrees+self.acm_variant.template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle']) # change inner angle to 
                 femm.mi_saveas(self.project_file_name[:-4] + f'-{index:03d}.fem')
-                if os.path.exists(self.project_file_name[:-4] + f'-{index:03d}.ans'):
-                    os.remove(self.project_file_name[:-4] + f'-{index:03d}.ans')
             self.parallel_solve_transient_FEA(self.step_size_sec, self.step_size_mech_deg)
+            if fea_config_dict["femm.delete_results_after_calculation"]:
+                # if os.path.exists(self.project_file_name[:-4] + f'-{index:03d}.ans'):
+                    os.remove(self.project_file_name[:-4] + f'-{index:03d}.fem')
+                    os.remove(self.project_file_name[:-4] + f'-{index:03d}.ans')
 
         femm.mi_close()
 
@@ -1209,7 +1220,7 @@ class FEMM_SlidingMesh(object):
             # print('\t               | stderr:', stderr)
         if code == 1:
             raise Exception('Subprocess failed to execute.')
-        print('[FEMM_SlidingMesh.py] DEBUG process return code:', code)
+        # print('[FEMM_SlidingMesh.py] DEBUG process return code:', code)
 
         print('[FEMM_SlidingMesh.py] Start collecting .ans results one by one...')
         if True:
