@@ -499,13 +499,15 @@ class Individual_Analyzer_FEMM_Edition(object):
         return power_factor
 
     def iron_loss_preparing_data_matrices(self, index):
+        ''' This function is not called when parallel solver is enabled (for most cases).
+        '''
         if index==0:
             # Record the initial mesh elements if the first time through the loop
             self.nn = int(femm.mo_numelements())
 
             self.z  = np.zeros([self.nn,       1], dtype=np.complex64) # Location of the centroid of each element
             self.a  = np.zeros([self.nn,       1]) # Area of each element
-            self.g  = np.zeros([self.nn,       1]) # Block label of each element
+            self.g  = np.zeros([self.nn,       1], dtype=np.int16) # Block label of each element
             for m in range(self.nn): # start from 0 for indexing but from 1 for counting 
                 counting_element = m+1
                 elm = femm.mo_getelement(counting_element)
@@ -533,6 +535,8 @@ class Individual_Analyzer_FEMM_Edition(object):
                                                 float(np.imag(self.z[m])) )
             elif self.g[m] == self.GroupSummary['stator_iron_core'] \
               or self.g[m] == self.GroupSummary['rotor_iron_core'] \
+              or self.g[m] == self.GroupSummary['stator_air_gap'] \
+              or self.g[m] == self.GroupSummary['rotor_air_gap'] \
               or self.g[m] == self.GroupSummary['coils']: # Element is on the stator or rotor iron or coils
                 # Store flux density at the element centroid for these elements
                 b_temp = femm.mo_getb(  float(np.real(self.z[m])), 
@@ -543,6 +547,8 @@ class Individual_Analyzer_FEMM_Edition(object):
         def matlab_fft(matrix_input):
             return np.fft.fft(matrix_input.T).T
 
+        ''' 想画图的话改这里！
+        '''
         bool_plot = False
 
         # Compute the square of the amplitude of each harmonic at the centroid of
@@ -620,8 +626,21 @@ class Individual_Analyzer_FEMM_Edition(object):
                     y2.append(_stator_loss)
                 ax=axes[0]; ax.stem(x, y1); ax.set_ylabel('Rotor loss [W]')
                 ax=axes[1]; ax.stem(x, y2); ax.set_ylabel('Stator loss [W]')
-                plt.figure(); plt.plot(np.abs(self.b)*g1.T)
-                plt.figure(); plt.plot(np.abs(self.b)*g2.T)
+
+                if False:
+                    plt.figure(); plt.plot(np.abs(self.b)*g1.T)
+                    plt.figure(); plt.plot(np.abs(self.b)*g2.T)
+                    g0=(self.g==self.GroupSummary['rotor_air_gap']) # Dr. Di asked for air gap B
+                    plt.figure(); plt.plot(np.abs(self.b)*g0.T)
+                    g00=(self.g==self.GroupSummary['stator_air_gap']) # Dr. Di asked for air gap B
+                    plt.plot( - np.abs(self.b)*g00.T)
+                else:
+                    plt.figure(); plt.gca().set_aspect('equal'); plt.plot(np.real(self.b)*g1.T, np.imag(self.b)*g1.T)
+                    plt.figure(); plt.gca().set_aspect('equal'); plt.plot(np.real(self.b)*g2.T, np.imag(self.b)*g2.T)
+                    g0=(self.g==self.GroupSummary['rotor_air_gap']) # Dr. Di asked for air gap B
+                    plt.figure(); plt.gca().set_aspect('equal'); plt.plot(np.real(self.b)*g0.T, np.imag(self.b)*g0.T)
+                    g00=(self.g==self.GroupSummary['stator_air_gap']) # Dr. Di asked for air gap B
+                    plt.figure(); plt.gca().set_aspect('equal'); plt.plot(np.real(self.b)*g00.T, np.imag(self.b)*g00.T)
 
             # and prox losses can be totalled up in a similar way
             g4 = (self.g==self.GroupSummary['coils'])
@@ -654,7 +673,7 @@ class Individual_Analyzer_FEMM_Edition(object):
                 ax.set_xlabel('Frequency [Hz]')
                 plt.figure(); plt.plot(self.A*g3.T)
                 plt.show()
-                quit()
+                # quit()
             try:
                 w[8]
                 _f = (w<w[8])
@@ -676,7 +695,8 @@ class Individual_Analyzer_FEMM_Edition(object):
             vcoil = WindingFill * np.dot(self.v.T, g4)
             print('[FEMM_SlidingMesh.py] DEBUG vmag, vsiron, vriron, vcoil:', vmag, vsiron, vriron, vcoil, 'mm2')
 
-            return [thisFrequency*60, rotor_loss, stator_loss, magnet_loss, PhaseOhmic, prox_loss, total_loss]
+            # 2022-03-01: use conservative magnet loss as magnet loss. According to our wechat group chat in HDQZQ.
+            return [thisFrequency*60, rotor_loss, stator_loss, _magnet_loss, PhaseOhmic, prox_loss, total_loss]
 
     def load_time_domain_data(self, counter):
         # import pandas as pd
@@ -824,7 +844,8 @@ class FEMM_SlidingMesh(object):
         # add_block_labels_static_solver is implemented with the new general DPNV winding implementation
 
         self.GroupSummary = {
-            "air_gap"          : 9,
+            "stator_air_gap"   : 8,
+            "rotor_air_gap"    : 9,
             "stator_iron_core" : 10,
             "coils"            : 11,
             "rotor_iron_core"  : 100,
@@ -859,12 +880,12 @@ class FEMM_SlidingMesh(object):
 
         GP = self.acm_variant.template.d['GP']
 
-        # Air region (Stator)
-        X, Y = -(GP['mm_r_or'].value+5*EPS), 0
-        self.set_block_label(9, 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
         # Air region (Rotor)
+        X, Y = -(GP['mm_r_or'].value+5*EPS), 0
+        self.set_block_label(self.GroupSummary['rotor_air_gap'], 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
+        # Air region (Stator)
         X, Y =   GP['mm_r_si'].value-5*EPS, 0
-        self.set_block_label(9, 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
+        self.set_block_label(self.GroupSummary['stator_air_gap'], 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
 
         # # Air Gap Boundary for Rotor Motion #2
         # self.set_block_label(9, '<No Mesh>',   (0, im.Radius_OuterRotor+0.5*im.Length_AirGap), 5, automesh=self.bool_automesh)
@@ -874,7 +895,7 @@ class FEMM_SlidingMesh(object):
 
         # shaft
         if fraction == 1:
-            self.set_block_label(102, '<No Mesh>',         (0, 0),  20)
+            self.set_block_label(self.GroupSummary['shaft'], '<No Mesh>',         (0, 0),  20)
             # self.set_block_label(101, 'Air',         (0, 0),  10, automesh=True) # for deeply-saturated rotor yoke
 
         # Iron Core @225deg
@@ -885,9 +906,9 @@ class FEMM_SlidingMesh(object):
         elif self.acm_variant.template.spec_input_dict['Steel'] == 'Arnon5':
             steel_name = 'Arnon5-final'
         X, Y = -(GP['mm_r_ri'].value + 0.5*GP['mm_d_ri'].value), 0
-        self.set_block_label(100, steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
+        self.set_block_label(self.GroupSummary['rotor_iron_core'], steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
         X, Y = (0.5*(GP['mm_r_si'].value + GP['mm_r_os'].value)), 0
-        self.set_block_label(10, steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
+        self.set_block_label(self.GroupSummary['stator_iron_core'], steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
 
         # Rotor Magnet
         THETA = GP['deg_alpha_rm'].value * 0.5 / 180 * np.pi
@@ -895,7 +916,7 @@ class FEMM_SlidingMesh(object):
         femm.mi_getmaterial('N40')
         for _ in range(2*self.acm_variant.template.SI['p']):
             X, Y = R*np.cos(THETA), R*np.sin(THETA)
-            self.set_block_label(101, 'N40', (X, Y), MESH_SIZE_MAGNET, automesh=self.bool_automesh, magdir=THETA/np.pi*180 + _%2*180)
+            self.set_block_label(self.GroupSummary['magnet'], 'N40', (X, Y), MESH_SIZE_MAGNET, automesh=self.bool_automesh, magdir=THETA/np.pi*180 + _%2*180)
             deg_alpha_rp = 360 / (2*self.acm_variant.template.SI['p'])
             THETA += deg_alpha_rp / 180 * np.pi
 
@@ -970,7 +991,7 @@ class FEMM_SlidingMesh(object):
                 if not (count > Qs*0.5+EPS): 
                     continue
             # if phase == 'U':
-            self.set_block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsDPNV*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
+            self.set_block_label(self.GroupSummary['coils'], 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsDPNV*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
 
         # Y layer winding's blocks
         if fraction == 1:
@@ -983,7 +1004,7 @@ class FEMM_SlidingMesh(object):
                 THETA += angle_per_slot
                 X = R*np.cos(THETA); Y = R*np.sin(THETA)
 
-                self.set_block_label(11, 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsDPNV*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
+                self.set_block_label(self.GroupSummary['coils'], 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsDPNV*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
 
         # 危险！FEMM默认把没有设置incircuit的导体都在无限远短接在一起——也就是说，你可能把定子悬浮绕组也短接到鼠笼上去了！
         # 所以，一定要设置好悬浮绕组，而且要用serial-connected，电流给定为 0 A。
@@ -1205,10 +1226,12 @@ class FEMM_SlidingMesh(object):
                                         str(number_of_points), 
                                         fea_config_dict['output_dir'], 
                                         self.project_file_name, 
+                                        str(self.GroupSummary["stator_air_gap"]),
+                                        str(self.GroupSummary["rotor_air_gap"]),
                                         str(self.GroupSummary["stator_iron_core"]),
                                         str(self.GroupSummary["coils"]),
                                         str(self.GroupSummary["rotor_iron_core"]),
-                                        str(self.GroupSummary["magnet"]) 
+                                        str(self.GroupSummary["magnet"]),
                                     ], bufsize=-1, 
                 )#stderr=subprocess.PIPE, stdout=subprocess.PIPE)
             procs.append(proc)

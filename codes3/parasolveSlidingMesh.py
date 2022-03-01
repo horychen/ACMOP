@@ -14,11 +14,19 @@ number_of_parallel_solve = int(sys.argv[2])
 ns = int(sys.argv[3]) # number of steps
 output_dir = sys.argv[4]
 project_file_name = sys.argv[5]
+# GroupSummary = {
+#     "stator_iron_core" : int(sys.argv[6]),
+#     "coils"            : int(sys.argv[7]),
+#     "rotor_iron_core"  : int(sys.argv[8]),
+#     "magnet"           : int(sys.argv[9]),
+# }
 GroupSummary = {
-    "stator_iron_core" : int(sys.argv[6]),
-    "coils"            : int(sys.argv[7]),
-    "rotor_iron_core"  : int(sys.argv[8]),
-    "magnet"           : int(sys.argv[9]),
+    "stator_air_gap"   : int(sys.argv[6]),
+    "rotor_air_gap"    : int(sys.argv[7]),
+    "stator_iron_core" : int(sys.argv[8]),
+    "coils"            : int(sys.argv[9]),
+    "rotor_iron_core"  : int(sys.argv[10]),
+    "magnet"           : int(sys.argv[11]),
 }
 print('[parasolveSlidingMesh.py] ParaSolve instance ID:', id_solver)
 
@@ -33,7 +41,10 @@ parallelResults = {}
 for index in range(id_solver, ns, number_of_parallel_solve):
 
     if os.path.exists(project_file_name[:-4] + f'-{index:03d}.ans'):
-        raise Exception('Previous .ans is not deleted!!!')
+        msg = 'Previous .ans is not deleted!!! I will now remove it:' + project_file_name[:-4] + f'-{index:03d}.ans'
+        print(msg)
+        os.remove(project_file_name[:-4] + f'-{index:03d}.ans')
+        # raise Exception(msg)
 
     tic = time()
     femm.opendocument(project_file_name[:-4] + f'-{index:03d}.fem')
@@ -53,7 +64,7 @@ for index in range(id_solver, ns, number_of_parallel_solve):
 
         z  = np.zeros([nn,       1], dtype=np.complex64) # Location of the centroid of each element
         a  = np.zeros([nn,       1]) # Area of each element
-        g  = np.zeros([nn,       1]) # Block label of each element
+        g  = np.zeros([nn,       1], dtype=np.int16) # Block label of each element
         for m in range(nn): # start from 0 for indexing but from 1 for counting 
             counting_element = m+1
             elm = femm.mo_getelement(counting_element)
@@ -82,6 +93,8 @@ for index in range(id_solver, ns, number_of_parallel_solve):
                                             float(np.imag(z[m])) )
         elif g[m] == GroupSummary['stator_iron_core'] \
             or g[m] == GroupSummary['rotor_iron_core'] \
+            or g[m] == GroupSummary['stator_air_gap'] \
+            or g[m] == GroupSummary['rotor_air_gap'] \
             or g[m] == GroupSummary['coils']: # Element is on the stator or rotor iron or coils
             # Store flux density at the element centroid for these elements
             b_temp = femm.mo_getb(  float(np.real(z[m])), 

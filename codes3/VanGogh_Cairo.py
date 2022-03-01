@@ -1,6 +1,5 @@
 # importing pycairo
 import cairo
-import VanGogh
 from pylab import np
 
 class VanGogh_Cairo:
@@ -53,7 +52,7 @@ class VanGogh_Cairo:
 
         self.ctx.move_to(startxy[0], startxy[1])
         self.ctx.arc(centerxy[0], centerxy[1], radius, angle_start, angle_end)
-        # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_start, angle_end)
+        # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_end, angle_start)
         return []
 
     def draw_spmsm(self, acm_variant):
@@ -141,6 +140,7 @@ class VanGogh_Cairo:
         # cr.show_text(self.name)
 
         # we can apply text and color
+        pass
 
 if __name__ == '__main__':
     # creating a SVG surface
@@ -182,7 +182,6 @@ if __name__ == '__main__':
 
         # stroke out the color and width property
         context.stroke()
-
 
     import cairosvg
     cairosvg.svg2pdf(url="VanGoghCairo-Demo.svg", write_to="VanGoghCairo-Demo.pdf")

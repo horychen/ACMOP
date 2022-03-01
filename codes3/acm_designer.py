@@ -1042,7 +1042,7 @@ class acm_designer(object):
                 utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
 
             # Save time domain data to disk
-            acm_variant.analyzer.save_time_domain_data(self.fea_config_dict['output_dir']+self.select_spec+f'-ind{counter:04d}.pkl')
+            acm_variant.analyzer.save_time_domain_data(self.fea_config_dict['output_dir']+self.select_spec+f'-ind{counter}.pkl') # counter could be string
 
             return acm_variant
 

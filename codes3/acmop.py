@@ -83,7 +83,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                                                 coil_pitch_y=self.spec_input_dict['coil_pitch_y'])
 
         '[1.1] Winding in the slot'
-        if False:
+        if True:
             def draw_winding_in_the_slot(u, Qs, list_layer_phases, list_layer_signs, text=''):
 
                 for i in range(Qs):
@@ -127,7 +127,7 @@ class AC_Machine_Optiomization_Wrapper(object):
             # quit()
 
         '[1.2] Winding function / Current Linkage waveform'
-        if False:
+        if True:
             from pylab import plt, np
             zQ = 100 # number of conductors/turns per slot (Assume to be 100 for now)
             turns_per_layer = zQ / wily.number_winding_layer
@@ -412,18 +412,19 @@ class AC_Machine_Optiomization_Wrapper(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[5] Report Part'
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    def reproduce_design_from_jsonpickle(self, fname):
+    def reproduce_design_from_jsonpickle(self, fname, bool_evaluate=False):
         # 从json重构JMAG模型（x_denorm）
         # Recover a design from its jsonpickle-object file
         import utility_json
         try:
-            motor_design_variant = utility_json.from_json_recursively(fname, load_here=self.ad.output_dir+'jsonpickle/')
-            motor_design_variant.reproduce_wily()
-            motor_design_variant.build_jmag_project(motor_design_variant.project_meta_data)
+            reproduced_design_variant = utility_json.from_json_recursively(fname, load_here=self.ad.fea_config_dict['output_dir']+'jsonpickle/')
+            reproduced_design_variant.reproduce_wily()
+            if bool_evaluate:
+                reproduced_design_variant.build_jmag_project(reproduced_design_variant.project_meta_data)
         except FileNotFoundError as e:
-            print(e)
-            print("你有没有搞错啊？json文件找不到啊，忘记把bool_post_processing改回来了？")
-        return motor_design_variant
+            raise e
+        self.reproduced_design_variant = reproduced_design_variant
+        return reproduced_design_variant
 
     def part_post_optimization_analysis(self, project_name):
         # Status report: Generation, individuals, geometry as input, fea tools, performance as output (based on JSON files)
@@ -509,7 +510,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
         return spec_input_dict, fea_config_dict
 
-def main():
+def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
         # select_spec='IM Q24p1y9 Qr32 Round Bar',
         # select_fea_config_dict = '#019 JMAG IM Nine Variables',
@@ -525,35 +526,58 @@ def main():
     #########################
     # Call the five modules
     #########################
-    # mop.part_winding() # Module 1
-    # mop.acm_template   # Module 2 (the execution code has been moved to the end of __post_init__ of AC_Machine_Optiomization_Wrapper)
-    if True:
-        # mop.part_evaluation() # Module 3
-        # mop.part_evaluation_geometry()
+    if number_which_part == 1:
+        mop.part_winding() # Module 1
+    elif number_which_part == 2:
+        mop.acm_template   # Module 2 (the execution code has been moved to the end of __post_init__ of AC_Machine_Optiomization_Wrapper)
+    elif number_which_part == 3:
+        mop.part_evaluation() # Module 3
+    elif number_which_part == 31:
+        mop.part_evaluation_geometry()
+    elif number_which_part == 4:
         mop.part_optimization() # Module 4
+    elif number_which_part == 5:
+        # motor_design_variant = mop.reproduce_design_from_jsonpickle('p4ps5-Q12y1-0999') # Module 5 - reproduction of any design variant object
+        motor_design_variant = mop.reproduce_design_from_jsonpickle('__indInitial.json')
+    elif number_which_part == 51:
+        # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
+        mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5 - visualize swarm data
     else:
-        if False:
-            motor_design_variant = mop.reproduce_design_from_jsonpickle('p4ps5-Q12y1-0999') # Module 5 - reproduction of any design variant object
-        else:
-            # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
-            mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5 - visualize swarm data
+        pass
     return mop
 
 if __name__ == '__main__':
-    main()
-
+    main(3)
 
     ''' Interactive variable checking examples:
 
         Example 1:
-        >>> GP = mop.ad.acm_variant.template.d['GP'] 
-        >>> GP['mm_r_ri'].value + GP['mm_d_ri'].value + GP['mm_d_rp'].value 
-        46.7464829275686
-        >>> GP['mm_r_or'] 
-        acmop_parameter(type='derived', name='outer_rotor_radius', value=47.7464829275686, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000130CF961790>)
+            open cmd.exe
+            cd codes3
+            python 
+            >>> import acmop
+            >>> mop = acmop.main()
+            >>> mop.reproduced_design_variant.analyzer.g
 
         Example 2:
-        >>> dir(mop.ad.acm_variant.analyzer)
+            >>> GP = mop.ad.acm_variant.template.d['GP'] 
+            >>> GP['mm_r_ri'].value + GP['mm_d_ri'].value + GP['mm_d_rp'].value 
+            46.7464829275686
+            >>> GP['mm_r_or'] 
+            acmop_parameter(type='derived', name='outer_rotor_radius', value=47.7464829275686, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000130CF961790>)
+
+        Example 3:
+            >>> dir(mop.ad.acm_variant.analyzer)
+
+        Example 4 (show element |B| in the air gap):
+            >>> import utility, acmop
+            >>> from pylab import np, plt
+            >>> mop = acmop.main(5)
+            >>> var = mop.reproduced_design_variant
+            >>> z = var.analyzer.z 
+            >>> z_in_question = var.template.d["GP"]['mm_r_or'].value + 10e-2 + 1j * 0
+            >>> index, _ = utility.get_index_and_min(np.abs(z - z_in_question))
+            >>> plt.plot(np.abs(var.analyzer.b[:,index])); plt.show() 
     '''
 
 def examples_from_the_publications(bool_post_processing=True):
