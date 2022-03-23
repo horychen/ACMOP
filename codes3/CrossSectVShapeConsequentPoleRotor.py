@@ -12,7 +12,7 @@ from utility import EPS
 #     1: ("free",  "magnet_bridge_depth",                 "mm_d_bg_magnet", 5),
 #     2: ("free",  "magnet_depth",                        "mm_d_pm",      9.4),
 #     3: ("free",  "magnet_rotation",                     "deg_alpha_pm", 20.3),
-#     4: ("free",  "rotor_outer_radius",                  "mm_r_or",      129.8),
+#     4: ("free",  "rotor_outer_radius",                  "mm_r_ro",      129.8),
 #     5: ("free",  "rotor_inter_radius",                  "mm_r_ir",      84.6),    
 #     6: ("free",  "rotor_inner_depth (back-iron depth)", "mm_d_ri",      15.86),
 #     7: ("derived", "magnet_width"                     , "mm_w_pm",      None)
@@ -28,7 +28,7 @@ class CrossSectVShapeConsequentPoleRotor(object):
                     mm_d_bg_magnet=2,
                     mm_d_pm=9.4,
                     deg_alpha_vspm=20.3,
-                    mm_r_or=129.8,
+                    mm_r_ro=129.8,
                     mm_r_ri=15.86,
                     mm_d_ri=84.6,
                     mm_w_pm=20,
@@ -43,7 +43,7 @@ class CrossSectVShapeConsequentPoleRotor(object):
         self.mm_d_bg_magnet=mm_d_bg_magnet
         self.mm_d_pm=mm_d_pm
         self.deg_alpha_vspm=deg_alpha_vspm
-        self.mm_r_or=mm_r_or
+        self.mm_r_ro=mm_r_ro
         self.mm_r_ri=mm_r_ri
         self.mm_d_ri=mm_d_ri
         self.mm_w_pm=mm_w_pm
@@ -70,7 +70,7 @@ class CrossSectVShapeConsequentPoleRotor(object):
         d_bg_magnet = self.mm_d_bg_magnet
         d_pm        = self.mm_d_pm
         alpha_vspm  = self.deg_alpha_vspm / 180 * np.pi
-        r_or        = self.mm_r_or
+        r_or        = self.mm_r_ro
         r_ri        = self.mm_r_ri
         d_ri        = self.mm_d_ri
         w_pm        = self.mm_w_pm
@@ -299,7 +299,7 @@ if __name__ == '__main__':
                                                 mm_d_bg_magnet=2,
                                                 mm_d_pm=9.4,
                                                 deg_alpha_vspm=15.3,
-                                                mm_r_or=129.8,
+                                                mm_r_ro=129.8,
                                                 mm_r_ri=15.86,
                                                 mm_d_ri=84.6,
                                                 mm_w_pm=20,

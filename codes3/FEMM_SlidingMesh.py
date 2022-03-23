@@ -259,7 +259,7 @@ class Individual_Analyzer_FEMM_Edition(object):
         print('[FEMM_SlidingMesh.py] DEBUG efficiency =', efficiency)
         print('[FEMM_SlidingMesh.py] DEBUG rated_efficiency =', rated_efficiency)
 
-        rated_rotor_volume = np.pi*(acm_variant.template.d['GP']['mm_r_or'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
+        rated_rotor_volume = np.pi*(acm_variant.template.d['GP']['mm_r_ro'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
         print('[Loss-FEMMSlidingMesh.py] rated_stack_length_mm, mm_template_stack_length:', rated_stack_length_mm, acm_variant.template.d['EX']['mm_template_stack_length'])
 
         # This weighted list suggests that peak-to-peak torque ripple of 5% is comparable with Em of 5% or Ea of 1 deg. Ref: Ye gu ECCE 2018
@@ -277,15 +277,15 @@ class Individual_Analyzer_FEMM_Edition(object):
             price_per_volume_magnet   = 11.61 * 61023.744 # $/in^3 NdFeB PM
             # price_per_volume_aluminum = 0.88  / 16387.064 # $/in^3 wire or cast Al
 
-            # Vol_Fe = (2*acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
-            Vol_Fe = ( np.pi*(acm_variant.template.d['GP']['mm_r_os'].value*1e-3)**2 - np.pi*(acm_variant.template.d['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
+            # Vol_Fe = (2*acm_variant.template.d['GP']['mm_r_so'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
+            Vol_Fe = ( np.pi*(acm_variant.template.d['GP']['mm_r_so'].value*1e-3)**2 - np.pi*(acm_variant.template.d['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
 
             if 'PMSM' in acm_variant.template.machine_type:
                 Vol_PM = (acm_variant.rotorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
             elif 'IM' in acm_variant.template.machine_type:
                 Vol_PM = 0.0
 
-            print('[Loss-FEMMSlidingMesh.py] Gross-Area_Fe', (acm_variant.template.d['GP']['mm_r_os'].value*1e-3) ** 2        *1e6, 'mm^2')
+            print('[Loss-FEMMSlidingMesh.py] Gross-Area_Fe', (acm_variant.template.d['GP']['mm_r_so'].value*1e-3) ** 2        *1e6, 'mm^2')
             print('[Loss-FEMMSlidingMesh.py] Gross-Area_Cu (est.)',   Vol_Cu/(rated_stack_length_mm*1e-3)                     *1e6, 'mm^2')
             print('[Loss-FEMMSlidingMesh.py] Gross-Area_PM', (acm_variant.rotorMagnet.mm2_magnet_area*1e-6)                   *1e6, 'mm^2')
             print('[Loss-FEMMSlidingMesh.py] Gross-Volume_Fe',    Vol_Fe, 'm^3')
@@ -467,8 +467,8 @@ class Individual_Analyzer_FEMM_Edition(object):
                                 acm_variant.template.SI['Qs'],
                                 EX['mm_template_stack_length'],
                                 EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp'], # total current amplitude
-                                GP['mm_r_or'].value,       # mm
-                                GP['mm_r_os'].value*2*1e-3 # m, stator_yoke_diameter_Dsyi
+                                GP['mm_r_ro'].value,       # mm
+                                GP['mm_r_so'].value*2*1e-3 # m, stator_yoke_diameter_Dsyi
                                 ]
             s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(EX['slot_current_utilizing_ratio']*acm_variant.coils.mm2_slot_area*1e-6, # slot_current_utilizing_ratio is 1 for combined winding and is less than 1 for separate winding
                                                                                                 copper_loss_parameters=copper_loss_parameters,
@@ -734,9 +734,13 @@ class FEMM_SlidingMesh(object):
         p  = self.acm_variant.template.SI['p']
 
         # figure out initial rotor angle
-        deg_pole_span = 180/p
-        self.initial_rotor_position_mech_deg = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + EX['wily'].deg_winding_U_phase_phase_axis_angle + deg_pole_span
-        print('[FEMM_SlidingMesh.py] initial_rotor_position_mech_deg:', self.initial_rotor_position_mech_deg, 'deg || deg_winding_U_phase_phase_axis_angle:', '', EX['wily'].deg_winding_U_phase_phase_axis_angle)
+        if 'PMSM' in acm_variant.template.name:
+            deg_pole_span = 180/p
+            self.initial_rotor_position_mech_deg = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + EX['wily'].deg_winding_U_phase_phase_axis_angle + deg_pole_span
+            print('[FEMM_SlidingMesh.py] initial_rotor_position_mech_deg:', self.initial_rotor_position_mech_deg, 'deg || deg_winding_U_phase_phase_axis_angle:', '', EX['wily'].deg_winding_U_phase_phase_axis_angle)
+
+        elif 'Flux_Alternator' in acm_variant.template.name:
+            self.initial_rotor_position_mech_deg = None
 
         # figure out step size
         self.electrical_period = acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
@@ -881,7 +885,7 @@ class FEMM_SlidingMesh(object):
         GP = self.acm_variant.template.d['GP']
 
         # Air region (Rotor)
-        X, Y = -(GP['mm_r_or'].value+5*EPS), 0
+        X, Y = -(GP['mm_r_ro'].value+5*EPS), 0
         self.set_block_label(self.GroupSummary['rotor_air_gap'], 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
         # Air region (Stator)
         X, Y =   GP['mm_r_si'].value-5*EPS, 0
@@ -907,12 +911,12 @@ class FEMM_SlidingMesh(object):
             steel_name = 'Arnon5-final'
         X, Y = -(GP['mm_r_ri'].value + 0.5*GP['mm_d_ri'].value), 0
         self.set_block_label(self.GroupSummary['rotor_iron_core'], steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
-        X, Y = (0.5*(GP['mm_r_si'].value + GP['mm_r_os'].value)), 0
+        X, Y = (0.5*(GP['mm_r_si'].value + GP['mm_r_so'].value)), 0
         self.set_block_label(self.GroupSummary['stator_iron_core'], steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
 
         # Rotor Magnet
         THETA = GP['deg_alpha_rm'].value * 0.5 / 180 * np.pi
-        R = GP['mm_r_or'].value - 0.5*GP['mm_d_rp'].value
+        R = GP['mm_r_ro'].value - 0.5*GP['mm_d_rp'].value
         femm.mi_getmaterial('N40')
         for _ in range(2*self.acm_variant.template.SI['p']):
             X, Y = R*np.cos(THETA), R*np.sin(THETA)
@@ -1017,7 +1021,7 @@ class FEMM_SlidingMesh(object):
         #     # 现在，我们打开在0位置的fem文件，然后转动，saveas。这样，就不用不断地打开文件了
         #     femm.mi_selectgroup(100) # this only select the block labels
         #     femm.mi_selectgroup(101)
-        #     femm.mi_selectcircle(0,0,self.acm_variant.template.d['GP']['mm_r_or'].value+EPS,SELECT_ALL) # this selects the nodes, segments, arcs
+        #     femm.mi_selectcircle(0,0,self.acm_variant.template.d['GP']['mm_r_ro'].value+EPS,SELECT_ALL) # this selects the nodes, segments, arcs
         #     femm.mi_moverotate(0,0, self.deg_per_step)
         #     # femm.mi_zoomnatural()
 
@@ -1051,10 +1055,10 @@ class FEMM_SlidingMesh(object):
         if fraction == 1:
             femm.mi_addboundprop('BC:A=0', 0,0,0, 0,0,0,0,0,0,0,0)
 
-            femm.mi_selectarcsegment(0,-GP['mm_r_os'].value)
+            femm.mi_selectarcsegment(0,-GP['mm_r_so'].value)
             femm.mi_setarcsegmentprop(20, "BC:A=0", False, 10) # maxseg = 20 deg (only this is found effective)
             femm.mi_clearselected()
-            femm.mi_selectarcsegment(0,GP['mm_r_os'].value)
+            femm.mi_selectarcsegment(0,GP['mm_r_so'].value)
             femm.mi_setarcsegmentprop(20, "BC:A=0", False, 10)
             femm.mi_clearselected()
 
@@ -1384,6 +1388,57 @@ class FEMM_SlidingMesh(object):
 
     ''' Drawer
     '''
+    def draw_doublySalient(self, acm_variant, bool_draw_whole_model=True):
+        # if bool_draw_whole_model:
+        #     self.bMirror = False
+        #     self.iRotateCopy = 1
+
+        # gray
+        color_rgb_A = np.array([236,236,236])/255
+        color_rgb_B = np.array([226,226,226])/255
+
+        # Rotor Core
+        list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
+
+        # Shaft
+        list_regions = acm_variant.shaft.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # region0 = self.prepareSection(list_regions)
+
+        # Stator Magnet
+        list_regions = acm_variant.statorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
+
+        # Sleeve
+        # list_regions = acm_variant.sleeve.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # regionS = self.prepareSection(list_regions)
+
+        # Stator Core
+        list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # region3 = self.prepareSection(list_regions, color=color_rgb_A)
+
+        # Stator Winding
+        # list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # region4 = self.prepareSection(list_regions)
+
+        # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
+        # EX = acm_variant.template.d['EX']
+        # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+        # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
+        # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+
+        # # Maybe there is a bug here... regarding the excitation for suspension winding...
+        # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
+        # variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
+        # EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
+        # EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+        # EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+
+        # slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+        # print('[FEMM_SlidingMesh.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
+
+        return True
+
     def draw_spmsm(self, acm_variant):
         # Rotor Core
         list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=True)
@@ -1740,7 +1795,7 @@ class FEMM_SlidingMesh(object):
         zQ                       = self.im.DriveW_zQ
         coil_pitch_yq            = self.im.wily.coil_pitch_y
         Q                        = self.im.Qs
-        # the_radius_m             = 1e-3*(0.5*(self.acm_variant.template.d['GP']['mm_r_or'].value + self.im.Length_AirGap + self.im.Radius_InnerStatorYoke))
+        # the_radius_m             = 1e-3*(0.5*(self.acm_variant.template.d['GP']['mm_r_ro'].value + self.im.Length_AirGap + self.im.Radius_InnerStatorYoke))
         stack_length_m           = 1e-3*self.im.stack_length
         # number_of_phase          = 3
         # Ns                       = zQ * self.im.Qs / (2 * number_of_phase * a) # 3 phase winding
@@ -1754,7 +1809,7 @@ class FEMM_SlidingMesh(object):
                                                            # 这样的电流在一个槽内有zQ个，所以Islot=(current_rms_value/a) * zQ
                                                            # 槽电流除以槽内铜的面积，就是电流密度
 
-        stator_inner_diameter_D = 2*(air_gap_length_delta + self.acm_variant.template.d['GP']['mm_r_or'].value*1e-3)
+        stator_inner_diameter_D = 2*(air_gap_length_delta + self.acm_variant.template.d['GP']['mm_r_ro'].value*1e-3)
         slot_height_h_t = 0.5*(self.im.stator_yoke_diameter_Dsyi - stator_inner_diameter_D)
         slot_pitch_pps = np.pi * (stator_inner_diameter_D + slot_height_h_t) / Q
         kov = 1.8 # \in [1.6, 2.0]
@@ -1779,7 +1834,7 @@ class FEMM_SlidingMesh(object):
         zQ                       = 1
         coil_pitch_yq            = self.im.Qr/self.im.DriveW_poles
         Q                        = self.im.Qr
-        # the_radius_m             = 1e-3*(self.acm_variant.template.d['GP']['mm_r_or'].value - self.im.Radius_of_RotorSlot)
+        # the_radius_m             = 1e-3*(self.acm_variant.template.d['GP']['mm_r_ro'].value - self.im.Radius_of_RotorSlot)
         stack_length_m           = 1e-3*self.im.stack_length
         # number_of_phase          = self.im.Qr/self.im.DriveW_poles
         # Ns                       = zQ * self.im.Qr / (2 * number_of_phase * a) # turns in series = 2 for 4 pole winding; = 1 for 2 pole winding
@@ -1790,7 +1845,7 @@ class FEMM_SlidingMesh(object):
         Jr = (current_rms_value/a) * zQ / area_copper_S_Cu # 逆变器电流current_rms_value在流入电机时，
 
 
-        rotor_outer_diameter_Dor = 2*(self.acm_variant.template.d['GP']['mm_r_or'].value*1e-3)
+        rotor_outer_diameter_Dor = 2*(self.acm_variant.template.d['GP']['mm_r_ro'].value*1e-3)
         slot_height_h_t = self.im.rotor_slot_height_h_sr
         slot_pitch_pps = np.pi * (rotor_outer_diameter_Dor - slot_height_h_t) / Q
         kov = 1.6 

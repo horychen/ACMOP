@@ -14,14 +14,14 @@ def infer_Y_layer_grpAC_from_X_layer_and_coil_pitch_y(grouping_AC, coil_pitch):
     # [3, 4, 5, 6, 7, 8, 0, 1, 2]
 
 class winding_layout_v2(object):
-    def __init__(self, DPNV_or_SEPA, Qs, p, ps=None, coil_pitch_y=None, pr=None):
+    def __init__(self, DPNV_or_SEPA, Qs, p, ps=None, coil_pitch_y=None, pr=None, m=3, Wrap_Around=None):
         ''' Naming convention:
         # right layer = 1st layer = X layer = torque layer for separate winding
         # left layer  = 2nd layer = Y layer = suspension layer for separate winding
         '''
 
         # number of phase
-        m = 3
+        # m = 3
         if p % m == 0 or (ps is not None and ps % m == 0):
             if DPNV_or_SEPA is not None:
                 print('Warning: asymmetric suspension winding for DPNV.')
@@ -363,9 +363,36 @@ class winding_layout_v2(object):
             self.CommutatingSequenceD = 1
             self.CommutatingSequenceB = 0
 
-        #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-        # End of winding definition
-        #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    # Customized Winding
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+        if DPNV_or_SEPA is None \
+        and Qs == 2 \
+        and p == 1 \
+        and ps == 2 \
+        and Wrap_Around == 'Toroidal':
+            self.layer_X_phases = [ 'U', 'U' ]
+            self.layer_X_signs  = [ '+', '-' ]
+            self.layer_Y_phases = 'Toroidal'
+            self.layer_Y_signs  = 'Toroidal'
+
+            self.number_parallel_branch = 2
+            self.number_winding_layer = 1 # for torque winding
+
+            # Excitation options
+            # self.bool_3PhaseCurrentSource = True
+
+            self.coil_pitch_y = coil_pitch_y
+
+            # Commutating sequence is predefined in codes (population.py) for separate winding, which is correct when rotor rotates CCW. This is still, however, used in FEMM_Solver.py, which should also be avoided.
+            self.CommutatingSequenceD = 0 # D stands for Drive winding (i.e., torque winding)
+            self.CommutatingSequenceB = 0 # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
+
+
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    # End of winding definition
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         try: 
             self.coil_pitch_y
             self.distributed_or_concentrated = False if abs(self.coil_pitch_y) == 1 else True
@@ -430,7 +457,7 @@ class winding_layout_v2(object):
             print('[wily] self.deg_winding_U_phase_phase_axis_angle:', self.deg_winding_U_phase_phase_axis_angle)
             # quit()
         except:
-            raise Exception(f'Error: This winding is not implemented:{Qs,p,ps,coil_pitch_y}')
+            raise Exception(f'Error: This winding is not implemented: Qs,p,ps,coil_pitch_y = {Qs,p,ps,coil_pitch_y}', Wrap_Around, DPNV_or_SEPA)
 
 
         # 这是实际在pre_procee中调用的字典
@@ -442,7 +469,7 @@ class winding_layout_v2(object):
         self.DPNV_or_SEPA = DPNV_or_SEPA
         self.Qs = Qs
         self.p = p
-        self.m = 3
+        self.m = m
         self.SPP = self.Qs / (2*self.p * self.m)
         self.ps = ps
         self.pr = pr

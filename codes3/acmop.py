@@ -1,7 +1,9 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
 
-import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design
+import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design
+
+from soupsieve import select
 # from codes3.population import VanGogh_JMAG
 
 import VanGogh_Cairo
@@ -55,14 +57,6 @@ class AC_Machine_Optiomization_Wrapper(object):
         print('[acmop.py] project_loc (converted) :', self.project_loc)
         print('[acmop.py] path2SwarmData          :', self.path2SwarmData)
         print('[acmop.py] output_dir              :', self.fea_config_dict['output_dir'])
-
-        r""" <ACMOP parent dir> = D:/DrH/Codes/acmop/
-             <Data folder name> = <ACMOP parent dir>/_default/, /_WenboVShapeVernier/, or /_PEMD_2020_swarm_data_collected/_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/
-             <Project location> = <Data folder name>
-             <path2SwarmData>   = <Project location>/PMSM_Q12p4y1_A/(swarm_data.txt)
-             <fea_config_dict['run_folder']> = <path2SwarmData>
-             <output_dir> = <path2SwarmData>
-        """
 
         self.acm_template = self.part_initialDesign() # Module 2 (mop.ad is available now)
 
@@ -148,6 +142,8 @@ class AC_Machine_Optiomization_Wrapper(object):
             function = vernier_motor_design.vernier_motor_VShapePM_template
         elif 'IM' in self.select_spec:
             function = bearingless_induction_design.bearingless_induction_template
+        elif 'Flux Alternator' in self.select_spec: 
+            function = flux_alternator_design.flux_alternator_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
         self.ad = acm_designer.acm_designer(
@@ -242,9 +238,14 @@ class AC_Machine_Optiomization_Wrapper(object):
         if xf != []:
             x_denorm = xf[:len(x_denorm)]
         acm_variant = self.ad.build_acm_variant(self.ad.acm_template, x_denorm, counter=counter)
-        toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=acm_variant.template.d['GP']['mm_r_os'].value*2.1, 
-                                                            height_in_points=acm_variant.template.d['GP']['mm_r_os'].value*2.1 )
-        toolCairo.draw_spmsm(acm_variant)
+        toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1, 
+                                                            height_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1 )
+        if 'PM' in acm_variant.template.name:
+            toolCairo.draw_spmsm(acm_variant)
+        elif 'Alternator' in acm_variant.template.name:
+            toolCairo.draw_doubly_salient(acm_variant)
+        else:
+            raise
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[4] Optimization Part' Multi-Objective Optimization
@@ -515,9 +516,10 @@ def main(number_which_part):
         # select_spec='IM Q24p1y9 Qr32 Round Bar',
         # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
-        select_spec            = 'PMSM Q12p4y1 PEMD-2020', #'PMSM Q24p1y9 PEMD'
-        # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-        select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
+        # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #'PMSM Q24p1y9 PEMD'
+        select_spec            = 'Flux Alternator 1955',
+        select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+        # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
 
         project_loc            = fr'../_default/',
         bool_show_GUI          = True
@@ -547,6 +549,7 @@ def main(number_which_part):
     return mop
 
 if __name__ == '__main__':
+    # main(31)
     main(3)
 
     ''' Interactive variable checking examples:
@@ -563,7 +566,7 @@ if __name__ == '__main__':
             >>> GP = mop.ad.acm_variant.template.d['GP'] 
             >>> GP['mm_r_ri'].value + GP['mm_d_ri'].value + GP['mm_d_rp'].value 
             46.7464829275686
-            >>> GP['mm_r_or'] 
+            >>> GP['mm_r_ro'] 
             acmop_parameter(type='derived', name='outer_rotor_radius', value=47.7464829275686, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000130CF961790>)
 
         Example 3:
@@ -575,7 +578,7 @@ if __name__ == '__main__':
             >>> mop = acmop.main(5)
             >>> var = mop.reproduced_design_variant
             >>> z = var.analyzer.z 
-            >>> z_in_question = var.template.d["GP"]['mm_r_or'].value + 10e-2 + 1j * 0
+            >>> z_in_question = var.template.d["GP"]['mm_r_ro'].value + 10e-2 + 1j * 0
             >>> index, _ = utility.get_index_and_min(np.abs(z - z_in_question))
             >>> plt.plot(np.abs(var.analyzer.b[:,index])); plt.show() 
     '''

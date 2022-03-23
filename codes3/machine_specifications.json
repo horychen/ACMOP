@@ -1,4 +1,85 @@
 {
+    "Flux Alternator 1955":
+    {
+        "Inputs":
+        {
+            "machine_type":                        "Flux_Alternator",
+            "DPNV_or_SEPA":                        null,
+            "Wrap_Around":                         "Toroidal",
+            "Number_of_Flux_Switching_Cells":      1,
+            "minimum_mechanical_air_gap_length_mm": 0.50,
+            "m":                                   1,
+            "Qs":                                  2,
+            "ps":                                  2,
+            "p":                                   1,
+            "pm":                                  1,
+            "pe":                                  1,
+            "pa":                                  1,
+            "coil_pitch_y":                        1,
+            "mec_power":                           500,
+            "ExcitationFreqSimulated":             500,
+            "Steel":                               "M19Gauge29",
+            "lamination_stacking_factor_kFe":      0.95,
+            "Coil":                                "Cu",
+            "Js":                                  4e6,
+            "Temperature":                         75,
+            "space_factor_kCu":                    0.3882,
+            "WindingFill":                         0.3882,
+            "AWG":                                 25,
+            "VoltageRating":                       415,
+            "guess_efficiency":                    0.8,
+            "guess_power_factor":                  0.6,
+            "guess_air_gap_flux_density_B":        0.9,
+            "guess_stator_tooth_flux_density_B_ds":1.5,
+            "guess_stator_yoke_flux_density_Bys":  3,
+            "tip_speed":                           100,
+            "TangentialStress":                    null,
+            "safety_factor_to_yield":              null,
+            "safety_factor_to_critical_speed":     null,
+            "bool_skew_stator":                    false,
+            "bool_skew_rotor":                     false
+        }
+    },
+
+    "Doubly Salient Yoke PM Motor Lipo1995":
+    {
+        "Inputs":
+        {
+            "machine_type":                        "DoublySalientYokePM",
+            "DPNV_or_SEPA":                        true,
+            "minimum_mechanical_air_gap_length_mm": 0.50,
+            "m":                                   3,
+            "Qs":                                  6,
+            "pe":                                  1,
+            "pm":                                  1,
+            "pa":                                  1,
+            "ps":                                  null,
+            "coil_pitch_y":                        3,
+            "mec_power":                           3300,
+            "ExcitationFreqSimulated":             66,
+            "VoltageRating":                       50,
+            "TangentialStress":                        null,
+            "Steel":                               "M19Gauge29",
+            "lamination_stacking_factor_kFe":      0.95,
+            "Coil":                                "Cu",
+            "space_factor_kCu":                    0.4,
+            "Js":                                  4.6e6,
+            "Temperature":                         75,
+            "WindingFill":                          0.3882,
+            "AWG":                                  25,
+            "guess_efficiency":                    0.8,
+            "guess_power_factor":                  0.6,
+            "guess_air_gap_flux_density_B":          0.9,
+            "guess_stator_tooth_flux_density_B_ds":1.5,
+            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "no_segmented_magnets":                1,
+            "tip_speed":                               null,
+            "safety_factor_to_yield":                  null,
+            "safety_factor_to_critical_speed":         null,
+            "bool_skew_stator":                    false,
+            "bool_skew_rotor":                     false
+        }
+    },
 
     "PMVM p2pr10-Q12y3 Wenbo": 
     {

@@ -9,7 +9,16 @@ import CrossSectInnerNotchedRotor
 import CrossSectStator
 import Location2D
 
-# import pint
+# import pin
+
+def derive_mm_r_ri(GP,SI):
+    GP       ['mm_r_ri'].value = GP['mm_r_ro'].value - GP['mm_d_pm'].value - GP['mm_d_ri'].value
+    if GP    ['mm_r_ri'].value<=0:
+        print()
+        print(GP       ['mm_r_ri'].value, GP['mm_r_ro'].value , GP['mm_d_pm'].value , GP['mm_d_ri'].value)
+        print('背铁太厚了 或 split_ration太小了！建议增大split_ratio是下限')
+        print()
+    return GP['mm_r_ri'].value 
 
 class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
     ''' This is a surface mounted PM motor but it might have saliency on q-axis if alpha_rm is less than 180/p.
@@ -35,6 +44,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_rp"           : acmop_parameter("free",     "inter_polar_iron_thickness",    None, [None, None], lambda GP,SI:None),
             "deg_alpha_rs"      : acmop_parameter("free" if SI['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None], lambda GP,SI:None),
             "mm_d_rs"           : acmop_parameter("free" if SI['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None], lambda GP,SI:None),
+            "mm_r_ri"           : acmop_parameter("derived",  "rotor_inner_radius",            None, [None, None], lambda GP,SI:derive_mm_r_ri(GP,SI)),
         })
         GP.update(childGP)
 
@@ -42,7 +52,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         self.Bianchi2006(fea_config_dict, SI, GP, EX)
 
         # 定义搜索空间，determine bounds
-        original_template_neighbor_bounds = self.get_template_neighbor_bounds(GP, SI)        
+        original_template_neighbor_bounds = self.get_template_neighbor_bounds()
         self.bounds_denorm = self.define_search_space(GP, original_template_neighbor_bounds)
 
         # Template's Other Properties (Shared by the swarm)
@@ -101,17 +111,17 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         p = SI['p']
         # STATOR
         GP['deg_alpha_st'].value         = 360/Q - 2 # deg
-        GP['deg_alpha_so'].value         = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
+        GP['deg_alpha_sto'].value         = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
         GP['mm_r_si'].value              = 1e3*stator_inner_radius_r_is # mm
-        GP['mm_r_os'].value              = 1e3*stator_outer_diameter_Dse/2 # mm
-        GP['mm_d_so'].value              = 1 # mm
-        GP['mm_d_sp'].value              = 1.5*GP['mm_d_so'].value
-        GP['mm_d_st'].value              = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - GP['mm_r_si'].value - GP['mm_d_sp'].value  # mm
+        GP['mm_r_so'].value              = 1e3*stator_outer_diameter_Dse/2 # mm
+        GP['mm_d_sto'].value              = 1 # mm
+        GP['mm_d_stt'].value              = 1.5*GP['mm_d_sto'].value
+        GP['mm_d_st'].value              = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - GP['mm_r_si'].value - GP['mm_d_stt'].value  # mm
         # print(GP['mm_d_st'].value)
         # print (1e3*stator_outer_diameter_Dse)
         # print(1e3*stator_yoke_height_h_ys)
         # print(GP['mm_r_si'].value)
-        # print (GP['mm_d_sp'].value)
+        # print (GP['mm_d_stt'].value)
         # quit()
         GP['mm_d_sy'].value              = 1e3*stator_yoke_height_h_ys # mm
         GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
@@ -121,7 +131,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP['split_ratio'].value          = split_ratio
         GP['mm_d_pm'].value              = 4  # mm
         GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is epirically specified
-        GP['mm_r_or'].value              = 1e3*rotor_outer_radius_r_or
+        GP['mm_r_ro'].value              = 1e3*rotor_outer_radius_r_or
         GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
         # SPMSM specific
         GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
@@ -153,9 +163,9 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         original_template_neighbor_bounds = {
             # STATOR
             "deg_alpha_st": [ 0.35*360/Q, 0.9*360/Q],
-            "mm_d_so":      [  0.5,   5],
+            "mm_d_sto":      [  0.5,   5],
             "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
-            # "mm_r_os":      [1.0*GP['mm_r_os'].value, 1.2*GP['mm_r_os'].value],
+            # "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value],
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
             # ROTOR
@@ -248,10 +258,10 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
 
         self.stator_core = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
                                             deg_alpha_st = GP['deg_alpha_st'].value, #40,
-                                            deg_alpha_so = GP['deg_alpha_so'].value, #20,
+                                            deg_alpha_sto = GP['deg_alpha_sto'].value, #20,
                                             mm_r_si = GP['mm_r_si'].value,
-                                            mm_d_so = GP['mm_d_so'].value,
-                                            mm_d_sp = GP['mm_d_sp'].value,
+                                            mm_d_sto = GP['mm_d_sto'].value,
+                                            mm_d_stt = GP['mm_d_stt'].value,
                                             mm_d_st = GP['mm_d_st'].value,
                                             mm_d_sy = GP['mm_d_sy'].value,
                                             mm_w_st = GP['mm_w_st'].value,

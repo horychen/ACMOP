@@ -94,7 +94,7 @@ class CrossSectInnerNotchedRotor(object):
         P1 = [r_ri, 0]
 
         r_P2 = r_ri + d_ri + d_rp
-        # print('[CrossSectInnerNotchedRotor.py] DEBUG: ', r_P2, mm_r_or)
+        # print('[CrossSectInnerNotchedRotor.py] DEBUG: ', r_P2, mm_r_ro)
         P2 = [r_P2, 0]
 
         alpha_P3 = alpha_rp - alpha_rm
@@ -139,7 +139,7 @@ class CrossSectInnerNotchedRotor(object):
                         list_segments += drawer.drawLine(P5_CCW, P2)
                     for i in range(2*p):
                         draw_fraction(list_segments, iPark(P2, i*alpha_rp), iPark(P3, i*alpha_rp), iPark(P4, i*alpha_rp), iPark(P5, i*alpha_rp))
-                    # draw a circle (this is officially suggested)
+                    # draw a circle (this is officially suggested by FEMM)
                     list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
                     list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
 
@@ -409,20 +409,20 @@ class CrossSectShaft(object):
         self.color = color
         self.notched_rotor = notched_rotor
 
-    def draw(self, drawer):
+    def draw(self, drawer, bool_draw_whole_model=False):
 
         drawer.getSketch(self.name, self.color)
 
-        d_pm     = self.notched_rotor.mm_d_pm
-        alpha_rm = self.notched_rotor.deg_alpha_rm * np.pi/180
-        alpha_rs = self.notched_rotor.deg_alpha_rs * np.pi/180
+        # d_pm     = self.notched_rotor.mm_d_pm
+        # alpha_rm = self.notched_rotor.deg_alpha_rm * np.pi/180
+        # alpha_rs = self.notched_rotor.deg_alpha_rs * np.pi/180
         r_ri     = self.notched_rotor.mm_r_ri
-        d_ri     = self.notched_rotor.mm_d_ri
-        d_rp     = self.notched_rotor.mm_d_rp
-        d_rs     = self.notched_rotor.mm_d_rs
-        p        = self.notched_rotor.p
-        s        = self.notched_rotor.s
-        alpha_rp = 2*np.pi/(2*p) # pole span
+        # d_ri     = self.notched_rotor.mm_d_ri
+        # d_rp     = self.notched_rotor.mm_d_rp
+        # d_rs     = self.notched_rotor.mm_d_rs
+        # p        = self.notched_rotor.p
+        # s        = self.notched_rotor.s
+        # alpha_rp = 2*np.pi/(2*p) # pole span
 
         P1 = [r_ri, 0]
         NP1 = [-r_ri, 0]

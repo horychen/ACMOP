@@ -58,7 +58,9 @@ def pyplot_width(fig):
 
 # Init session_state
 if len(st.session_state) == 0:
-    with open(f'{os.path.dirname(__file__)}/streamllit_user_session_data.json', 'r') as f:
+    fname = f'{os.path.dirname(__file__)}/streamllit_user_session_data.json'
+    print('Open', fname)
+    with open(fname, 'r') as f:
         d = json.load(f)
         for k, v in d.items():
             st.session_state[k] = v

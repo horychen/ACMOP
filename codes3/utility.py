@@ -315,10 +315,10 @@ class Pyrhonen_design(object):
             self.Angle_StatorSlotOpen            = design_parameters[5]      # mm       # stator slot opening [deg]
             self.Width_StatorTeethHeadThickness  = design_parameters[6]      # mm       # stator tooth head length [mm]
         '''
-        # rotor_slot_radius = (2*pi*(template.d['GP']['mm_r_or'].value - Length_HeadNeckRotorSlot)*1e-3 - rotor_tooth_width_b_dr*Qr) / (2*Qr+2*pi)
-        # => rotor_tooth_width_b_dr = ( 2*pi*(template.d['GP']['mm_r_or'].value - Length_HeadNeckRotorSlot)*1e-3  - rotor_slot_radius * (2*Qr+2*pi) ) / Qr
+        # rotor_slot_radius = (2*pi*(template.d['GP']['mm_r_ro'].value - Length_HeadNeckRotorSlot)*1e-3 - rotor_tooth_width_b_dr*Qr) / (2*Qr+2*pi)
+        # => rotor_tooth_width_b_dr = ( 2*pi*(template.d['GP']['mm_r_ro'].value - Length_HeadNeckRotorSlot)*1e-3  - rotor_slot_radius * (2*Qr+2*pi) ) / Qr
         # Verified in Tran2TSS_PS_Opti.xlsx.
-            # ( 2*pi*(im.template.d['GP']['mm_r_or'].value - im.Length_HeadNeckRotorSlot)  - im.Radius_of_RotorSlot * (2*Qr+2*pi) ) / Qr
+            # ( 2*pi*(im.template.d['GP']['mm_r_ro'].value - im.Length_HeadNeckRotorSlot)  - im.Radius_of_RotorSlot * (2*Qr+2*pi) ) / Qr
             # = ( 2*PI()*(G4 - I4) - J4 * (2*C4+2*PI()) ) / C4
         from math import pi
         Qr = im.Qr
@@ -326,7 +326,7 @@ class Pyrhonen_design(object):
         # unit: mm 
         self.air_gap_length_delta           = im.Length_AirGap
         self.stator_tooth_width_b_ds        = im.Width_StatorTeethBody
-        self.rotor_tooth_width_b_dr         = ( 2*pi*(im.template.d['GP']['mm_r_or'].value - im.Length_HeadNeckRotorSlot)  - im.Radius_of_RotorSlot * (2*Qr+2*pi) ) / Qr
+        self.rotor_tooth_width_b_dr         = ( 2*pi*(im.template.d['GP']['mm_r_ro'].value - im.Length_HeadNeckRotorSlot)  - im.Radius_of_RotorSlot * (2*Qr+2*pi) ) / Qr
         self.Angle_StatorSlotOpen           = im.Angle_StatorSlotOpen # deg
         self.b1                             = im.Width_RotorSlotOpen
         self.Width_StatorTeethHeadThickness = im.Width_StatorTeethHeadThickness
@@ -414,8 +414,8 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     rho_0_Air = 1.29#;     %[kg/m^3] Air density at 0
     Shaft = [mm_stack_length,                               #1;         %End position of the sections mm (Absolut)
              # [Imthiaz Ahmed] poses question on this value. See https://seversongroup.slack.com/archives/D01HSGBLSES/p1616609258033500?thread_ts=1616560325.030600&cid=D01HSGBLSES
-             # im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['EX']['mm_mechanical_air_gap_length'], #1;         %Inner Radius in mm
-             im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['GP']['mm_d_sleeve'].value, #1;         %Inner Radius in mm 
+             # im_variant.template.d['GP']['mm_r_ro'].value+im_variant.template.d['EX']['mm_mechanical_air_gap_length'], #1;         %Inner Radius in mm
+             im_variant.template.d['GP']['mm_r_ro'].value+im_variant.template.d['GP']['mm_d_sleeve'].value, #1;         %Inner Radius in mm 
              #
              1,                                                     #0;         %Shrouded (1) or free surface (0)
              im_variant.template.d['EX']['mm_mechanical_air_gap_length']]                              #0];        %Airgap in mm
@@ -432,8 +432,8 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     delta = Shaft[3]*1e-3 # length of air gap
     
     print('[utility.py] DEBUG windage: L, R, delta =', L, R, delta)
-    print('\tRadius version old:', im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['EX']['mm_mechanical_air_gap_length'])
-    print('\tRadius version new:', im_variant.template.d['GP']['mm_r_or'].value+im_variant.template.d['GP']['mm_d_sleeve'].value)
+    print('\tRadius version old:', im_variant.template.d['GP']['mm_r_ro'].value+im_variant.template.d['EX']['mm_mechanical_air_gap_length'])
+    print('\tRadius version new:', im_variant.template.d['GP']['mm_r_ro'].value+im_variant.template.d['GP']['mm_d_sleeve'].value)
 
     Omega = 2*np.pi*im_variant.template.d['EX']['the_speed']/60.
     if abs(Omega - im_variant.template.d['EX']['Omega']) < 0.1:
@@ -467,7 +467,7 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
         
     # end friction loss added - 05192018.yegu
     # the friction coefficients from <Rotor Design of a High-Speed Permanent Magnet Synchronous Machine rating 100,000 rpm at 10 kW>
-    Rer = rho_Air * (im_variant.template.d['GP']['mm_r_or'].value * 1e-3)**2 * Omega/nu_Air
+    Rer = rho_Air * (im_variant.template.d['GP']['mm_r_ro'].value * 1e-3)**2 * Omega/nu_Air
     if Rer <= 30:
         c_f = 64/3. / Rer
     elif Rer>30 and Rer<3*10**5:
@@ -475,7 +475,7 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     else:
         c_f = 0.146 * Rer**(-0.2)
 
-    windage_loss_axial = 0.5 * c_f * rho_Air * Omega**3 * (im_variant.template.d['GP']['mm_r_or'].value*1e-3)**5
+    windage_loss_axial = 0.5 * c_f * rho_Air * Omega**3 * (im_variant.template.d['GP']['mm_r_ro'].value*1e-3)**5
     
     windage_loss_total = windage_loss_radial + windage_loss_axial
     print('\t windage_loss_total = windage_loss_radial + windage_loss_axial =', windage_loss_total, '[W] =', windage_loss_radial, '+', windage_loss_axial, '[W]')
@@ -835,7 +835,7 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
         zQ                       = 1
         coil_pitch_yq            = self.im.Qr/self.im.DriveW_poles
         Q                        = self.im.Qr
-        # the_radius_m             = 1e-3*(self.im.template.d['GP']['mm_r_or'].value - self.im.Radius_of_RotorSlot)
+        # the_radius_m             = 1e-3*(self.im.template.d['GP']['mm_r_ro'].value - self.im.Radius_of_RotorSlot)
         stack_length_m           = 1e-3*self.im.stack_length
         # number_of_phase          = self.im.Qr/self.im.DriveW_poles
         # Ns                       = zQ * self.im.Qr / (2 * number_of_phase * a) # turns in series = 2 for 4 pole winding; = 1 for 2 pole winding
@@ -846,7 +846,7 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
         Jr = (current_rms_value/a) * zQ / area_copper_S_Cu # 逆变器电流current_rms_value在流入电机时，
 
 
-        rotor_outer_diameter_Dor = 2*(self.im.template.d['GP']['mm_r_or'].value*1e-3)
+        rotor_outer_diameter_Dor = 2*(self.im.template.d['GP']['mm_r_ro'].value*1e-3)
         slot_height_h_t = self.im.rotor_slot_height_h_sr
         slot_pitch_pps = np.pi * (rotor_outer_diameter_Dor - slot_height_h_t) / Q
         kov = 1.6 
@@ -1457,7 +1457,7 @@ class SwarmDataAnalyzer(object):
                 self.Omega            
                 self.mec_power        
                 self.required_torque  
-                self.template.d['GP']['mm_r_or'].value
+                self.template.d['GP']['mm_r_ro'].value
                 self.stack_length     
                 self.Qs               
                 self.Qr               
@@ -1488,7 +1488,7 @@ class SwarmDataAnalyzer(object):
                       Efficiency at rated load (include windage loss) [\\%] & {eta*100                                :.1f} \\\\
                       Power Factor at rated load                            & {PF                                     :.2f} \\\\
                       Stator OD [mm]                                        & {2*self.sw.im.Radius_OuterStatorYoke    :.1f} \\\\
-                      Rotor OD [mm]                                         & {2*self.sw.im.template.d['GP']['mm_r_or'].value         :.1f} \\\\
+                      Rotor OD [mm]                                         & {2*self.sw.im.template.d['GP']['mm_r_ro'].value         :.1f} \\\\
                       Stack length [mm]                                     & {rated_stack_length                     :.1f} \\\\
                       Rotor volume [$\\rm m^3$]                             & {self.rotor_volume                        :g} \\\\
                       Weight of the rotor [N]                               & {self.rotor_weight                        :g} \\\\
@@ -2100,7 +2100,7 @@ class SwarmDataAnalyzer(object):
         self.Omega             = self.speed_rpm / 60. * 2*np.pi
         self.mec_power         = spec.mec_power / spec.ExcitationFreq * self.ExcitationFreqSimulated
         self.required_torque   = self.mec_power / self.Omega # Nm
-        self.template.d['GP']['mm_r_or'].value = sw.im.template.d['GP']['mm_r_or'].value
+        self.template.d['GP']['mm_r_ro'].value = sw.im.template.d['GP']['mm_r_ro'].value
         self.stack_length      = sw.im.stack_length
         self.Qs                = sw.im.Qs
         self.Qr                = sw.im.Qr

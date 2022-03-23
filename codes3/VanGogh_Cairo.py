@@ -55,6 +55,53 @@ class VanGogh_Cairo:
         # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_end, angle_start)
         return []
 
+    def draw_doubly_salient(self, acm_variant):
+        # Rotor Core
+        list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=True)
+        # self.bMirror = False
+        # self.iRotateCopy = acm_variant.rotorCore.p*2
+        # region1 = self.prepareSection(list_regions_1)
+
+        # Shaft
+        # list_regions = acm_variant.shaft.draw(self)
+        # self.bMirror = False
+        # self.iRotateCopy = 1
+        # region0 = self.prepareSection(list_regions)
+
+        # Stator Core
+        list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=True)
+        # self.bMirror = True
+        # self.iRotateCopy = acm_variant.stator_core.Q
+        # region3 = self.prepareSection(list_regions)
+
+        # Stator Winding
+        # list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=True)
+        # self.bMirror = False
+        # self.iRotateCopy = acm_variant.coils.stator_core.Q
+        # region4 = self.prepareSection(list_regions)
+
+        self.apply_stroke()
+        self.save()
+
+        if False:
+            # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
+            EX = acm_variant.template.d['EX']
+            CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
+            CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+
+            # Maybe there is a bug here... regarding the excitation for suspension winding...
+            variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
+            variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
+            EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
+            EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+            EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+
+            slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+            # print('[FEMM_SlidingMesh.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
+
+        return True
+
     def draw_spmsm(self, acm_variant):
         # Rotor Core
         list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=True)
@@ -130,7 +177,7 @@ class VanGogh_Cairo:
         self.surface.finish()
         import cairosvg
         cairosvg.svg2pdf(url=self.output_fname_no_suffix+'.svg', write_to=self.output_fname_no_suffix+'.pdf')
-        print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+'.svg/.pdf'}")
+        print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+'.svg (and .pdf)'}")
 
     def getSketch(self, name, color):
         self.name = name

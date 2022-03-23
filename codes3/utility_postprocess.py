@@ -750,7 +750,7 @@ def call_selection_criteria(ad, upper_bound_objectives, best_idx=None, proj_name
                                 # best_idx=1867, proj_name='proj1868-PS-variant0-1868_IDBLIM-PS-variant0-1868', 
                                 Q=ad.spec_input_dict['Qs'], p=ad.spec_input_dict['p'])
 
-def donut_chart(total_loss, sizes, Qs, p, ps, Qr=None, output_dir=None):
+def donut_chart(ad, total_loss, sizes, Qs, p, ps, Qr=None, output_dir=None):
     print('\t[utility_postprocess.py] Validate:', np.sum(sizes)*total_loss, '=', total_loss)
     print('\t', sizes, total_loss)
 
@@ -847,7 +847,7 @@ def performance_table_plus_donut_chart(ad, folder_as_select_spec, _best_index, _
     # print('\n'.join([el for el in dir(ad) if not el.startswith('__')]))
     # print()
     # print('\n'.join([el for el in dir(ad) if not el.startswith('__')]))
-    fig = donut_chart(total_loss, sizes_in_percentage, 
+    fig = donut_chart(ad, total_loss, sizes_in_percentage, 
                 ad.spec_input_dict['Qs'], 
                 ad.spec_input_dict['p'],
                 ad.spec_input_dict['ps'],

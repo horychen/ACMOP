@@ -14,55 +14,46 @@ from collections import OrderedDict, namedtuple
 
 def derive_mm_r_si(GP,SI):
     # (option 1) depends on split_ratio and r_os
-    # GP       ['mm_r_si'].value = GP['mm_r_os'].value * GP['split_ratio'].value
+    # GP       ['mm_r_si'].value = GP['mm_r_so'].value * GP['split_ratio'].value
     # return GP['mm_r_si'].value
 
         # (option 2) depends on d_sy (which is bad, as d_sy is also derived) and r_os
-        # GP['mm_r_si'].value = GP['mm_r_os'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_sp'].value
+        # GP['mm_r_si'].value = GP['mm_r_so'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_stt'].value
         # return GP['mm_r_si'].value
 
     # (option 3) depends on r_or and air gap length
-    GP       ['mm_r_si'].value = GP['mm_r_or'].value + GP['mm_d_sleeve'].value + GP['mm_d_mech_air_gap'].value
+    GP       ['mm_r_si'].value = GP['mm_r_ro'].value + GP['mm_d_sleeve'].value + GP['mm_d_mech_air_gap'].value
     return GP['mm_r_si'].value
 
-def derive_deg_alpha_so(GP,SI):
+def derive_deg_alpha_sto(GP,SI):
     # this allows a square tooth tip, or else the tooth tip might be pointy
-    GP       ['deg_alpha_so'].value = GP['deg_alpha_st'].value/2
-    return GP['deg_alpha_so'].value
+    GP       ['deg_alpha_sto'].value = GP['deg_alpha_st'].value/2
+    return GP['deg_alpha_sto'].value
 
-def derive_mm_d_sp(GP,SI):
-    GP       ['mm_d_sp'].value = 1.5*GP['mm_d_so'].value
-    return GP['mm_d_sp'].value
+def derive_mm_d_stt(GP,SI):
+    GP       ['mm_d_stt'].value = 1.5*GP['mm_d_sto'].value
+    return GP['mm_d_stt'].value
 
 
 
 def derive_mm_d_sy(GP,SI):
-    GP       ['mm_d_sy'].value = GP['mm_r_os'].value - GP['mm_r_si'].value - GP['mm_d_st'].value - GP['mm_d_sp'].value
+    GP       ['mm_d_sy'].value = GP['mm_r_so'].value - GP['mm_r_si'].value - GP['mm_d_st'].value - GP['mm_d_stt'].value
     return GP['mm_d_sy'].value
 
-def derive_mm_r_os(GP,SI):
+def derive_mm_r_so(GP,SI):
     # (option 1)
-    # GP       ['mm_r_os'].value = GP['mm_r_si'].value + GP['mm_d_sp'].value + GP['mm_d_st'].value + GP['mm_d_sy'].value
-    # return GP['mm_r_os'].value
+    # GP       ['mm_r_so'].value = GP['mm_r_si'].value + GP['mm_d_stt'].value + GP['mm_d_st'].value + GP['mm_d_sy'].value
+    # return GP['mm_r_so'].value
     # 用d_sy导出r_os可以避免d_sy为负的bug
 
     # (option 2)
-    GP['mm_r_os'].value = GP['mm_r_si'].value / GP['split_ratio'].value
-    return GP['mm_r_os'].value
+    GP['mm_r_so'].value = GP['mm_r_si'].value / GP['split_ratio'].value
+    return GP['mm_r_so'].value
 
 
-def derive_mm_r_or(GP,SI):
-    GP       ['mm_r_or'].value = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
-    return GP['mm_r_or'].value
-
-def derive_mm_r_ri(GP,SI):
-    GP       ['mm_r_ri'].value = GP['mm_r_or'].value - GP['mm_d_pm'].value - GP['mm_d_ri'].value
-    if GP    ['mm_r_ri'].value<=0:
-        print()
-        print(GP       ['mm_r_ri'].value, GP['mm_r_or'].value , GP['mm_d_pm'].value , GP['mm_d_ri'].value)
-        print('背铁太厚了 或 split_ration太小了！建议增大split_ratio是下限')
-        print()
-    return GP['mm_r_ri'].value 
+def derive_mm_r_ro(GP,SI):
+    GP       ['mm_r_ro'].value = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
+    return GP['mm_r_ro'].value
 
 class template_machine_as_numbers(object):
     ''' # template 有点类似analytical的电机（由几何尺寸组成）
@@ -72,26 +63,25 @@ class template_machine_as_numbers(object):
         # 仿真输入
         self.fea_config_dict = fea_config_dict
         self.spec_input_dict = spec_input_dict
-        self.SI = SI = spec_input_dict # short name
+        self.SI = spec_input_dict # just a short name
 
         # 初始化搜索空间
         geometric_parameters = OrderedDict({
-            # ROTOR
-            "mm_r_or"           : acmop_parameter("fixed",    "outer_rotor_radius",            None, [None, None], lambda GP,SI:None), #derive_mm_r_or(GP,SI)),
+            # ROTOR                                  Type       Name                          Value  Bounds       Calc
+            "mm_r_ro"           : acmop_parameter("fixed",    "rotor_outer_radius",            None, [None, None], lambda GP,SI:None), #derive_mm_r_ro(GP,SI)),
             "mm_d_mech_air_gap" : acmop_parameter("fixed",    "mechanical_air_gap_length",     None, [None, None], lambda GP,SI:None),
             "mm_d_sleeve"       : acmop_parameter("free",     "sleeve_length",                 None, [None, None], lambda GP,SI:None),
             "split_ratio"       : acmop_parameter("free",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SI:None),
-            "mm_r_ri"           : acmop_parameter("derived",  "inner_rotor_radius",            None, [None, None], lambda GP,SI:derive_mm_r_ri(GP,SI)),
-            # STATOR                          Type       Name                          Value  Bounds       Calc
-            "deg_alpha_st" : acmop_parameter("free",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
-            "mm_w_st"      : acmop_parameter("free",    "stator_tooth_width"         , None, [None, None], lambda GP,SI:None),
-            "mm_d_st"      : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:None),
-            "mm_d_so"      : acmop_parameter("free",    "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
-            "deg_alpha_so" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_so(GP,SI)),
-            "mm_d_sp"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_sp(GP,SI)),
-            "mm_r_si"      : acmop_parameter("derived", "inner_stator_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si(GP,SI)),
-            "mm_r_os"      : acmop_parameter("derived", "outer_stator_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_os(GP,SI)),
-            "mm_d_sy"      : acmop_parameter("derived", "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy(GP,SI)),
+            # STATOR                           Type       Name                          Value  Bounds       Calc
+            "deg_alpha_st"  : acmop_parameter("free",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
+            "mm_w_st"       : acmop_parameter("free",    "stator_tooth_width"         , None, [None, None], lambda GP,SI:None),
+            "mm_d_st"       : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:None),
+            "mm_d_sto"      : acmop_parameter("free",    "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
+            "deg_alpha_sto" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_sto(GP,SI)),
+            "mm_d_stt"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_stt(GP,SI)),
+            "mm_r_si"       : acmop_parameter("derived", "stator_inner_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si(GP,SI)),
+            "mm_r_so"       : acmop_parameter("derived", "stator_outer_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_so(GP,SI)),
+            "mm_d_sy"       : acmop_parameter("derived", "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy(GP,SI)),
         })
         for k, v in geometric_parameters.items():
             if v.type == 'derived' and v.calc is None:
@@ -147,15 +137,18 @@ class template_machine_as_numbers(object):
         EX = self.d['EX']
         if True:
             # WINDING Layout
-            EX['wily'] = wily = winding_layout.winding_layout_v2(SI['DPNV_or_SEPA'], SI['Qs'], SI['p'], SI['ps'], SI['coil_pitch_y'])
+            if 'Wrap_Around' in self.SI.keys():
+                EX['wily'] = wily = winding_layout.winding_layout_v2(SI['DPNV_or_SEPA'], SI['Qs'], SI['p'], SI['ps'], SI['coil_pitch_y'], m=SI['m'], Wrap_Around=SI['Wrap_Around'])
+            else:
+                EX['wily'] = wily = winding_layout.winding_layout_v2(SI['DPNV_or_SEPA'], SI['Qs'], SI['p'], SI['ps'], SI['coil_pitch_y'], m=SI['m'])
             # STACK LENGTH
-            EX['mm_template_stack_length'] = pyrhonen_procedure_as_function.get_mm_template_stack_length(SI, GP['mm_r_or'].value*1e-3) # mm TODO:
+            EX['mm_template_stack_length'] = pyrhonen_procedure_as_function.get_mm_template_stack_length(SI, GP['mm_r_ro'].value*1e-3) # mm TODO:
             EX['mm_mechanical_air_gap_length'] = SI['minimum_mechanical_air_gap_length_mm']
             # THERMAL Properties
             EX['Js']                = SI['Js'] # Arms/mm^2 im_OP['Js'] 
             EX['WindingFill']       = SI['WindingFill'] # SI['space_factor_kCu'] is obsolete
             # MOTOR Winding Excitation Properties
-            EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_or'].value*2*1e-3) # TODO:
+            EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_ro'].value*2*1e-3) # TODO:
             EX['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SI) # TODO:
             print('[inner_rotor_motor.py] DriveW_CurrentAmp is initialized as:', EX['DriveW_CurrentAmp'], 'A (considering the specified voltage). This will be overwritten by Js-constraint later.')
             EX['DriveW_Freq']       = SI['ExcitationFreqSimulated']
@@ -168,9 +161,9 @@ class template_machine_as_numbers(object):
     '''
     def get_rotor_volume(self, stack_length=None):
         if stack_length is None:
-            return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (self.d['EX']['mm_template_stack_length']*1e-3)
+            return np.pi*(self.d['GP']['mm_r_ro'].value*1e-3)**2 * (self.d['EX']['mm_template_stack_length']*1e-3)
         else:
-            return np.pi*(self.d['GP']['mm_r_or'].value*1e-3)**2 * (stack_length*1e-3)
+            return np.pi*(self.d['GP']['mm_r_ro'].value*1e-3)**2 * (stack_length*1e-3)
     def get_rotor_weight(self, gravity=9.8, stack_length=None):
         material_density_rho = pyrhonen_procedure_as_function.get_material_data()[0]
         if stack_length is None:
@@ -253,7 +246,7 @@ class variant_machine_as_objects(object):
                 self.name = f"p{SI['p']}ps{SI['ps']}-Q{SI['Qs']}y{SI['coil_pitch_y']}-{counter}-redo{counter_loop}"
         else:
             self.name = 'SPMSM_InitialDesign'
-        self.ID = 'Q%dp%ds%d'%(self.template.SI['Qs'], self.template.SI['p'],self.template.SI['no_segmented_magnets'])
+        self.ID = 'ID'
 
         #02 Geometry Data
         if x_denorm is None:
@@ -265,14 +258,6 @@ class variant_machine_as_objects(object):
                 for k,v in x_denorm_dict.items():
                     print('\t', k,v)
             GP = self.template.update_geometric_parameters_using_x_denorm_dict(x_denorm_dict)
-
-        # print('[inner_rotor_motor.py] DEBUG x_denorm length is', len(x_denorm), x_denorm)
-
-        #test: yes, it is by reference!
-        # print(self.template.d['GP'])
-        # GP['aaaaaa'] = 1239129
-        # print(self.template.d['GP'])
-        # quit()
 
         #03 Inherit properties
         # self.template.d['EX']

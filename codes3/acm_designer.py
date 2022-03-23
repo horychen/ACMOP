@@ -5,7 +5,8 @@ import utility, utility_json
 import population, FEMM_Solver, pyrhonen_procedure_as_function
 
 # BPMSM codes
-import JMAG, bearingless_spmsm_design, vernier_motor_design, FEMM_SlidingMesh
+import JMAG, FEMM_SlidingMesh
+import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design
 
 class Swarm_Data_Analyzer(object):
     def __init__(self, fname, desired_x_denorm_dict):
@@ -230,10 +231,10 @@ class swarm_data_container(object):
 
                     # spmsm_template.design_parameters = [
                     #                                   0 spmsm_template.deg_alpha_st 
-                    #                                   1 spmsm_template.deg_alpha_so 
+                    #                                   1 spmsm_template.deg_alpha_sto 
                     #                                   2 spmsm_template.mm_r_si      
-                    #                                   3 spmsm_template.mm_d_so      
-                    #                                   4 spmsm_template.mm_d_sp      
+                    #                                   3 spmsm_template.mm_d_sto      
+                    #                                   4 spmsm_template.mm_d_stt      
                     #                                   5 spmsm_template.mm_d_st      
                     #                                   6 spmsm_template.mm_d_sy      
                     #                                   7 spmsm_template.mm_w_st      
@@ -274,7 +275,7 @@ class swarm_data_container(object):
                         """ This is consistent with bopt-python """
                         # x_denorm = [None]*11
                         # x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
-                        # x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_so         
+                        # x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_sto         
                         # x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
                         # x_denorm[3]  = design_parameters_denorm[7] # spmsm_template.mm_w_st         
                         # x_denorm[4]  = design_parameters_denorm[12] # spmsm_template.sleeve_length   
@@ -288,9 +289,9 @@ class swarm_data_container(object):
                         """ This is consistent with ACMOP """
                         x_denorm = [None]*11
                         x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
-                        x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_so         
+                        x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_sto         
                         x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
-                        x_denorm[3]  = sum([design_parameters_denorm[i] for i in (2,4,5,6)]) # outer_stator_radius mm_r_os
+                        x_denorm[3]  = sum([design_parameters_denorm[i] for i in (2,4,5,6)]) # outer_stator_radius mm_r_so
                         x_denorm[4]  = design_parameters_denorm[7] # spmsm_template.mm_w_st   
                         x_denorm[5]  = design_parameters_denorm[12] #            mm_d_sleeve
                         r_si = design_parameters_denorm[2] # 2 spmsm_template.mm_r_si      
@@ -310,11 +311,11 @@ class swarm_data_container(object):
                         # x_denorm[12] = design_parameters_denorm[20] # spmsm_template.mm_d_rs         
 
                         # DEBUG
-                        # odict_keys(['deg_alpha_st', 'mm_d_so', 'mm_d_st', 'mm_r_os', 'mm_w_st', 'mm_d_sleeve', 'split_ratio', 'mm_d_pm', 'mm_d_ri', 'deg_alpha_rm', 'mm_d_rp'])
+                        # odict_keys(['deg_alpha_st', 'mm_d_sto', 'mm_d_st', 'mm_r_so', 'mm_w_st', 'mm_d_sleeve', 'split_ratio', 'mm_d_pm', 'mm_d_ri', 'deg_alpha_rm', 'mm_d_rp'])
                         # deg_alpha_st 11.1183
-                        # mm_d_so 1.50079
+                        # mm_d_sto 1.50079
                         # mm_d_st 42.9701
-                        # mm_r_os 16.099
+                        # mm_r_so 16.099
                         # mm_w_st 5.89091
                         # mm_d_sleeve 5.19948
                         # split_ratio 44.9638
@@ -423,9 +424,9 @@ class swarm_data_container(object):
             # step 1: get free_variables from design_parameters
             free_variables = [None]*13
             free_variables[0]  = design_parameters[0] # spmsm_template.deg_alpha_st 
-            free_variables[1]  = design_parameters[3] # spmsm_template.mm_d_so         
+            free_variables[1]  = design_parameters[3] # spmsm_template.mm_d_sto         
             free_variables[2]  = design_parameters[5] # spmsm_template.mm_d_st
-            free_variables[3]  = sum([design_parameters[i] for i in (2,4,5,6)]) # spmsm_template.mm_r_si + spmsm_template.mm_d_sp + spmsm_template.mm_d_st + spmsm_template.mm_d_sy # stator outer radius
+            free_variables[3]  = sum([design_parameters[i] for i in (2,4,5,6)]) # spmsm_template.mm_r_si + spmsm_template.mm_d_stt + spmsm_template.mm_d_st + spmsm_template.mm_d_sy # stator outer radius
             free_variables[4]  = design_parameters[7] # spmsm_template.mm_w_st         
             free_variables[5]  = design_parameters[12] # spmsm_template.sleeve_length   
             free_variables[6]  = design_parameters[14] # spmsm_template.mm_d_pm         
@@ -962,6 +963,9 @@ class acm_designer(object):
         elif 'IM' in acm_template.name:
             return self.fea_bearingless_induction(acm_template.obsolete_template, x_denorm, counter, counter_loop)
 
+        elif 'Flux_Alternator' in acm_template.name:
+            return self.fea_wrapper(acm_template, x_denorm, counter, counter_loop)
+
         else:
             raise Exception(f'{acm_template.name} is not regognized as a valid machine type.')
 
@@ -1272,6 +1276,8 @@ class acm_designer(object):
             acm_variant = bearingless_spmsm_design.bearingless_spmsm_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         elif 'PMVM' in template.machine_type:
             acm_variant = vernier_motor_design.vernier_motor_VShapePM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        elif 'Flux_Alternator' in template.machine_type:
+            acm_variant = flux_alternator_design.flux_alternator_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         else:
             raise Exception('Not supported machine_type:', template.machine_type)
         return acm_variant
@@ -1351,11 +1357,14 @@ class acm_designer(object):
         if bool_re_evaluate==False:
 
             # def draw_jmag_bpmsm():
-            import JMAG
             toolJd = JMAG.JMAG(self.fea_config_dict, self.spec_input_dict)
 
             toolJd.open(expected_project_file)
-            DRAW_SUCCESS = toolJd.draw_spmsm(acm_variant)
+            if 'PMSM' in acm_variant.template.name:
+                DRAW_SUCCESS = toolJd.draw_spmsm(acm_variant)
+            elif 'Flux_Alternator' in acm_variant.template.name:
+                DRAW_SUCCESS = toolJd.draw_doublySalient(acm_variant, bool_draw_whole_model=True)
+
             if DRAW_SUCCESS != 1:
                 raise Exception('Drawer failed.')
 
@@ -1369,7 +1378,11 @@ class acm_designer(object):
                 logger.error('there is no model yet for %s'%(acm_variant.name))
                 raise Exception('why is there no model yet? %s'%(acm_variant.name))
 
-            toolJd.pre_process_PMSM(app, model, acm_variant)
+            if 'PMSM' in acm_variant.template.name:
+                toolJd.pre_process_PMSM(app, model, acm_variant)
+            elif 'Flux_Alternator' in acm_variant.template.name:
+                toolJd.pre_process_fluxAlternator(app, model, acm_variant)
+
             study = toolJd.add_magnetic_transient_study(app, model, dir_csv_output_folder, study_name, acm_variant)
             toolJd.mesh_study(acm_variant, app, model, study, output_dir=output_dir)
             # raise KeyboardInterrupt
@@ -1417,7 +1430,12 @@ class acm_designer(object):
         toolFEMM = FEMM_SlidingMesh.FEMM_SlidingMesh(acm_variant)
         toolFEMM.open()
         toolFEMM.probdef(stack_length=acm_variant.template.d['EX']['mm_template_stack_length'], time_harmonic_study_frequency=0)
-        if toolFEMM.draw_spmsm(acm_variant) != 1: raise Exception('Drawer failed.')
+        if 'PMSM' in acm_variant.template.name:
+            if toolFEMM.draw_spmsm(acm_variant) != 1: raise Exception('Drawer failed.')
+        elif 'Flux_Alternator' in acm_variant.template.name:
+            if toolFEMM.draw_doublySalient(acm_variant) != 1: raise Exception('Drawer failed.')
+        else:
+            raise
 
         # 2. Preprocess
         toolFEMM.pre_process(project_file_name=acm_variant.template.fea_config_dict['output_dir'] + acm_variant.name + '.fem')
