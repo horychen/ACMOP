@@ -30,16 +30,19 @@ class flux_alternator_template(inner_rotor_motor.template_machine_as_numbers):
             "split_ratio_rotor_salient" : acmop_parameter("free",     "rotor_salient_split_ratio",  None, [None, None], lambda GP,SI:None),
             "deg_alpha_rsp"             : acmop_parameter("free",     "rotor_salient_pole_angle",   None, [None, None], lambda GP,SI:None),
             "mm_d_pm"                   : acmop_parameter("free",     "permanent_magnet_depth",   None, [None, None], lambda GP,SI:None),
-            "pm_yoke_ratio"             : acmop_parameter("free",     "permanent_magnet_to_yoke_ratio",   None, [None, None], lambda GP,SI:None),
+            "mm_difference_pm_yoke"     : acmop_parameter("fixed",    "permanent_magnet_to_yoke_ratio",   None, [None, None], lambda GP,SI:None),
         })
         GP.update(childGP)
 
         # Get Analytical Design
         self.Bianchi2006(fea_config_dict, SI, GP, EX)
         GP['split_ratio_rotor_salient'].value = 0.25
-        GP['deg_alpha_rsp'].value = 360 / (SI['Qs']*4) * (SI['pm']*2)
+        if True:
+            GP['deg_alpha_rsp'].value = 360 / (SI['Qs']*4) * (SI['pm']*2) # version 1: inspired by Liao Yuefeng's thesis
+        else:
+            GP['deg_alpha_rsp'].value = 360 / (SI['Qs']*4) * (SI['pm']*2) / 2 # version 2: as per the original 1955 paper
         GP['mm_d_pm'].value = 5
-        GP['pm_yoke_ratio'].value = 0.9
+        GP['mm_difference_pm_yoke'].value = 0.1 # mm
 
 
 
@@ -75,8 +78,8 @@ class flux_alternator_template(inner_rotor_motor.template_machine_as_numbers):
             alpha_rm_over_alpha_rp = 0.75
             # stator_yoke_flux_density_Bys = 1.5
 
-        stator_outer_diameter_Dse = 0.15 # this is related to the stator current density and should be determined by Js and power.
-        sleeve_length = 3
+        stator_outer_diameter_Dse = 0.1 # this is related to the stator current density and should be determined by Js and power.
+        sleeve_length = 0.5
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
@@ -137,7 +140,6 @@ class flux_alternator_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
             "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             "mm_d_pm":      [3,6],
-            "pm_yoke_ratio":[0.9,0.98],
             # ROTOR
             "mm_d_sleeve":  [1,   2],
             "split_ratio_rotor_salient": [0.2,0.3],
@@ -192,7 +194,7 @@ class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_object
                                             mm_r_sb = 0.0, # =0
                                             Q = template.SI['Qs'],
                                             mm_d_pm       = GP['mm_d_pm'].value,
-                                            pm_yoke_ratio = GP['pm_yoke_ratio'].value,
+                                            mm_difference_pm_yoke = GP['mm_difference_pm_yoke'].value,
                                             location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
                                             )
 
@@ -200,11 +202,159 @@ class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_object
                                                                 stator_core = self.stator_core
                                                                 )
 
-        # self.coils = CrossSectStator.CrossSectToroidalWiniding(name = 'Coils',
-        #                                                        stator_core = self.stator_core)
+        self.coils = CrossSectStator.CrossSectToroidalWiniding(name = 'Coils',
+                                                               stator_core = self.stator_core)
 
         #03 Mechanical Parameters
         self.update_mechanical_parameters()
 
+        self.InitialRotationAngle = 0.0
+        print('[flux_alternator_design.py] self.InitialRotationAngle set to 0.0')
+        print('[flux_alternator_design.py] self.InitialRotationAngle set to 0.0')
+        print('[flux_alternator_design.py] self.InitialRotationAngle set to 0.0')
+
+        self.boolCustomizedCircuit = True
+
     def check_invalid_design(self, GP, SI):
         pass
+
+    def add_circuit_customized(self, app, model, study):
+        # Circuit - Current Source
+        app.ShowCircuitGrid(True)
+        study.CreateCircuit()
+        study.GetCircuit().CreateComponent(u"Coil", u"Coil1"); study.GetCircuit().CreateInstance(u"Coil1", 12, 6)
+        study.GetCircuit().CreateComponent(u"Coil", u"Coil2"); study.GetCircuit().CreateInstance(u"Coil2", 12, 1)
+        study.GetCircuit().CreateComponent(u"Coil", u"Coil3"); study.GetCircuit().CreateInstance(u"Coil3", 12, -4)
+        study.GetCircuit().CreateComponent(u"Coil", u"Coil4"); study.GetCircuit().CreateInstance(u"Coil4", 12, -9)
+        study.GetCircuit().CreateWire(14, 6, 14, 1)
+        study.GetCircuit().CreateWire(14, -4, 14, 1)
+        study.GetCircuit().CreateWire(14, -9, 14, -4)
+        study.GetCircuit().CreateComponent("Ground", "Ground"); study.GetCircuit().CreateInstance(u"Ground", 14, -11)
+
+        study.GetCircuit().CreateWire(10, 6, 8, 6)
+        study.GetCircuit().CreateWire(10, 1, 8, 1)
+        study.GetCircuit().CreateWire(10, -4, 8, -4)
+        study.GetCircuit().CreateWire(10, -9, 8, -9)
+
+        study.GetCircuit().CreateComponent(u"VoltageProbe", u"VP-B1"); study.GetCircuit().CreateInstance(u"VP-B1", 8, 8)
+        study.GetCircuit().CreateComponent(u"VoltageProbe", u"VP-M2"); study.GetCircuit().CreateInstance(u"VP-M2", 8, 3)
+        study.GetCircuit().CreateComponent(u"VoltageProbe", u"VP-B3"); study.GetCircuit().CreateInstance(u"VP-B3", 8, -2)
+        study.GetCircuit().CreateComponent(u"VoltageProbe", u"VP-M4"); study.GetCircuit().CreateInstance(u"VP-M4", 8, -7)
+
+        study.GetCircuit().CreateComponent(u"CurrentSource", u"CS-B1"); study.GetCircuit().CreateInstance(u"CS-B1", 0, 6)
+        study.GetCircuit().CreateComponent(u"CurrentSource", u"CS-M2"); study.GetCircuit().CreateInstance(u"CS-M2", 0, 1)
+        study.GetCircuit().CreateComponent(u"CurrentSource", u"CS-B3"); study.GetCircuit().CreateInstance(u"CS-B1", 0, -4)
+        study.GetCircuit().CreateComponent(u"CurrentSource", u"CS-M4"); study.GetCircuit().CreateInstance(u"CS-M4", 0, -9)
+        study.GetCircuit().CreateWire(2, 6, 8, 6)
+        study.GetCircuit().CreateWire(2, 1, 8, 1)
+        study.GetCircuit().CreateWire(2, -4, 8, -4)
+        study.GetCircuit().CreateWire(2, -9, 8, -9)
+
+        PHASE_SHIFT = 0.0
+
+        study.GetDesignTable().AddEquation(u"Bearing1TerminalCurrent")
+        study.GetDesignTable().GetEquation(u"Bearing1TerminalCurrent").SetType(0)
+        study.GetDesignTable().GetEquation(u"Bearing1TerminalCurrent").SetExpression(u"1")
+        study.GetDesignTable().GetEquation(u"Bearing1TerminalCurrent").SetDescription(u"")
+        study.GetDesignTable().AddEquation(u"Motor2TerminalCurrrent")
+        study.GetDesignTable().GetEquation(u"Motor2TerminalCurrrent").SetType(0)
+        study.GetDesignTable().GetEquation(u"Motor2TerminalCurrrent").SetExpression(u"0")
+        study.GetDesignTable().GetEquation(u"Motor2TerminalCurrrent").SetDescription(u"")
+        study.GetDesignTable().AddEquation(u"Bearing3TerminalCurrent")
+        study.GetDesignTable().GetEquation(u"Bearing3TerminalCurrent").SetType(0)
+        study.GetDesignTable().GetEquation(u"Bearing3TerminalCurrent").SetExpression(u"0")
+        study.GetDesignTable().GetEquation(u"Bearing3TerminalCurrent").SetDescription(u"")
+        study.GetDesignTable().AddEquation(u"Motor4TerminalCurrrent")
+        study.GetDesignTable().GetEquation(u"Motor4TerminalCurrrent").SetType(0)
+        study.GetDesignTable().GetEquation(u"Motor4TerminalCurrrent").SetExpression(u"0")
+        study.GetDesignTable().GetEquation(u"Motor4TerminalCurrrent").SetDescription(u"")
+
+        # Set composite function to CS 
+        func = app.FunctionFactory().Composite()
+        # f1 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT) # The "freq" variable in JMAG cannot be used here. So pay extra attension here when you create new case of a different frequency.
+        # f2 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT)
+        f2 = app.FunctionFactory().Constant(u"0")
+        # func.AddFunction(f1)
+        func.AddFunction(f2)
+        study.GetCircuit().GetComponent(u"CS-B1").SetFunction(func)
+
+        func = app.FunctionFactory().Composite()
+        # f1 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT) # The "freq" variable in JMAG cannot be used here. So pay extra attension here when you create new case of a different frequency.
+        # f2 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT)
+        f2 = app.FunctionFactory().Constant(u"0")
+        # func.AddFunction(f1)
+        func.AddFunction(f2)
+        study.GetCircuit().GetComponent(u"CS-M2").SetFunction(func)
+
+        func = app.FunctionFactory().Composite()
+        # f1 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT) # The "freq" variable in JMAG cannot be used here. So pay extra attension here when you create new case of a different frequency.
+        # f2 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT)
+        f2 = app.FunctionFactory().Constant(u"0")
+        # func.AddFunction(f1)
+        func.AddFunction(f2)
+        study.GetCircuit().GetComponent(u"CS-B3").SetFunction(func)
+
+        func = app.FunctionFactory().Composite()
+        # f1 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT) # The "freq" variable in JMAG cannot be used here. So pay extra attension here when you create new case of a different frequency.
+        # f2 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT)
+        f2 = app.FunctionFactory().Constant(u"0")
+        # func.AddFunction(f1)
+        func.AddFunction(f2)
+        study.GetCircuit().GetComponent(u"CS-M4").SetFunction(func)
+
+        # EX = acm_variant.template.d['EX']
+        # wily = EX['wily']
+        # npb = wily.number_parallel_branch
+        # nwl = wily.number_winding_layer # number of windign layers 
+        # ampD = EX['DriveW_CurrentAmp']/npb
+        # ampB = EX['BeariW_CurrentAmp']
+
+        # Link Circuit FEM Coil to FEM Coil Condition
+        dict_dir = {'+':1, '-':0}
+        counter = 0
+        self.circuit_coil_names = []
+        for coil in self.coils.wily:
+            counter += 1 
+            UVW = coil['LayerX-Phase']
+            UpDownLX = coil['LayerX-Direction']
+            UpDownLY = coil['LayerY-Direction']
+            # X = coil['LayerY-X']
+            # Y = coil['LayerY-Y']
+
+            ''' 1. Update circuit coil component values and rename
+            '''
+            study.GetCircuit().GetComponent(f"Coil{counter}").SetValue(u"Turn", 1)
+            study.GetCircuit().GetComponent(f"Coil{counter}").SetValue(u"Resistance", 1)
+            study.GetCircuit().GetComponent(f"Coil{counter}").SetValue(u"LeakageInductance", 0)
+            study.GetCircuit().GetComponent(f"Coil{counter}").SetName(u"CircuitCoil_%s%d"%(UVW,counter))
+
+            circuit_coil_name = "_%s%d"%(UVW,counter)
+            self.circuit_coil_names.append(circuit_coil_name)
+
+            ''' 2. Create a JMAG Condition FEMCoil for each circuit coil component FEMCoil.
+                Yes, there are two kinds of FEMCoil---one in circuit and the other in condition.
+            '''
+            study.CreateCondition("FEMCoil", 'phase'+circuit_coil_name)
+            # link between FEM Coil Condition and Circuit FEM Coil
+            condition = study.GetCondition('phase'+circuit_coil_name)
+            condition.SetLink("CircuitCoil"+circuit_coil_name)
+            condition.GetSubCondition("untitled").SetName("delete")
+
+            ''' 3. Create subcondition in JMAG Condition FEMCoil.
+                One coil has two sides (or two layers).
+            '''
+            # LAYER X
+            condition.CreateSubCondition("FEMCoilData", "Coil Set Layer X" + circuit_coil_name)
+            subcondition = condition.GetSubCondition("Coil Set Layer X" + circuit_coil_name)
+            subcondition.ClearParts()
+            subcondition.AddSet(model.GetSetList().GetSet("CoilLX%s%s %d"%(UVW,UpDownLX,counter)), 0) # poles=4 means right layer, rather than actual poles
+            subcondition.SetValue("Direction2D", dict_dir[UpDownLX])
+
+            # LAYER Y
+            condition.CreateSubCondition("FEMCoilData", "Coil Set Layer Y" + circuit_coil_name)
+            subcondition = condition.GetSubCondition("Coil Set Layer Y" + circuit_coil_name)
+            subcondition.ClearParts()
+            subcondition.AddSet(model.GetSetList().GetSet("CoilLY%s%s %d"%(UVW,UpDownLY,counter)), 0) # poles=2 means left layer, rather than actual poles
+            subcondition.SetValue("Direction2D", dict_dir[UpDownLY])
+
+            condition.RemoveSubCondition("delete")

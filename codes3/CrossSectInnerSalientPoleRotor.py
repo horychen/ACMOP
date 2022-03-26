@@ -39,7 +39,7 @@ class CrossSectInnerSalientPoleRotor(object):
         mm_d_sleeve = self.mm_d_sleeve
         split_ratio_rotor_salient = self.split_ratio_rotor_salient
         mm_d_rsp = split_ratio_rotor_salient * mm_r_ro
-        print('DEBUG: mm_d_rsp=', mm_d_rsp)
+        # print('DEBUG: mm_d_rsp=', mm_d_rsp)
         deg_alpha_rsp = self.deg_alpha_rsp
         pm = self.pm
         alpha_rp = 2*np.pi/(2*pm) # pole span

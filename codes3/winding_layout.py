@@ -372,6 +372,7 @@ class winding_layout_v2(object):
         and p == 1 \
         and ps == 2 \
         and Wrap_Around == 'Toroidal':
+            'This is dummy wily. The actual winding layout is given in CrossSectStator.py'
             self.layer_X_phases = [ 'U', 'U' ]
             self.layer_X_signs  = [ '+', '-' ]
             self.layer_Y_phases = 'Toroidal'

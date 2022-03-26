@@ -518,7 +518,8 @@ def main(number_which_part):
 
         # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #'PMSM Q24p1y9 PEMD'
         select_spec            = 'Flux Alternator 1955',
-        select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+        # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+        select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
         # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
 
         project_loc            = fr'../_default/',

@@ -61,7 +61,8 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
-        "designer.TranRef-StepPerCycle":40, 
+        
+        "designer.AddIronLossCondition": true,"designer.TranRef-StepPerCycle":40, 
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.number_cycles_prolonged":0, 
@@ -99,7 +100,8 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
-        "designer.TranRef-StepPerCycle":40, 
+        
+        "designer.AddIronLossCondition": true,"designer.TranRef-StepPerCycle":40, 
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.number_cycles_prolonged":0, 
@@ -137,7 +139,8 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
-        "designer.TranRef-StepPerCycle":40, 
+        
+        "designer.AddIronLossCondition": true,"designer.TranRef-StepPerCycle":40, 
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.number_cycles_prolonged":0, 
@@ -178,7 +181,8 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
-        "designer.TranRef-StepPerCycle":40, 
+        
+        "designer.AddIronLossCondition": true,"designer.TranRef-StepPerCycle":40, 
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.number_cycles_prolonged":0, 
@@ -216,7 +220,8 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
-        "designer.TranRef-StepPerCycle":40, 
+        
+        "designer.AddIronLossCondition": true,"designer.TranRef-StepPerCycle":40, 
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.number_cycles_prolonged":0, 
@@ -254,15 +259,56 @@
         "delete_results_after_calculation": false, 
 
         "designer.Show": true,
-        "designer.MultipleCPUs":true,
+        "designer.MultipleCPUs":false,
         "designer.OnlyTableResults":false, 
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
+        "designer.AddIronLossCondition": true,
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.StepPerCycle_3rdTSS":64, 
         "designer.number_cycles_in_1stTSS":3, 
+        "designer.number_cycles_in_2ndTSS":0.5, 
+        "designer.number_cycles_in_3rdTSS":0, 
+        "designer.number_cycles_prolonged":0, 
+        "designer.TranRef-StepPerCycle":64, 
+
+        "femm.Coarse_Mesh": false,
+        "femm.deg_per_step": null
+    },
+
+    "#029 JMAG PMSM No-load EMF": {
+
+        "TORQUE_CURRENT_RATIO" : 0.95,
+        "SUSPENSION_CURRENT_RATIO" : 0.05,
+
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
+
+        "which_filter": "VariableSleeveLength",
+        "End_Ring_Resistance": 0.0,
+
+        "local_sensitivity_analysis":false,
+        "local_sensitivity_analysis_number_of_variants": 20,
+
+        "bool_post_processing":false,
+        "flag_optimization":false, 
+        "bool_re_evaluate":false,
+        "bool_re_evaluate_wo_csv":false,
+        "delete_results_after_calculation": false, 
+
+        "designer.Show": true,
+        "designer.MultipleCPUs":false,
+        "designer.OnlyTableResults":false, 
+        "designer.Restart":false, 
+        "designer.JMAG_Scheduler":false, 
+
+        "designer.AddIronLossCondition": false,
+        "designer.number_of_steps_1stTSS":40, 
+        "designer.number_of_steps_2ndTSS":40, 
+        "designer.StepPerCycle_3rdTSS":64, 
+        "designer.number_cycles_in_1stTSS":0.5, 
         "designer.number_cycles_in_2ndTSS":0.5, 
         "designer.number_cycles_in_3rdTSS":0, 
         "designer.number_cycles_prolonged":0, 
@@ -293,11 +339,12 @@
         "delete_results_after_calculation": false, 
 
         "designer.Show": true,
-        "designer.MultipleCPUs":true,
+        "designer.MultipleCPUs":false,
         "designer.OnlyTableResults":false, 
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
+        "designer.AddIronLossCondition": true,
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.StepPerCycle_3rdTSS":64, 
@@ -332,11 +379,12 @@
         "delete_results_after_calculation": false, 
 
         "designer.Show": true,
-        "designer.MultipleCPUs":true,
+        "designer.MultipleCPUs":false,
         "designer.OnlyTableResults":false, 
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
+        "designer.AddIronLossCondition": true,
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":160, 
         "designer.StepPerCycle_3rdTSS":64, 
@@ -376,6 +424,7 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
+        "designer.AddIronLossCondition": true,
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":160, 
         "designer.StepPerCycle_3rdTSS":64, 
@@ -415,6 +464,7 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
+        "designer.AddIronLossCondition": true,
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.StepPerCycle_3rdTSS":64, 
@@ -454,6 +504,7 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
+        "designer.AddIronLossCondition": true,
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.StepPerCycle_3rdTSS":64, 
@@ -491,6 +542,7 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
+        "designer.AddIronLossCondition": true,
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.StepPerCycle_3rdTSS":64, 
