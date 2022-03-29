@@ -36,7 +36,7 @@ class flux_alternator_template(inner_rotor_motor.template_machine_as_numbers):
 
         # Get Analytical Design
         self.Bianchi2006(fea_config_dict, SI, GP, EX)
-        GP['split_ratio_rotor_salient'].value = 0.25
+        GP['split_ratio_rotor_salient'].value = 0.35
         if True:
             GP['deg_alpha_rsp'].value = 360 / (SI['Qs']*4) * (SI['pm']*2) # version 1: inspired by Liao Yuefeng's thesis
         else:
@@ -243,7 +243,7 @@ class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_object
 
         study.GetCircuit().CreateComponent(u"CurrentSource", u"CS-B1"); study.GetCircuit().CreateInstance(u"CS-B1", 0, 6)
         study.GetCircuit().CreateComponent(u"CurrentSource", u"CS-M2"); study.GetCircuit().CreateInstance(u"CS-M2", 0, 1)
-        study.GetCircuit().CreateComponent(u"CurrentSource", u"CS-B3"); study.GetCircuit().CreateInstance(u"CS-B1", 0, -4)
+        study.GetCircuit().CreateComponent(u"CurrentSource", u"CS-B3"); study.GetCircuit().CreateInstance(u"CS-B3", 0, -4)
         study.GetCircuit().CreateComponent(u"CurrentSource", u"CS-M4"); study.GetCircuit().CreateInstance(u"CS-M4", 0, -9)
         study.GetCircuit().CreateWire(2, 6, 8, 6)
         study.GetCircuit().CreateWire(2, 1, 8, 1)
@@ -271,15 +271,15 @@ class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_object
 
         # Set composite function to CS 
         func = app.FunctionFactory().Composite()
-        # f1 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT) # The "freq" variable in JMAG cannot be used here. So pay extra attension here when you create new case of a different frequency.
+        f1 = app.FunctionFactory().Sin(10.0, 2*self.template.d['EX']['DriveW_Freq'], 180+PHASE_SHIFT) # The "freq" variable in JMAG cannot be used here. So pay extra attension here when you create new case of a different frequency.
         # f2 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT)
         f2 = app.FunctionFactory().Constant(u"0")
-        # func.AddFunction(f1)
+        func.AddFunction(f1)
         func.AddFunction(f2)
         study.GetCircuit().GetComponent(u"CS-B1").SetFunction(func)
 
         func = app.FunctionFactory().Composite()
-        # f1 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT) # The "freq" variable in JMAG cannot be used here. So pay extra attension here when you create new case of a different frequency.
+        # f1 = app.FunctionFactory().Sin(10.0, 2*self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT) # The "freq" variable in JMAG cannot be used here. So pay extra attension here when you create new case of a different frequency.
         # f2 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT)
         f2 = app.FunctionFactory().Constant(u"0")
         # func.AddFunction(f1)
@@ -295,10 +295,10 @@ class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_object
         study.GetCircuit().GetComponent(u"CS-B3").SetFunction(func)
 
         func = app.FunctionFactory().Composite()
-        # f1 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT) # The "freq" variable in JMAG cannot be used here. So pay extra attension here when you create new case of a different frequency.
+        f1 = app.FunctionFactory().Sin(10.0, 2*self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT) # The "freq" variable in JMAG cannot be used here. So pay extra attension here when you create new case of a different frequency.
         # f2 = app.FunctionFactory().Sin(0.0, self.template.d['EX']['DriveW_Freq'], PHASE_SHIFT)
         f2 = app.FunctionFactory().Constant(u"0")
-        # func.AddFunction(f1)
+        func.AddFunction(f1)
         func.AddFunction(f2)
         study.GetCircuit().GetComponent(u"CS-M4").SetFunction(func)
 
@@ -323,8 +323,8 @@ class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_object
 
             ''' 1. Update circuit coil component values and rename
             '''
-            study.GetCircuit().GetComponent(f"Coil{counter}").SetValue(u"Turn", 1)
-            study.GetCircuit().GetComponent(f"Coil{counter}").SetValue(u"Resistance", 1)
+            study.GetCircuit().GetComponent(f"Coil{counter}").SetValue(u"Turn", 100)
+            study.GetCircuit().GetComponent(f"Coil{counter}").SetValue(u"Resistance", 1e-12)
             study.GetCircuit().GetComponent(f"Coil{counter}").SetValue(u"LeakageInductance", 0)
             study.GetCircuit().GetComponent(f"Coil{counter}").SetName(u"CircuitCoil_%s%d"%(UVW,counter))
 

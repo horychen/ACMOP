@@ -18,7 +18,7 @@ class CrossSectInnerSalientPoleRotor(object):
                     split_ratio_rotor_salient = 0.2,
                     deg_alpha_rsp = 10,
                     pm = 2,
-                    mm_r_ri = 10,
+                    mm_r_ri = 5,
                     location = None
                     ):
         self.name = name
