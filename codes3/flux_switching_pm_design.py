@@ -7,43 +7,52 @@ from pprint import pprint
 
 import CrossSectInnerSalientPoleRotor, CrossSectInnerNotchedRotor, CrossSectStator, Location2D
 
-# import pint
+def derive_mm_d_pm(GP,SI):
+    GP       ['mm_d_pm'].value = GP['mm_r_si'].value * np.sin(0.5*GP['deg_alpha_pm_at_airgap'].value/180*np.pi) * 2
+    return GP['mm_d_pm'].value
 
-class flux_alternator_template(inner_rotor_motor.template_machine_as_numbers):
+def derive_deg_alpha_pm_at_airgap(GP,SI):
+    GP       ['deg_alpha_pm_at_airgap'].value = np.arcsin(0.5*GP['mm_d_pm'].value/GP['mm_r_si'].value) / np.pi*180 * 2 # option 1
+    # GP       ['deg_alpha_pm_at_airgap'].value = GP['mm_d_pm'].value / (2*np.pi*GP['mm_r_si'].value) * 360 # option 2 (aproximation line to arc)
+    return GP['deg_alpha_pm_at_airgap'].value
+
+def derive_mm_d_ri(GP,SI):
+    GP       ['mm_d_ri'].value = (1-GP['split_ratio_rotor_salient'].value) * GP['mm_r_ro'].value - GP['mm_r_ri'].value
+    return GP['mm_d_ri'].value
+
+class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
     ''' This is a surface mounted PM motor but it might have saliency on q-axis if alpha_rm is less than 180/p.
         就是说，允许永磁体陷入转子铁芯，只是永磁体外没有铁包裹防止永磁体飞出，而是需要额外增加碳纤维套。
     '''
     def __init__(self, fea_config_dict, spec_input_dict):
         # 初始化父类
-        super(flux_alternator_template, self).__init__(fea_config_dict, spec_input_dict)
+        super(FSPM_template, self).__init__(fea_config_dict, spec_input_dict)
 
         # 基本信息
-        self.machine_type = 'Flux_Alternator'
-        self.name = '__Flux_Alternator'
+        self.machine_type = 'FSPM'
+        self.name = '__FSPM'
 
         # 初始化搜索空间
         GP = self.d['GP'] # Geometry Parameter
         EX = self.d['EX'] # EXcitations (was OP: Other Property)
         SI = self.SI      # Specification Input dictionary (was SD)
         childGP = OrderedDict({
-            # Flux_Alternator Peculiar                     Type       Name                         Value  Bounds       Calc
+            # FSPM Peculiar                     Type       Name                         Value  Bounds       Calc
             "split_ratio_rotor_salient" : acmop_parameter("free",     "rotor_salient_split_ratio",  None, [None, None], lambda GP,SI:None),
             "deg_alpha_rsp"             : acmop_parameter("free",     "rotor_salient_pole_angle",   None, [None, None], lambda GP,SI:None),
-            "mm_d_pm"                   : acmop_parameter("free",     "permanent_magnet_depth",   None, [None, None], lambda GP,SI:None),
+            "mm_d_pm"                   : acmop_parameter("free",     "permanent_magnet_depth",     None, [None, None], lambda GP,SI:None), #derive_mm_d_pm(GP,SI)),
+            "deg_alpha_pm_at_airgap"    : acmop_parameter("derived",  "permanent_magnet_span_angle_at_airgap",   None, [None, None], lambda GP,SI:derive_deg_alpha_pm_at_airgap(GP,SI)),
             "mm_difference_pm_yoke"     : acmop_parameter("fixed",    "permanent_magnet_to_yoke_ratio",   None, [None, None], lambda GP,SI:None),
+            "mm_r_ri"                   : acmop_parameter("fixed",    "rotor_inner_radius (shaft_radius)", None, [None, None], lambda GP,SI:None),
+            "mm_d_ri"                   : acmop_parameter("derived",  "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SI:derive_mm_d_ri(GP,SI)),
         })
         GP.update(childGP)
 
         # Get Analytical Design
-        self.Bianchi2006(fea_config_dict, SI, GP, EX)
-        GP['split_ratio_rotor_salient'].value = 0.35
-        if True:
-            GP['deg_alpha_rsp'].value = 360 / (SI['Qs']*4) * (SI['pm']*2) # version 1: inspired by Liao Yuefeng's thesis
-        else:
-            GP['deg_alpha_rsp'].value = 360 / (SI['Qs']*4) * (SI['pm']*2) / 2 # version 2: as per the original 1955 paper
-        GP['mm_d_pm'].value = 5
-        GP['mm_difference_pm_yoke'].value = 0.1 # mm
-
+        self.MyCustomizedInitialDesignScript(fea_config_dict, SI, GP, EX)
+        GP['split_ratio_rotor_salient'].value = 0.15
+        GP['mm_difference_pm_yoke'].value = 0.5 # mm
+        GP['mm_r_ri'].value = SI['mm_radius_shaft']
 
 
         # 定义搜索空间，determine bounds
@@ -61,63 +70,91 @@ class flux_alternator_template(inner_rotor_motor.template_machine_as_numbers):
             EX['BeariW_poles']      = SI['ps']*2
             EX['slot_current_utilizing_ratio'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] + fea_config_dict['TORQUE_CURRENT_RATIO'] # will be less than 1 for separate winding
 
-    def Bianchi2006(self, fea_config_dict, SI, GP, EX):
+    def MyCustomizedInitialDesignScript(self, fea_config_dict, SI, GP, EX):
 
         # inputs: air gap flux density
-        air_gap_flux_density_B = SI['guess_air_gap_flux_density_B'] # 0.9 T
-        stator_tooth_flux_density_B_ds = SI['guess_stator_tooth_flux_density_B_ds'] # 1.5 T
-        stator_yoke_flux_density_Bys = SI['guess_stator_yoke_flux_density_Bys']
+        guess_air_gap_flux_density_Bg = SI['guess_air_gap_flux_density_Bg']
+        guess_stator_yoke_flux_density_Bys = SI['guess_stator_yoke_flux_density_Bsy']
+        mm_stack_length = SI['mm_stack_length']
+        Pa_TangentialStress = SI['TangentialStress']
+        m  = SI['m']
+        Qs = SI['Qs']
+        pm = SI['pm']
+        pa = SI['pa']
+        mec_power = SI['mec_power']
+        speed_rpm = SI['ExcitationFreqSimulated'] / pm * 60
 
-        if SI['p'] >= 2:
-            ROTOR_STATOR_YOKE_HEIGHT_RATIO = 0.75
-            alpha_rm_over_alpha_rp = 1.0
-            # stator_yoke_flux_density_Bys = 1.2
-        else:
-            # penalty for p=1 motor, i.e., large yoke height
-            ROTOR_STATOR_YOKE_HEIGHT_RATIO = 0.5
-            alpha_rm_over_alpha_rp = 0.75
-            # stator_yoke_flux_density_Bys = 1.5
+        required_torque = mec_power/(2*np.pi*speed_rpm/60)
+        guess_linear_current_density_A = Pa_TangentialStress*2/guess_air_gap_flux_density_Bg
 
-        stator_outer_diameter_Dse = 0.1 # this is related to the stator current density and should be determined by Js and power.
-        sleeve_length = 0.5
+        # (6.2)
+        RotorActiveVolumn_Vr = required_torque / (2*Pa_TangentialStress)
+        RotorActiveCrossSectArea_Sr = RotorActiveVolumn_Vr / (mm_stack_length*1e-3)
+        RotorOuterRadius_r_or = np.sqrt(RotorActiveCrossSectArea_Sr/np.pi)
+        mm_r_ro = RotorOuterRadius_r_or*1e3
 
-        speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
+        aspect_ratio__rotor_axial_to_diameter_ratio = 2*mm_r_ro/mm_stack_length
 
-        rotor_outer_radius_r_or = pyrhonen_procedure_as_function.eric_specify_tip_speed_get_radius(SI['tip_speed'], speed_rpm)
-        rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
-        stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SI['minimum_mechanical_air_gap_length_mm'])*1e-3 # m (sleeve 3 mm, air gap 0.75 mm)
-        stator_inner_diameter_Dis = stator_inner_radius_r_is*2
-        split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
+        mm_air_gap_length = 3 # Gruber Habil: 3mm / 4mm
+        mm_r_si     = mm_r_ro + mm_air_gap_length
+        mm_r_airgap = mm_r_ro + mm_air_gap_length*0.5
 
-        stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*SI['p'])
-        # print(stator_outer_diameter_Dse, stator_inner_diameter_Dis, stator_yoke_height_h_ys)
-        stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
-        stator_slot_height_h_ss = stator_tooth_height_h_ds
-        stator_tooth_width_b_ds = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* SI['Qs'])
+        rotor_to_stator_tooth_width_ratio = 1.4 # 2010 诸自强 1点4倍的来源 Analysis of Electromagnetic Performance of Flu
 
-        EX['stator_slot_area'] = stator_slot_area = np.pi/(4*SI['Qs']) * ((stator_outer_diameter_Dse - 2*stator_yoke_height_h_ys)**2 - stator_inner_diameter_Dis**2) - stator_tooth_width_b_ds * stator_tooth_height_h_ds
+        mm_stator_tooth_width_w_UCoreWidth = 2*np.pi*mm_r_si / Qs / 4
+        mm_d_pm = mm_stator_tooth_width_w_UCoreWidth
+        if mm_d_pm > 6:
+            mm_d_pm = 6
+        mm_w_st = mm_stator_tooth_width_w_UCoreWidth * 3
+        # print('Stator tooth', mm_stator_tooth_width_w_UCoreWidth, mm_w_st)
+        mm_w_rt = mm_rotor_tooth_width_w_rt = rotor_to_stator_tooth_width_ratio * mm_stator_tooth_width_w_UCoreWidth # Empirical: slightly wider (5.18) Habil-Gruber
 
-        slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / SI['Qs']
-        kov = 1.8 # \in [1.6, 2.0]
-        EX['end_winding_length_Lew'] = end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (SI['coil_pitch_y'] - 1)
+        mmf_per_phase = guess_linear_current_density_A * 2*np.pi*mm_r_airgap*1e-3 / m
+        mmf_per_slot  = guess_linear_current_density_A * 2*np.pi*mm_r_airgap*1e-3 / Qs
+        # stator_current_per_phase = mmf_per_phase /  2 * N * I
 
-        Q = SI['Qs']
-        p = SI['p']
+        stator_slot_area = mmf_per_slot / SI['Js'] / SI['WindingFill'] 
+
+        # stator slot depth
+        stator_inner_radius_r_is_eff = mm_r_si*1e-3
+        temp = (2*np.pi*stator_inner_radius_r_is_eff - Qs*mm_stator_tooth_width_w_UCoreWidth*3*1e-3) # mm_stator_tooth_width_w_UCoreWidth * 3 = stator non-slot part width
+        stator_tooth_depth_d_st = ( np.sqrt(temp**2 + 4*np.pi*stator_slot_area*Qs) - temp ) / (2*np.pi)
+        mm_d_st = stator_tooth_depth_d_st * 1e3
+
+        mm_d_sy = guess_air_gap_flux_density_Bg * mm_stator_tooth_width_w_UCoreWidth / guess_stator_yoke_flux_density_Bys
+        mm_r_so = mm_r_si + mm_d_st + mm_d_sy
+        split_ratio = mm_r_ro / mm_r_so
+
+        # print('[flux_sw.py]', mm_d_st, mm_d_sy, split_ratio)
+
+        弧长 = mm_w_rt
+        deg_alpha_rsp = 弧长 / mm_r_ro /np.pi*180
+
+        # slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / SI['Qs']
+        # kov = 1.8 # \in [1.6, 2.0]
+        # EX['end_winding_length_Lew'] = end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (SI['coil_pitch_y'] - 1)
+
         # STATOR
-        GP['deg_alpha_st'].value         = 360/Q/2 - 2 # deg
-        GP['deg_alpha_sto'].value         = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
-        GP['mm_r_si'].value              = 1e3*stator_inner_radius_r_is # mm
-        GP['mm_r_so'].value              = 1e3*stator_outer_diameter_Dse/2 # mm
-        GP['mm_d_sto'].value              = 1 # mm
-        GP['mm_d_stt'].value              = 1.5*GP['mm_d_sto'].value
-        GP['mm_d_st'].value              = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - GP['mm_r_si'].value - GP['mm_d_stt'].value  # mm
-        GP['mm_d_sy'].value              = 1e3*stator_yoke_height_h_ys # mm
-        GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
+        GP['deg_alpha_st'].value         = 360/Qs - 360/Qs/4/2 # deg
+        GP['deg_alpha_sto'].value        = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
+        GP['mm_d_sto'].value             = 2 # mm
+        GP['mm_d_stt'].value             = 1.5*GP['mm_d_sto'].value
+        GP['mm_r_si'].value              = mm_r_si
+        GP['mm_r_so'].value              = mm_r_so
+        GP['mm_d_st'].value              = mm_d_st
+        GP['mm_d_sy'].value              = mm_d_sy
+        GP['mm_w_st'].value              = mm_w_st
+        GP['mm_d_pm'].value              = mm_d_pm
+        GP['deg_alpha_pm_at_airgap'].value = mm_d_pm / (2*np.pi*mm_r_si) * 360
         # ROTOR
-        GP['mm_d_sleeve'].value          = sleeve_length
+        GP['mm_d_sleeve'].value          = mm_air_gap_length - SI['minimum_mechanical_air_gap_length_mm']
         GP['mm_d_mech_air_gap'].value    = SI['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
-        GP['mm_r_ro'].value              = 1e3*rotor_outer_radius_r_or
+        GP['mm_r_ro'].value              = mm_r_ro
+        GP['deg_alpha_rsp'].value        = deg_alpha_rsp
+
+        # for el in GP.values():
+        #     print(el.name, el.value)
 
     def get_template_neighbor_bounds(self):
         ''' The bounds are determined around the template design.
@@ -140,21 +177,22 @@ class flux_alternator_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
             "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             "mm_d_pm":      [3,6],
+            "deg_alpha_pm_at_airgap": [0.8*GP['deg_alpha_pm_at_airgap'].value, 1.2*GP['deg_alpha_pm_at_airgap'].value],
             # ROTOR
             "mm_d_sleeve":  [1,   2],
-            "split_ratio_rotor_salient": [0.2,0.3],
+            "split_ratio_rotor_salient": [0.1,0.25],
             "deg_alpha_rsp": [deg_alpha_rsp_ini*0.9, deg_alpha_rsp_ini*1.1]
         }
         return original_template_neighbor_bounds
 
-class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_objects):
+class FSPM_design_variant(inner_rotor_motor.variant_machine_as_objects):
 
     def __init__(self, template=None, x_denorm=None, counter=None, counter_loop=None):
         if x_denorm is None:
             raise
 
         # 初始化父类
-        super(flux_alternator_design_variant, self).__init__(template, x_denorm, counter, counter_loop)
+        super(FSPM_design_variant, self).__init__(template, x_denorm, counter, counter_loop)
 
         # Give it a name
         self.name = f'ind{counter}'
@@ -168,19 +206,19 @@ class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_object
         self.check_invalid_design(GP, SI)
 
         # Parts
-        self.rotorCore = CrossSectInnerSalientPoleRotor.CrossSectInnerSalientPoleRotorV1(
+        self.rotorCore = CrossSectInnerSalientPoleRotor.CrossSectInnerSalientPoleRotorV2(
                             mm_r_ro = GP['mm_r_ro'].value,
                             mm_d_sleeve = GP['mm_d_sleeve'].value,
                             split_ratio_rotor_salient = GP['split_ratio_rotor_salient'].value,
                             deg_alpha_rsp = GP['deg_alpha_rsp'].value,
                             pm = SI['pm'],
+                            mm_r_ri=SI['mm_radius_shaft'],
                             location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0))
 
         self.shaft = CrossSectInnerNotchedRotor.CrossSectShaft(name = 'Shaft',
                                                       notched_rotor = self.rotorCore
                                                     )
-
-        self.stator_core = CrossSectStator.CrossSectInnerRotorStator_PMAtYoke( name = 'StatorCore',
+        self.stator_core = CrossSectStator.CrossSectInnerRotorStator_PMAtToothBody( name = 'StatorCore',
                                             deg_alpha_st = GP['deg_alpha_st'].value, #40,
                                             deg_alpha_sto = GP['deg_alpha_sto'].value, #20,
                                             mm_r_si = GP['mm_r_si'].value,
@@ -193,25 +231,26 @@ class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_object
                                             mm_r_sf = 0.0, # =0
                                             mm_r_sb = 0.0, # =0
                                             Q = template.SI['Qs'],
-                                            mm_d_pm       = GP['mm_d_pm'].value,
+                                            mm_d_pm  = GP['mm_d_pm'].value,
+                                            deg_alpha_pm_at_airgap  = GP['deg_alpha_pm_at_airgap'].value,
                                             mm_difference_pm_yoke = GP['mm_difference_pm_yoke'].value,
                                             location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
                                             )
 
-        self.statorMagnet = CrossSectStator.CrossSectStatorMagnetAtYoke(name = 'StatorPM',
+        self.statorMagnet = CrossSectStator.CrossSectStatorMagnetAtToothBody(name = 'StatorPM',
                                                                 stator_core = self.stator_core
                                                                 )
 
-        self.coils = CrossSectStator.CrossSectToroidalWiniding(name = 'Coils',
+        self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
                                                                stator_core = self.stator_core)
 
         #03 Mechanical Parameters
         self.update_mechanical_parameters()
 
         self.InitialRotationAngle = 0.0
-        print('[flux_alternator_design.py] self.InitialRotationAngle set to 0.0')
-        print('[flux_alternator_design.py] self.InitialRotationAngle set to 0.0')
-        print('[flux_alternator_design.py] self.InitialRotationAngle set to 0.0')
+        print('[FSPM_design.py] self.InitialRotationAngle set to 0.0')
+        print('[FSPM_design.py] self.InitialRotationAngle set to 0.0')
+        print('[FSPM_design.py] self.InitialRotationAngle set to 0.0')
 
         self.boolCustomizedCircuit = True
 

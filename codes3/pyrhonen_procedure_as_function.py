@@ -93,7 +93,7 @@ class desgin_specification(object):
             self.rotor_tooth_flux_density_B_dr = kwarg['rotor_tooth_flux_density_B_dr']
             self.stator_yoke_flux_density_Bys = kwarg['stator_yoke_flux_density_Bys']
             self.rotor_yoke_flux_density_Byr = kwarg['rotor_yoke_flux_density_Byr']
-            self.guess_air_gap_flux_density = kwarg['guess_air_gap_flux_density_B']
+            self.guess_air_gap_flux_density = kwarg['guess_air_gap_flux_density_Bg']
 
             # Obsolete ./pop/initial_design.txt
             # if not os.path.isdir('../' + 'pop/'):
@@ -1758,8 +1758,8 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
 
     alpha_i = 2/np.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
 
-    # guess_air_gap_flux_density_B = 0.9 # T
-    guess_air_gap_flux_density_B = SI['guess_air_gap_flux_density_B']
+    # guess_air_gap_flux_density_Bg = 0.9 # T
+    guess_air_gap_flux_density_Bg = SI['guess_air_gap_flux_density_Bg']
 
     mm_stack_length = get_mm_template_stack_length(SI, rotor_outer_diameter_Dr/2)
     air_gap_length_delta = 0.5*(stator_inner_diameter_Dis - rotor_outer_diameter_Dr)
@@ -1768,14 +1768,14 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
     stack_length_eff = mm_stack_length*1e-3 + 2 * air_gap_length_delta
     # print(stack_length, 2 * air_gap_length_delta)
 
-    air_gap_flux_Phi_m = alpha_i * guess_air_gap_flux_density_B * pole_pitch_tau_p * stack_length_eff
-    # print(alpha_i, guess_air_gap_flux_density_B,  pole_pitch_tau_p,  stack_length_eff)
+    air_gap_flux_Phi_m = alpha_i * guess_air_gap_flux_density_Bg * pole_pitch_tau_p * stack_length_eff
+    # print(alpha_i, guess_air_gap_flux_density_Bg,  pole_pitch_tau_p,  stack_length_eff)
 
     no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi*SI['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
     # print(sqrt(2)*desired_emf_Em , SI['ExcitationFreqSimulated'], kw1,  air_gap_flux_Phi_m)
     if no_series_coil_turns_N<1:
         raise Exception('What? no_series_coil_turns_N is negative?')
-    print('[Pyrhonen_procedure_as_function.py] [zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_B is', no_series_coil_turns_N)
+    print('[Pyrhonen_procedure_as_function.py] [zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_Bg is', no_series_coil_turns_N)
     no_series_coil_turns_N = round(no_series_coil_turns_N)
     print('[Pyrhonen_procedure_as_function.py] [zQ] Rounds up to:', no_series_coil_turns_N)
     backup = no_series_coil_turns_N

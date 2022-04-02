@@ -920,7 +920,8 @@ def main_derivation():
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [  
                                 # (15, 30, 2, 3, 10, 0),
-                                (3, 12, 4, 5, 1, 0), # PEMD p4ps5
+                                (3, 12, 4, 5, 1, 0), # FSPM-12/10
+                                # (3, 12, 4, 5, 1, 0), # PEMD p4ps5
                                 # (3, 24, 1, 2, 9, 0),
                                 # (3, 18, 2, 1, 1, 0), # David Meeker SPMLoss example  https://femm.info/wiki/spmloss
                                 # (3, 48, 2, 1, 12, 0), # XSQ

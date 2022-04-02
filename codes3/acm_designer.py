@@ -6,7 +6,7 @@ import population, FEMM_Solver, pyrhonen_procedure_as_function
 
 # BPMSM codes
 import JMAG, FEMM_SlidingMesh
-import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design
+import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design, flux_switching_pm_design
 
 class Swarm_Data_Analyzer(object):
     def __init__(self, fname, desired_x_denorm_dict):
@@ -1278,6 +1278,8 @@ class acm_designer(object):
             acm_variant = vernier_motor_design.vernier_motor_VShapePM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         elif 'Flux_Alternator' in template.machine_type:
             acm_variant = flux_alternator_design.flux_alternator_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        elif 'FSPM' in template.machine_type:
+            acm_variant = flux_switching_pm_design.FSPM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         else:
             raise Exception('Not supported machine_type:', template.machine_type)
         return acm_variant
@@ -1364,6 +1366,8 @@ class acm_designer(object):
                 DRAW_SUCCESS = toolJd.draw_spmsm(acm_variant)
             elif 'Flux_Alternator' in acm_variant.template.name:
                 DRAW_SUCCESS = toolJd.draw_doublySalient(acm_variant, bool_draw_whole_model=True)
+            elif 'FSPM' in acm_variant.template.name:
+                DRAW_SUCCESS = toolJd.draw_doublySalient(acm_variant, bool_draw_whole_model=True)
 
             if DRAW_SUCCESS != 1:
                 raise Exception('Drawer failed.')
@@ -1433,6 +1437,8 @@ class acm_designer(object):
         if 'PMSM' in acm_variant.template.name:
             if toolFEMM.draw_spmsm(acm_variant) != 1: raise Exception('Drawer failed.')
         elif 'Flux_Alternator' in acm_variant.template.name:
+            if toolFEMM.draw_doublySalient(acm_variant) != 1: raise Exception('Drawer failed.')
+        elif 'FSPM' in acm_variant.template.name:
             if toolFEMM.draw_doublySalient(acm_variant) != 1: raise Exception('Drawer failed.')
         else:
             raise

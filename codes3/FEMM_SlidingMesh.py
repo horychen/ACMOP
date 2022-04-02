@@ -742,6 +742,12 @@ class FEMM_SlidingMesh(object):
         elif 'Flux_Alternator' in acm_variant.template.name:
             self.initial_rotor_position_mech_deg = None
 
+        elif 'FSPM' in acm_variant.template.name:
+            self.initial_rotor_position_mech_deg = 9 + EX['wily'].deg_winding_U_phase_phase_axis_angle # 360/pm/4 = 9 deg assuming (equal tooth width and PM width)
+            print('DEBUG initial_rotor_position_mech_deg')
+            print('DEBUG initial_rotor_position_mech_deg')
+            print('DEBUG initial_rotor_position_mech_deg')
+
         # figure out step size
         self.electrical_period = acm_variant.template.fea_config_dict['femm.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
         self.number_of_steps   = acm_variant.template.fea_config_dict['femm.number_of_steps_2ndTSS']
@@ -883,12 +889,14 @@ class FEMM_SlidingMesh(object):
             MESH_SIZE_MAGNET   = 4
 
         GP = self.acm_variant.template.d['GP']
+        SI = self.acm_variant.template.SI
 
         # Air region (Rotor)
         X, Y = -(GP['mm_r_ro'].value+5*EPS), 0
         self.set_block_label(self.GroupSummary['rotor_air_gap'], 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
         # Air region (Stator)
-        X, Y =   GP['mm_r_si'].value-5*EPS, 0
+        R = GP['mm_r_si'].value-5*EPS
+        X, Y = R*np.cos(np.pi/SI['Qs']), R*np.sin(np.pi/SI['Qs'])
         self.set_block_label(self.GroupSummary['stator_air_gap'], 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
 
         # # Air Gap Boundary for Rotor Motion #2
@@ -909,20 +917,32 @@ class FEMM_SlidingMesh(object):
             steel_name = 'My M-15 Steel' 
         elif self.acm_variant.template.spec_input_dict['Steel'] == 'Arnon5':
             steel_name = 'Arnon5-final'
-        X, Y = -(GP['mm_r_ri'].value + 0.5*GP['mm_d_ri'].value), 0
+        X, Y = -(GP['mm_r_ri'].value + 0.5*GP['mm_d_ri'].value), 0.0
         self.set_block_label(self.GroupSummary['rotor_iron_core'], steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
-        X, Y = (0.5*(GP['mm_r_si'].value + GP['mm_r_so'].value)), 0
+        X, Y = (0.5*(GP['mm_r_si'].value + GP['mm_r_so'].value)), GP['mm_w_st'].value/3*0.9
         self.set_block_label(self.GroupSummary['stator_iron_core'], steel_name, (X, Y), MESH_SIZE_STEEL, automesh=self.bool_automesh)
+        # raise
 
-        # Rotor Magnet
-        THETA = GP['deg_alpha_rm'].value * 0.5 / 180 * np.pi
-        R = GP['mm_r_ro'].value - 0.5*GP['mm_d_rp'].value
-        femm.mi_getmaterial('N40')
-        for _ in range(2*self.acm_variant.template.SI['p']):
-            X, Y = R*np.cos(THETA), R*np.sin(THETA)
-            self.set_block_label(self.GroupSummary['magnet'], 'N40', (X, Y), MESH_SIZE_MAGNET, automesh=self.bool_automesh, magdir=THETA/np.pi*180 + _%2*180)
-            deg_alpha_rp = 360 / (2*self.acm_variant.template.SI['p'])
-            THETA += deg_alpha_rp / 180 * np.pi
+        # Rotor Magnets
+        if 'PMSM' in self.acm_variant.template.name:
+            THETA = GP['deg_alpha_rm'].value * 0.5 / 180 * np.pi
+            R = GP['mm_r_ro'].value - 0.5*GP['mm_d_rp'].value
+            femm.mi_getmaterial('N40')
+            for _ in range(2*SI['p']):
+                X, Y = R*np.cos(THETA), R*np.sin(THETA)
+                self.set_block_label(self.GroupSummary['magnet'], 'N40', (X, Y), MESH_SIZE_MAGNET, automesh=self.bool_automesh, magdir=THETA/np.pi*180 + _%2*180)
+                deg_alpha_rp = 360 / (2*SI['p'])
+                THETA += deg_alpha_rp / 180 * np.pi
+        # Stator Magnets
+        elif 'FSPM' in self.acm_variant.template.name:
+            R = (GP['mm_r_si'].value + GP['mm_r_so'].value) * 0.5
+            THETA = 0
+            femm.mi_getmaterial('N40')
+            for _ in range(2*SI['pe']):
+                X, Y = R*np.cos(THETA), R*np.sin(THETA)
+                self.set_block_label(self.GroupSummary['magnet'], 'N40', (X, Y), MESH_SIZE_MAGNET, automesh=self.bool_automesh, magdir=THETA/np.pi*180 + 90 +_%2*180)
+                deg_alpha_rp = 360 / (2*SI['pe'])
+                THETA += deg_alpha_rp / 180 * np.pi
 
         # Circuit Configuration
         # Rotor Winding
@@ -967,7 +987,7 @@ class FEMM_SlidingMesh(object):
         femm.mi_addcircprop('V-GrpBD', self.dict_stator_current_function[4](0.0), SERIES_CONNECTED)
         femm.mi_addcircprop('W-GrpBD', self.dict_stator_current_function[5](0.0), SERIES_CONNECTED)
 
-        Qs = self.acm_variant.template.SI['Qs']
+        Qs = SI['Qs']
 
         # dict_dir = {'+':1, '-':-1} # wrong (not consistent with JMAG)
         dict_dir = {'+':-1, '-':1, 'o':0}
@@ -977,7 +997,7 @@ class FEMM_SlidingMesh(object):
         # X layer winding's blocks
         ''' TODO Need to make sure the block is inside the coil object
         '''
-        self.acm_variant.coils.innerCoord
+        # self.acm_variant.coils.innerCoord
         OFFSET = 2 / 180 * np.pi
         THETA = - angle_per_slot + 0.5*angle_per_slot - OFFSET # This 3 deg must be less than 360/Qs/2，取这么大是为了在GUI上看得清楚点。
         count = 0
@@ -1418,7 +1438,7 @@ class FEMM_SlidingMesh(object):
         # region3 = self.prepareSection(list_regions, color=color_rgb_A)
 
         # Stator Winding
-        # list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # region4 = self.prepareSection(list_regions)
 
         # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流

@@ -1,4 +1,46 @@
 {
+    "FSPM-12s10pp":
+    {
+        "Inputs":
+        {
+            "machine_type":                        "FSPM",
+            "DPNV_or_SEPA":                        true,
+            "Number_of_Flux_Switching_Cells":      12,
+            "minimum_mechanical_air_gap_length_mm": 0.50,
+            "m":                                   3,
+            "Qs":                                  12,
+            "ps":                                  5,
+            "p":                                   4,
+            "pa":                                  4,
+            "pe":                                  6,
+            "pm":                                  10,
+            "coil_pitch_y":                        1,
+            "mec_power":                           100,
+            "ExcitationFreqSimulated":             33.3,
+            "Steel":                               "M19Gauge29",
+            "lamination_stacking_factor_kFe":      0.95,
+            "Coil":                                "Cu",
+            "Js":                                  4e6,
+            "Temperature":                         75,
+            "space_factor_kCu":                    0.3882,
+            "WindingFill":                         0.3882,
+            "AWG":                                 25,
+            "VoltageRating":                       415,
+            "guess_efficiency":                    0.9,
+            "guess_power_factor":                  0.8,
+            "guess_air_gap_flux_density_Bg":       1.7,
+            "guess_stator_tooth_flux_density_Bst": null,
+            "guess_stator_yoke_flux_density_Bsy":  1.4,
+            "tip_speed":                           70,
+            "TangentialStress":                    12000,
+            "mm_stack_length":                     10,
+            "mm_radius_shaft":                     50,
+            "safety_factor_to_yield":              null,
+            "safety_factor_to_critical_speed":     null,
+            "bool_skew_stator":                    false,
+            "bool_skew_rotor":                     false
+        }
+    },
     "Flux Alternator 1955":
     {
         "Inputs":
@@ -29,9 +71,9 @@
             "VoltageRating":                       415,
             "guess_efficiency":                    0.8,
             "guess_power_factor":                  0.6,
-            "guess_air_gap_flux_density_B":        0.5,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  0.9,
+            "guess_air_gap_flux_density_Bg":        0.5,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  0.9,
             "tip_speed":                           70,
             "TangentialStress":                    null,
             "safety_factor_to_yield":              null,
@@ -69,9 +111,9 @@
             "AWG":                                  25,
             "guess_efficiency":                    0.8,
             "guess_power_factor":                  0.6,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
             "no_segmented_magnets":                1,
             "tip_speed":                               null,
             "safety_factor_to_yield":                  null,
@@ -108,9 +150,9 @@
             "AWG":                                  25,
             "guess_efficiency":                    0.8,
             "guess_power_factor":                  0.6,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
             "no_segmented_magnets":                1,
             "tip_speed":                               null,
             "safety_factor_to_yield":                  null,
@@ -126,9 +168,9 @@
         "Inputs":
         {
             "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
             "m":                                    3,
@@ -165,9 +207,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -202,9 +244,9 @@
     "PMSM Q12p4y1 A": {
         "Inputs": {
             "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B": 0.9,
-            "guess_stator_tooth_flux_density_B_ds": 1.5,
-            "guess_stator_yoke_flux_density_Bys": 1.2,
+            "guess_air_gap_flux_density_Bg": 0.9,
+            "guess_stator_tooth_flux_density_Bst": 1.5,
+            "guess_stator_yoke_flux_density_Bsy": 1.2,
             "machine_type": "PMSM",
             "DPNV_or_SEPA": true,
             "m": 3,
@@ -240,9 +282,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -280,9 +322,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -319,9 +361,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -360,9 +402,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -401,9 +443,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -440,9 +482,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -479,9 +521,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -519,9 +561,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -558,9 +600,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -598,9 +640,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -637,9 +679,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -676,9 +718,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -715,9 +757,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -754,9 +796,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -793,9 +835,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -833,9 +875,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -873,9 +915,9 @@
         "Inputs":
         {
                         "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_B":          0.9,
-            "guess_stator_tooth_flux_density_B_ds":1.5,
-            "guess_stator_yoke_flux_density_Bys":  1.2,
+            "guess_air_gap_flux_density_Bg":          0.9,
+            "guess_stator_tooth_flux_density_Bst":1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
 
             "machine_type":                         "PMSM",
             "DPNV_or_SEPA":                         true,
@@ -945,7 +987,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.6,
             "use_drop_shape_rotor_bar":          false,
@@ -992,7 +1034,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.6,
             "use_drop_shape_rotor_bar":          false,
@@ -1041,7 +1083,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.6,
             "use_drop_shape_rotor_bar":          false,
@@ -1087,7 +1129,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.6,
             "use_drop_shape_rotor_bar":          false,
@@ -1137,7 +1179,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.6,
             "use_drop_shape_rotor_bar":          false,
@@ -1183,7 +1225,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.6,
             "use_drop_shape_rotor_bar":          false,
@@ -1231,7 +1273,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.6,
             "use_drop_shape_rotor_bar":          false,
@@ -1277,7 +1319,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.6,
             "use_drop_shape_rotor_bar":          false,
@@ -1331,7 +1373,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.6,
             "use_drop_shape_rotor_bar":          false,
@@ -1377,7 +1419,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.6,
             "use_drop_shape_rotor_bar":          false,
@@ -1422,7 +1464,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.75,
             "use_drop_shape_rotor_bar":          false,
@@ -1467,7 +1509,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":         1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                0.75,
             "use_drop_shape_rotor_bar":          false,
@@ -1520,7 +1562,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.7,
             "use_drop_shape_rotor_bar":       false,
@@ -1564,7 +1606,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.7,
             "use_drop_shape_rotor_bar":             true,
@@ -1608,7 +1650,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.7,
             "use_drop_shape_rotor_bar":             true,
@@ -1653,7 +1695,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.6,
             "use_drop_shape_rotor_bar":             true,
@@ -1697,7 +1739,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.6,
             "use_drop_shape_rotor_bar":             true,
@@ -1750,7 +1792,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.6,
             "use_drop_shape_rotor_bar":             true,
@@ -1794,7 +1836,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.6,
             "use_drop_shape_rotor_bar":             true,
@@ -1836,7 +1878,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.5,
             "use_drop_shape_rotor_bar":             true,
@@ -1878,7 +1920,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.5,
             "use_drop_shape_rotor_bar":             true,
@@ -1920,7 +1962,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.5,
             "use_drop_shape_rotor_bar":             true,
@@ -1962,7 +2004,7 @@
             "rotor_tooth_flux_density_B_dr":       1.5,
             "stator_yoke_flux_density_Bys":         1.2,
             "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_B":           0.8,
+            "guess_air_gap_flux_density_Bg":           0.8,
             "guess_efficiency":                     0.95,
             "guess_power_factor":                 0.5,
             "use_drop_shape_rotor_bar":             true,

@@ -294,8 +294,6 @@ class CrossSectInnerRotorStatorWinding(object):
 
 
 
-
-
 class CrossSectInnerRotorStator_PMAtYoke:
     # CrossSectInnerRotorStator_PMAtYoke Describes the inner-rotor motor stator 
     # that is dedicated for doubly salient PM motor.
@@ -403,6 +401,7 @@ class CrossSectInnerRotorStator_PMAtYoke:
         # Draw slot for inserting PM
         P0 = [r_sy, 0]
         # print('||DEBUG', P0, np.sqrt(P5[0]**2 + P5[1]**2))
+        print(mm_d_pm, r_sy, P5)
         alpha_pm_depth = 2*np.arcsin(0.5*mm_d_pm / r_sy)
         # print('magnet angle', alpha_pm_depth/np.pi*180)
         mm_w_pm = d_sy - self.mm_difference_pm_yoke
@@ -779,11 +778,341 @@ class CrossSectToroidalWiniding:
         else:
             raise Exception('Not supported. Please set bool_draw_whole_model to True.')
 
-class CrossSectInnerRotorStator_PMAtToothBody:
-    # CrossSectInnerRotorStator_PMAtYoke Describes the inner-rotor motor stator 
-    # that is dedicated for flux-switching PM motor.
-    pass
 
+
+
+class CrossSectInnerRotorStator_PMAtToothBody:
+    def __init__(self,
+                    name  = 'StatorCore_PMAtToothBody',
+                    color = '#BAFD01',
+                    deg_alpha_st = 40, # span angle of tooth: class type DimAngular
+                    deg_alpha_sto = 20, # angle of tooth edge: class type DimAngular
+                    mm_r_si      = 40, # inner radius of stator teeth: class type DimLinear
+                    mm_d_sto      = 5,  # tooth edge length: class type DimLinear
+                    mm_d_stt      = 10, # tooth tip length: class type DimLinear
+                    mm_d_st      = 15, # tooth base length: class type DimLinear
+                    mm_d_sy      = 15, # back iron thickness: class type DimLinear
+                    mm_w_st      = 13, # tooth base width: class type DimLinear
+                    mm_r_st      = 0,  # fillet on outter tooth: class type DimLinear
+                    mm_r_sf      = 0,  # fillet between tooth tip and base: class type DimLinear
+                    mm_r_sb      = 0,  # fillet at tooth base: class type DimLinear
+                    Q            = 6,  # number of stator slots (integer)
+                    mm_d_pm      = 5,
+                    deg_alpha_pm_at_airgap = None,
+                    mm_difference_pm_yoke = 1, # mm
+                    location = None
+                ):
+
+
+        self.name = name
+        self.color = color
+        # self.deg_alpha_st = deg_alpha_st
+        self.Q = Q
+
+        self.alpha_slot_span = 2*np.pi / self.Q
+
+        self.deg_alpha_st = deg_alpha_st # (self.alpha_slot_span/2) /np.pi*180 *0.9 # 360 / self.Q / 2
+        self.deg_alpha_sto = self.deg_alpha_st/2 #deg_alpha_sto
+        self.mm_r_si      = mm_r_si     
+        self.mm_d_sto     = mm_d_sto # * 0
+        self.mm_d_stt     = mm_d_stt # * 0 
+        self.mm_d_st      = mm_d_st     
+        self.mm_d_sy      = mm_d_sy     
+        # self.mm_w_st      = mm_w_st     
+        # print(self.deg_alpha_st, self.alpha_slot_span/np.pi*180)
+        self.mm_w_st = 2*(self.mm_r_si+self.mm_d_stt)*sin(0.5*(self.alpha_slot_span/2))
+        self.mm_r_st      = mm_r_st     
+        self.mm_r_sf      = mm_r_sf     
+        self.mm_r_sb      = mm_r_sb  
+        self.mm_d_pm =  mm_d_pm
+        self.deg_alpha_pm_at_airgap = deg_alpha_pm_at_airgap
+        self.mm_difference_pm_yoke = mm_difference_pm_yoke
+        self.location = location 
+
+    def draw(self, drawer, bool_draw_whole_model=False):
+
+        drawer.getSketch(self.name, self.color)
+
+        alpha_st = self.deg_alpha_st   * np.pi/180
+        # print('DEBUBG', self.deg_alpha_st)
+
+        alpha_so = -self.deg_alpha_sto * np.pi/180
+        r_si = self.mm_r_si
+        d_sto = self.mm_d_sto
+        d_stt = self.mm_d_stt
+        d_st = self.mm_d_st
+        d_sy = self.mm_d_sy
+        w_st = self.mm_w_st
+        r_st = self.mm_r_st
+        r_sf = self.mm_r_sf
+        r_sb = self.mm_r_sb
+        Q    = self.Q
+        mm_d_pm = self.mm_d_pm
+        alpha_pm_at_airgap = self.deg_alpha_pm_at_airgap/180*np.pi
+
+        alpha_slot_span = self.alpha_slot_span
+
+        P0 = [r_si, 0]
+        P1 = [r_si* cos(alpha_pm_at_airgap/2), 
+              r_si*-sin(alpha_pm_at_airgap/2) ]
+        P2 = [r_si* cos(alpha_st/2), 
+              r_si*-sin(alpha_st/2) ]
+
+        # P1 = [r_si, 0]
+        # P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
+        P3_temp = [ d_sto*cos(alpha_st*0.5), 
+                    d_sto*-sin(alpha_st*0.5)]
+        P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
+                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        P3 = [  P3_local_rotate[0] + P2[0],
+                P3_local_rotate[1] + P2[1] ]
+
+        三角形的底 = r_si + d_stt
+        三角形的高 = w_st*0.5
+        三角形的角度 = arctan(三角形的高 / 三角形的底)
+        P4 = [  三角形的底*cos(三角形的角度), 
+                三角形的底*-sin(三角形的角度)]
+
+        P5 = [ P4[0] + d_st, 
+               P4[1]]
+
+        # Option 1
+        # 6 [94.01649113009418, -25.191642873516543] 97.33303383272235
+        # Radius_InnerStatorYoke = r_si+d_sp+d_st
+        # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
+        # Option 2
+        r_sy = Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
+        P6 = [ r_sy *  cos(alpha_slot_span*0.5),
+               r_sy * -sin(alpha_slot_span*0.5) ]
+
+        if False:
+            P7 = [  (r_si+d_stt+d_st+d_sy)*cos(alpha_slot_span*0.5),
+                    (r_si+d_stt+d_st+d_sy)*-sin(alpha_slot_span*0.5) ]
+            P8 = [  r_si+d_stt+d_st+d_sy, 0]
+        else:
+            P7 = [  (r_sy+d_sy)*cos(alpha_slot_span*0.5),
+                    (r_sy+d_sy)*-sin(alpha_slot_span*0.5) ]
+            P8 = [   r_sy+d_sy, 0]
+
+        r_so = r_sy + d_sy
+        P_PM = [np.sqrt((r_so)**2 - P1[1]**2) - self.mm_difference_pm_yoke, P1[1]]
+
+        list_segments = []
+        if bool_draw_whole_model:
+            P1_Mirror = [P1[0], -P1[1]]
+            P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
+            P3_Mirror = [P3[0], -P3[1]]
+            P4_Mirror = [P4[0], -P4[1]]
+            P5_Mirror = [P5[0], -P5[1]]
+            P_PM_Mirror = [P_PM[0], -P_PM[1]]
+            def iPark(P, theta):
+                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+            def draw_fraction(list_segments, i, P1, P2, P3, P4, P5,
+                                            P1_Mirror,
+                                            P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror,
+                                            P_PM, P_PM_Mirror):
+                P5_Rotate = iPark(P5, alpha_slot_span)
+                list_segments += drawer.drawArc([0,0], P2, P1)
+                list_segments += drawer.drawLine(P2, P3)
+                list_segments += drawer.drawLine(P3, P4)
+                list_segments += drawer.drawLine(P4, P5)
+
+                list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
+                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
+                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
+                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+
+                list_segments += drawer.drawLine(P1, P_PM)
+                list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+                list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
+
+                list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+
+            for i in range(Q):
+                draw_fraction(list_segments, i,
+                                             iPark(P1, i*alpha_slot_span), 
+                                             iPark(P2, i*alpha_slot_span), 
+                                             iPark(P3, i*alpha_slot_span), 
+                                             iPark(P4, i*alpha_slot_span), 
+                                             iPark(P5, i*alpha_slot_span),
+                                             iPark(P1_Mirror, i*alpha_slot_span), 
+                                             iPark(P2_Mirror, i*alpha_slot_span), 
+                                             iPark(P3_Mirror, i*alpha_slot_span), 
+                                             iPark(P4_Mirror, i*alpha_slot_span), 
+                                             iPark(P5_Mirror, i*alpha_slot_span),
+                                             iPark(P_PM, i*alpha_slot_span),
+                                             iPark(P_PM_Mirror, i*alpha_slot_span), )
+                # if i >=1:
+                #     break
+                # raise
+                # break
+            # draw a circle (this is officially suggested)
+            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
+            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+
+
+            # DEBUG
+            # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
+            #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
+
+            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+
+            # return [list_segments]
+            return {'innerCoord': self.innerCoord, 
+                    'list_regions':[list_segments], 
+                    'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
+                    'inner_or_outer_region_to_remove': [False, True]
+                    }
+        else:
+            raise Exception('Not supported. Please set bool_draw_whole_model to True.')
+
+class CrossSectStatorMagnetAtToothBody:
+    def __init__(self,
+                    name  = 'StatorMagnetAtToothBody',
+                    color = '#0BA0E2',
+                    stator_core = None,
+                ):
+        self.name = name
+        self.color = color
+        self.stator_core = stator_core
+    def draw(self, drawer, bool_draw_whole_model=False):
+
+        drawer.getSketch(self.name, self.color)
+
+        alpha_st = self.stator_core.deg_alpha_st * np.pi/180
+        alpha_so = -self.stator_core.deg_alpha_sto * np.pi/180
+        r_si = self.stator_core.mm_r_si
+        d_sto = self.stator_core.mm_d_sto
+        d_stt = self.stator_core.mm_d_stt
+        d_st = self.stator_core.mm_d_st
+        d_sy = self.stator_core.mm_d_sy
+        w_st = self.stator_core.mm_w_st
+        r_st = self.stator_core.mm_r_st
+        r_sf = self.stator_core.mm_r_sf
+        r_sb = self.stator_core.mm_r_sb
+        Q    = self.stator_core.Q
+        mm_d_pm = self.stator_core.mm_d_pm
+
+        alpha_slot_span = self.stator_core.alpha_slot_span
+
+        alpha_pm_at_airgap = self.stator_core.deg_alpha_pm_at_airgap/180*np.pi
+
+        P0 = [r_si, 0]
+        P1 = [r_si* cos(alpha_pm_at_airgap/2), 
+              r_si*-sin(alpha_pm_at_airgap/2) ]
+        P2 = [r_si* cos(alpha_st/2), 
+              r_si*-sin(alpha_st/2) ]
+
+        # P1 = [r_si, 0]
+        # P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
+        P3_temp = [ d_sto*cos(alpha_st*0.5), 
+                    d_sto*-sin(alpha_st*0.5)]
+        P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
+                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        P3 = [  P3_local_rotate[0] + P2[0],
+                P3_local_rotate[1] + P2[1] ]
+
+        三角形的底 = r_si + d_stt
+        三角形的高 = w_st*0.5
+        三角形的角度 = arctan(三角形的高 / 三角形的底)
+        P4 = [  三角形的底*cos(三角形的角度), 
+                三角形的底*-sin(三角形的角度)]
+
+        P5 = [ P4[0] + d_st, 
+               P4[1]]
+
+        # Option 1
+        # 6 [94.01649113009418, -25.191642873516543] 97.33303383272235
+        # Radius_InnerStatorYoke = r_si+d_sp+d_st
+        # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
+        # Option 2
+        r_sy = Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
+        P6 = [ r_sy *  cos(alpha_slot_span*0.5),
+               r_sy * -sin(alpha_slot_span*0.5) ]
+
+        if False:
+            P7 = [  (r_si+d_stt+d_st+d_sy)*cos(alpha_slot_span*0.5),
+                    (r_si+d_stt+d_st+d_sy)*-sin(alpha_slot_span*0.5) ]
+            P8 = [  r_si+d_stt+d_st+d_sy, 0]
+        else:
+            P7 = [  (r_sy+d_sy)*cos(alpha_slot_span*0.5),
+                    (r_sy+d_sy)*-sin(alpha_slot_span*0.5) ]
+            P8 = [   r_sy+d_sy, 0]
+
+        r_so = r_sy + d_sy
+        P_PM = [np.sqrt((r_so)**2 - P1[1]**2) - self.stator_core.mm_difference_pm_yoke, P1[1]]
+
+        list_segments = []
+        if bool_draw_whole_model:
+            P1_Mirror = [P1[0], -P1[1]]
+            P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
+            P3_Mirror = [P3[0], -P3[1]]
+            P4_Mirror = [P4[0], -P4[1]]
+            P5_Mirror = [P5[0], -P5[1]]
+            P_PM_Mirror = [P_PM[0], -P_PM[1]]
+            def iPark(P, theta):
+                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+            def draw_fraction(list_segments, i, P1, P2, P3, P4, P5,
+                                            P1_Mirror,
+                                            P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror,
+                                            P_PM, P_PM_Mirror):
+                P5_Rotate = iPark(P5, alpha_slot_span)
+                # list_segments += drawer.drawArc([0,0], P2, P1)
+                # list_segments += drawer.drawLine(P2, P3)
+                # list_segments += drawer.drawLine(P3, P4)
+                # list_segments += drawer.drawLine(P4, P5)
+
+                # list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
+                # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
+                # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
+                # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+
+                list_segments += drawer.drawLine(P1, P1_Mirror)
+                list_segments += drawer.drawLine(P1, P_PM)
+                list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
+                list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+
+                # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+
+            for i in range(Q):
+                draw_fraction(list_segments, i,
+                                             iPark(P1, i*alpha_slot_span), 
+                                             iPark(P2, i*alpha_slot_span), 
+                                             iPark(P3, i*alpha_slot_span), 
+                                             iPark(P4, i*alpha_slot_span), 
+                                             iPark(P5, i*alpha_slot_span),
+                                             iPark(P1_Mirror, i*alpha_slot_span), 
+                                             iPark(P2_Mirror, i*alpha_slot_span), 
+                                             iPark(P3_Mirror, i*alpha_slot_span), 
+                                             iPark(P4_Mirror, i*alpha_slot_span), 
+                                             iPark(P5_Mirror, i*alpha_slot_span),
+                                             iPark(P_PM, i*alpha_slot_span),
+                                             iPark(P_PM_Mirror, i*alpha_slot_span), )
+                # if i >=1:
+                #     break
+                # raise
+                # break
+            # draw a circle (this is officially suggested)
+            # list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
+            # list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+
+
+            # DEBUG
+            # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
+            #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
+
+            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+
+            # return [list_segments]
+            return {'innerCoord': self.innerCoord, 
+                    'list_regions':[list_segments], 
+                    'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
+                    'inner_or_outer_region_to_remove': [False, True]
+                    }
+        else:
+            raise Exception('Not supported. Please set bool_draw_whole_model to True.')
 
 if __name__ == '__main__':
     import JMAG

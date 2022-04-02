@@ -1,7 +1,7 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
 
-import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design
+import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design
 
 from soupsieve import select
 # from codes3.population import VanGogh_JMAG
@@ -144,6 +144,8 @@ class AC_Machine_Optiomization_Wrapper(object):
             function = bearingless_induction_design.bearingless_induction_template
         elif 'Flux Alternator' in self.select_spec: 
             function = flux_alternator_design.flux_alternator_template
+        elif 'FSPM' in self.select_spec: 
+            function = flux_switching_pm_design.FSPM_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
         self.ad = acm_designer.acm_designer(
@@ -240,9 +242,11 @@ class AC_Machine_Optiomization_Wrapper(object):
         acm_variant = self.ad.build_acm_variant(self.ad.acm_template, x_denorm, counter=counter)
         toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1, 
                                                             height_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1 )
-        if 'PM' in acm_variant.template.name:
+        if 'PMSM' in acm_variant.template.name:
             toolCairo.draw_spmsm(acm_variant)
         elif 'Alternator' in acm_variant.template.name:
+            toolCairo.draw_doubly_salient(acm_variant)
+        elif 'FSPM' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant)
         else:
             raise
@@ -517,10 +521,11 @@ def main(number_which_part):
         # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
         # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #'PMSM Q24p1y9 PEMD'
-        select_spec            = 'Flux Alternator 1955',
+        # select_spec            = 'Flux Alternator 1955',
+        select_spec              = "FSPM-12s10pp",
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-        select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
-        # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
+        # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
+        select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
 
         project_loc            = fr'../_default/',
         bool_show_GUI          = True
