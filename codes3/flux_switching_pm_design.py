@@ -178,7 +178,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
 
         GP = self.d['GP']
 
-        deg_alpha_rsp_ini = 360 / (self.SI['Qs']*2) * (self.SI['pm']*2)
+        # deg_alpha_rsp_ini = 360 / (self.SI['Qs']*2) * (self.SI['pm']*2)
 
         original_template_neighbor_bounds = {
             # STATOR
@@ -195,7 +195,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
             # ROTOR
             "mm_d_sleeve":  [1,   2],
             "split_ratio_rotor_salient": [0.1,0.25],
-            "deg_alpha_rsp": [deg_alpha_rsp_ini*0.9, deg_alpha_rsp_ini*1.1]
+            "deg_alpha_rsp": [GP['deg_alpha_rsp'].value*0.8, GP['deg_alpha_rsp'].value*1.2]
         }
         return original_template_neighbor_bounds
 
@@ -218,6 +218,7 @@ class FSPM_design_variant(inner_rotor_motor.variant_machine_as_objects):
         # Get geometric parameters and spec input
         GP = self.template.d['GP']
         SI = self.template.SI
+        EX = self.template.d['EX']
 
         # 检查几何变量之间是否有冲突
         self.check_invalid_design(GP, SI)
@@ -266,10 +267,12 @@ class FSPM_design_variant(inner_rotor_motor.variant_machine_as_objects):
         #03 Mechanical Parameters
         self.update_mechanical_parameters()
 
-        self.InitialRotationAngle = 0.0
-        print('[FSPM_design.py] self.InitialRotationAngle set to 0.0')
-        print('[FSPM_design.py] self.InitialRotationAngle set to 0.0')
-        print('[FSPM_design.py] self.InitialRotationAngle set to 0.0')
+
+        self.InitialRotationAngle = EX['wily'].deg_winding_U_phase_phase_axis_angle + 360 / SI['pm'] / 4
+        print(f'[FSPM_design.py] self.InitialRotationAngle set to {self.InitialRotationAngle}')
+        print(f'[FSPM_design.py] self.InitialRotationAngle set to {self.InitialRotationAngle}')
+        print(f'[FSPM_design.py] self.InitialRotationAngle set to {self.InitialRotationAngle}')
+        # raise
 
         self.boolCustomizedCircuit = False
 

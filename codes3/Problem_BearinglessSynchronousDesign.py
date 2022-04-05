@@ -86,7 +86,7 @@ class Problem_BearinglessSynchronousDesign(object):
                 # print("Detail: {}".format(error.payload))
                 f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
                 # utility.send_notification(ad.solver.fea_config_dict['pc_name'] + '\n\nExceptionBadNumberOfParts:' + str(error) + '\n'*3)
-                break
+                raise error
 
             except pywintypes.com_error as error:
                 print(error)

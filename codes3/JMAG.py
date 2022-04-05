@@ -144,11 +144,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         #     raise AttributeError("%s.%s" % (self._username_, attr))
         # AttributeError: designer.Application.171.Hide
         # 减少对app.Hide的调用，初始默认是Hide
-        self.hide_or_show = True
+        # self.hide_or_show = None
 
     def open(self, expected_project_file_path):
         if self.app is None:
             try:
+                # app = win32com.client.Dispatch('designer.Application.200')
                 app = win32com.client.Dispatch('designer.Application.171')
                 # app = win32com.client.gencache.EnsureDispatch('designer.Application.171') # https://stackoverflow.com/questions/50127959/win32-dispatch-vs-win32-gencache-in-python-what-are-the-pros-and-cons
             except:
@@ -158,13 +159,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 except:
                     raise Exception('No JMAG Designer 17 or 18 is found in this PC.')
             if self.fea_config_dict['designer.Show'] == True:
-                if self.hide_or_show == True:
-                    app.Show()
-                    self.hide_or_show = False
+                app.Show()
             else:
-                if self.hide_or_show == False:
-                    app.Hide()
-                    self.hide_or_show = True
+                app.Hide()
             # app.Quit()
             self.app = app # means that the JMAG Designer is turned ON now.
 
@@ -574,7 +571,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         # Shaft Set
         # add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
         self.bool_suppressShaft = True
-        model.SuppressPart(id_shaft, 1)
+        if self.bool_suppressShaft:
+            model.SuppressPart(id_shaft, 1)
 
         # Create Sets for Coils
         wily = acm_variant.template.d['EX']['wily']
@@ -638,6 +636,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         part_list_set('MagnetSet', list_xy_magnets)
 
         if self.bool_suppressShaft == False:
+            add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft)
             part_list_set('Motion_Region', [], list_part_id=[id_rotorCore, id_shaft])
         else:
             part_list_set('Motion_Region', [], list_part_id=[id_rotorCore, ])
@@ -801,7 +800,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         study.GetDesignTable().GetEquation("freq").SetExpression("%g"%(FREQUENCY))
         study.GetDesignTable().GetEquation("freq").SetDescription("Excitation Frequency in Hz")
         study.GetDesignTable().GetEquation("speed").SetType(1)
-        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %d"%(60/(0.5*EX['RotorPoleNumber'])))
+        # study.GetDesignTable().GetEquation("speed").SetExpression("freq * %d"%(60/(0.5*EX['RotorPoleNumber'])))
+        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %d"%(60/SI['number_of_rotor_pole_pairs']))
         study.GetDesignTable().GetEquation("speed").SetDescription("mechanical speed in r/min")
 
         # speed, freq, slip

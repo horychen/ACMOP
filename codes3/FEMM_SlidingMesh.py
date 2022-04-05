@@ -717,8 +717,12 @@ class Individual_Analyzer_FEMM_Edition(object):
             exec(f'timeDomainData_dict["{key}"] = self.{key}')
         # df.to_pickle(self.fea_config_dict['output_dir']+self.select_spec+f'ind{counter:04d}')
 
-        with open(fname, 'wb') as pickle_file:
-            pickle.dump(timeDomainData_dict, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+        try:
+            with open(fname, 'wb') as pickle_file:
+                pickle.dump(timeDomainData_dict, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+        except OSError as e:
+            print('Cannot write pickle file', str(e))
+            pass
 
         # print('[FEMMSlidingMesh.py] Time domain data saved to:', F"self.fea_config_dict['output_dir']+self.select_spec+f'ind{counter:04d}.pkl")
 

@@ -128,14 +128,27 @@ class CrossSectInnerSalientPoleRotorV2(object):
         P1 = [mm_r_ro*cos(deg_alpha_rsp/180*np.pi/2), 
               mm_r_ro*-sin(deg_alpha_rsp/180*np.pi/2)]
         mm_r_groove = mm_r_ro * (1-split_ratio_rotor_salient)
-        P3 = [  mm_r_groove *  cos(deg_span_angle_rotor_pole_pair/180*np.pi),
-                mm_r_groove * -sin(deg_span_angle_rotor_pole_pair/180*np.pi) ]
-        rad_temp = (mm_r_ro - mm_r_groove) * np.tan(8/180*np.pi) / mm_r_groove
-        rad_P3_rotate_angle = deg_span_angle_rotor_pole_pair/180*np.pi - (deg_alpha_rsp / 2 / 180*np.pi + rad_temp)
+
         def iPark(P, theta):
             return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
-        P2 = iPark(P3, rad_P3_rotate_angle)
 
+        # print(P1, deg_alpha_rsp)
+        if False: # Option provided by Shi Zhou with some approximation
+            P3 = [  mm_r_groove *  cos(deg_span_angle_rotor_pole_pair/180*np.pi),
+                    mm_r_groove * -sin(deg_span_angle_rotor_pole_pair/180*np.pi) ]
+            rad_temp = (mm_r_ro - mm_r_groove) * np.tan(8/180*np.pi) / mm_r_groove
+            rad_P3_rotate_angle = deg_span_angle_rotor_pole_pair/180*np.pi - (deg_alpha_rsp / 2 / 180*np.pi + rad_temp)
+            P2 = iPark(P3, rad_P3_rotate_angle)
+        else:
+            slope = np.tan(8/180*np.pi) 
+            the_other_point_on_the_line = [P1[0]-1, P1[1] + slope * (-1)]
+            intersections = self.get_node_at_intersection(c=[[0,0], mm_r_groove], l=[[P1[0], P1[1]], the_other_point_on_the_line])
+            for point in intersections:
+                # print(point)
+                if point[0]>0:
+                    P2 = positive_point = point
+        # print(P2)
+        # raise
         # P4 = iPark(P0, alpha_rp)
 
         P1_Mirror_CCW = P1_Mirror = P1[0], -P1[1]
@@ -170,6 +183,7 @@ class CrossSectInnerSalientPoleRotorV2(object):
                                              )
                 # if i==1:
                 #     break
+                # raise
             # draw a circle (this is officially suggested by FEMM)
             PRI = [self.mm_r_ri, 0 ]
             list_segments += drawer.drawArc([0,0], PRI, [-PRI[0], PRI[1]])
@@ -187,11 +201,11 @@ class CrossSectInnerSalientPoleRotorV2(object):
             list_segments += drawer.drawArc([0,0], P2_Mirror, P2_Rotate)
             list_segments += drawer.drawLine(P2_Mirror, P1_Mirror)
             list_segments += drawer.drawArc([0,0], P1, P1_Mirror)
+            # raise
             list_segments += drawer.drawLine(P2, P1)
             list_segments += drawer.drawLine(P2, P2_InnerEdge)
             list_segments += drawer.drawArc([0,0], P2_InnerEdge, P2_InnerEdge_Rotate)
             list_segments += drawer.drawLine(P2_InnerEdge_Rotate, P2_Rotate)
-
             # draw a circle (this is officially suggested by FEMM)
             PRI = [self.mm_r_ri, 0 ]
             # list_segments += drawer.drawArc([0,0], PRI, [-PRI[0], PRI[1]])
@@ -222,7 +236,7 @@ class CrossSectInnerSalientPoleRotorV2(object):
         a = -(y2-y1)/(x2-x1)
         b = 1
         c = y1-(y2-y1)/(x2-x1)*x1
-        Delta = sqrt(r**2*(a**2+b**2)-c**2)
+        Delta = np.sqrt(r**2*(a**2+b**2)-c**2)
         if Delta < 0:
             raise Exception('No intersection for given line and circle')
         x_solutions = (a*c + b*Delta)/(a**2+b**2), (a*c - b*Delta)/(a**2+b**2)
