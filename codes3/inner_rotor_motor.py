@@ -76,9 +76,9 @@ class template_machine_as_numbers(object):
             "deg_alpha_st"  : acmop_parameter("free",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
             "mm_w_st"       : acmop_parameter("free",    "stator_tooth_width"         , None, [None, None], lambda GP,SI:None),
             "mm_d_st"       : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:None),
-            "mm_d_sto"      : acmop_parameter("free",    "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
+            "mm_d_sto"      : acmop_parameter("fixed",    "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
             "deg_alpha_sto" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_sto(GP,SI)),
-            "mm_d_stt"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_stt(GP,SI)),
+            "mm_d_stt"      : acmop_parameter("free",    "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:None), #derive_mm_d_stt(GP,SI)),
             "mm_r_si"       : acmop_parameter("derived", "stator_inner_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si(GP,SI)),
             "mm_r_so"       : acmop_parameter("derived", "stator_outer_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_so(GP,SI)),
             "mm_d_sy"       : acmop_parameter("derived", "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy(GP,SI)),
@@ -131,7 +131,7 @@ class template_machine_as_numbers(object):
                 self.bounds_denorm.append(parameter.bounds)
         print(f'[inner_rotor_motor.py] template BOUNDS_denorm in R^{len(self.bounds_denorm)}:', self.bounds_denorm)
         return self.bounds_denorm
-    def get_other_properties_after_geometric_parameters_are_initialized(self, GP, SI):
+    def get_other_properties_after_geometric_parameters_are_initialized(self, GP, SI, specified_mm_stack_length=None):
 
         # Template's Other Properties (Shared by the swarm)
         EX = self.d['EX']
@@ -142,18 +142,22 @@ class template_machine_as_numbers(object):
             else:
                 EX['wily'] = wily = winding_layout.winding_layout_v2(SI['DPNV_or_SEPA'], SI['Qs'], SI['p'], SI['ps'], SI['coil_pitch_y'], m=SI['m'])
             # STACK LENGTH
-            EX['mm_template_stack_length'] = pyrhonen_procedure_as_function.get_mm_template_stack_length(SI, GP['mm_r_ro'].value*1e-3) # mm TODO:
+            if specified_mm_stack_length is not None:
+                EX['mm_template_stack_length'] = specified_mm_stack_length
+            else:
+                EX['mm_template_stack_length'] = pyrhonen_procedure_as_function.get_mm_template_stack_length(SI, GP['mm_r_ro'].value*1e-3) # mm TODO:
             EX['mm_mechanical_air_gap_length'] = SI['minimum_mechanical_air_gap_length_mm']
             # THERMAL Properties
             EX['Js']                = SI['Js'] # Arms/mm^2 im_OP['Js'] 
             EX['WindingFill']       = SI['WindingFill'] # SI['space_factor_kCu'] is obsolete
             # MOTOR Winding Excitation Properties
-            EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_ro'].value*2*1e-3) # TODO:
+            EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_ro'].value*2*1e-3, specified_mm_stack_length=specified_mm_stack_length) # TODO:
             EX['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SI) # TODO:
             print('[inner_rotor_motor.py] DriveW_CurrentAmp is initialized as:', EX['DriveW_CurrentAmp'], 'A (considering the specified voltage). This will be overwritten by Js-constraint later.')
             EX['DriveW_Freq']       = SI['ExcitationFreqSimulated']
             EX['DriveW_Rs']         = 1.0 # TODO: Must be greater than zero to let JMAG work
             EX['DriveW_poles']      = SI['p']*2
+            EX['RotorPoleNumber']   = SI['p']*2 # this will be overwritten in template
         # self.d.update( {"EX": EX} )
         return EX
 
@@ -291,7 +295,7 @@ class variant_machine_as_objects(object):
     def update_mechanical_parameters(self, syn_freq=None):
         EX = self.template.d['EX']
         if syn_freq is None:
-            EX['the_speed'] = EX['DriveW_Freq']*60. / (0.5*EX['DriveW_poles']) # rpm
+            EX['the_speed'] = EX['DriveW_Freq']*60. / (0.5*EX['RotorPoleNumber']) # rpm
             EX['Omega']     = EX['the_speed'] / 60. * 2*np.pi
             # self.omega = None # This variable name is devil! you can't tell its electrical or mechanical! #+ self.DriveW_Freq * (1-self.the_slip) * 2*pi
         else:

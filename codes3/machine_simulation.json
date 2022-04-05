@@ -14,7 +14,7 @@
         "femm.number_cycles_in_2ndTSS": 1,
         "femm.number_of_steps_2ndTSS": 16,
         "femm.number_of_parallel_solve": 4,
-        "moo.popsize": 15,
+        "moo.popsize": 78,
         "moo.apply_constraints": false,
         "moo.save_acm_variant_object_as_jsonpickle": true,
         "moo.fitness_OA": "Cost",
@@ -32,7 +32,14 @@
         "femm.MechDeg_IdEqualToNonZeroAngle": 0,
         "femm.number_cycles_in_2ndTSS": 0.5,
         "femm.number_of_steps_2ndTSS": 64,
-        "femm.number_of_parallel_solve": 1
+        "femm.number_of_parallel_solve": 1,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#01 JMAG IM Evaluation Setting": {
@@ -61,8 +68,8 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
-        
-        "designer.AddIronLossCondition": true,"designer.TranRef-StepPerCycle":40, 
+        "designer.AddIronLossCondition": true,
+        "designer.TranRef-StepPerCycle":40, 
         "designer.number_of_steps_1stTSS":24, 
         "designer.number_of_steps_2ndTSS":32, 
         "designer.number_cycles_prolonged":0, 
@@ -71,7 +78,14 @@
 
         "femm.Coarse_Mesh": true,
         "femm.Coarse_Mesh_Level": 2,
-        "femm.deg_per_step": null
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#011 JMAG IM Re-evaluation wo/ CSV Setting": {
@@ -110,7 +124,14 @@
 
         "femm.Coarse_Mesh": true,
         "femm.Coarse_Mesh_Level": 2,
-        "femm.deg_per_step": null
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#019 JMAG IM Nine Variables": {
@@ -152,7 +173,14 @@
         "femm.deg_per_step": null,
         "femm.use_fraction": false,
 
-        "ignore_rotor_current_density_constraint": false
+        "ignore_rotor_current_density_constraint": false,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#0193 JMAG IM Nine Variables | Coarse_Mesh_Level": {
@@ -191,7 +219,14 @@
 
         "femm.Coarse_Mesh": true,
         "femm.Coarse_Mesh_Level": 3,
-        "femm.deg_per_step": null
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#012 JMAG IM Prototype": {
@@ -232,7 +267,14 @@
         "femm.Coarse_Mesh_Level": 2,
         "femm.deg_per_step": 2,
 
-        "ignore_rotor_current_density_constraint": true
+        "ignore_rotor_current_density_constraint": true,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
 
@@ -275,7 +317,14 @@
         "designer.TranRef-StepPerCycle":64, 
 
         "femm.Coarse_Mesh": false,
-        "femm.deg_per_step": null
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#029 JMAG PMSM No-load EMF": {
@@ -304,7 +353,7 @@
         "designer.Restart":false, 
         "designer.JMAG_Scheduler":false, 
 
-        "designer.AddIronLossCondition": false,
+        "designer.AddIronLossCondition": true,
         "designer.number_of_steps_1stTSS":40, 
         "designer.number_of_steps_2ndTSS":40, 
         "designer.StepPerCycle_3rdTSS":64, 
@@ -315,7 +364,14 @@
         "designer.TranRef-StepPerCycle":64, 
 
         "femm.Coarse_Mesh": false,
-        "femm.deg_per_step": null
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#020 JMAG PMSM Prolonged Evaluation Setting": {
@@ -355,7 +411,14 @@
         "designer.TranRef-StepPerCycle":64, 
 
         "femm.Coarse_Mesh": false,
-        "femm.deg_per_step": null
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#0210 JMAG PMSM Re-evaluation wo/ CSV Setting Q12p4ps5 Sub-hamonics": {
@@ -395,7 +458,14 @@
         "designer.TranRef-StepPerCycle":64, 
 
         "femm.Coarse_Mesh": false,
-        "femm.deg_per_step": null
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#0211 JMAG PMSM Q12p4ps5 Sub-hamonics": {
@@ -435,7 +505,14 @@
         "designer.TranRef-StepPerCycle":64, 
 
         "femm.Coarse_Mesh": false,
-        "femm.deg_per_step": null
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#021 JMAG PMSM Re-evaluation wo/ CSV Setting": {
@@ -475,7 +552,14 @@
         "designer.TranRef-StepPerCycle":64, 
 
         "femm.Coarse_Mesh": false,
-        "femm.deg_per_step": null
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
     "#022 JMAG PMSM Optimization Setting": {
@@ -515,7 +599,14 @@
         "designer.TranRef-StepPerCycle":64, 
 
         "femm.Coarse_Mesh": false,
-        "femm.deg_per_step": null
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "Efficiency",
+        "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
     },
 
 

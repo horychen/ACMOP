@@ -1,4 +1,48 @@
 {
+
+    "FSPM-12s14pp":
+    {
+        "Inputs":
+        {
+            "machine_type":                        "FSPM",
+            "DPNV_or_SEPA":                        true,
+            "Number_of_Flux_Switching_Cells":      12,
+            "minimum_mechanical_air_gap_length_mm": 0.50,
+            "m":                                   3,
+            "Qs":                                  12,
+            "ps":                                  5,
+            "p":                                   4,
+            "pa":                                  4,
+            "pe":                                  6,
+            "pm":                                  14,
+            "coil_pitch_y":                        1,
+            "mec_power":                           100,
+            "ExcitationFreqSimulated":             33.3,
+            "Steel":                               "M19Gauge29",
+            "lamination_stacking_factor_kFe":      0.95,
+            "Coil":                                "Cu",
+            "Js":                                  4e6,
+            "Temperature":                         75,
+            "space_factor_kCu":                    0.3882,
+            "WindingFill":                         0.3882,
+            "AWG":                                 25,
+            "VoltageRating":                       50,
+            "guess_efficiency":                    0.9,
+            "guess_power_factor":                  0.8,
+            "guess_air_gap_flux_density_Bg":       1.7,
+            "guess_stator_tooth_flux_density_Bst": null,
+            "guess_stator_yoke_flux_density_Bsy":  1.4,
+            "tip_speed":                           70,
+            "TangentialStress":                    12000,
+            "mm_stack_length":                     10,
+            "mm_radius_shaft":                     50,
+            "safety_factor_to_yield":              null,
+            "safety_factor_to_critical_speed":     null,
+            "bool_skew_stator":                    false,
+            "bool_skew_rotor":                     false
+        }
+    },
+
     "FSPM-12s10pp":
     {
         "Inputs":
@@ -25,7 +69,7 @@
             "space_factor_kCu":                    0.3882,
             "WindingFill":                         0.3882,
             "AWG":                                 25,
-            "VoltageRating":                       415,
+            "VoltageRating":                       50,
             "guess_efficiency":                    0.9,
             "guess_power_factor":                  0.8,
             "guess_air_gap_flux_density_Bg":       1.7,
@@ -41,6 +85,7 @@
             "bool_skew_rotor":                     false
         }
     },
+
     "Flux Alternator 1955":
     {
         "Inputs":

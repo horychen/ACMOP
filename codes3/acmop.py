@@ -176,9 +176,6 @@ class AC_Machine_Optiomization_Wrapper(object):
             ''' Default transient FEA
             '''
             motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm, counter='Initial')
-            print('[acmop.py] Listing analyzer.spec_performance_dict:')
-            for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
-                print('\t', k, v)
 
             from pylab import plt, np
             fig, axes = plt.subplots(4)
@@ -203,6 +200,12 @@ class AC_Machine_Optiomization_Wrapper(object):
             axes[6].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_voltages)))
             axes[7].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_fluxLinkages)))
             plt.show()
+
+
+            print('[acmop.py] Listing analyzer.spec_performance_dict:')
+            for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
+                print('\t', k, v)
+
         else:
 
             ''' An example showing how to change the initial angle between between rotor d-axis and current vector.
@@ -247,7 +250,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         elif 'Alternator' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant)
         elif 'FSPM' in acm_variant.template.name:
-            toolCairo.draw_doubly_salient(acm_variant)
+            toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=False)
         else:
             raise
 
@@ -524,8 +527,8 @@ def main(number_which_part):
         # select_spec            = 'Flux Alternator 1955',
         select_spec              = "FSPM-12s10pp",
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-        # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
-        select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
+        select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
+        # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
 
         project_loc            = fr'../_default/',
         bool_show_GUI          = True

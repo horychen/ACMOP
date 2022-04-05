@@ -39,7 +39,11 @@ class Swarm_Data_Analyzer(object):
                 if desired_x_denorm_dict is None:
                     return list(x_denorm_dict.values())
                 else:
-                    return [x_denorm_dict[key] for key in desired_x_denorm_dict.keys()]
+                    try:
+                        return [x_denorm_dict[key] for key in desired_x_denorm_dict.keys()]
+                    except KeyError as e:
+                        print('Error Hint: some geometric parameters are renamed so the old json archive file now has different name from the new name.')
+                        raise e
 
                 ''' 目前只支持重新跑优化的时候减少自由的几何参数，如果要增加自由的几何参数，则要从GP里面拿出来对应的参数的取值。其实也很简单啦。'''
                 x_denorm = []
@@ -946,6 +950,7 @@ class acm_designer(object):
         open(output_dir+'swarm_MOO_log.txt', 'a').close()
 
         self.acm_template.build_x_denorm()
+        # print(self.acm_template.x_denorm_dict)
         swarm_data_file = self.read_swarm_data_json(self.select_spec, self.acm_template.x_denorm_dict)
 
 
@@ -1110,8 +1115,9 @@ class acm_designer(object):
             acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
 
             # this is for comparison to FEMM
-            def compare_with_FEMM():
-                acm_variant.analyzer = FEMM_SlidingMesh.Individual_Analyzer_FEMM_Edition(p=wily.p)
+            def compare_with_FEMM(acm_variant):
+                EX = acm_variant.template.d['EX']
+                acm_variant.analyzer = FEMM_SlidingMesh.Individual_Analyzer_FEMM_Edition(p=EX['wily'].p)
                 basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list, \
                     DisplacementAngle_list, \
                     circuit_current_GroupACU, \
@@ -1132,7 +1138,6 @@ class acm_designer(object):
                     coil_fluxLinkage_GroupBDU, \
                     coil_fluxLinkage_GroupBDV, \
                     coil_fluxLinkage_GroupBDW = self.toolJd.dm.unpack(bool_more_info=True)
-                EX = acm_variant.template.d['EX']
                 electrical_period = acm_variant.template.fea_config_dict['designer.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
                 number_of_steps   = acm_variant.template.fea_config_dict['designer.number_of_steps_2ndTSS']
                 step_size_sec = electrical_period / number_of_steps
@@ -1152,8 +1157,8 @@ class acm_designer(object):
                                         [ circuit_current_GroupBDW[index], terminal_voltage_GroupBDW[index], coil_fluxLinkage_GroupBDW[index] ] )
                     acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
                 acm_variant.analyzer.get_ss_data()
+            compare_with_FEMM(acm_variant)
             acm_variant.analyzer.save_time_domain_data(counter) # TODO
-            compare_with_FEMM()
             return acm_variant
 
 
@@ -1367,7 +1372,7 @@ class acm_designer(object):
             elif 'Flux_Alternator' in acm_variant.template.name:
                 DRAW_SUCCESS = toolJd.draw_doublySalient(acm_variant, bool_draw_whole_model=True)
             elif 'FSPM' in acm_variant.template.name:
-                DRAW_SUCCESS = toolJd.draw_doublySalient(acm_variant, bool_draw_whole_model=True)
+                DRAW_SUCCESS = toolJd.draw_FSPM(acm_variant, bool_draw_whole_model=False)
 
             if DRAW_SUCCESS != 1:
                 raise Exception('Drawer failed.')
@@ -1384,6 +1389,8 @@ class acm_designer(object):
 
             if 'PMSM' in acm_variant.template.name:
                 toolJd.pre_process_PMSM(app, model, acm_variant)
+            elif 'FSPM' in acm_variant.template.name:
+                toolJd.pre_process_FSPM(app, model, acm_variant)
             elif 'Flux_Alternator' in acm_variant.template.name:
                 toolJd.pre_process_fluxAlternator(app, model, acm_variant)
 

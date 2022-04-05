@@ -851,6 +851,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         alpha_pm_at_airgap = self.deg_alpha_pm_at_airgap/180*np.pi
 
         alpha_slot_span = self.alpha_slot_span
+        print('DEUBG', alpha_slot_span/np.pi*180)
 
         P0 = [r_si, 0]
         P1 = [r_si* cos(alpha_pm_at_airgap/2), 
@@ -898,16 +899,22 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         r_so = r_sy + d_sy
         P_PM = [np.sqrt((r_so)**2 - P1[1]**2) - self.mm_difference_pm_yoke, P1[1]]
 
+        斜边 = r_so
+        高 = np.abs(P5[1])
+        底边 = np.sqrt(斜边**2 - 高**2)
+        P5_OuterEdge = [底边, -高]
+
+        P1_Mirror = [P1[0], -P1[1]]
+        P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
+        P3_Mirror = [P3[0], -P3[1]]
+        P4_Mirror = [P4[0], -P4[1]]
+        P5_Mirror = [P5[0], -P5[1]]
+        P_PM_Mirror = [P_PM[0], -P_PM[1]]
+        def iPark(P, theta):
+            return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+
         list_segments = []
         if bool_draw_whole_model:
-            P1_Mirror = [P1[0], -P1[1]]
-            P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
-            P3_Mirror = [P3[0], -P3[1]]
-            P4_Mirror = [P4[0], -P4[1]]
-            P5_Mirror = [P5[0], -P5[1]]
-            P_PM_Mirror = [P_PM[0], -P_PM[1]]
-            def iPark(P, theta):
-                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
             def draw_fraction(list_segments, i, P1, P2, P3, P4, P5,
                                             P1_Mirror,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror,
@@ -965,17 +972,47 @@ class CrossSectInnerRotorStator_PMAtToothBody:
                     'inner_or_outer_region_to_remove': [False, True]
                     }
         else:
-            raise Exception('Not supported. Please set bool_draw_whole_model to True.')
+            P5_Rotate = iPark(P5, alpha_slot_span)
+            P5_OuterEdge_Rotate = iPark(P5_OuterEdge, alpha_slot_span)
+            list_segments += drawer.drawArc([0,0], P2, P1)
+            list_segments += drawer.drawLine(P2, P3)
+            list_segments += drawer.drawLine(P3, P4)
+            list_segments += drawer.drawLine(P4, P5_OuterEdge)
+            list_segments += drawer.drawLine(P5_Rotate, P5_OuterEdge_Rotate)
+            list_segments += drawer.drawArc([0,0], P5_OuterEdge, P5_OuterEdge_Rotate)
+
+            list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
+            list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
+            list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
+            list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+
+            list_segments += drawer.drawLine(P1, P_PM)
+            list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+            list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
+
+            list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+
+            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+
+            # return [list_segments]
+            return {'innerCoord': self.innerCoord, 
+                    'list_regions':[list_segments], 
+                    'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
+                    # 'inner_or_outer_region_to_remove': [False, True]
+                    }
+            # raise Exception('Not supported. Please set bool_draw_whole_model to True.')
 
 class CrossSectStatorMagnetAtToothBody:
     def __init__(self,
                     name  = 'StatorMagnetAtToothBody',
                     color = '#0BA0E2',
                     stator_core = None,
+                    mm_d_air_pm = 5,
                 ):
         self.name = name
         self.color = color
         self.stator_core = stator_core
+        self.mm_d_air_pm = mm_d_air_pm
     def draw(self, drawer, bool_draw_whole_model=False):
 
         drawer.getSketch(self.name, self.color)
@@ -994,12 +1031,14 @@ class CrossSectStatorMagnetAtToothBody:
         Q    = self.stator_core.Q
         mm_d_pm = self.stator_core.mm_d_pm
 
+        mm_d_air_pm = self.mm_d_air_pm
+
         alpha_slot_span = self.stator_core.alpha_slot_span
 
         alpha_pm_at_airgap = self.stator_core.deg_alpha_pm_at_airgap/180*np.pi
 
-        P0 = [r_si, 0]
-        P1 = [r_si* cos(alpha_pm_at_airgap/2), 
+        P0 = [r_si + mm_d_air_pm, 0]
+        P1 = [r_si* cos(alpha_pm_at_airgap/2) + mm_d_air_pm, 
               r_si*-sin(alpha_pm_at_airgap/2) ]
         P2 = [r_si* cos(alpha_st/2), 
               r_si*-sin(alpha_st/2) ]
@@ -1044,16 +1083,20 @@ class CrossSectStatorMagnetAtToothBody:
         r_so = r_sy + d_sy
         P_PM = [np.sqrt((r_so)**2 - P1[1]**2) - self.stator_core.mm_difference_pm_yoke, P1[1]]
 
+        P1_Mirror = [P1[0], -P1[1]]
+        P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
+        P3_Mirror = [P3[0], -P3[1]]
+        P4_Mirror = [P4[0], -P4[1]]
+        P5_Mirror = [P5[0], -P5[1]]
+        P_PM_Mirror = [P_PM[0], -P_PM[1]]
+        def iPark(P, theta):
+            return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+
+        self.mm2_magnet_area = np.sqrt( (         P1[0]-P_PM[0])**2 + (         P1[1]-P_PM[1])**2 ) \
+                             * np.sqrt( (P_PM_Mirror[0]-P_PM[0])**2 + (P_PM_Mirror[1]-P_PM[1])**2 ) * Q # Note Q = 2*pe
+
         list_segments = []
         if bool_draw_whole_model:
-            P1_Mirror = [P1[0], -P1[1]]
-            P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
-            P3_Mirror = [P3[0], -P3[1]]
-            P4_Mirror = [P4[0], -P4[1]]
-            P5_Mirror = [P5[0], -P5[1]]
-            P_PM_Mirror = [P_PM[0], -P_PM[1]]
-            def iPark(P, theta):
-                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
             def draw_fraction(list_segments, i, P1, P2, P3, P4, P5,
                                             P1_Mirror,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror,
@@ -1112,6 +1155,29 @@ class CrossSectStatorMagnetAtToothBody:
                     'inner_or_outer_region_to_remove': [False, True]
                     }
         else:
+            P5_Rotate = iPark(P5, alpha_slot_span)
+            # list_segments += drawer.drawArc([0,0], P2, P1)
+            # list_segments += drawer.drawLine(P2, P3)
+            # list_segments += drawer.drawLine(P3, P4)
+            # list_segments += drawer.drawLine(P4, P5)
+
+            # list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
+            # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
+            # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
+            # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+
+            list_segments += drawer.drawLine(P1, P1_Mirror)
+            list_segments += drawer.drawLine(P1, P_PM)
+            list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
+            list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+
+            # return [list_segments]
+            return {'innerCoord': self.innerCoord, 
+                    'list_regions':[list_segments], 
+                    'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
+                    # 'inner_or_outer_region_to_remove': [False, True]
+                    }
             raise Exception('Not supported. Please set bool_draw_whole_model to True.')
 
 if __name__ == '__main__':

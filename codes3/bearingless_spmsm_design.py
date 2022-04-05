@@ -69,19 +69,19 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
     def Bianchi2006(self, fea_config_dict, SI, GP, EX):
 
         # inputs: air gap flux density
-        air_gap_flux_density_B = SI['guess_air_gap_flux_density_B'] # 0.9 T
-        stator_tooth_flux_density_B_ds = SI['guess_stator_tooth_flux_density_B_ds'] # 1.5 T
-        stator_yoke_flux_density_Bys = SI['guess_stator_yoke_flux_density_Bys']
+        air_gap_flux_density_Bg = SI['guess_air_gap_flux_density_Bg'] # 0.9 T
+        stator_tooth_flux_density_Bst = SI['guess_stator_tooth_flux_density_Bst'] # 1.5 T
+        stator_yoke_flux_density_Bsy = SI['guess_stator_yoke_flux_density_Bsy']
 
         if SI['p'] >= 2:
             ROTOR_STATOR_YOKE_HEIGHT_RATIO = 0.75
             alpha_rm_over_alpha_rp = 1.0
-            # stator_yoke_flux_density_Bys = 1.2
+            # stator_yoke_flux_density_Bsy = 1.2
         else:
             # penalty for p=1 motor, i.e., large yoke height
             ROTOR_STATOR_YOKE_HEIGHT_RATIO = 0.5
             alpha_rm_over_alpha_rp = 0.75
-            # stator_yoke_flux_density_Bys = 1.5
+            # stator_yoke_flux_density_Bsy = 1.5
 
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
         stator_outer_diameter_Dse = 0.225 # this is related to the stator current density and should be determined by Js and power.
@@ -95,11 +95,11 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         stator_inner_diameter_Dis = stator_inner_radius_r_is*2
         split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
 
-        stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*SI['p'])
+        stator_yoke_height_h_ys = air_gap_flux_density_Bg * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bsy * 2*SI['p'])
         # print(stator_outer_diameter_Dse, stator_inner_diameter_Dis, stator_yoke_height_h_ys)
         stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
         stator_slot_height_h_ss = stator_tooth_height_h_ds
-        stator_tooth_width_b_ds = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* SI['Qs'])
+        stator_tooth_width_b_ds = air_gap_flux_density_Bg * np.pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_Bst* SI['Qs'])
 
         EX['stator_slot_area'] = stator_slot_area = np.pi/(4*SI['Qs']) * ((stator_outer_diameter_Dse - 2*stator_yoke_height_h_ys)**2 - stator_inner_diameter_Dis**2) - stator_tooth_width_b_ds * stator_tooth_height_h_ds
 
@@ -150,7 +150,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # rotor_volume_Vr = required_torque/(2*SI['TangentialStress'])
         # template.required_torque = required_torque
 
-    def get_template_neighbor_bounds(self, GP, SI):
+    def get_template_neighbor_bounds(self):
         ''' The bounds are determined around the template design.
         '''
 
@@ -281,6 +281,13 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
                             d_sleeve = GP['mm_d_sleeve'].value
                             )
 
+        # p = SI['p']
+        # s = SI['no_segmented_magnets']
+        # Qs = SI['Qs']
+        #                            #   轴 转子 永磁体  护套 定子 绕组
+        # self.number_of_parts_in_JMAG = 1 + 1 + p*2*s + 1 + 1 + Qs*2
+
+
         #03 Mechanical Parameters
         self.update_mechanical_parameters()
 
@@ -293,11 +300,13 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
             #   After rotate the rotor by half the inter-pole notch span, The d-axis initial position is at pole pitch angle divided by 2.
             #   The U-phase current is sin(omega_syn*t) = 0 at t=0 and requires the d-axis to be at the winding phase axis (to obtain id=0 control)
             deg_pole_span = 180/SI['p']
-            wily = self.template.wily
+            wily = self.template.d['EX']['wily']
             #                                                              inter-pole notch (0.5 for half)         rotate to x-axis    winding placing bias (half adjacent slot angle)      reverse north and south pole to make torque positive.
             print('[bearingless_spmsm_design.py] [PMSM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,  + deg_pole_span)
             print('[bearingless_spmsm_design.py] [PMSM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5  - deg_pole_span*0.5  + wily.deg_winding_U_phase_phase_axis_angle   + deg_pole_span, 'deg')
             self.InitialRotationAngle = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span
+
+        self.boolCustomizedCircuit = False
 
     def check_invalid_design(self, GP, SI):
 

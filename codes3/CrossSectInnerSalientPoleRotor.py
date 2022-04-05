@@ -119,6 +119,8 @@ class CrossSectInnerSalientPoleRotorV2(object):
         deg_alpha_rsp = self.deg_alpha_rsp
         pm = self.pm
 
+        mm_r_ri = self.mm_r_ri
+
         alpha_rp = 2*np.pi/pm # pole span
         deg_span_angle_rotor_pole_pair = 360/pm
 
@@ -140,6 +142,12 @@ class CrossSectInnerSalientPoleRotorV2(object):
         # print(P1_Mirror, P1)
         P2_Mirror_CCW = P2_Mirror = P2[0], -P2[1]
         P2_Rotate = iPark(P2, alpha_rp)
+
+        angle_at_P2 = np.arctan2(P2[1], P2[0])
+
+        P2_InnerEdge = [self.mm_r_ri* cos(angle_at_P2),
+                        self.mm_r_ri* sin(angle_at_P2) ]
+        P2_InnerEdge_Rotate =  iPark(P2_InnerEdge, alpha_rp)
 
         list_segments = []
         if bool_draw_whole_model:
@@ -176,6 +184,27 @@ class CrossSectInnerSalientPoleRotorV2(object):
                     'inner_or_outer_region_to_remove': [True, False]
                     }
         else:
+            list_segments += drawer.drawArc([0,0], P2_Mirror, P2_Rotate)
+            list_segments += drawer.drawLine(P2_Mirror, P1_Mirror)
+            list_segments += drawer.drawArc([0,0], P1, P1_Mirror)
+            list_segments += drawer.drawLine(P2, P1)
+            list_segments += drawer.drawLine(P2, P2_InnerEdge)
+            list_segments += drawer.drawArc([0,0], P2_InnerEdge, P2_InnerEdge_Rotate)
+            list_segments += drawer.drawLine(P2_InnerEdge_Rotate, P2_Rotate)
+
+            # draw a circle (this is officially suggested by FEMM)
+            PRI = [self.mm_r_ri, 0 ]
+            # list_segments += drawer.drawArc([0,0], PRI, [-PRI[0], PRI[1]])
+            # list_segments += drawer.drawArc([0,0],      [-PRI[0], PRI[1]], PRI)
+
+            # innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))
+
+            # return [list_segments] # csToken # cross section token
+            return {#'innerCoord': innerCoord, 
+                    'list_regions':[list_segments], 
+                    'mirrorAxis': None,
+                    # 'inner_or_outer_region_to_remove': [True, False]
+                    }
             raise Exception('Not supported. Please set bool_draw_whole_model to True.')
 
 

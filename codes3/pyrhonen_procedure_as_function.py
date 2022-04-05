@@ -1718,7 +1718,7 @@ def get_mm_template_stack_length(SI, rotor_outer_radius_r_or):
     m_stack_length = rotor_volume_Vr / (np.pi * rotor_outer_radius_r_or**2)
     return 1e3*m_stack_length # m -> mm
 
-def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
+def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specified_mm_stack_length=None):
 
     stator_phase_voltage_rms = SI['VoltageRating'] / np.sqrt(3)
     desired_emf_Em = 0.95 * stator_phase_voltage_rms 
@@ -1735,7 +1735,7 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
             number_parallel_branch = 1
     speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
-    pole_pitch_tau_p = np.pi*stator_inner_diameter_Dis/(2*SI['p'])
+    pole_pitch_tau_p = np.pi*stator_inner_diameter_Dis/(2*SI['p']) # TODO
 
     if SI['coil_pitch_y'] < 0:
         kw1 = 1
@@ -1761,7 +1761,10 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr):
     # guess_air_gap_flux_density_Bg = 0.9 # T
     guess_air_gap_flux_density_Bg = SI['guess_air_gap_flux_density_Bg']
 
-    mm_stack_length = get_mm_template_stack_length(SI, rotor_outer_diameter_Dr/2)
+    if specified_mm_stack_length is None:
+        mm_stack_length = get_mm_template_stack_length(SI, rotor_outer_diameter_Dr/2)
+    else:
+        mm_stack_length = specified_mm_stack_length
     air_gap_length_delta = 0.5*(stator_inner_diameter_Dis - rotor_outer_diameter_Dr)
     # print(stator_inner_diameter_Dis, rotor_outer_diameter_Dr, air_gap_length_delta)
     # quit()
