@@ -78,7 +78,7 @@ class template_machine_as_numbers(object):
             "mm_d_st"       : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:None),
             "mm_d_sto"      : acmop_parameter("fixed",    "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
             "deg_alpha_sto" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_sto(GP,SI)),
-            "mm_d_stt"      : acmop_parameter("free",    "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:None), #derive_mm_d_stt(GP,SI)),
+            "mm_d_stt"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_stt(GP,SI)),
             "mm_r_si"       : acmop_parameter("derived", "stator_inner_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si(GP,SI)),
             "mm_r_so"       : acmop_parameter("derived", "stator_outer_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_so(GP,SI)),
             "mm_d_sy"       : acmop_parameter("derived", "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy(GP,SI)),
@@ -95,14 +95,30 @@ class template_machine_as_numbers(object):
             "bounds_denorm": [],
         }
 
+        bool_matched = False
         if 'FixedSleeveLength' in self.d['which_filter']:
+            self.d['GP']['mm_d_sto'].type = "free"
             self.d['GP']['mm_d_sleeve'].type = "fixed"
-        elif 'VariableSleeveLength' in self.d['which_filter']:
+            bool_matched = True
+
+        if 'VariableSleeveLength' in self.d['which_filter']:
+            self.d['GP']['mm_d_sto'].type = "free"
             self.d['GP']['mm_d_sleeve'].type = "free"
-        elif 'VariableStatorSlotDepth_VariableStatorYokeDepth' in self.d['which_filter']:
+            bool_matched = True
+
+        if 'VariableStatorSlotDepth_VariableStatorYokeDepth' in self.d['which_filter']:
             # IM
+            self.d['GP']['mm_d_sto'].type = "free"
             self.d['GP']['mm_d_mech_air_gap'].type = "free"
-        else:
+            bool_matched = True
+
+        if 'VariableSleeveLength_VariableToothTipDepth' in self.d['which_filter']:
+            self.d['GP']['mm_d_sto'].type = "fixed"
+            self.d['GP']['mm_d_stt'].type = "free"
+            self.d['GP']['mm_d_sleeve'].type = "free"
+            bool_matched = True
+
+        if bool_matched == False:
             raise Exception(f"Not defined: {self.d['which_filter']}")
 
         # Get Analytical Design
@@ -294,8 +310,9 @@ class variant_machine_as_objects(object):
 
     def update_mechanical_parameters(self, syn_freq=None):
         EX = self.template.d['EX']
+        SI = self.template.SI
         if syn_freq is None:
-            EX['the_speed'] = EX['DriveW_Freq']*60. / (0.5*EX['RotorPoleNumber']) # rpm
+            EX['the_speed'] = EX['DriveW_Freq']*60. / SI['number_of_rotor_pole_pairs'] # rpm
             EX['Omega']     = EX['the_speed'] / 60. * 2*np.pi
             # self.omega = None # This variable name is devil! you can't tell its electrical or mechanical! #+ self.DriveW_Freq * (1-self.the_slip) * 2*pi
         else:

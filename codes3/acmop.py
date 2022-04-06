@@ -523,13 +523,15 @@ def main(number_which_part):
         # select_spec='IM Q24p1y9 Qr32 Round Bar',
         # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
-        # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #'PMSM Q24p1y9 PEMD'
+        select_spec            = 'PMSM Q24p1y9 PEMD', # 'PMSM Q12p4y1 PEMD-2020', #
+        select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
+        # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)"
+
         # select_spec            = 'Flux Alternator 1955',
         # select_spec              = "FSPM-12s14pp",
-        select_spec              = "FSPM-12s10pp",
-        select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+        # select_spec              = "FSPM-12s10pp",
+        # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
         # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
-        # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
 
         project_loc            = fr'../_default/',
         bool_show_GUI          = False
