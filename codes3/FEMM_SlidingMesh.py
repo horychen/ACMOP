@@ -549,7 +549,7 @@ class Individual_Analyzer_FEMM_Edition(object):
 
         ''' 想画图的话改这里！
         '''
-        bool_plot = True
+        bool_plot = False
 
         # Compute the square of the amplitude of each harmonic at the centroid of
         # each element in the mesh. Matlab's built-in FFT function makes this easy.
@@ -687,13 +687,13 @@ class Individual_Analyzer_FEMM_Edition(object):
             print(f'[FEMM_SlidingMesh.py] Conservative iron loss: {_rotor_loss}< {rotor_loss}; {_stator_loss} < {stator_loss}')
             print(f'[FEMM_SlidingMesh.py] Conservative magnet loss: {_magnet_loss}< {magnet_loss}')
 
-            print(w[7], w)
-            print(magnet_loss)
-            print(magnet_loss)
-            print(magnet_loss)
-            print(_magnet_loss)
-            print(_magnet_loss)
-            print(_magnet_loss)
+            # print(w[7], w)
+            # print(magnet_loss)
+            # print(magnet_loss)
+            # print(magnet_loss)
+            # print(_magnet_loss)
+            # print(_magnet_loss)
+            # print(_magnet_loss)
             if bool_plot:
                 plt.show()
 
