@@ -115,13 +115,16 @@ class CrossSectInnerNotchedRotor(object):
             # Then P6 is an extra point for a full rotor
             P6 = [r_ri*cos(alpha_P5), r_ri*-sin(alpha_P5)]
 
-            if alpha_rm >= np.pi/p*0.9800:
+            if alpha_rm >= alpha_rp*0.9800:
                 print('[CrossSectInnerNotchedRotor.py] Non-NOTCHED ROTOR IS USED.\n')
                 print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)
                 P1p5 = [P2[0] - d_rp, P2[1]]
                 if bool_draw_whole_model:
-                    list_segments += drawer.drawArc([0,0], P1, P1)
-                    list_segments += drawer.drawArc([0,0], P1p5, P1p5)
+                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                    list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1)
+                    list_segments += drawer.drawArc([0,0], P1p5, [-P1p5[0], P1p5[1]])
+                    list_segments += drawer.drawArc([0,0], [-P1p5[0], P1p5[1]], P1p5)
+                    # raise
                 else:
                     list_segments += drawer.drawLine(P1, P1p5)
                     list_segments += drawer.drawArc([0,0], P5, P1p5)
@@ -142,7 +145,6 @@ class CrossSectInnerNotchedRotor(object):
                     # draw a circle (this is officially suggested by FEMM)
                     list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
                     list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
-
                 else:
                     list_segments += drawer.drawLine(P1, P2)
                     list_segments += drawer.drawArc([0,0], P3, P2)
@@ -174,7 +176,7 @@ class CrossSectInnerNotchedRotor(object):
 
             P8 = [r_P4*cos(alpha_P7), r_P4*-sin(alpha_P7)]
 
-            if alpha_rm >= np.pi/p*0.9800: # no inter-pole notch
+            if alpha_rm >= alpha_rp*0.9800: # no inter-pole notch
                 P1p5 = [r_ri + d_ri, 0]
                 list_segments += drawer.drawLine(P1, P1p5)
                 list_segments += drawer.drawArc([0,0], P5, P1p5)
@@ -253,6 +255,15 @@ class CrossSectInnerNotchedMagnet(object):
         s        = self.notched_rotor.s
         alpha_rp = 2*np.pi/(2*p) # pole span
 
+        # rotor inter-pole notch being too small
+        if alpha_rm >= alpha_rp*0.9800:
+            print('[CrossSectInnerNotchedRotor.py] FULL POLE PITCH MAGNET IS USED.')
+            alpha_rm = alpha_rp
+
+        # print(alpha_rm/np.pi*180)
+        # print(alpha_rm/np.pi*180)
+        # print(alpha_rm/np.pi*180)
+
         if abs(alpha_rp - alpha_rm) <= 2 * np.pi/180: # if alpha_rm and alpha_rp has a difference smaller than 2 deg, then let alpha_rm equal to alpha_rp.
             alpha_rm = alpha_rp
             if s == 1:
@@ -260,6 +271,11 @@ class CrossSectInnerNotchedMagnet(object):
             else:
                 print('[Warn] s=%d: This is not tested. For now it simply assumes the iron notch between poles becomes the iron notch between the segments of one pole.' % (s))
             print('[Warn] [class CrossSectInnerNotchedMagnet] Magnet is fully spanned.')
+
+
+        # print(alpha_rm/np.pi*180)
+        # print(alpha_rm/np.pi*180)
+        # print(alpha_rm/np.pi*180)
 
         if d_pm + 2*EPS < d_rp:
             print('[Warn]: [class CrossSectInnerNotchedMagnet] Detect d_rp is too close to d_pm. To avoid small line entity error in JMAG, set d_pm equal to d_rp because rotor core is plotted already.')
@@ -296,9 +312,6 @@ class CrossSectInnerNotchedMagnet(object):
             if bool_re_evaluate:
                 return self.mm2_magnet_area
 
-            # rotor inter-pole notch
-            if self.notched_rotor.deg_alpha_rm >= 180/p*0.9800:
-                print('[CrossSectInnerNotchedRotor.py] FULL POLE PITCH MAGNET IS USED.')
             if bool_draw_whole_model:
                 def iPark(P, theta):
                     return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]

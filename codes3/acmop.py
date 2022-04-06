@@ -166,16 +166,21 @@ class AC_Machine_Optiomization_Wrapper(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[3] Evaluation Part (Can be skipped)'
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    def part_evaluation(self):
-        # build x_denorm for the template design
-        x_denorm = self.ad.acm_template.build_x_denorm()
+    def part_evaluation(self, specify_counter=None, specify_x_denorm=None):
+        if specify_x_denorm is None:
+            # build x_denorm for the template design
+            x_denorm = self.ad.acm_template.build_x_denorm()
+        else:
+            x_denorm = specify_x_denorm
         print('[acmop.py] x_denorm:',  x_denorm)
         print('[acmop.py] x_denorm_dict:', self.ad.acm_template.x_denorm_dict)
 
         if True:
             ''' Default transient FEA
             '''
-            motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm, counter='Initial')
+            if specify_counter is None:
+                specify_counter = 'Initial'
+            motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm, counter=specify_counter)
 
             from pylab import plt, np
             fig, axes = plt.subplots(4)
@@ -236,9 +241,14 @@ class AC_Machine_Optiomization_Wrapper(object):
 
         print('[acmop.py] Check several things: 1. the winding initial excitation angle; 2. the rotor d-axis initial position should be orthoganal to winding excitation field.')
 
-    def part_evaluation_geometry(self, xf=[], counter='Cairo'):
+    def part_evaluation_geometry(self, xf=[], counter='Cairo', specify_x_denorm=None):
         print('\n ------- part_evaluation_geometry -------')
-        x_denorm = self.ad.acm_template.build_x_denorm()
+        if specify_x_denorm is None:
+            # build x_denorm for the template design
+            x_denorm = self.ad.acm_template.build_x_denorm()
+        else:
+            x_denorm = specify_x_denorm
+
         print('--------xf is ', xf)
         if xf != []:
             x_denorm = xf[:len(x_denorm)]
@@ -246,7 +256,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1, 
                                                             height_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1 )
         if 'PMSM' in acm_variant.template.name:
-            toolCairo.draw_spmsm(acm_variant)
+            toolCairo.draw_spmsm(acm_variant, bool_draw_whole_model=True)
         elif 'Alternator' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant)
         elif 'FSPM' in acm_variant.template.name:
@@ -428,7 +438,13 @@ class AC_Machine_Optiomization_Wrapper(object):
             reproduced_design_variant = utility_json.from_json_recursively(fname, load_here=self.ad.fea_config_dict['output_dir']+'jsonpickle/')
             reproduced_design_variant.reproduce_wily()
             if bool_evaluate:
-                reproduced_design_variant.build_jmag_project(reproduced_design_variant.project_meta_data)
+                GP = reproduced_design_variant.template.d['GP']
+                x_denorm = reproduced_design_variant.template.build_x_denorm()
+                print(reproduced_design_variant.template.get_x_denorm_dict_from_geometric_parameters(GP))
+                print(x_denorm)
+                self.part_evaluation_geometry(specify_x_denorm=x_denorm)
+                self.part_evaluation(specify_counter='PickleReproduced', specify_x_denorm=x_denorm)
+                # reproduced_design_variant.build_jmag_project(reproduced_design_variant.project_meta_data) # obsolete
         except FileNotFoundError as e:
             raise e
         self.reproduced_design_variant = reproduced_design_variant
@@ -553,7 +569,8 @@ def main(number_which_part):
         mop.part_optimization() # Module 4
     elif number_which_part == 5:
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('p4ps5-Q12y1-0999') # Module 5 - reproduction of any design variant object
-        motor_design_variant = mop.reproduce_design_from_jsonpickle('__indInitial.json')
+        # motor_design_variant = mop.reproduce_design_from_jsonpickle('__indInitial.json')
+        motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind204-FullCircumPM.json', bool_evaluate=True)
     elif number_which_part == 51:
         # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
         mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5 - visualize swarm data
@@ -565,7 +582,9 @@ if __name__ == '__main__':
     # main(31)
     # main(3)
     main(4)
+    # main(5)
 
+if __name__ == '__main__':
     ''' Interactive variable checking examples:
 
         Example 1:

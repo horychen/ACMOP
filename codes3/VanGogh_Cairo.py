@@ -105,9 +105,9 @@ class VanGogh_Cairo:
 
         return True
 
-    def draw_spmsm(self, acm_variant):
+    def draw_spmsm(self, acm_variant, bool_draw_whole_model=True):
         # Rotor Core
-        list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=True)
+        list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.rotorCore.p*2
         # region1 = self.prepareSection(list_regions_1)
@@ -119,7 +119,7 @@ class VanGogh_Cairo:
         # region0 = self.prepareSection(list_regions)
 
         # Rotor Magnet
-        # list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=True)
+        list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
         # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
@@ -131,13 +131,13 @@ class VanGogh_Cairo:
         # regionS = self.prepareSection(list_regions)
 
         # Stator Core
-        # list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=True)
+        list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = True
         # self.iRotateCopy = acm_variant.stator_core.Q
         # region3 = self.prepareSection(list_regions)
 
         # Stator Winding
-        # list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=True)
+        # list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.coils.stator_core.Q
         # region4 = self.prepareSection(list_regions)
