@@ -549,7 +549,7 @@ class Individual_Analyzer_FEMM_Edition(object):
 
         ''' 想画图的话改这里！
         '''
-        bool_plot = False
+        bool_plot = True
 
         # Compute the square of the amplitude of each harmonic at the centroid of
         # each element in the mesh. Matlab's built-in FFT function makes this easy.
@@ -667,24 +667,35 @@ class Individual_Analyzer_FEMM_Edition(object):
             if bool_plot: 
                 for jj in range(int(self.ns)):
                     _w = (w==w[jj]) * w[jj]
-                    _magnet_loss = 0.5 * np.dot((omag*(2*np.pi*_w)**2), np.dot((np.abs(Jm)**2), self.v))
-                    y3.append(_magnet_loss)
+                    plot_magnet_loss = 0.5 * np.dot((omag*(2*np.pi*_w)**2), np.dot((np.abs(Jm)**2), self.v))
+                    y3.append(plot_magnet_loss)
                 ax=axes[2]; ax.stem(x, y3); ax.set_ylabel('Magnet loss [W]')
                 ax.set_xlabel('Frequency [Hz]')
                 plt.figure(); plt.plot(self.A*g3.T)
-                plt.show()
                 # quit()
             try:
-                w[8]
-                _f = (w<w[8])
+                w[7] 
+                _f = (w<w[7]) # 取前八个频率点
+                if w[7] == 0.0:
+                    raise Exception('Unexpected frequency vector w:', w, w[7])
             except IndexError:
                 _f = 1
-                print('Conservative loss can not be needed because there are not enough points.')
+                print('Conservative loss can not be calculated because there are not enough points:', w)
             _rotor_loss  = np.dot(np.dot((ch*_f*w+ce*_f*w*w), bsq), (self.v*g1)) / cs
             _stator_loss = np.dot(np.dot((ch*_f*w+ce*_f*w*w), bsq), (self.v*g2)) / cs
             _magnet_loss = 0.5 * np.dot((omag*(2*np.pi*_f*w)**2), np.dot((np.abs(Jm)**2), self.v))
             print(f'[FEMM_SlidingMesh.py] Conservative iron loss: {_rotor_loss}< {rotor_loss}; {_stator_loss} < {stator_loss}')
             print(f'[FEMM_SlidingMesh.py] Conservative magnet loss: {_magnet_loss}< {magnet_loss}')
+
+            print(w[7], w)
+            print(magnet_loss)
+            print(magnet_loss)
+            print(magnet_loss)
+            print(_magnet_loss)
+            print(_magnet_loss)
+            print(_magnet_loss)
+            if bool_plot:
+                plt.show()
 
             total_loss = rotor_loss + stator_loss + prox_loss + PhaseOhmic + magnet_loss
             print('LOSS-DEBUG: rotor_loss, stator_loss, prox_loss, PhaseOhmic, magnet_loss')
@@ -696,6 +707,7 @@ class Individual_Analyzer_FEMM_Edition(object):
             print('[FEMM_SlidingMesh.py] DEBUG vmag, vsiron, vriron, vcoil:', vmag, vsiron, vriron, vcoil, 'mm2')
 
             # 2022-03-01: use conservative magnet loss as magnet loss. According to our wechat group chat in HDQZQ.
+            # To simply put, the accumulated loss in magent loss is far severer than iron loss, as seen from the DFT plot.
             return [thisFrequency*60, rotor_loss, stator_loss, _magnet_loss, PhaseOhmic, prox_loss, total_loss]
 
     def load_time_domain_data(self, counter):

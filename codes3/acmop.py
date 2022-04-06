@@ -539,7 +539,8 @@ def main(number_which_part):
         # select_spec='IM Q24p1y9 Qr32 Round Bar',
         # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
-        select_spec            = 'PMSM Q24p1y9 PEMD', # 'PMSM Q12p4y1 PEMD-2020', #
+        select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
+        # select_spec            = 'PMSM Q24p1y9 PEMD', # 
         select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)"
 
@@ -570,7 +571,8 @@ def main(number_which_part):
     elif number_which_part == 5:
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('p4ps5-Q12y1-0999') # Module 5 - reproduction of any design variant object
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('__indInitial.json')
-        motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind204-FullCircumPM.json', bool_evaluate=True)
+        # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind204-FullCircumPM.json', bool_evaluate=True)
+        motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind704-NoMagnetLoss.json', bool_evaluate=True)
     elif number_which_part == 51:
         # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
         mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5 - visualize swarm data
@@ -581,8 +583,8 @@ def main(number_which_part):
 if __name__ == '__main__':
     # main(31)
     # main(3)
-    main(4)
-    # main(5)
+    # main(4)
+    main(5)
 
 if __name__ == '__main__':
     ''' Interactive variable checking examples:

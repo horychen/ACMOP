@@ -38,6 +38,9 @@ import utility_json; variant = utility_json.from_json_recursively('p2ps1-Q12y3-0
 variant.build_jmag_project(variant.project_meta_data)
 ```
 
+- Support Free Finite Element Analysis Software + Efficiency Calculation
+    - To avoid accumlated error in the estimated magnet eddy current loss, only up to 7*resolution [Hz] is used.
+
 ## Limitations
 
 Though in most cases, a regular motor is simply a bearingless motor (that has a DPNV winding) without suspension excitation.
