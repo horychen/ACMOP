@@ -210,7 +210,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         app.NewProject("Untitled")
         app.SaveAs(os.path.abspath(expected_project_file_path)) # must be absolute path!
         logger = logging.getLogger(__name__)
-        logger.debug('Create JMAG project file: %s'%(expected_project_file_path))
+        logger.info(r'Create JMAG project file: %s'%(expected_project_file_path))
         return app
 
     def close(self):
@@ -787,7 +787,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 # refarray[4][1] =    400
                 # refarray[4][2] =        50
             number_of_total_steps = 1 + number_of_steps_1stTSS + number_of_steps_2ndTSS + number_of_steps_3rdTSS + number_cycles_prolonged*acm_variant.template.fea_config_dict['designer.TranRef-StepPerCycle'] # [Double Check] don't forget to modify here!
-            print('[inner_rotor_motor.py]: refarray:', refarray)
+            # print('[inner_rotor_motor.py]: refarray:', refarray)
             DM.GetDataSet("SectionStepTable").SetTable(refarray)
             study.GetStep().SetValue("Step", number_of_total_steps)
             study.GetStep().SetValue("StepType", 3)
@@ -801,7 +801,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         study.GetDesignTable().GetEquation("freq").SetDescription("Excitation Frequency in Hz")
         study.GetDesignTable().GetEquation("speed").SetType(1)
         # study.GetDesignTable().GetEquation("speed").SetExpression("freq * %d"%(60/(0.5*EX['RotorPoleNumber'])))
-        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %d"%(60/SI['number_of_rotor_pole_pairs']))
+        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %f"%(60/SI['number_of_rotor_pole_pairs']))
         study.GetDesignTable().GetEquation("speed").SetDescription("mechanical speed in r/min")
 
         # speed, freq, slip
@@ -1108,8 +1108,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         # 仔细看DPNV的接线，对于转矩逆变器，绕组的并联支路数为2，而对于悬浮逆变器，绕组的并联支路数为1。
 
         EX = acm_variant.template.d['EX']
-        for k,v in EX.items():
-            print(k,v)
+        # for k,v in EX.items():
+        #     print(k,v)
         wily = EX['wily']
 
         npb = wily.number_parallel_branch
@@ -1233,7 +1233,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
                 # Check if it is a distributed windg???
                 if wily.distributed_or_concentrated == False:
-                    print('[JMAG.py] Concentrated winding!')
+                    # print('[JMAG.py] Concentrated winding!')
                     UVW    = wily.layer_Y_phases[index_leftlayer]
                     UpDown = wily.layer_Y_signs[index_leftlayer]
                 else:
@@ -1566,15 +1566,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 raise error
             from time import time as clock_time
             msg = 'Time spent on %s is %g s.'%(study.GetName() , clock_time() - toc)
-            logger.debug(msg)
-            print(msg)
+            logger.info(msg)
+            # print(msg)
         else:
             print('Submit to JMAG_Scheduler...')
             job = study.CreateJob()
             job.SetValue("Title", study.GetName())
             job.SetValue("Queued", True)
             job.Submit(False) # Fallse:CurrentCase, True:AllCases
-            logger.debug('Submit %s to queue (Tran2TSS).'%(acm_variant.individual_name))
+            logger.info('Submit %s to queue (Tran2TSS).'%(acm_variant.individual_name))
             # wait and check
             # study.CheckForCaseResults()
         app.Save()
@@ -1628,14 +1628,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                     #     app.View().ShowMesh()
             mesh_all_cases(study)
 
-        # Export Image
-        app.View().ShowAllAirRegions()
-        # app.View().ShowMeshGeometry() # 2nd btn
-        app.View().ShowMesh() # 3rn btn
-        app.View().Zoom(3)
-        app.View().Pan(-acm_variant.template.d['GP']['mm_r_ro'].value, 0)
-        app.ExportImageWithSize(output_dir + model.GetName() + '.png', 2000, 2000)
-        app.View().ShowModel() # 1st btn. close mesh view, and note that mesh data will be deleted if only ouput table results are selected.
+        if False:
+            # Export Image
+            app.View().ShowAllAirRegions()
+            # app.View().ShowMeshGeometry() # 2nd btn
+            app.View().ShowMesh() # 3rn btn
+            app.View().Zoom(3)
+            app.View().Pan(-acm_variant.template.d['GP']['mm_r_ro'].value, 0)
+            app.ExportImageWithSize(output_dir + model.GetName() + '.png', 2000, 2000)
+            app.View().ShowModel() # 1st btn. close mesh view, and note that mesh data will be deleted if only ouput table results are selected.
 
     ''' BELOW is for JMAG Designer
     '''
@@ -2450,11 +2451,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         # Eric suggests Ea is 1 deg. But I think this may be too much emphasis on Ea so large Trip does not matter anymore (not verified yet).
         list_weighted_ripples = [normalized_torque_ripple/0.05, normalized_force_error_magnitude/0.05, force_error_angle]
 
-        if 'IM' in machine_type:
-            # - Torque per Rotor Volume
-            f1_IM = - required_torque / rated_rotor_volume
-            f1 = f1_IM
-        elif 'PMSM' in machine_type or 'FSPM' in machine_type:
+
+        # Torque per Rotor Volume
+        TRV = required_torque / rated_rotor_volume
+
+        if 'PMSM' in machine_type or 'FSPM' in machine_type:
             # - Cost # Note 1/ 1.6387e-5 = 61023.744 # Note 1 cubic inch is 1.6387e-5 cubic meter
             price_per_volume_steel    = 0.28  * 61023.744 # $/in^3 (M19 Gauge26) # 0.23 for low carbon, semi-processed 24 Gauge electrical steel
             price_per_volume_copper   = 1.2   * 61023.744 # $/in^3 wire or bar or end-ring
@@ -2476,18 +2477,38 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             print('[utility.py] Volume_Fe',    Vol_Fe)
             print('[utility.py] Volume_Cu', dm.Vol_Cu)
             print('[utility.py] Volume_PM',    Vol_PM)
-            f1_PMSM =    Vol_Fe * price_per_volume_steel \
+            Cost =    Vol_Fe * price_per_volume_steel \
                     + dm.Vol_Cu * price_per_volume_copper\
                     +    Vol_PM * price_per_volume_magnet
             print('[utility.py] Cost Fe:',   Vol_Fe * price_per_volume_steel )
             print('[utility.py] Cost Cu:',dm.Vol_Cu * price_per_volume_copper)
             print('[utility.py] Cost PM:',   Vol_PM * price_per_volume_magnet)
-            f1 = f1_PMSM
 
-        # - Efficiency @ Rated Power
-        f2 = - rated_efficiency
-        # Ripple Performance (Weighted Sum)
-        f3 = sum(list_weighted_ripples)
+        if acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'TorqueDensity':
+            f1 = -TRV
+        elif acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'Cost':
+            f1 = Cost
+        else:
+            raise 
+
+        if acm_variant.template.fea_config_dict["moo.fitness_OB"] == 'Efficiency':
+            # - Efficiency @ Rated Power
+            f2 = - rated_efficiency
+        elif acm_variant.template.fea_config_dict["moo.fitness_OB"] == 'TorqueRipple':
+            f2 = normalized_torque_ripple
+        else:
+            raise 
+
+        if acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'BearinglessRippleSum':
+            # Ripple Performance (Weighted Sum)
+            f3 = sum(list_weighted_ripples)
+        if acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'ForceErrorAngle':
+            f3 = force_error_angle
+        else:
+            raise 
+
+        if acm_variant.template.fea_config_dict["moo.fitness_OD"] is not None:
+            f4 = 0
 
         FRW = ss_avg_force_magnitude / rotor_weight
         print('[utility.py] FRW:', FRW, 'Rotor weight:', rotor_weight, 'Stack length:', acm_variant.template.d['EX']['mm_template_stack_length'], 'Rated stack length:', rated_stack_length_mm)

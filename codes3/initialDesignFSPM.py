@@ -6,13 +6,13 @@ from dataclasses import dataclass
 class UserInput_FSPM():
     mec_power: float
     speed_rpm: float
-    guess_air_gap_flux_density_B: float = 1.7
-    guess_stator_yoke_flux_density_Bsy: float = 1.3
+    guess_air_gap_flux_density_B: float = 0.8
+    guess_stator_yoke_flux_density_Bsy: float = 0.3
     mm_stack_length: float = 10
-    Pa_TangentialStress: float = 12000 # = 0.5*A*B
+    Pa_TangentialStress: float = 6000 # = 0.5*A*B
     m: int = 3
-    Qs: int = 12
-    pm: int = 10
+    Qs: int = 24 # 12
+    pm: int = 22 # 10
 
     def __post_init__(self):
         self.Zs = self.Qs * 2
@@ -37,7 +37,8 @@ class UserInput_FSPM():
                     number_of_cells_per_phase_Nc*(self.m+0.5*i),\
                     number_of_cells_per_phase_Nc*(self.m-0.5*i) )
 
-slice = UserInput_FSPM(mec_power=100, speed_rpm=200)
+slice = UserInput_FSPM(mec_power=100, speed_rpm=200, Pa_TangentialStress=12000)
+slice = UserInput_FSPM(mec_power=50, speed_rpm=400, Pa_TangentialStress=3000)
 required_torque = slice.mec_power/(2*np.pi*slice.speed_rpm/60)
 guess_linear_current_density_A = slice.Pa_TangentialStress*2/slice.guess_air_gap_flux_density_B
 
@@ -50,7 +51,7 @@ mm_r_ro = RotorOuterRadius_r_or*1e3
 aspect_ratio__rotor_axial_to_diameter_ratio = 2*mm_r_ro/slice.mm_stack_length
 
 
-#%% 磁路法计算：永磁体大小？
+#% 磁路法计算：永磁体大小？
 
 mm_air_gap_length = 3
 mm_r_si     = mm_r_ro + mm_air_gap_length
@@ -79,8 +80,8 @@ print(stator_tooth_depth_d_st)
 mm_d_sy = slice.guess_air_gap_flux_density_B * mm_stator_tooth_width_w_UCoreWidth / slice.guess_stator_yoke_flux_density_Bsy
 
 
-mm_r_so = mm_r_si + mm_d_st + mm_d_sy
-split_ratio = mm_r_ro / mm_r_so
+# mm_r_so = mm_r_si + mm_d_st + mm_d_sy
+# split_ratio = mm_r_ro / mm_r_so
 
 # %%
 

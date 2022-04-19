@@ -112,10 +112,16 @@ class template_machine_as_numbers(object):
             self.d['GP']['mm_d_mech_air_gap'].type = "free"
             bool_matched = True
 
-        if 'VariableSleeveLength_VariableToothTipDepth' in self.d['which_filter']:
+        if 'VariableSleeveLength_VariableToothTipDepth' == self.d['which_filter']:
             self.d['GP']['mm_d_sto'].type = "fixed"
             self.d['GP']['mm_d_stt'].type = "free"
             self.d['GP']['mm_d_sleeve'].type = "free"
+            bool_matched = True
+
+        if 'VariableToothTipDepth' == self.d['which_filter']:
+            self.d['GP']['mm_d_sto'].type = "fixed"
+            self.d['GP']['mm_d_stt'].type = "free"
+            self.d['GP']['mm_d_sleeve'].type = "fixed"
             bool_matched = True
 
         if bool_matched == False:
@@ -276,7 +282,7 @@ class variant_machine_as_objects(object):
             x_denorm_dict = self.template.get_x_denorm_dict_from_x_denorm_list(x_denorm)
             if verbose:
                 for k,v in x_denorm_dict.items():
-                    print('\t', k,v)
+                    print('\t [inner_rotor_motor.py]', k,v)
             GP = self.template.update_geometric_parameters_using_x_denorm_dict(x_denorm_dict)
 
         #03 Inherit properties

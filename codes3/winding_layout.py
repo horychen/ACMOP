@@ -95,6 +95,85 @@ class winding_layout_v2(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # Combined Winding for Bearingless Motor
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+        if DPNV_or_SEPA == True \
+        and Qs == 12 \
+        and p == 14 \
+        and ps == 13 \
+        and coil_pitch_y == 1:
+
+            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
+            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
+            self.coil_pitch_y   = coil_pitch_y
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)  
+
+            self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
+            self.number_parallel_branch = 2
+            self.number_winding_layer   = 2
+
+            self.bool_3PhaseCurrentSource = False
+            self.CommutatingSequenceD = 1
+            self.CommutatingSequenceB = 0
+
+        if DPNV_or_SEPA == True \
+        and Qs == 12 \
+        and p == 22 \
+        and ps == 23 \
+        and coil_pitch_y == 2:
+
+            self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
+            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
+            self.coil_pitch_y   = coil_pitch_y
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+            self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
+            self.number_parallel_branch = 2
+            self.number_winding_layer   = 2
+
+            self.bool_3PhaseCurrentSource = False
+            self.CommutatingSequenceD = 1
+            self.CommutatingSequenceB = 0
+
+        if DPNV_or_SEPA == True \
+        and Qs == 24 \
+        and p == 14 \
+        and ps == 13 \
+        and coil_pitch_y == 1:
+
+            self.layer_X_phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
+            self.layer_X_signs  = ['+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+']
+            self.coil_pitch_y   = coil_pitch_y
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+            self.grouping_AC            = [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0]
+            self.number_parallel_branch = 2
+            self.number_winding_layer   = 2
+
+            self.bool_3PhaseCurrentSource = False
+            self.CommutatingSequenceD = 1
+            self.CommutatingSequenceB = 0
+
+        if DPNV_or_SEPA == True \
+        and Qs == 24 \
+        and p == 10 \
+        and ps == 11 \
+        and coil_pitch_y == 1:
+
+            self.layer_X_phases = ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U']
+            self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
+            self.coil_pitch_y   = coil_pitch_y
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+            self.grouping_AC            = [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0]
+            self.number_parallel_branch = 2
+            self.number_winding_layer   = 2
+
+            self.bool_3PhaseCurrentSource = False
+            self.CommutatingSequenceD = 1
+            self.CommutatingSequenceB = 0
 
         if DPNV_or_SEPA == True \
         and Qs == 12 \

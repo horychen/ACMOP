@@ -5,6 +5,12 @@ import streamlit as st
 import utility_postprocess, acmop, utility, base64
 from io import BytesIO
 
+def basic_information_about_optimization():
+    # dimension of x and f? 
+    # pop size?
+    # algorithm?
+    pass
+
 def displayPDF(file, width=1800, height=500):
     # Opening file from file path
     with open(file, "rb") as f:
@@ -92,7 +98,7 @@ else:
         swarm_dict[folder] = mop = acmop.AC_Machine_Optiomization_Wrapper(select_fea_config_dict, select_spec, project_loc=path2project)
         utility.enablePrint()
 
-    ## 侧边栏
+    ## 侧边栏 Sidebar
     st.sidebar.header('User Inputs')
     user_selected_folder = st.sidebar.selectbox('Select a folder to show its inputs', selected_specifications, key='3.user_selected_folder')
     st.markdown(

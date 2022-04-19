@@ -40,8 +40,8 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
             # FSPM Peculiar                     Type       Name                         Value  Bounds       Calc
             "split_ratio_rotor_salient" : acmop_parameter("free",     "rotor_salient_split_ratio",  None, [None, None], lambda GP,SI:None),
             "deg_alpha_rsp"             : acmop_parameter("free",     "rotor_salient_pole_angle",   None, [None, None], lambda GP,SI:None),
-            "mm_d_pm"                   : acmop_parameter("free",     "permanent_magnet_depth",     None, [None, None], lambda GP,SI:None), #derive_mm_d_pm(GP,SI)),
-            "mm_d_air_pm"               : acmop_parameter("free",     "permanent_magnet_air_depth", None, [None, None], lambda GP,SI:None),
+            "mm_d_pm"                   : acmop_parameter("fixed",    "permanent_magnet_depth",     None, [None, None], lambda GP,SI:None), #derive_mm_d_pm(GP,SI)),
+            "mm_d_air_pm"               : acmop_parameter("fixed",    "permanent_magnet_air_depth", None, [None, None], lambda GP,SI:None),
             "deg_alpha_pm_at_airgap"    : acmop_parameter("derived",  "permanent_magnet_span_angle_at_airgap",   None, [None, None], lambda GP,SI:derive_deg_alpha_pm_at_airgap(GP,SI)),
             "mm_difference_pm_yoke"     : acmop_parameter("fixed",    "permanent_magnet_to_yoke_ratio",   None, [None, None], lambda GP,SI:None),
             "mm_r_ri"                   : acmop_parameter("fixed",    "rotor_inner_radius (shaft_radius)", None, [None, None], lambda GP,SI:None),
@@ -54,7 +54,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         GP['split_ratio_rotor_salient'].value = 0.15
         GP['mm_difference_pm_yoke'].value = 0.5 # mm
         GP['mm_r_ri'].value = SI['mm_radius_shaft']
-        GP['mm_d_air_pm'].value = 6
+        GP['mm_d_air_pm'].value = 0
 
         # 定义搜索空间，determine bounds
         original_template_neighbor_bounds = self.get_template_neighbor_bounds()
@@ -62,7 +62,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
 
         # Template's Other Properties (Shared by the swarm)
         EX = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SI, SI['mm_stack_length'])
-        EX['RotorPoleNumber'] = SI['pm']*2
+        # EX['RotorPoleNumber'] = SI['pm']*2
         # BEARING Winding Excitation Properties
         if True:
             EX['BeariW_zQ']         = EX['DriveW_zQ']
@@ -97,23 +97,33 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
 
         aspect_ratio__rotor_axial_to_diameter_ratio = 2*mm_r_ro/mm_stack_length
 
-        mm_air_gap_length = 3 # Gruber Habil: [3,4] mm
+        mm_air_gap_length = 2.5 # Gruber Habil: [3,4] mm
         mm_r_si     = mm_r_ro + mm_air_gap_length
         mm_r_airgap = mm_r_ro + mm_air_gap_length*0.5
 
         # note this is only valid for 12s/10pp motor
-        if pm == 10:
+        if pm == 10 or pm == 20:
             rotor_to_stator_tooth_width_ratio = 1.4 # 2010 诸自强 1点4倍的来源 Analysis of Electromagnetic Performance of Flux
-        elif pm == 14:
+        elif pm == 14 or pm == 28:
             rotor_to_stator_tooth_width_ratio = 1.0
         else:
-            raise Exception('Not supported pm value:', pm)
+            rotor_to_stator_tooth_width_ratio = 1.0
+            # raise Exception('Not supported pm value:', pm)
+
+        if pm == 28 and Qs == 12:
+            rotor_to_stator_tooth_width_ratio = 0.5
+        if pm == 20 and Qs == 12:
+            rotor_to_stator_tooth_width_ratio = 0.5
 
         mm_stator_tooth_width_w_UCoreWidth = 2*np.pi*mm_r_si / Qs / 4
         mm_d_pm = mm_stator_tooth_width_w_UCoreWidth
         if mm_d_pm > 6:
             mm_d_pm = 6
-            # mm_d_pm = 2 # TODO
+
+        if Qs > 18: 
+            if mm_d_pm > 3:
+                mm_d_pm = 3
+
         mm_w_st = mm_stator_tooth_width_w_UCoreWidth * 3
         # print('Stator tooth', mm_stator_tooth_width_w_UCoreWidth, mm_w_st)
         mm_w_rt = mm_rotor_tooth_width_w_rt = rotor_to_stator_tooth_width_ratio * mm_stator_tooth_width_w_UCoreWidth # Empirical: slightly wider (5.18) Habil-Gruber
@@ -144,10 +154,13 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         # EX['end_winding_length_Lew'] = end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (SI['coil_pitch_y'] - 1)
 
         # STATOR
-        if pm == 10:
+        if pm == 10 or pm == 20:
             GP['deg_alpha_st'].value         = 360/Qs - 360/Qs/4/2 # deg
-        elif pm == 14:
+        elif pm == 14 or pm == 28:
             GP['deg_alpha_st'].value         = 360/Qs * 0.55 # deg # this shows lower torque density for 12s/10pp motor! But is good for 12s/14pp motor
+        else:
+            GP['deg_alpha_st'].value         = 360/Qs - 360/Qs/4/2 # deg
+            # raise
         GP['deg_alpha_sto'].value        = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
         GP['mm_d_sto'].value             = 2 # mm
         GP['mm_d_stt'].value             = 3 * GP['mm_d_sto'].value # 1.5* # reduce tooth tip saturation
@@ -155,6 +168,9 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         GP['mm_r_so'].value              = mm_r_so
         GP['mm_d_st'].value              = mm_d_st
         GP['mm_d_sy'].value              = mm_d_sy
+        # print(mm_r_so, mm_d_sy)
+        # print(mm_r_so, mm_d_sy)
+        # print(mm_r_so, mm_d_sy)
         GP['mm_w_st'].value              = mm_w_st
         GP['mm_d_pm'].value              = mm_d_pm
         GP['deg_alpha_pm_at_airgap'].value = mm_d_pm / (2*np.pi*mm_r_si) * 360

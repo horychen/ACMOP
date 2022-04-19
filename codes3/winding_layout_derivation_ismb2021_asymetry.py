@@ -630,7 +630,7 @@ class Winding_Derivation(object):
         # for ISMB 2021
         drawer_T1.pyx_text([0,RADIUS+5], 'Torque phasor star ($Q_s=%d$, $p=%d$, $t=%d$)'%(Q,p,t))
         drawer_T1.pyx_text([0,RADIUS+3], r'$q = %g$, $Q^\prime_s=%g$, $p^\prime=%g$' % (q, Q/t, p/t)); self.Q_prime = Q/t
-        drawer_T2.pyx_text([0,RADIUS+5], 'Torque connection star (Pursue mAaimum emf)', scale=1)
+        drawer_T2.pyx_text([0,RADIUS+5], 'Torque connection star (Pursue maximum emf)', scale=1)
         drawer_T2.pyx_text([0,RADIUS+3], 'Torque connection star', scale=1)
 
 
@@ -920,7 +920,17 @@ def main_derivation():
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [  
                                 # (15, 30, 2, 3, 10, 0),
-                                (3, 12, 4, 5, 1, 0), # FSPM-12/10
+                                (3, 12, 14, 13, 1, 0), # 12 slot FSPM y=1
+                                # (3, 12, 20, 19, 2, 0), # 12 slot FSPM y=2
+                                # (3, 12, 22, 21, 2, 0), # 12 slot FSPM y=2
+                                # (3, 12, 22, 23, 2, 0), # 12 slot FSPM y=2
+                                # (3, 24, 14, 13, 1, 0), # 24 slot FSPM
+                                # (3, 24, 10, 11, 1, 0), # 24 slot FSPM
+                                # (3, 24, 9, 1, 1, 0), # Type 3 winding with odd p and ps=1
+                                # (3, 12, 4, 1, 1, 0), # Eric's Homopolar Motor??? p is even number?
+                                # (3, 18, 4, 1, 1, 0), # Eric's Homopolar Motor??? p is even number?
+                                # (3, 12, 7, 8, 1, 0), # BLDC motor concentrated winding
+                                # (3, 12, 4, 5, 1, 0), # FSPM-12/10
                                 # (3, 12, 4, 5, 1, 0), # PEMD p4ps5
                                 # (3, 24, 1, 2, 9, 0),
                                 # (3, 18, 2, 1, 1, 0), # David Meeker SPMLoss example  https://femm.info/wiki/spmloss

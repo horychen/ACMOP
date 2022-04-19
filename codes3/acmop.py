@@ -10,6 +10,12 @@ import VanGogh_Cairo
 
 from matplotlib import projections # for part_initialDesign
 
+# pil_logger = logging.getLogger('PIL')
+# pil_logger.setLevel(logging.INFO)
+
+# logger = logging.getLogger(__name__)
+# logger.info(msg)
+
 from dataclasses import dataclass
 @dataclass
 class AC_Machine_Optiomization_Wrapper(object):
@@ -260,7 +266,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         elif 'Alternator' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant)
         elif 'FSPM' in acm_variant.template.name:
-            toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=False)
+            toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=True)
         else:
             raise
 
@@ -540,14 +546,20 @@ def main(number_which_part):
         # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
         # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
-        select_spec            = 'PMSM Q24p1y9 PEMD', # 
-        select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
-        # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)"
-
-        # select_spec            = 'Flux Alternator 1955',
-        # select_spec              = "FSPM-12s14pp",
-        # select_spec              = "FSPM-12s10pp",
+        # select_spec            = 'PMSM Q24p1y9 PEMD', # 
+        # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+
+        # select_spec= 'Flux Alternator 1955',
+        # select_spec= "FSPM-12s14pp",
+        # select_spec= "FSPM-12s10pp",
+        # select_spec= "FSPM-24s20pp-50W-400RPM-3000Pa-Test",
+        # select_spec= "FSPM-24s28pp-50W-400RPM-3000Pa-Test",
+        # select_spec= "FSPM-12s28pp-50W-400RPM-3000Pa-Test",
+        # select_spec= "FSPM-12s20pp-50W-400RPM-3000Pa-Test",
+        select_spec="FSPM-24s22pp-50W-400RPM-6000Pa-Test",
+        select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
+        # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
         # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
 
         project_loc            = fr'../_default/',

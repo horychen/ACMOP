@@ -23,6 +23,30 @@
         "moo.fitness_OD": null
     },
 
+    "#042 FEMM PMSM Optimize Ripples": {
+        "TORQUE_CURRENT_RATIO": 0.95,
+        "SUSPENSION_CURRENT_RATIO": 0.05,
+        "which_filter": "VariableSleeveLength",
+        "local_sensitivity_analysis": false,
+        "local_sensitivity_analysis_number_of_variants": 20,
+        "bool_post_processing": false,
+        "flag_optimization": false,
+        "femm.delete_results_after_calculation": true,
+        "femm.Coarse_Mesh": true,
+        "femm.Coarse_Mesh_Level": 2,
+        "femm.MechDeg_IdEqualToNonZeroAngle": 0,
+        "femm.number_cycles_in_2ndTSS": 1,
+        "femm.number_of_steps_2ndTSS": 16,
+        "femm.number_of_parallel_solve": 4,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "TorqueRipple",
+        "moo.fitness_OC": "ForceErrorAngle",
+        "moo.fitness_OD": null
+    },
+
     "#041 FEMM PMSM Cogging Torque": {
         "TORQUE_CURRENT_RATIO": 0,
         "SUSPENSION_CURRENT_RATIO": 0,
@@ -371,6 +395,53 @@
         "moo.fitness_OA": "Cost",
         "moo.fitness_OB": "Efficiency",
         "moo.fitness_OC": "BearinglessRippleSum",
+        "moo.fitness_OD": null
+    },
+
+    "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)": {
+
+        "TORQUE_CURRENT_RATIO" : 0.95,
+        "SUSPENSION_CURRENT_RATIO" : 0.05,
+
+        "designer.max_nonlinear_iteration": 50,
+        "designer.meshSize_Magnet": 2,
+
+        "which_filter": "VariableToothTipDepth",
+        "End_Ring_Resistance": 0.0,
+
+        "local_sensitivity_analysis":false,
+        "local_sensitivity_analysis_number_of_variants": 20,
+
+        "bool_post_processing":false,
+        "flag_optimization":false, 
+        "bool_re_evaluate":false,
+        "bool_re_evaluate_wo_csv":false,
+        "delete_results_after_calculation": false, 
+
+        "designer.Show": true,
+        "designer.MultipleCPUs":false,
+        "designer.OnlyTableResults":false, 
+        "designer.Restart":false, 
+        "designer.JMAG_Scheduler":false, 
+
+        "designer.AddIronLossCondition": true,
+        "designer.number_of_steps_1stTSS":24, 
+        "designer.number_of_steps_2ndTSS":32, 
+        "designer.StepPerCycle_3rdTSS":64, 
+        "designer.number_cycles_in_1stTSS":3, 
+        "designer.number_cycles_in_2ndTSS":0.5, 
+        "designer.number_cycles_in_3rdTSS":0, 
+        "designer.number_cycles_prolonged":0, 
+        "designer.TranRef-StepPerCycle":64, 
+
+        "femm.Coarse_Mesh": false,
+        "femm.deg_per_step": null,
+        "moo.popsize": 78,
+        "moo.apply_constraints": false,
+        "moo.save_acm_variant_object_as_jsonpickle": true,
+        "moo.fitness_OA": "Cost",
+        "moo.fitness_OB": "TorqueRipple",
+        "moo.fitness_OC": "ForceErrorAngle",
         "moo.fitness_OD": null
     },
 

@@ -304,14 +304,20 @@ class Individual_Analyzer_FEMM_Edition(object):
             f1 = -TRV
         elif acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'Cost':
             f1 = Cost
+        else:
+            raise 
 
         if acm_variant.template.fea_config_dict["moo.fitness_OB"] == 'Efficiency':
             # - Efficiency @ Rated Power
             f2 = - rated_efficiency
+        else:
+            raise 
 
         if acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'BearinglessRippleSum':
             # Ripple Performance (Weighted Sum)
             f3 = sum(list_weighted_ripples)
+        else:
+            raise 
 
         FRW = self.sfv.ss_avg_force_magnitude / rotor_weight
         print('[Loss-FEMMSlidingMesh.py] FRW:', FRW, ', Rotor weight:', rotor_weight, '[N], Stack length:', acm_variant.template.d['EX']['mm_template_stack_length'], 'mm, Rated stack length:', rated_stack_length_mm, 'mm')
