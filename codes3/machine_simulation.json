@@ -406,7 +406,7 @@
         "designer.max_nonlinear_iteration": 50,
         "designer.meshSize_Magnet": 2,
 
-        "which_filter": "VariableToothTipDepth",
+        "which_filter": "VariableToothTipDepth_FSPM",
         "End_Ring_Resistance": 0.0,
 
         "local_sensitivity_analysis":false,

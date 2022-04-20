@@ -554,16 +554,18 @@ def main(number_which_part):
         # select_spec= "FSPM-12s14pp",
         # select_spec= "FSPM-12s10pp",
         # select_spec= "FSPM-24s20pp-50W-400RPM-3000Pa-Test",
+        select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
         # select_spec= "FSPM-24s28pp-50W-400RPM-3000Pa-Test",
         # select_spec= "FSPM-12s28pp-50W-400RPM-3000Pa-Test",
         # select_spec= "FSPM-12s20pp-50W-400RPM-3000Pa-Test",
-        select_spec="FSPM-24s22pp-50W-400RPM-6000Pa-Test",
+        # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
+        # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
         select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
         # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
 
         project_loc            = fr'../_default/',
-        bool_show_GUI          = False
+        bool_show_GUI          = True
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -595,8 +597,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # main(31)
-    # main(3)
-    main(4)
+    main(3)
+    # main(4)
     # main(5)
 
 if __name__ == '__main__':

@@ -50,7 +50,8 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         GP.update(childGP)
 
         # Get Analytical Design
-        self.MyCustomizedInitialDesignScript(fea_config_dict, SI, GP, EX)
+        # self.MyCustomizedInitialDesignScript(fea_config_dict, SI, GP, EX)
+        self.MyCustomizedInitialDesignScript_Version2(fea_config_dict, SI, GP, EX)
         GP['split_ratio_rotor_salient'].value = 0.15
         GP['mm_difference_pm_yoke'].value = 0.5 # mm
         GP['mm_r_ri'].value = SI['mm_radius_shaft']
@@ -66,11 +67,99 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         # BEARING Winding Excitation Properties
         if True:
             EX['BeariW_zQ']         = EX['DriveW_zQ']
-            EX['BeariW_CurrentAmp'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (EX['DriveW_CurrentAmp'] / fea_config_dict['TORQUE_CURRENT_RATIO'])
+            # EX['BeariW_CurrentAmp'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (EX['DriveW_CurrentAmp'] / fea_config_dict['TORQUE_CURRENT_RATIO'])
             EX['BeariW_Freq']       = EX['DriveW_Freq']
             EX['BeariW_Rs']         = EX['DriveW_Rs'] * EX['BeariW_zQ'] / EX['DriveW_zQ']
             EX['BeariW_poles']      = SI['ps']*2
             EX['slot_current_utilizing_ratio'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] + fea_config_dict['TORQUE_CURRENT_RATIO'] # will be less than 1 for separate winding
+
+    def MyCustomizedInitialDesignScript_Version2(self, fea_config_dict, SI, GP, EX):
+        mm_stack_length = SI['mm_stack_length']
+        Pa_TangentialStress = SI['TangentialStress']
+        m  = SI['m']
+        Qs = SI['Qs']
+        pm = SI['pm']
+        pa = SI['pa']
+        mec_power = SI['mec_power']
+        speed_rpm = SI['ExcitationFreqSimulated'] / pm * 60
+
+        required_torque = mec_power/(2*np.pi*speed_rpm/60)
+
+        # (6.2)
+        RotorActiveVolumn_Vr = required_torque / (2*Pa_TangentialStress)
+        RotorActiveCrossSectArea_Sr = RotorActiveVolumn_Vr / (mm_stack_length*1e-3)
+        RotorOuterRadius_r_or = np.sqrt(RotorActiveCrossSectArea_Sr/np.pi)
+        mm_r_ro = RotorOuterRadius_r_or*1e3
+
+        aspect_ratio__rotor_axial_to_diameter_ratio = 2*mm_r_ro/mm_stack_length
+
+        mm_air_gap_length = 0.5 # Gruber Habil: [3,4] mm
+        mm_r_si     = mm_r_ro + mm_air_gap_length
+        mm_r_airgap = mm_r_ro + mm_air_gap_length*0.5
+
+        # note this is only valid for 12s/10pp motor
+        if pm == 10 or pm == 20:
+            rotor_to_stator_tooth_width_ratio = 1.4 # 2010 诸自强 1点4倍的来源 Analysis of Electromagnetic Performance of Flux
+        elif pm == 14 or pm == 28:
+            rotor_to_stator_tooth_width_ratio = 1.0
+        else:
+            rotor_to_stator_tooth_width_ratio = 1.4
+            # raise Exception('Not supported pm value:', pm)
+
+        if Qs == 6:
+            rotor_to_stator_tooth_width_ratio = 1.0
+
+        if pm == 28 and Qs == 12:
+            rotor_to_stator_tooth_width_ratio = 0.5
+        if pm == 20 and Qs == 12:
+            rotor_to_stator_tooth_width_ratio = 0.5
+        k4 = rotor_to_stator_tooth_width_ratio
+
+        # mm_stator_tooth_width_w_UCoreWidth = 2*np.pi*mm_r_si / Qs / 4
+        if Qs < 18:
+            mm_d_pm = 5 #mm_stator_tooth_width_w_UCoreWidth
+        else:
+            mm_d_pm = 3
+
+        k2 = 1.2
+        mm_stator_tooth_width_w_UCoreWidth = k2*mm_d_pm
+        mm_w_st = mm_d_pm + 2*mm_stator_tooth_width_w_UCoreWidth
+        mm_w_rt = k4 * mm_stator_tooth_width_w_UCoreWidth # Empirical: slightly wider (5.18) Habil-Gruber
+
+        k1 = split_ratio = 0.7
+        mm_r_so = mm_r_ro / split_ratio
+
+        k3 = 1.2
+        mm_d_sy = k3*mm_stator_tooth_width_w_UCoreWidth
+        mm_d_st = mm_r_so - (mm_r_si + mm_d_sy)
+
+        弧长 = mm_w_rt
+        deg_alpha_rsp = 弧长 / mm_r_ro /np.pi*180
+
+        弧长 = mm_w_st
+        deg_alpha_st = 弧长 / mm_r_si /np.pi*180 + 2 # 2 deg of tooth tip
+
+        # STATOR
+        GP['deg_alpha_st'].value         = deg_alpha_st
+        GP['deg_alpha_sto'].value        = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
+        GP['mm_d_sto'].value             = 2 # mm
+        GP['mm_d_stt'].value             = 3 * GP['mm_d_sto'].value # 1.5* # reduce tooth tip saturation
+        GP['mm_r_si'].value              = mm_r_si
+        GP['mm_r_so'].value              = mm_r_so
+        GP['mm_d_st'].value              = mm_d_st - GP['mm_d_stt'].value
+        GP['mm_d_sy'].value              = mm_d_sy
+        # print(mm_r_so, mm_d_sy)
+        # print(mm_r_so, mm_d_sy)
+        # print(mm_r_so, mm_d_sy)
+        GP['mm_w_st'].value              = mm_w_st
+        GP['mm_d_pm'].value              = mm_d_pm
+        GP['deg_alpha_pm_at_airgap'].value = mm_d_pm / (2*np.pi*mm_r_si) * 360
+        # ROTOR
+        GP['mm_d_sleeve'].value          = mm_air_gap_length - SI['minimum_mechanical_air_gap_length_mm']
+        GP['mm_d_mech_air_gap'].value    = SI['minimum_mechanical_air_gap_length_mm']
+        GP['split_ratio'].value          = split_ratio
+        GP['mm_r_ro'].value              = mm_r_ro
+        GP['deg_alpha_rsp'].value        = deg_alpha_rsp
 
     def MyCustomizedInitialDesignScript(self, fea_config_dict, SI, GP, EX):
 
@@ -110,6 +199,9 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
             rotor_to_stator_tooth_width_ratio = 1.0
             # raise Exception('Not supported pm value:', pm)
 
+        if Qs == 6:
+            rotor_to_stator_tooth_width_ratio = 0.4
+
         if pm == 28 and Qs == 12:
             rotor_to_stator_tooth_width_ratio = 0.5
         if pm == 20 and Qs == 12:
@@ -123,6 +215,9 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         if Qs > 18: 
             if mm_d_pm > 3:
                 mm_d_pm = 3
+
+        if Qs == 6: 
+            mm_d_pm = 18
 
         mm_w_st = mm_stator_tooth_width_w_UCoreWidth * 3
         # print('Stator tooth', mm_stator_tooth_width_w_UCoreWidth, mm_w_st)

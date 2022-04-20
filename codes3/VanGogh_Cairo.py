@@ -181,6 +181,8 @@ class VanGogh_Cairo:
         import cairosvg
         cairosvg.svg2pdf(url=self.output_fname_no_suffix+'.svg', write_to=self.output_fname_no_suffix+'.pdf')
         print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+'.svg (and .pdf)'}")
+        import os
+        os.system('sumatraPDF2.exe ' + self.output_fname_no_suffix+'.pdf')
 
     def getSketch(self, name, color):
         self.name = name

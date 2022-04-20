@@ -1756,6 +1756,12 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, number_
         kw1 = kd1 * kq1 * ksq1
         print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SI["coil_pitch_y"]}, kw1={kw1}')
 
+        if int(kw1) == -4:
+            print('DEBUG, kw1 =', kw1)
+            print('DEBUG, kw1 =', kw1)
+            print('DEBUG, kw1 =', kw1)
+            kw1 = 0.866
+
     alpha_i = 2/np.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
 
     # guess_air_gap_flux_density_Bg = 0.9 # T
@@ -1785,9 +1791,9 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, number_
     distribution_q = SI['Qs'] / (2*number_of_rotor_pole_pairs*SI['m'])
     bool_we_have_plenty_voltage = True
     if bool_we_have_plenty_voltage:
-        no_series_coil_turns_N = min([number_of_rotor_pole_pairs*distribution_q*i for i in range(100,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
+        no_series_coil_turns_N = min([number_of_rotor_pole_pairs*distribution_q*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
     else:
-        no_series_coil_turns_N = min([number_of_rotor_pole_pairs*distribution_q*i for i in range(100)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
+        no_series_coil_turns_N = min([number_of_rotor_pole_pairs*distribution_q*i for i in range(1000)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
     print('[Pyrhonen_procedure_as_function.py] [zQ] no_series_coil_turns_N should be multiple of pq:', no_series_coil_turns_N, '= q * p =', distribution_q, '*', number_of_rotor_pole_pairs)
     no_conductors_per_slot_zQ = 2* SI['m'] * no_series_coil_turns_N / SI['Qs'] * number_parallel_branch
     print('[Pyrhonen_procedure_as_function.py] [zQ] =', no_conductors_per_slot_zQ)

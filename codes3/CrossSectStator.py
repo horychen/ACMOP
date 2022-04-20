@@ -61,7 +61,7 @@ class CrossSectInnerRotorStator:
         P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
         P3_temp = [ d_so*cos(alpha_st*0.5), 
                     d_so*-sin(alpha_st*0.5)]
-        P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
+        P3_local_rotate = [   cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
                              -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
         P3 = [  P3_local_rotate[0] + P2[0],
                 P3_local_rotate[1] + P2[1] ]
@@ -818,9 +818,9 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         self.mm_d_stt     = mm_d_stt # * 0 
         self.mm_d_st      = mm_d_st     
         self.mm_d_sy      = mm_d_sy     
-        # self.mm_w_st      = mm_w_st     
+        self.mm_w_st      = mm_w_st     
         # print(self.deg_alpha_st, self.alpha_slot_span/np.pi*180)
-        self.mm_w_st = 2*(self.mm_r_si+self.mm_d_stt)*sin(0.5*(self.alpha_slot_span/2))
+        # self.mm_w_st = 2*(self.mm_r_si+self.mm_d_stt)*sin(0.5*(self.alpha_slot_span/2))
         self.mm_r_st      = mm_r_st     
         self.mm_r_sf      = mm_r_sf     
         self.mm_r_sb      = mm_r_sb  
