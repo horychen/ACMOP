@@ -2266,6 +2266,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         try:
             self.dm = dm = self.read_csv_results_4_general_purpose(tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver, acm_variant=acm_variant)
+
+            # Get peak to peak coil flux linkage
+            coil_flux_linkage_peak2peak_value_results = []
+            for k, v in dm.FluxLinkage_dict.items():
+                coil_flux_linkage_peak2peak_value_results.append( max(v) - min(v) )
+                print(max(v), min(v))
+            coil_flux_linkage_peak2peak_value = np.average(coil_flux_linkage_peak2peak_value_results)
+            print(coil_flux_linkage_peak2peak_value_results)
+
         except Exception as e:
             print(e)
             logging.getLogger(__name__).error('Error when loading csv results for Tran2TSS. Check the Report of JMAG Designer. (Maybe Material is not added.)', exc_info=True)
@@ -2347,7 +2356,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         machine_results.extend([windage_loss, total_loss])
 
         str_machine_results = ','.join('%g'%(el) for el in machine_results if el is not None) # note that femm_loss_list can be None called by release_design.py
-        
+
         cost_function_O1, list_cost_O1 = utility.compute_list_cost(utility.use_weights('O1'), rotor_volume, rotor_weight, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, dm.jmag_loss_list, dm.femm_loss_list, power_factor, total_loss)
         cost_function_O2, list_cost_O2 = utility.compute_list_cost(utility.use_weights('O2'), rotor_volume, rotor_weight, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, dm.jmag_loss_list, dm.femm_loss_list, power_factor, total_loss)
 
@@ -2507,7 +2516,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                         str_machine_results,
                         ','.join(['%g'%(el) for el in rated_results]), # 改为输出 rated_results
                         ','.join(['%g'%(el) for el in acm_variant.template.build_design_parameters_list()]) ) + str_results
-    
+
         # str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, jmag_loss_list, femm_loss_list, power_factor, total_loss, cost_function = results_to_be_unpacked
 
         # write design evaluation data to file
@@ -2535,7 +2544,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 rotor_copper_loss_in_end_turn, \
                 rated_iron_loss, \
                 rated_windage_loss, \
-                str_results
+                str_results, \
+                acm_variant.coils.mm2_slot_area, \
+                coil_flux_linkage_peak2peak_value
     # str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, dm.jmag_loss_list, dm.femm_loss_list, power_factor, total_loss, cost_function
 
 

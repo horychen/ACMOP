@@ -978,31 +978,32 @@ class acm_designer(object):
 
         # wily is not json serilizable, so is recordtype type object: acmop_parameters
         wily = EX['wily']
-        EX['wily'] = {
-            # 'layer_X_phases': wily.layer_X_phases,
-            # 'layer_X_signs': wily.layer_X_signs,
-            'coil_pitch_y': wily.coil_pitch_y,
-            # 'layer_Y_phases': wily.layer_Y_phases,
-            # 'layer_Y_signs': wily.layer_Y_signs,
-            #
-            'grouping_AC': wily.grouping_AC,
-            'number_parallel_branch': wily.number_parallel_branch,
-            'number_winding_layer': wily.number_winding_layer,
-            #
-            'bool_3PhaseCurrentSource': wily.bool_3PhaseCurrentSource,
-            'CommutatingSequenceD': wily.CommutatingSequenceD,
-            'CommutatingSequenceB': wily.CommutatingSequenceB,
-            #
-            'deg_winding_U_phase_phase_axis_angle': wily.deg_winding_U_phase_phase_axis_angle,
-            #
-            'Qs': wily.Qs,
-            'p': wily.p,
-            'ps': wily.ps,
-            'pr': wily.pr,
-            'SPP': wily.SPP,
-            #
-            'dict_coil_connection': wily.dict_coil_connection,
-        }
+        EX['wily'] = None
+        # EX['wily'] = {
+        #     # 'layer_X_phases': wily.layer_X_phases,
+        #     # 'layer_X_signs': wily.layer_X_signs,
+        #     'coil_pitch_y': wily.coil_pitch_y,
+        #     # 'layer_Y_phases': wily.layer_Y_phases,
+        #     # 'layer_Y_signs': wily.layer_Y_signs,
+        #     #
+        #     'grouping_AC': wily.grouping_AC,
+        #     'number_parallel_branch': wily.number_parallel_branch,
+        #     'number_winding_layer': wily.number_winding_layer,
+        #     #
+        #     'bool_3PhaseCurrentSource': wily.bool_3PhaseCurrentSource,
+        #     'CommutatingSequenceD': wily.CommutatingSequenceD,
+        #     'CommutatingSequenceB': wily.CommutatingSequenceB,
+        #     #
+        #     'deg_winding_U_phase_phase_axis_angle': wily.deg_winding_U_phase_phase_axis_angle,
+        #     #
+        #     'Qs': wily.Qs,
+        #     'p': wily.p,
+        #     'ps': wily.ps,
+        #     'pr': wily.pr,
+        #     'SPP': wily.SPP,
+        #     #
+        #     'dict_coil_connection': wily.dict_coil_connection,
+        # }
         list_of_GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
         for parameter_key_val_pair in list_of_GP_as_dict:
             # print('DEBUG', parameter_key_val_pair)
@@ -1073,7 +1074,9 @@ class acm_designer(object):
             rotor_copper_loss_in_end_turn, \
             rated_iron_loss, \
             rated_windage_loss, \
-            str_results = acm_variant.results_to_be_unpacked
+            str_results, \
+            mm2_slot_area, \
+            coil_flux_linkage_peak2peak_value = acm_variant.results_to_be_unpacked
 
             # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
@@ -1100,7 +1103,9 @@ class acm_designer(object):
             spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
             spec_performance_dict['rated_iron_loss'] = rated_iron_loss
             spec_performance_dict['rated_windage_loss'] = rated_windage_loss
-            spec_performance_dict['str_results'] = str_results
+            # spec_performance_dict['str_results'] = str_results
+            spec_performance_dict[''] = mm2_slot_area
+            spec_performance_dict[''] = coil_flux_linkage_peak2peak_value
 
             GP = acm_variant.template.d['GP']
             EX = acm_variant.template.d['EX']

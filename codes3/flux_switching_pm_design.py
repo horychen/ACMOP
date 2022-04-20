@@ -93,7 +93,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
 
         aspect_ratio__rotor_axial_to_diameter_ratio = 2*mm_r_ro/mm_stack_length
 
-        mm_air_gap_length = 0.5 # Gruber Habil: [3,4] mm
+        mm_air_gap_length = 3 # Gruber Habil: [3,4] mm
         mm_r_si     = mm_r_ro + mm_air_gap_length
         mm_r_airgap = mm_r_ro + mm_air_gap_length*0.5
 

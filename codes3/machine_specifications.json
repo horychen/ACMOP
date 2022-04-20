@@ -132,7 +132,7 @@
         }
     },
 
-    "FSPM-12s20pp-50W-400RPM-3000Pa-Test":
+    "FSPM-12s20pp-50W-400RPM-6000Pa-Test":
     {
         "Inputs":
         {
@@ -176,7 +176,7 @@
         }
     },
 
-    "FSPM-6s28pp-50W-400RPM-3000Pa-Test":
+    "FSPM-6s28pp-50W-400RPM-6000Pa-Test":
     {
         "Inputs":
         {
@@ -220,7 +220,7 @@
         }
     },
 
-    "FSPM-12s28pp-50W-400RPM-3000Pa-Test":
+    "FSPM-12s28pp-50W-400RPM-6000Pa-Test":
     {
         "Inputs":
         {
@@ -309,7 +309,7 @@
     },
 
 
-    "FSPM-24s26pp-50W-400RPM-3000Pa-Test":
+    "FSPM-24s26pp-50W-400RPM-6000Pa-Test":
     {
         "Inputs":
         {
@@ -353,7 +353,7 @@
         }
     },
 
-    "FSPM-24s28pp-50W-400RPM-3000Pa-Test":
+    "FSPM-24s28pp-50W-400RPM-6000Pa-Test":
     {
         "Inputs":
         {
@@ -398,7 +398,7 @@
     },
 
 
-    "FSPM-24s20pp-50W-400RPM-3000Pa-Test":
+    "FSPM-24s20pp-50W-400RPM-6000Pa-Test":
     {
         "Inputs":
         {
@@ -442,7 +442,7 @@
         }
     },
 
-    "FSPM-12s10pp-50W-400RPM-3000Pa":
+    "FSPM-12s10pp-50W-400RPM-6000Pa":
     {
         "Inputs":
         {
