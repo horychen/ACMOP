@@ -442,7 +442,7 @@
         }
     },
 
-    "FSPM-12s10pp-50W-400RPM-6000Pa":
+    "FSPM-12s10pp-50W-400RPM-6000Pa-Test":
     {
         "Inputs":
         {
@@ -476,7 +476,7 @@
             "guess_stator_tooth_flux_density_Bst": null,
             "guess_stator_yoke_flux_density_Bsy":  1.4,
             "tip_speed":                           70,
-            "TangentialStress":                    3000,
+            "TangentialStress":                    6000,
             "mm_stack_length":                     10,
             "mm_radius_shaft":                     50,
             "safety_factor_to_yield":              null,

@@ -554,10 +554,10 @@ def main(number_which_part):
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
 
         # select_spec= 'Flux Alternator 1955',
-        # select_spec= "FSPM-12s14pp",
-        # select_spec= "FSPM-12s10pp",
+
+        select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test"
         # select_spec= "FSPM-24s20pp-50W-400RPM-6000Pa-Test",
-        select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
         # select_spec= "FSPM-24s28pp-50W-400RPM-6000Pa-Test",
         # select_spec= "FSPM-12s28pp-50W-400RPM-6000Pa-Test",
         # select_spec= "FSPM-12s20pp-50W-400RPM-6000Pa-Test",
