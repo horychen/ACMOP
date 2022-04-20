@@ -1794,6 +1794,8 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, number_
         no_series_coil_turns_N = min([number_of_rotor_pole_pairs*distribution_q*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
     else:
         no_series_coil_turns_N = min([number_of_rotor_pole_pairs*distribution_q*i for i in range(1000)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
+    if no_series_coil_turns_N > 990:
+        raise
     print('[Pyrhonen_procedure_as_function.py] [zQ] no_series_coil_turns_N should be multiple of pq:', no_series_coil_turns_N, '= q * p =', distribution_q, '*', number_of_rotor_pole_pairs)
     no_conductors_per_slot_zQ = 2* SI['m'] * no_series_coil_turns_N / SI['Qs'] * number_parallel_branch
     print('[Pyrhonen_procedure_as_function.py] [zQ] =', no_conductors_per_slot_zQ)

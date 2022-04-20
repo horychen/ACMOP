@@ -299,7 +299,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value],
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
-            "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
+            "split_ratio":  [0.5, 0.75], # Binder-2020-MLMS-0953@Fig.7
             "mm_d_pm":      [3,8],
             "mm_d_air_pm":  [1,10],
             "deg_alpha_pm_at_airgap": [0.8*GP['deg_alpha_pm_at_airgap'].value, 1.2*GP['deg_alpha_pm_at_airgap'].value],

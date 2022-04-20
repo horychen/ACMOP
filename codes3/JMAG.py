@@ -2271,7 +2271,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             coil_flux_linkage_peak2peak_value_results = []
             for k, v in dm.FluxLinkage_dict.items():
                 coil_flux_linkage_peak2peak_value_results.append( max(v) - min(v) )
-                print(max(v), min(v))
+                print(k, max(v), min(v))
             coil_flux_linkage_peak2peak_value = np.average(coil_flux_linkage_peak2peak_value_results)
             print(coil_flux_linkage_peak2peak_value_results)
 

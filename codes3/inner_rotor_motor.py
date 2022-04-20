@@ -154,7 +154,7 @@ class template_machine_as_numbers(object):
             if parameter.type == 'free':
                 parameter.bounds = original_template_neighbor_bounds[key]
                 self.bounds_denorm.append(parameter.bounds)
-        print(f'[inner_rotor_motor.py] template BOUNDS_denorm in R^{len(self.bounds_denorm)}:', self.bounds_denorm)
+        logging.getLogger().info(f'[inner_rotor_motor.py] template BOUNDS_denorm in R^{len(self.bounds_denorm)}: {self.bounds_denorm}')
         return self.bounds_denorm
     def get_other_properties_after_geometric_parameters_are_initialized(self, GP, SI, specified_mm_stack_length=None):
 

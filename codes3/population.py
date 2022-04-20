@@ -3224,7 +3224,7 @@ class bearingless_induction_motor_design(object):
         self.MODEL_ROTATE = False # during optimization, rotate at model level is not needed.
 
         logger = logging.getLogger(__name__) 
-        logger.info('im_variant ID %s is initialized.', self.ID)
+        logger.info(f'im_variant ID %s is initialized: {self.ID}')
 
         self.use_drop_shape_rotor_bar = self.spec_input_dict['use_drop_shape_rotor_bar'] # since 5/23/2019
 

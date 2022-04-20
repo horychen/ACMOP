@@ -1104,8 +1104,8 @@ class acm_designer(object):
             spec_performance_dict['rated_iron_loss'] = rated_iron_loss
             spec_performance_dict['rated_windage_loss'] = rated_windage_loss
             # spec_performance_dict['str_results'] = str_results
-            spec_performance_dict[''] = mm2_slot_area
-            spec_performance_dict[''] = coil_flux_linkage_peak2peak_value
+            spec_performance_dict['mm2_slot_area'] = mm2_slot_area
+            spec_performance_dict['coil_flux_linkage_peak2peak_value'] = coil_flux_linkage_peak2peak_value
 
             GP = acm_variant.template.d['GP']
             EX = acm_variant.template.d['EX']
