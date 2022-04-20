@@ -1076,23 +1076,35 @@ class acm_designer(object):
             rated_windage_loss, \
             str_results, \
             mm2_slot_area, \
-            coil_flux_linkage_peak2peak_value = acm_variant.results_to_be_unpacked
+            coil_flux_linkage_peak2peak_value, \
+            TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
+            ss_avg_force_magnitude, rotor_weight, torque_average = acm_variant.results_to_be_unpacked
 
             # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
             spec_performance_dict = dict()
-            spec_performance_dict['cost_function'] = cost_function
-            spec_performance_dict['f1'] = f1
-            spec_performance_dict['f2'] = f2
-            spec_performance_dict['f3'] = f3
-            spec_performance_dict['FRW'] = FRW 
-            spec_performance_dict['normalized_torque_ripple'] = normalized_torque_ripple
-            spec_performance_dict['normalized_force_error_magnitude'] = normalized_force_error_magnitude
-            spec_performance_dict['force_error_angle'] = force_error_angle
             spec_performance_dict['project_name'] = project_name
             spec_performance_dict['individual_name'] = individual_name
             spec_performance_dict['number_current_generation'] = number_current_generation
             spec_performance_dict['individual_index'] = individual_index
+            # spec_performance_dict['cost_function'] = cost_function
+            spec_performance_dict['f1'] = f1
+            spec_performance_dict['f2'] = f2
+            spec_performance_dict['f3'] = f3
+            spec_performance_dict['TRV'] = TRV
+            spec_performance_dict['FRW'] = FRW
+            spec_performance_dict['torque_average'] = torque_average
+            spec_performance_dict['ss_avg_force_magnitude'] = ss_avg_force_magnitude
+            spec_performance_dict['rotor_weight'] = rotor_weight
+            spec_performance_dict['normalized_torque_ripple'] = normalized_torque_ripple
+            spec_performance_dict['normalized_force_error_magnitude'] = normalized_force_error_magnitude
+            spec_performance_dict['force_error_angle'] = force_error_angle
+            spec_performance_dict['coil_flux_linkage_peak2peak_value'] = coil_flux_linkage_peak2peak_value
+            spec_performance_dict['mm2_slot_area'] = mm2_slot_area
+            spec_performance_dict['Cost'] = Cost
+            spec_performance_dict['Cost_Fe'] = Cost_Fe
+            spec_performance_dict['Cost_Cu'] = Cost_Cu
+            spec_performance_dict['Cost_PM'] = Cost_PM
             spec_performance_dict['power_factor'] = power_factor
             spec_performance_dict['rated_ratio'] = rated_ratio
             spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
@@ -1104,8 +1116,10 @@ class acm_designer(object):
             spec_performance_dict['rated_iron_loss'] = rated_iron_loss
             spec_performance_dict['rated_windage_loss'] = rated_windage_loss
             # spec_performance_dict['str_results'] = str_results
-            spec_performance_dict['mm2_slot_area'] = mm2_slot_area
-            spec_performance_dict['coil_flux_linkage_peak2peak_value'] = coil_flux_linkage_peak2peak_value
+            spec_performance_dict['select_fea_config_dict'] = self.select_fea_config_dict
+            spec_performance_dict['moo.fitness_OA'] = self.fea_config_dict['moo.fitness_OA']
+            spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
+            spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
 
             GP = acm_variant.template.d['GP']
             EX = acm_variant.template.d['EX']

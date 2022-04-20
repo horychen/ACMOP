@@ -1833,13 +1833,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
         CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
         CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
-            # try:
-            #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
-            # except AttributeError:
-            #     # print(EX['wily'])
-            #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily']['number_parallel_branch']
-            #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'number_parallel_branch', implying that the object wily has become a dict after jsonpickle.")
-            #     # quit() 
 
         # Maybe there is a bug here... regarding the excitation for suspension winding...
         variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
@@ -1847,22 +1840,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
         EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
         EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
-        print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
-                                                                                                    EX['CurrentAmp_per_phase'],
-                                                                                                    EX['DriveW_CurrentAmp'],
-                                                                                                    EX['BeariW_CurrentAmp'])
-
-        # acm_variant.spec_geometry_dict['DriveW_CurrentAmp'] = acm_variant.DriveW_CurrentAmp
+        # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
+                                                                                                    # EX['CurrentAmp_per_phase'],
+                                                                                                    # EX['DriveW_CurrentAmp'],
+                                                                                                    # EX['BeariW_CurrentAmp'])
 
         slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
-        print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
-
-        # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
-        # print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
-        # print('---acm_variant.DriveW_CurrentAmp =', acm_variant.DriveW_CurrentAmp)
-        # print('---acm_variant.BeariW_CurrentAmp =', acm_variant.BeariW_CurrentAmp)
-        # print('---TORQUE_CURRENT_RATIO:', acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'])
-        # print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
+        # print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
         pass
 
     ''' JMAG Description
@@ -2429,35 +2413,39 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         # Torque per Rotor Volume
         TRV = required_torque / rated_rotor_volume
+        Cost = 0
 
+
+        # - Cost # Note 1/ 1.6387e-5 = 61023.744 # Note 1 cubic inch is 1.6387e-5 cubic meter
+        price_per_volume_steel    = 0.28  * 61023.744 # $/in^3 (M19 Gauge26) # 0.23 for low carbon, semi-processed 24 Gauge electrical steel
+        price_per_volume_copper   = 1.2   * 61023.744 # $/in^3 wire or bar or end-ring
+        price_per_volume_magnet   = 11.61 * 61023.744 # $/in^3 NdFeB PM
+        # price_per_volume_aluminum = 0.88  / 16387.064 # $/in^3 wire or cast Al
+        # Vol_Fe = (2*acm_variant.template.d['GP']['mm_r_so'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
+        Vol_Fe = ( np.pi*(acm_variant.template.d['GP']['mm_r_so'].value*1e-3)**2 - np.pi*(acm_variant.template.d['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
         if 'PMSM' in machine_type or 'FSPM' in machine_type:
-            # - Cost # Note 1/ 1.6387e-5 = 61023.744 # Note 1 cubic inch is 1.6387e-5 cubic meter
-            price_per_volume_steel    = 0.28  * 61023.744 # $/in^3 (M19 Gauge26) # 0.23 for low carbon, semi-processed 24 Gauge electrical steel
-            price_per_volume_copper   = 1.2   * 61023.744 # $/in^3 wire or bar or end-ring
-            price_per_volume_magnet   = 11.61 * 61023.744 # $/in^3 NdFeB PM
-            # price_per_volume_aluminum = 0.88  / 16387.064 # $/in^3 wire or cast Al
-
-            # Vol_Fe = (2*acm_variant.template.d['GP']['mm_r_so'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
-            Vol_Fe = ( np.pi*(acm_variant.template.d['GP']['mm_r_so'].value*1e-3)**2 - np.pi*(acm_variant.template.d['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
-
             if 'FSPM' in machine_type:
                 Vol_PM = (acm_variant.statorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
                 print('[utility.py] Area_PM', (acm_variant.statorMagnet.mm2_magnet_area*1e-6))
             else:
                 Vol_PM = (acm_variant.rotorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
                 print('[utility.py] Area_PM', (acm_variant.rotorMagnet.mm2_magnet_area*1e-6))
-
-            print('[utility.py] Area_Fe', (acm_variant.template.d['GP']['mm_r_so'].value*1e-3) ** 2)
-            print('[utility.py] Area_Cu (est.)', dm.Vol_Cu/(rated_stack_length_mm*1e-3))
-            print('[utility.py] Volume_Fe',    Vol_Fe)
-            print('[utility.py] Volume_Cu', dm.Vol_Cu)
-            print('[utility.py] Volume_PM',    Vol_PM)
-            Cost =    Vol_Fe * price_per_volume_steel \
-                    + dm.Vol_Cu * price_per_volume_copper\
-                    +    Vol_PM * price_per_volume_magnet
-            print('[utility.py] Cost Fe:',   Vol_Fe * price_per_volume_steel )
-            print('[utility.py] Cost Cu:',dm.Vol_Cu * price_per_volume_copper)
-            print('[utility.py] Cost PM:',   Vol_PM * price_per_volume_magnet)
+        else:
+            Vol_PM = 0.0
+        # print('[utility.py] Area_Fe', (acm_variant.template.d['GP']['mm_r_so'].value*1e-3) ** 2)
+        # print('[utility.py] Area_Cu (est.)', dm.Vol_Cu/(rated_stack_length_mm*1e-3))
+        # print('[utility.py] Volume_Fe',    Vol_Fe)
+        # print('[utility.py] Volume_Cu', dm.Vol_Cu)
+        # print('[utility.py] Volume_PM',    Vol_PM)
+        Cost =    Vol_Fe * price_per_volume_steel \
+                + dm.Vol_Cu * price_per_volume_copper\
+                +    Vol_PM * price_per_volume_magnet
+        Cost_Fe =    Vol_Fe * price_per_volume_steel 
+        Cost_Cu = dm.Vol_Cu * price_per_volume_copper
+        Cost_PM =    Vol_PM * price_per_volume_magnet
+        print(f'[utility.py] Cost_Fe: {Cost_Fe}')
+        print(f'[utility.py] Cost_Cu: {Cost_Cu}')
+        print(f'[utility.py] Cost_PM: {Cost_PM}')
 
         if acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'TorqueDensity':
             f1 = -TRV
@@ -2546,7 +2534,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 rated_windage_loss, \
                 str_results, \
                 acm_variant.coils.mm2_slot_area, \
-                coil_flux_linkage_peak2peak_value
+                coil_flux_linkage_peak2peak_value, \
+                TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
+                ss_avg_force_magnitude, rotor_weight, torque_average
     # str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, dm.jmag_loss_list, dm.femm_loss_list, power_factor, total_loss, cost_function
 
 

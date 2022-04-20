@@ -208,7 +208,7 @@ class CrossSectInnerRotorStatorWinding(object):
                (r_si+d_sp+d_st)*-sin(alpha_slot_span*0.5) *1.00 ]
 
         self.mm2_slot_area = 2 * get_area_polygon(P4, P5, P6, POpen)
-        print('[CrossSectStator.py] Stator slot area is %g mm^2'%(self.mm2_slot_area))
+        # print('[CrossSectStator.py] Stator slot area is %g mm^2'%(self.mm2_slot_area))
         if bool_re_evaluate:
             return self.mm2_slot_area
 
@@ -851,7 +851,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         alpha_pm_at_airgap = self.deg_alpha_pm_at_airgap/180*np.pi
 
         alpha_slot_span = self.alpha_slot_span
-        print('DEUBG', alpha_slot_span/np.pi*180)
+        # print('DEBUG', alpha_slot_span/np.pi*180)
 
         P0 = [r_si, 0]
         P1 = [r_si* cos(alpha_pm_at_airgap/2), 

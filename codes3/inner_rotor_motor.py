@@ -246,6 +246,8 @@ class template_machine_as_numbers(object):
             if parameter.type == 'derived':
                 parameter.value = parameter.calc(self.d['GP'], self.SI)
                 if parameter.value<=0:
+                    print('[inner_rotor_motor.py] Negative geometric parameter:')
+                    print(self.d['GP'])
                     raise Exception('Error: Negative derived parameter', str(parameter))
         return self.d['GP']
 
