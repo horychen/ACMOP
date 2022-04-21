@@ -801,6 +801,11 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
     current_rms_value        = copper_loss_parameters[7] / 1.4142135623730951 # for one phase
     # Area_conductor_Sc        = Area_S_slot * STATOR_SLOT_FILL_FACTOR / zQ
 
+    if False: # code for reference
+        CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+        CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
+        CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+
     Js = (current_rms_value/a) * zQ / area_copper_S_Cu # 逆变器电流current_rms_value在流入电机时，
                                                        # 受到并联支路分流，(current_rms_value/a)才是实际导体中流动的电流值，
                                                        # 这样的电流在一个槽内有zQ个，所以Islot=(current_rms_value/a) * zQ

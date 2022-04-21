@@ -2213,7 +2213,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             # if slot_area_utilizing_ratio < 1:
             #     print('Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio, 'which means you are simulating a separate winding? If not, contrats--you found a bug...')
             #     print('DW, BW, Total:', acm_variant.DriveW_CurrentAmp, acm_variant.BeariW_CurrentAmp, acm_variant.CurrentAmp_per_phase)
-            s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(EX['slot_current_utilizing_ratio']*acm_variant.coils.mm2_slot_area*1e-6, copper_loss_parameters=copper_loss_parameters)
+            s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(
+                EX['slot_current_utilizing_ratio']*acm_variant.coils.mm2_slot_area*1e-6, 
+                copper_loss_parameters=copper_loss_parameters, 
+                STATOR_SLOT_FILL_FACTOR=acm_variant.template.SI['WindingFill'],
+                TEMPERATURE_OF_COIL=acm_variant.template.SI['Temperature'])
             # s, r, sAlongStack, rAlongStack, Js, Jr = 0, 0, 0, 0, 0, 0
 
         dm = data_manager()
