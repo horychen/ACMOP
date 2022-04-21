@@ -1,6 +1,9 @@
     #禁止在cache时打印
-def print(*arg, **kwarg):
-    pass
+# def print(*arg, **kwarg):
+#     pass
+
+import enum
+
 
 def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(layer_X_phases, coil_pitch):
     return layer_X_phases[-coil_pitch:] + layer_X_phases[:-coil_pitch]
@@ -576,28 +579,44 @@ class winding_layout_v2(object):
                 self.deg_winding_U_phase_phase_axis_angle = 360/Qs*0.5 * (phase_U_starting_slot_number + self.coil_pitch_y+(SPP-1) )
             else:
                 # This clause includes fractional slot winding with an SPP value below 1.
-                phase_U_starting_slot_number = 1
 
-                # print('[wily] Fractional slot winding with an SPP of %g.'%(q))
+                for index, UVW in enumerate(self.layer_X_phases):
+                    if UVW == 'V':
+                        phase_V_starting_slot_number = index+1
+                        break
+                for index, UVW in enumerate(self.layer_X_phases):
+                    if UVW == 'W':
+                        phase_W_starting_slot_number = index+1
+                        break
+                # print(self.layer_X_phases)
+                # print(phase_V_starting_slot_number, phase_W_starting_slot_number, phase_W_starting_slot_number-phase_V_starting_slot_number)
+
+                尾 = phase_W_starting_slot_number-1 + self.coil_pitch_y
+                头 = phase_V_starting_slot_number
+                deg_winding_V_phase_phase_axis_angle = 360/Qs * (尾 - 头) + 360/Qs*0.5
+                相邻的属于同一相的线圈的个数 = phase_W_starting_slot_number - phase_V_starting_slot_number
+
 
                 if q<1:
                     # fractional slot and q<1
-                    self.deg_winding_U_phase_phase_axis_angle = 360/Qs*0.5 * (phase_U_starting_slot_number + self.coil_pitch_y )
+                    self.deg_winding_U_phase_phase_axis_angle = deg_winding_V_phase_phase_axis_angle - 360/Qs*相邻的属于同一相的线圈的个数
                 else:
                     # fractional slot and q>1
-                    self.deg_winding_U_phase_phase_axis_angle = 360/Qs*0.5 * (phase_U_starting_slot_number + self.coil_pitch_y )
+                    self.deg_winding_U_phase_phase_axis_angle = deg_winding_V_phase_phase_axis_angle - 360/Qs*相邻的属于同一相的线圈的个数
                     msg = '[winding_layout.py] [Warning] This case (q=%g) is not thought thorough, so you must inspect the initial excitation angle and initial rotor position manually to make sure it is id=0 control.'%(q)
                     print(msg)
                     if q>2:
                         raise Exception(msg)
 
-                    # 2019/12/25: Q18, p2, ps1 case is verified to be okay with q=1.5.
+                # print(self.deg_winding_U_phase_phase_axis_angle, deg_winding_V_phase_phase_axis_angle, 尾, 头, 相邻的属于同一相的线圈的个数)
+                # quit()
 
-            print('[wily] phase_U_starting_slot_number', phase_U_starting_slot_number)
-            print('[wily] self.deg_winding_U_phase_phase_axis_angle:', self.deg_winding_U_phase_phase_axis_angle)
+                    # 2019/12/25: Q18, p2, ps1 case is verified to be okay with q=1.5.
+            print('[wily] q = SPP =', SPP)
+            print('[wily] self.deg_winding_U_phase_phase_axis_angle=', self.deg_winding_U_phase_phase_axis_angle, 'deg_winding_V_phase_phase_axis_angle=', deg_winding_V_phase_phase_axis_angle)
             # quit()
         except:
-            raise Exception(f'Error: This winding is not implemented: Qs,p,ps,coil_pitch_y = {Qs,p,ps,coil_pitch_y}', Wrap_Around, DPNV_or_SEPA)
+            raise Exception(f'Error: This winding is not implemented to get deg_winding_U_phase_phase_axis_angle: Qs,p,ps,coil_pitch_y = {Qs,p,ps,coil_pitch_y}', Wrap_Around, DPNV_or_SEPA)
 
 
         # 这是实际在pre_procee中调用的字典

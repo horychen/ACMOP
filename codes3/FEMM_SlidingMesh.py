@@ -1863,7 +1863,7 @@ class FEMM_SlidingMesh(object):
         Vol_Cu_along_stack = area_copper_S_Cu * (end_winding_length_Lew) * Q
         stator_copper_loss_along_stack = rho_Copper * Vol_Cu_along_stack * Js**2
 
-        print('Stator current [Arms]:', current_rms_value, 'Js:', Js)
+        print('[FEMM_SlidingMesh.py] Stator current [Arms]:', current_rms_value, 'Js:', Js)
 
 
         ################################################################
@@ -1899,7 +1899,7 @@ class FEMM_SlidingMesh(object):
         Vol_Cu_along_stack = area_copper_S_Cu * (end_winding_length_Lew) * Q
         rotor_copper_loss_along_stack = rho_Copper * Vol_Cu_along_stack * Jr**2
 
-        print('Rotor current [Arms]:', current_rms_value, 'Jr:', Jr)
+        print('[FEMM_SlidingMesh.py] Rotor current [Arms]:', current_rms_value, 'Jr:', Jr)
 
         return stator_copper_loss, rotor_copper_loss, stator_copper_loss_along_stack, rotor_copper_loss_along_stack, Js, Jr, Vol_Cu
 

@@ -551,8 +551,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         partIDRange_Coil = part_ID_list[int(2+pe*2)+1 : int(2+pe*2)+1 + int(Qs*2)]
 
         # group("Magnet", partIDRange_Magnet)
-        group("Magnet-CW",  partIDRange_Magnet[0::2])
-        group("Magnet-CCW", partIDRange_Magnet[1::2])
+        # group("Magnet-CW",  partIDRange_Magnet[0::2])
+        # group("Magnet-CCW", partIDRange_Magnet[1::2])
+        group("Magnet-CCW",  partIDRange_Magnet[0::2]) # for reversing torque sign
+        group("Magnet-CW", partIDRange_Magnet[1::2])
         group("Coils", partIDRange_Coil)
 
 
@@ -1045,7 +1047,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         # 4 pole motor Qs=24 dpnv implemented by two layer winding (6 coils). In this case, drive winding has the same slot turns as bearing winding
         def circuit(Grouping,turns,Rs,ampD,ampB,freq,phase=0, CommutatingSequenceD=0, CommutatingSequenceB=0, x=10,y=10, bool_3PhaseCurrentSource=True):
-            study.GetCircuit().CreateSubCircuit("Star Connection", "Star Connection %s"%(Grouping), x, y) # è¿™äº›æ•°å­—æŒ‡çš„æ˜¯gridçš„ä¸ªæ•°ï¼Œç¬¬å‡ è¡Œç¬¬å‡ åˆ—çš„æ ¼ç‚¹å¤„
+            study.GetCircuit().CreateSubCircuit("Star Connection", "Star Connection %s"%(Grouping), x, y)
             study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil1").SetValue("Turn", turns)
             study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil1").SetValue("Resistance", Rs)
             study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil2").SetValue("Turn", turns)

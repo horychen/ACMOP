@@ -20,6 +20,12 @@ def derive_mm_d_ri(GP,SI):
     GP       ['mm_d_ri'].value = (1-GP['split_ratio_rotor_salient'].value) * GP['mm_r_ro'].value - GP['mm_r_ri'].value
     return GP['mm_d_ri'].value
 
+def derive_mm_d_sy_overwrite(GP,SI):
+    k2 = (1 / GP['PM_to_tooth_width_ratio'].value - 1 ) * 0.5
+    print('[flux_switching.py] k2 =', k2)
+    GP       ['mm_d_sy'].value = GP['FSPM_k3'].value * k2*GP['mm_d_pm'].value
+    return GP['mm_d_sy'].value
+
 class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
     ''' This is a surface mounted PM motor but it might have saliency on q-axis if alpha_rm is less than 180/p.
         就是说，允许永磁体陷入转子铁芯，只是永磁体外没有铁包裹防止永磁体飞出，而是需要额外增加碳纤维套。
@@ -40,12 +46,15 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
             # FSPM Peculiar                     Type       Name                         Value  Bounds       Calc
             "split_ratio_rotor_salient" : acmop_parameter("free",     "rotor_salient_split_ratio",  None, [None, None], lambda GP,SI:None),
             "deg_alpha_rsp"             : acmop_parameter("free",     "rotor_salient_pole_angle",   None, [None, None], lambda GP,SI:None),
+            "PM_to_tooth_width_ratio"   : acmop_parameter("free",     "PM_to_tooth_width_ratio",    None, [None, None], lambda GP,SI:None),
             "mm_d_pm"                   : acmop_parameter("fixed",    "permanent_magnet_depth",     None, [None, None], lambda GP,SI:None), #derive_mm_d_pm(GP,SI)),
             "mm_d_air_pm"               : acmop_parameter("fixed",    "permanent_magnet_air_depth", None, [None, None], lambda GP,SI:None),
             "deg_alpha_pm_at_airgap"    : acmop_parameter("derived",  "permanent_magnet_span_angle_at_airgap",   None, [None, None], lambda GP,SI:derive_deg_alpha_pm_at_airgap(GP,SI)),
             "mm_difference_pm_yoke"     : acmop_parameter("fixed",    "permanent_magnet_to_yoke_ratio",   None, [None, None], lambda GP,SI:None),
+            "FSPM_k3"                   : acmop_parameter("fixed",    "FSPM k3 (yoke to U core iron leg ratio)",   None, [None, None], lambda GP,SI:None),
             "mm_r_ri"                   : acmop_parameter("fixed",    "rotor_inner_radius (shaft_radius)", None, [None, None], lambda GP,SI:None),
             "mm_d_ri"                   : acmop_parameter("derived",  "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SI:derive_mm_d_ri(GP,SI)),
+            "mm_d_sy"                   : acmop_parameter("derived",  "stator_yoke_depth (OVERWRITE)", None, [None, None], lambda GP,SI:derive_mm_d_sy_overwrite(GP,SI)),
         })
         GP.update(childGP)
 
@@ -122,6 +131,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
             mm_d_pm = 3
 
         k2 = 1.2
+        PM_to_tooth_width_ratio = 1 / (1+2*k2)
         mm_stator_tooth_width_w_UCoreWidth = k2*mm_d_pm
         mm_w_st = mm_d_pm + 2*mm_stator_tooth_width_w_UCoreWidth
         mm_w_rt = k4 * mm_stator_tooth_width_w_UCoreWidth # Empirical: slightly wider (5.18) Habil-Gruber
@@ -151,6 +161,8 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         # print(mm_r_so, mm_d_sy)
         # print(mm_r_so, mm_d_sy)
         # print(mm_r_so, mm_d_sy)
+        GP['FSPM_k3'].value              = k3
+        GP['PM_to_tooth_width_ratio'].value = PM_to_tooth_width_ratio
         GP['mm_w_st'].value              = mm_w_st
         GP['mm_d_pm'].value              = mm_d_pm
         GP['deg_alpha_pm_at_airgap'].value = mm_d_pm / (2*np.pi*mm_r_si) * 360
@@ -298,6 +310,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_stt":     [  3,   8],
             "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value],
+            "PM_to_tooth_width_ratio": [1/4, 0.3], # = 1/(1+2*k2), k2=1.5 (max), k2>=1
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
             "split_ratio":  [0.5, 0.7], # Binder-2020-MLMS-0953@Fig.7
             "mm_d_pm":      [3,8],
@@ -379,10 +392,11 @@ class FSPM_design_variant(inner_rotor_motor.variant_machine_as_objects):
         self.update_mechanical_parameters()
 
 
-        self.InitialRotationAngle = EX['wily'].deg_winding_U_phase_phase_axis_angle + 360 / SI['pm'] / 4
-        print(f'[FSPM_design.py] self.InitialRotationAngle set to {self.InitialRotationAngle}')
-        print(f'[FSPM_design.py] self.InitialRotationAngle set to {self.InitialRotationAngle}')
-        print(f'[FSPM_design.py] self.InitialRotationAngle set to {self.InitialRotationAngle}')
+        self.InitialRotationAngle = EX['wily'].deg_winding_U_phase_phase_axis_angle + 360 / SI['pm'] / 4 # 假设四等分的Cell结构
+        # self.InitialRotationAngle = EX['wily'].deg_winding_U_phase_phase_axis_angle - 360 / SI['pm'] / 4 # 先定位到q轴上然后再转90度电角度？
+        print(f'[FSPM_design.py] self.InitialRotationAngle set to {self.InitialRotationAngle} = {EX["wily"].deg_winding_U_phase_phase_axis_angle} + {360 / SI["pm"] / 4}')
+        print(f'[FSPM_design.py] self.InitialRotationAngle set to {self.InitialRotationAngle} = {EX["wily"].deg_winding_U_phase_phase_axis_angle} + {360 / SI["pm"] / 4}')
+        print(f'[FSPM_design.py] self.InitialRotationAngle set to {self.InitialRotationAngle} = {EX["wily"].deg_winding_U_phase_phase_axis_angle} + {360 / SI["pm"] / 4}')
         # raise
 
         self.boolCustomizedCircuit = False
