@@ -1718,7 +1718,7 @@ def get_mm_template_stack_length(SI, rotor_outer_radius_r_or):
     m_stack_length = rotor_volume_Vr / (np.pi * rotor_outer_radius_r_or**2)
     return 1e3*m_stack_length # m -> mm
 
-def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, number_of_rotor_pole_pairs, specified_mm_stack_length=None):
+def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specified_mm_stack_length=None):
 
     stator_phase_voltage_rms = SI['VoltageRating'] / np.sqrt(3)
     desired_emf_Em = 0.95 * stator_phase_voltage_rms 
@@ -1733,9 +1733,9 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, number_
         else:
             # Separate
             number_parallel_branch = 1
-    speed_rpm = SI['ExcitationFreqSimulated'] * 60 / number_of_rotor_pole_pairs # rpm
+    speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
-    pole_pitch_tau_p = np.pi*stator_inner_diameter_Dis/(2*number_of_rotor_pole_pairs) # TODO
+    pole_pitch_tau_p = np.pi*stator_inner_diameter_Dis/(2*SI['p']) # TODO
 
     if SI['coil_pitch_y'] < 0:
         kw1 = 1
@@ -1750,13 +1750,23 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, number_
             coil_span_W = SI['coil_pitch_y'] * stator_slot_pitch_tau_us
             # for 2 pole motor, the recommended short pitch is 0.7. --p76
 
-        kd1 = 2*sin(1/SI['m']*np.pi/2)/(SI['Qs']/(SI['m']*number_of_rotor_pole_pairs)*sin(1*np.pi*number_of_rotor_pole_pairs/SI['Qs']))
-        kq1 = sin(1*coil_span_W/pole_pitch_tau_p*np.pi/2)        
+        from winding_layout_derivation_ismb2021_asymetry import winding_distribution_factor_verPyrhonen
+        try:
+            kd1 = winding_distribution_factor_verPyrhonen(1, SI['Qs'], SI['p'], m=SI['m'])
+        except:
+            try:
+                # kd1 = 1
+                kd1 = wily.kd1
+            except:
+                kd1 = 1
+                print('[pyrhonen_procedure_as_function.py] The winding is a fractional slot one and the distribution factor is absent... Set as kd1 = 1.')
+        # kd1 = 2*sin(1/SI['m']*np.pi/2)/(SI['Qs']/(SI['m']*SI['p'])*sin(1*np.pi*SI['p']/SI['Qs']))
+        kq1 = sin(1*coil_span_W/pole_pitch_tau_p*np.pi/2)
         ksq1 = 1
         kw1 = kd1 * kq1 * ksq1
-        print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SI["coil_pitch_y"]}, kw1={kw1}')
+        print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SI["coil_pitch_y"]}, kw1={kw1}, kd1={kd1}, kq1={kq1}')
 
-        if int(kw1) == -4:
+        if np.abs(kw1) > 1:
             print('DEBUG, kw1 =', kw1)
             print('DEBUG, kw1 =', kw1)
             print('DEBUG, kw1 =', kw1)
@@ -1788,15 +1798,15 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, number_
     no_series_coil_turns_N = round(no_series_coil_turns_N)
     print('[Pyrhonen_procedure_as_function.py] [zQ] Rounds up to:', no_series_coil_turns_N)
     backup = no_series_coil_turns_N
-    distribution_q = SI['Qs'] / (2*number_of_rotor_pole_pairs*SI['m'])
+    distribution_q = SI['Qs'] / (2*SI['p']*SI['m'])
     bool_we_have_plenty_voltage = True
     if bool_we_have_plenty_voltage:
-        no_series_coil_turns_N = min([number_of_rotor_pole_pairs*distribution_q*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
+        no_series_coil_turns_N = min([SI['p']*distribution_q*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
     else:
-        no_series_coil_turns_N = min([number_of_rotor_pole_pairs*distribution_q*i for i in range(1000)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
+        no_series_coil_turns_N = min([SI['p']*distribution_q*i for i in range(1000)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
     if no_series_coil_turns_N > 990:
         raise
-    print('[Pyrhonen_procedure_as_function.py] [zQ] no_series_coil_turns_N should be multiple of pq:', no_series_coil_turns_N, '= q * p =', distribution_q, '*', number_of_rotor_pole_pairs)
+    print('[Pyrhonen_procedure_as_function.py] [zQ] no_series_coil_turns_N should be multiple of pq:', no_series_coil_turns_N, '= q * p =', distribution_q, '*', SI['p'])
     no_conductors_per_slot_zQ = 2* SI['m'] * no_series_coil_turns_N / SI['Qs'] * number_parallel_branch
     print('[Pyrhonen_procedure_as_function.py] [zQ] =', no_conductors_per_slot_zQ)
     return no_conductors_per_slot_zQ

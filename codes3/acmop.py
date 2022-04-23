@@ -247,7 +247,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
         print('[acmop.py] Check several things: 1. the winding initial excitation angle; 2. the rotor d-axis initial position should be orthoganal to winding excitation field.')
 
-    def part_evaluation_geometry(self, xf=[], counter='Cairo', specify_x_denorm=None):
+    def part_evaluation_geometry(self, xf=[], counter='Cairo', specify_x_denorm=None, bool_show_pdf=False):
         print('\n ------- part_evaluation_geometry -------')
         if specify_x_denorm is None:
             # build x_denorm for the template design
@@ -266,7 +266,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         elif 'Alternator' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant)
         elif 'FSPM' in acm_variant.template.name:
-            toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=True)
+            toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
         else:
             raise
 
@@ -555,20 +555,25 @@ def main(number_which_part):
 
         # select_spec= 'Flux Alternator 1955',
 
-        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test"
-        # select_spec= "FSPM-24s20pp-50W-400RPM-6000Pa-Test",
-        select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
-        # select_spec= "FSPM-24s28pp-50W-400RPM-6000Pa-Test",
-        # select_spec= "FSPM-12s28pp-50W-400RPM-6000Pa-Test",
-        # select_spec= "FSPM-12s20pp-50W-400RPM-6000Pa-Test",
-        # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
-        # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
+        select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype",
+
+        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
+
+        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
+            # select_spec= "FSPM-24s20pp-50W-400RPM-6000Pa-Test",
+            # select_spec= "FSPM-24s28pp-50W-400RPM-6000Pa-Test",
+            # select_spec= "FSPM-12s28pp-50W-400RPM-6000Pa-Test",
+            # select_spec= "FSPM-12s20pp-50W-400RPM-6000Pa-Test",
+            # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
+            # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
         select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
         # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
 
         project_loc            = fr'../_default/',
-        bool_show_GUI          = True
+        bool_show_GUI          = False
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -582,7 +587,7 @@ def main(number_which_part):
     elif number_which_part == 3:
         mop.part_evaluation() # Module 3
     elif number_which_part == 31:
-        mop.part_evaluation_geometry()
+        mop.part_evaluation_geometry(bool_show_pdf=True)
     elif number_which_part == 4:
         mop.part_optimization() # Module 4
     elif number_which_part == 5:
@@ -600,8 +605,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # main(31)
-    main(3)
-    # main(4)
+    # main(3)
+    main(4)
     # main(5)
 
 if __name__ == '__main__':

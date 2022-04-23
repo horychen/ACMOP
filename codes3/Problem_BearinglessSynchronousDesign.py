@@ -161,6 +161,7 @@ class Problem_BearinglessSynchronousDesign(object):
                 #     print(str(e)) 
                 #     utility.send_notification(ad.solver.fea_config_dict['pc_name'] + '\n\nUnexpected expection:' + str(e))
                 #     raise e
+                pass
             else:
                 # - Price
                 f1 
@@ -186,7 +187,7 @@ class Problem_BearinglessSynchronousDesign(object):
                         if FRW < 0.5:
                             print('\tFRW < 0.5 | (=%f)' % (FRW))
                         f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
-                    print('f1,f2,f3:',f1,f2,f3)
+                    print('[Problem_BearinglessSyn] f1,f2,f3:',f1,f2,f3)
 
                 break
 

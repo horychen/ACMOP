@@ -184,7 +184,7 @@ class FEMM_Solver(object):
             self.dir_run = im.fea_config_dict['dir_femm_files'] + im.fea_config_dict['model_name_prefix'] + '/'
 
             if not os.path.exists(self.dir_run):
-                logging.getLogger(__name__).debug('FEMM: There is no run yet. Generate the run folder under %s.', self.dir_run)
+                logging.getLogger(__name__).debug('FEMM: There is no run yet. Generate the run folder under %s.' % self.dir_run)
                 os.makedirs(self.dir_run)
 
             if flag_read_from_jmag == True:
@@ -211,7 +211,7 @@ class FEMM_Solver(object):
 
             if not os.path.exists(self.dir_run):
                 logger = logging.getLogger(__name__)
-                logger.debug('FEMM: There is no run yet. Generate the run folder as %s.', self.dir_run)
+                logger.debug('FEMM: There is no run yet. Generate the run folder as %s.' % self.dir_run)
                 os.makedirs(self.dir_run)
 
         self.dir_run_sweeping = self.dir_run + 'femm_temp/' # 'sweeping/'
@@ -2909,7 +2909,7 @@ class FEMM_Solver(object):
                 # print clock_time() - tic, 's'
         toc = clock_time()
         logger = logging.getLogger(__name__)
-        logger.debug('Time spent on femm frequency search is %g s.', toc-tic)
+        logger.debug('Time spent on femm frequency search is %g s.' % toc-tic)
         return freq, torque, None
 
 

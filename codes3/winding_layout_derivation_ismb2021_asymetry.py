@@ -320,13 +320,17 @@ def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequenc
 def winding_distribution_factor_verPyrhonen(h, Q, p, m=3):
 
     # This is tested and shown to be wrong. cjh 2020-10-08
+    # This is tested and shown to be wrong. cjh 2022-04-23 with h=1, Q=12, p=4, m=3
 
     # Option 2: Winding distribution factor Pyrhonen@(2.24)
-    alpha_u = 2*np.pi / Q * h*p # <- should be h*p or *p???
+    # alpha_u = 2*np.pi / Q * h*p # <- should be h*p or *p???
+    alpha_u = 2*np.pi / Q * p # <- should be h*p or *p???
     # print('#debug', alpha_u/np.pi*180)
     q=Q/(2*p*m)
+    if q%0 != 0:
+        raise Exception('The formula is only valid for integral slot winding.')
     winding_distribution_factor_kw_at_h = np.sin(h*q*alpha_u/2) / (q*np.sin(h*alpha_u/2))
-    return winding_distribution_factor_kw_at_h    
+    return winding_distribution_factor_kw_at_h
 
 def winding_distribution_factor(Q, connection_star_raw_dict, h, bool_double_layer_winding, phase_Aa_dpnv_grouping_dict=None, Aa='Aa'):
     # Winding distribution factor Severson-2017-TIA

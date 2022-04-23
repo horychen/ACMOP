@@ -463,6 +463,8 @@ class winding_layout_v2(object):
             self.CommutatingSequenceD = 1
             self.CommutatingSequenceB = 0
 
+            self.kd1 = 1.0
+            self.kp1 = 0.866
 
         if DPNV_or_SEPA == True \
         and Qs == 18 \

@@ -116,7 +116,7 @@ class swarm(object):
         # check if it is a new run
         if not os.path.exists(self.dir_run):
             logger = logging.getLogger(__name__)
-            logger.debug('There is no run yet. Generate the run folder for pop as %s...', self.run_folder)
+            logger.debug('There is no run yet. Generate the run folder for pop as %s...' % self.run_folder)
             os.makedirs(self.dir_run)
         if not os.path.exists(self.dir_csv_output_folder):
             try:  
@@ -256,7 +256,7 @@ class swarm(object):
                 self.init_pop_denorm = self.pop_reader(self.get_gen_file(self.number_current_generation)) # gen#0000
                 self.init_fitness = None
                 logger = logging.getLogger(__name__)
-                logger.debug('The initial pop (i.e., gen#%s) is found in run folder. Use it.', generations_complete[0])
+                logger.debug('The initial pop (i.e., gen#%s) is found in run folder. Use it.' % generations_complete[0])
             else:
                 # get the latest generation of swarm data and 
                 # restore the living pop from file liv#xxxx.txt
@@ -265,7 +265,7 @@ class swarm(object):
                                       # also read fitness of last completed living pop as init_fitness 
 
                 logger = logging.getLogger(__name__)
-                logger.debug('The latest finished generation is gen#%d', self.number_current_generation)
+                logger.debug('The latest finished generation is gen#%d' % self.number_current_generation)
                 logger.debug('Read in living_pop as init_pop with a size of %d.' % (len(self.init_pop_denorm)))
 
             # normalize for init_pop
@@ -446,7 +446,7 @@ class swarm(object):
                                 print('Removed:', self.femm_output_file_path[:-4]+'.fem')
                     app.Load(expected_project_file)
                     logger.debug('Load JMAG project file: %s'%(expected_project_file))
-                    logger.debug('Existing models of %d are found in %s', app.NumModels(), app.GetDefaultModelFolderPath())
+                    logger.debug('Existing models of %d are found in %s' % (app.NumModels(), app.GetDefaultModelFolderPath()))
 
                     model = app.GetCurrentModel()
                     app.DeleteModel(model.GetName())
@@ -796,7 +796,7 @@ class swarm(object):
                 fitness = np.asarray( [fobj(index, individual_denorm) for index, individual_denorm in enumerate(pop_denorm)] ) # modification #2
 
                 logger = logging.getLogger(__name__)
-                logger.debug('Generating fitness data for the initial population: %s', self.get_fit_file(self.number_current_generation))
+                logger.debug('Generating fitness data for the initial population: %s' % self.get_fit_file(self.number_current_generation))
 
                 # write fit#0000 (fitness results to file for the initial pop)
                 with open(self.get_fit_file(self.number_current_generation), 'w') as f:
@@ -888,7 +888,7 @@ class swarm(object):
 
             self.number_current_generation += 1 # modification #3
             logger = logging.getLogger(__name__)
-            logger.debug('Iteration i=%d for this execution of the script, but it is the %d DE iteration for this run %s.', i, self.number_current_generation, self.run_folder)
+            logger.debug('Iteration i=%d for this execution of the script, but it is the %d DE iteration for this run %s.' % (i, self.number_current_generation, self.run_folder))
             # demand to initialize the jamg designer because number_current_generation has changed and a new jmag project is required.
             self.jmag_control_state = False
 
@@ -1091,12 +1091,12 @@ class swarm(object):
             print('Draw model for post-processing')
             if individual_index+1 + 1 <= self.app.NumModels():
                 logger = logging.getLogger(__name__)
-                logger.debug('The model already exists for individual with index=%d. Skip it.', individual_index)
+                logger.debug('The model already exists for individual with index=%d. Skip it.' % individual_index)
                 return -1 # the model is already drawn
 
         elif individual_index+1 <= self.app.NumModels(): # 一般是从零起步
             logger = logging.getLogger(__name__)
-            logger.debug('The model already exists for individual with index=%d. Skip it.', individual_index)
+            logger.debug('The model already exists for individual with index=%d. Skip it.' % individual_index)
             return -1 # the model is already drawn
 
         # open JMAG Geometry Editor
@@ -1326,7 +1326,7 @@ class swarm(object):
             else:
                 app.Load(expected_project_file)
                 logger.debug('Load JMAG project file: %s'%(expected_project_file))
-                logger.debug('Existing models of %d are found in %s', app.NumModels(), app.GetDefaultModelFolderPath())
+                logger.debug('Existing models of %d are found in %s'% (app.NumModels(), app.GetDefaultModelFolderPath()))
 
                 # if app.NumModels() <= individual_index:
                 #     logger.warn('Some models are not plotted because of bad bounds (some lower bound is too small)! individual_index=%d, NumModels()=%d. See also the fit#%04d.txt file for 99999. There will be no .png file for these individuals either.', individual_index, app.NumModels(), self.number_current_generation)
@@ -1761,7 +1761,7 @@ class swarm(object):
         cost_function = 30e3 / ( breakdown_torque/rotor_volume ) \
                         + 1.0 / ( breakdown_force/rotor_weight )
         logger = logging.getLogger(__name__)
-        logger.debug('%s-%s: %g', self.project_name, im.model_name, cost_function)
+        logger.debug('%s-%s: %g' % (self.project_name, im.model_name, cost_function))
 
         return cost_function
 

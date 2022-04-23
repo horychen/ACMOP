@@ -100,6 +100,9 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         RotorOuterRadius_r_or = np.sqrt(RotorActiveCrossSectArea_Sr/np.pi)
         mm_r_ro = RotorOuterRadius_r_or*1e3
 
+        # print(mm_r_ro)
+        # quit()
+
         aspect_ratio__rotor_axial_to_diameter_ratio = 2*mm_r_ro/mm_stack_length
 
         mm_air_gap_length = 3 # Gruber Habil: [3,4] mm

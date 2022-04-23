@@ -18,7 +18,7 @@ def displayPDF(file, width=1800, height=500):
 
     # Embedding PDF in HTML
     # pdf_display = F'<embed src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf">'
-    pdf_display = F'<iframe src="data:application/pdf;base64,{base64_pdf}" width="{width}" height="{height}" type="application/pdf"></iframe>' # https://discuss.streamlit.io/t/rendering-pdf-on-ui/13505
+    pdf_display = F'<iframe src="data:application/pdf;base64,{base64_pdf}#view=FitH" width="{width}" height="{height}" type="application/pdf"></iframe>' # https://discuss.streamlit.io/t/rendering-pdf-on-ui/13505
 
     # Displaying File
     st.markdown(pdf_display, unsafe_allow_html=True)
@@ -31,16 +31,20 @@ def displayPDF_side_by_side(list_files, width=400, height=450):
             list_base64_pdf.append(base64_pdf)
 
     # Embedding PDF in HTML
+    # 添加 #view=FitH 可以最大化显示pdf，参考：https://stackoverflow.com/questions/20562543/zoom-to-fit-pdf-embedded-in-html
     pdf_display = ''
     for base64_pdf in list_base64_pdf:
         pdf_display += F'''
-        <div class="box"><iframe src="data:application/pdf;base64,{base64_pdf}"
-                                frameborder="0" 
-                                scrolling="no" 
-                                width={width} 
-                                height={height}
-                                align="left"
-                                type="application/pdf"> </iframe> </div>
+        <div class="box">
+            <iframe src="data:application/pdf;base64,{base64_pdf}#view=FitH"
+                        frameborder="0" 
+                        scrolling="no" 
+                        width="{width}"
+                        height="{height}"
+                        align="left"
+                        type="application/pdf"> 
+            </iframe> 
+        </div>
         '''
         # <div class="box"><iframe src="data:application/pdf;base64,{base64_pdf}"
         #                         frameborder="0" 
@@ -50,6 +54,7 @@ def displayPDF_side_by_side(list_files, width=400, height=450):
         #                         align="left">
         #                         type="application/pdf"
         #                         </iframe>
+        # </div>
         # '''
     # Displaying File
     st.markdown(pdf_display, unsafe_allow_html=True)
@@ -76,8 +81,8 @@ if len(st.session_state) == 0:
 st.title(f'ACMOP Visualization {datetime.date.today()}')
 
 ## 选择电机规格
-path2acmop   = os.path.abspath(os.path.dirname(__file__) + '/..') + '/'
-value = None if '1.path2project' in st.session_state.keys() else path2acmop + '/_default/'
+path2acmop = os.path.abspath(os.path.dirname(__file__) + '\\..') + '\\'
+value = None if '1.path2project' in st.session_state.keys() else path2acmop + '\\_default\\'
 path2project = st.text_input(label='[User] Input path2project:', value=value, on_change=None, key='1.path2project')
 if path2project[-1]!='/' and path2project[-1]!='\\': path2project += '/'
 _, list_specifications, _ = next(os.walk(path2project))
@@ -117,6 +122,7 @@ else:
     ) # make sidebar wider!
 
     ## The current user selected MOP object
+    print(user_selected_folder)
     mop = swarm_dict[user_selected_folder]
 
     # Show user selected mop's inputs

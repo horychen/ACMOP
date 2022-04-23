@@ -1,5 +1,38 @@
 {
 
+    "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype":
+    {
+        "Inputs":
+        {
+            "machine_type":                        "FSPM",
+            "DPNV_or_SEPA":                        true,
+            "m":                                   3,
+            "Qs":                                  12,
+            "ps":                                  5,
+            "p":                                   4,
+            "number_of_rotor_pole_pairs":                                   10,
+            "pa":                                  4,
+            "pe":                                  6,
+            "pm":                                  10,
+            "coil_pitch_y":                        1,
+            "mec_power":                           50,
+            "ExcitationFreqSimulated":             66.7,
+            "Steel":                               "M19Gauge29",
+            "minimum_mechanical_air_gap_length_mm": 0.50,
+            "lamination_stacking_factor_kFe":      0.95,
+            "Coil":                                "Cu",
+            "Js":                                  4e6,
+            "Temperature":                         75,
+            "WindingFill":                         0.3882,
+            "AWG":                                 25,
+            "VoltageRating":                       50,
+            "TangentialStress":                    3000,
+            "guess_air_gap_flux_density_Bg":       1.2,
+            "mm_stack_length":                     10,
+            "mm_radius_shaft":                     55
+        }
+    },
+
     "FSPM-6s8pp-50W-400RPM-6000Pa-Test":
     {
         "Inputs":
@@ -478,7 +511,7 @@
             "tip_speed":                           70,
             "TangentialStress":                    6000,
             "mm_stack_length":                     10,
-            "mm_radius_shaft":                     50,
+            "mm_radius_shaft":                     40,
             "safety_factor_to_yield":              null,
             "safety_factor_to_critical_speed":     null,
             "bool_skew_stator":                    false,

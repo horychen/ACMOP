@@ -1493,12 +1493,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             print('Draw model for post-processing')
             if individual_index+1 + 1 <= app.NumModels():
                 logger = logging.getLogger(__name__)
-                logger.debug('The model already exists for individual with index=%d. Skip it.', individual_index)
+                logger.debug('The model already exists for individual with index=%d. Skip it.' % individual_index)
                 return -1 # the model is already drawn
 
         elif individual_index+1 <= app.NumModels(): # 一般是从零起步
             logger = logging.getLogger(__name__)
-            logger.debug('The model already exists for individual with index=%d. Skip it.', individual_index)
+            logger.debug('The model already exists for individual with index=%d. Skip it.' % individual_index)
             return -1 # the model is already drawn
 
         # open JMAG Geometry Editor
@@ -2360,16 +2360,26 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         # LOSS
         if 'IM' in machine_type:
             stator_copper_loss_along_stack = dm.femm_loss_list[2]
+            magnet_Joule_loss = 0.0
             rotor_copper_loss_along_stack  = dm.femm_loss_list[3]
 
-            stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack 
+            stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
             rotor_copper_loss_in_end_turn  = dm.femm_loss_list[1] - rotor_copper_loss_along_stack
 
-        elif 'PMSM' in machine_type or 'FSPM' in machine_type:
+        elif 'PMSM' in machine_type:
             stator_copper_loss_along_stack = dm.femm_loss_list[2]
-            rotor_copper_loss_along_stack  = magnet_Joule_loss
+            magnet_Joule_loss
+            rotor_copper_loss_along_stack = 0.0
 
-            stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack 
+            stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
+            rotor_copper_loss_in_end_turn  = 0
+
+        elif 'FSPM' in machine_type:
+            stator_copper_loss_along_stack = dm.femm_loss_list[2]
+            magnet_Joule_loss
+            rotor_copper_loss_along_stack = 0.0
+
+            stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
             rotor_copper_loss_in_end_turn  = 0
 
         speed_rpm       = acm_variant.template.SI['ExcitationFreqSimulated'] * 60 / acm_variant.template.SI['p'] # rpm
@@ -2378,12 +2388,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         rated_ratio                          = required_torque / torque_average 
         rated_stack_length_mm                = rated_ratio * acm_variant.template.d['EX']['mm_template_stack_length']
         rated_stator_copper_loss_along_stack = rated_ratio * stator_copper_loss_along_stack
+        rated_magnet_Joule_loss              = rated_ratio * magnet_Joule_loss
         rated_rotor_copper_loss_along_stack  = rated_ratio * rotor_copper_loss_along_stack
         rated_iron_loss                      = rated_ratio * dm.jmag_loss_list[2]
         rated_windage_loss                   = utility.get_windage_loss(acm_variant, rated_stack_length_mm)
 
         # total_loss   = copper_loss + iron_loss + windage_loss
         rated_total_loss =  rated_stator_copper_loss_along_stack \
+                        + rated_magnet_Joule_loss \
                         + rated_rotor_copper_loss_along_stack \
                         + stator_copper_loss_in_end_turn \
                         + rotor_copper_loss_in_end_turn \
@@ -2489,6 +2501,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                             rated_efficiency,
                             rated_total_loss, 
                             rated_stator_copper_loss_along_stack, 
+                            rated_magnet_Joule_loss,
                             rated_rotor_copper_loss_along_stack, 
                             stator_copper_loss_in_end_turn, 
                             rotor_copper_loss_in_end_turn, 
@@ -2533,6 +2546,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 rated_stack_length_mm, \
                 rated_total_loss, \
                 rated_stator_copper_loss_along_stack, \
+                rated_magnet_Joule_loss, \
                 rated_rotor_copper_loss_along_stack, \
                 stator_copper_loss_in_end_turn, \
                 rotor_copper_loss_in_end_turn, \

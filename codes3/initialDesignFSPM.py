@@ -37,8 +37,9 @@ class UserInput_FSPM():
                     number_of_cells_per_phase_Nc*(self.m+0.5*i),\
                     number_of_cells_per_phase_Nc*(self.m-0.5*i) )
 
-slice = UserInput_FSPM(mec_power=100, speed_rpm=200, Pa_TangentialStress=12000)
-slice = UserInput_FSPM(mec_power=50, speed_rpm=400, Pa_TangentialStress=3000)
+# slice = UserInput_FSPM(mec_power=100, speed_rpm=200, Pa_TangentialStress=12000)
+# slice = UserInput_FSPM(mec_power=50, speed_rpm=400, Pa_TangentialStress=3000)
+slice = UserInput_FSPM(mec_power=30, speed_rpm=400, Pa_TangentialStress=3000)
 required_torque = slice.mec_power/(2*np.pi*slice.speed_rpm/60)
 guess_linear_current_density_A = slice.Pa_TangentialStress*2/slice.guess_air_gap_flux_density_B
 

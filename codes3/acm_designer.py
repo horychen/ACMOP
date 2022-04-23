@@ -1069,6 +1069,7 @@ class acm_designer(object):
             rated_stack_length_mm, \
             rated_total_loss, \
             rated_stator_copper_loss_along_stack, \
+            rated_magnet_Joule_loss, \
             rated_rotor_copper_loss_along_stack, \
             stator_copper_loss_in_end_turn, \
             rotor_copper_loss_in_end_turn, \
@@ -1163,11 +1164,11 @@ class acm_designer(object):
                 step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
 
                 for index in range(-self.toolJd.dm.number_of_steps_at_steady_state, 0):
-                    time                         = time_list[index]
-                    RotorAngle_MechanicalDegrees = DisplacementAngle_list[index]
-                    torque = TorCon_list[index]
-                    forces = (ForConX_list[index], ForConY_list[index])
-                    energy = 0
+                    time                         = float(time_list[index])
+                    RotorAngle_MechanicalDegrees = float(DisplacementAngle_list[index])
+                    torque = float(TorCon_list[index])
+                    forces = ( float(ForConX_list[index]), float(ForConY_list[index]) )
+                    energy = 0.0
                     circuitProperties = ( [ circuit_current_GroupACU[index], terminal_voltage_GroupACU[index], coil_fluxLinkage_GroupACU[index] ],
                                         [ circuit_current_GroupACV[index], terminal_voltage_GroupACV[index], coil_fluxLinkage_GroupACV[index] ],
                                         [ circuit_current_GroupACW[index], terminal_voltage_GroupACW[index], coil_fluxLinkage_GroupACW[index] ],
@@ -2022,12 +2023,12 @@ class acm_designer(object):
             print('Draw model for post-processing')
             if individual_index+1 + 1 <= app.NumModels():
                 logger = logging.getLogger(__name__)
-                logger.debug('The model already exists for individual with index=%d. Skip it.', individual_index)
+                logger.debug('The model already exists for individual with index=%d. Skip it.' % individual_index)
                 return -1 # the model is already drawn
 
         elif individual_index+1 <= app.NumModels(): # 一般是从零起步
             logger = logging.getLogger(__name__)
-            logger.debug('The model already exists for individual with index=%d. Skip it.', individual_index)
+            logger.debug('The model already exists for individual with index=%d. Skip it.' % individual_index)
             return -1 # the model is already drawn
 
         # open JMAG Geometry Editor
@@ -2497,7 +2498,7 @@ class acm_designer(object):
         else:
             sw.app.Load(expected_project_file)
             logger.debug('Load JMAG project file: %s'%(expected_project_file))
-            logger.debug('Existing models of %d are found in %s', sw.app.NumModels(), sw.app.GetDefaultModelFolderPath())
+            logger.debug('Existing models of %d are found in %s' % (sw.app.NumModels(), sw.app.GetDefaultModelFolderPath()))
 
         # draw the model in JMAG Designer
         DRAW_SUCCESS = sw.draw_jmag_induction( -1, 

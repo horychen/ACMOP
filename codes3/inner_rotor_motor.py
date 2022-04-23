@@ -179,7 +179,7 @@ class template_machine_as_numbers(object):
             EX['WindingFill']       = SI['WindingFill'] # SI['space_factor_kCu'] is obsolete
             # MOTOR Winding Excitation Properties
             # EX['RotorPoleNumber']   = SI['number_of_rotor_pole_pairs']*2 # this will be overwritten in template
-            EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_ro'].value*2*1e-3, SI['number_of_rotor_pole_pairs'], specified_mm_stack_length=specified_mm_stack_length) # TODO:
+            EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_ro'].value*2*1e-3, specified_mm_stack_length=specified_mm_stack_length) # TODO:
             # EX['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SI) # TODO:
             # print('[inner_rotor_motor.py] DriveW_CurrentAmp is initialized as:', EX['DriveW_CurrentAmp'], 'A (considering the specified voltage). This will be overwritten by Js-constraint later.')
             EX['DriveW_Freq']       = SI['ExcitationFreqSimulated']

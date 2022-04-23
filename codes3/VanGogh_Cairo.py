@@ -55,7 +55,7 @@ class VanGogh_Cairo:
         # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_end, angle_start)
         return []
 
-    def draw_doubly_salient(self, acm_variant, bool_draw_whole_model=True):
+    def draw_doubly_salient(self, acm_variant, bool_draw_whole_model=True, bool_show_pdf=False):
         # Rotor Core
         list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
@@ -84,7 +84,7 @@ class VanGogh_Cairo:
         # region4 = self.prepareSection(list_regions)
 
         self.apply_stroke()
-        self.save()
+        self.save(bool_open_pdf=bool_show_pdf)
 
         if False:
             # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
@@ -175,14 +175,15 @@ class VanGogh_Cairo:
         # stroke out the color and width property
         self.ctx.stroke()
 
-    def save(self):
+    def save(self, bool_open_pdf=False):
         # self.surface.write_to_svg()
         self.surface.finish()
         import cairosvg
         cairosvg.svg2pdf(url=self.output_fname_no_suffix+'.svg', write_to=self.output_fname_no_suffix+'.pdf')
         print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+'.svg (and .pdf)'}")
-        import os
-        os.system('sumatraPDF2.exe ' + self.output_fname_no_suffix+'.pdf')
+        if bool_open_pdf:
+            import os
+            os.system('sumatraPDF2.exe ' + self.output_fname_no_suffix+'.pdf')
 
     def getSketch(self, name, color):
         self.name = name
