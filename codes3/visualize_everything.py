@@ -71,6 +71,9 @@ def pyplot_width(fig):
 if len(st.session_state) == 0:
     fname = f'{os.path.dirname(__file__)}/streamllit_user_session_data.json'
     print('Open', fname)
+    if not os.path.exists(fname):
+        with open(fname, 'w') as f:
+            f.write('{\n}')
     with open(fname, 'r') as f:
         d = json.load(f)
         for k, v in d.items():
@@ -82,7 +85,7 @@ st.title(f'ACMOP Visualization {datetime.date.today()}')
 
 ## 选择电机规格
 path2acmop = os.path.abspath(os.path.dirname(__file__) + '\\..') + '\\'
-value = None if '1.path2project' in st.session_state.keys() else path2acmop + '\\_default\\'
+value = None if '1.path2project' in st.session_state.keys() else path2acmop + '_default'
 path2project = st.text_input(label='[User] Input path2project:', value=value, on_change=None, key='1.path2project')
 if path2project[-1]!='/' and path2project[-1]!='\\': path2project += '/'
 _, list_specifications, _ = next(os.walk(path2project))

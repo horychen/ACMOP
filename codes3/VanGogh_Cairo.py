@@ -183,7 +183,10 @@ class VanGogh_Cairo:
         print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+'.svg (and .pdf)'}")
         if bool_open_pdf:
             import os
-            os.system('sumatraPDF2.exe ' + self.output_fname_no_suffix+'.pdf')
+            try:
+                os.system('sumatraPDF2.exe ' + self.output_fname_no_suffix+'.pdf')
+            except:
+                print('Viewer sumatraPDF2.exe is not found in this PC. Please manually open the pdf at', self.output_fname_no_suffix+'.pdf')
 
     def getSketch(self, name, color):
         self.name = name

@@ -14,7 +14,7 @@
     - conda config --add channels conda-forge
     - conda install pygmo
 
-- pyx, pyfemm, streamlit, jsonpickle and others (if any) can be installed via pip
+- pyfemm, streamlit, jsonpickle, pycairo, cairosvg, pyx, and others (if any) can be installed via pip
 
 - texlive, or other latex compiler (if you want pdf report for motor design)
 
@@ -24,7 +24,16 @@
 
 - 2. Create a virtual environment by `conda create -n your-env-name python=3.8.8 pygmo`, and then activate your virtual env by `conda activate your-env-name`. Make sure you activate your virtual env before using `pip` to install python packages.
 
-- 3. Install the rest dependencies from PyPI: `pip install pyx pyfemm jsonpickle recordtype pycariro cairosvg`
+- 3. Install the rest dependencies from PyPI: `pip install pyx pyfemm jsonpickle recordtype pycariro cairosvg streamlit`
+
+- 4. If you run into the following error when executing `streamlit run visualize_everything.py`:
+> OSError: no library called "cairo-2" was found
+> no library called "cairo" was found
+> no library called "libcairo-2" was found
+> cannot load library 'libcairo.so.2': error 0x7e
+> cannot load library 'libcairo.2.dylib': error 0x7e
+> cannot load library 'libcairo-2.dll': error 0x7e
+Try to download the `gtk2-runtime-2.24.33-2021-01-30-ts-win64.exe` from [GTK-for-Windows-Runtime-Environment-Installer](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) and see if GTK2 resolves the issue.
 
 ## Features
 - Restartable. Upon interrupts, this program is able to re-start from the file "swarm_data.txt" of the current run (or even from a different run).
