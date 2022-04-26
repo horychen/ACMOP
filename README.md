@@ -24,7 +24,7 @@
 
 - 2. Create a virtual environment by `conda create -n your-env-name python=3.8.8 pygmo`, and then activate your virtual env by `conda activate your-env-name`. Make sure you activate your virtual env before using `pip` to install python packages.
 
-- 3. Install the rest dependencies from PyPI: `pip install pyx pyfemm jsonpickle recordtype pycariro cairosvg streamlit`
+- 3. Install the rest dependencies from PyPI: `pip install pyx pyfemm jsonpickle recordtype pycairo cairosvg streamlit`
 
 - 4. If you run into the following error when executing `streamlit run visualize_everything.py`:
 > OSError: no library called "cairo-2" was found
