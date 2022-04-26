@@ -87,7 +87,7 @@ st.title(f'ACMOP Visualization {datetime.date.today()}')
 path2acmop = os.path.abspath(os.path.dirname(__file__) + '\\..') + '\\'
 value = None if '1.path2project' in st.session_state.keys() else path2acmop + '_default'
 path2project = st.text_input(label='[User] Input path2project:', value=value, on_change=None, key='1.path2project')
-if path2project[-1]!='/' and path2project[-1]!='\\': path2project += '/'
+if path2project[-1]!='/' or path2project[-1]!='\\': path2project += '/'
 _, list_specifications, _ = next(os.walk(path2project))
 selected_specifications = st.multiselect(label="[User] Select folder(s):", options=list_specifications, default=None, key='2.selected_specifications')
 

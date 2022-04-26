@@ -555,10 +555,12 @@ def main(number_which_part):
 
         # select_spec= 'Flux Alternator 1955',
 
-        select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype",
+        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype",
 
         # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
         # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
+
+        # select_spec= "FSPM-24s22pp-50W-400RPM-100Pa-Huge",
 
         # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
         # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
@@ -568,7 +570,7 @@ def main(number_which_part):
             # select_spec= "FSPM-12s20pp-50W-400RPM-6000Pa-Test",
             # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
             # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
-        select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
+        select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples 2 (free tooth tip depth and fix sleeve length)",
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
         # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
 
@@ -596,6 +598,7 @@ def main(number_which_part):
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind204-FullCircumPM.json', bool_evaluate=True)
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind704-NoMagnetLoss.json', bool_evaluate=True)
         motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind703.json', bool_evaluate=True)
+        # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind1786.json', bool_evaluate=True)
     elif number_which_part == 51:
         # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
         mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5 - visualize swarm data
@@ -606,8 +609,8 @@ def main(number_which_part):
 if __name__ == '__main__':
     # main(31)
     # main(3)
-    main(4)
-    # main(5)
+    # main(4)
+    main(5)
 
 if __name__ == '__main__':
     ''' Interactive variable checking examples:

@@ -33,7 +33,7 @@
 > cannot load library 'libcairo.so.2': error 0x7e
 > cannot load library 'libcairo.2.dylib': error 0x7e
 > cannot load library 'libcairo-2.dll': error 0x7e
-Try to download the `gtk2-runtime-2.24.33-2021-01-30-ts-win64.exe` from [GTK-for-Windows-Runtime-Environment-Installer](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) and see if GTK2 resolves the issue.
+Try to download the GTK2 installer `gtk2-runtime-2.24.33-2021-01-30-ts-win64.exe` or GTK3 installer from [GTK-for-Windows-Runtime-Environment-Installer](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) and see if GTK2/3 resolves the issue. (You need to restart cmd.exe to use updated PATH, the Windows environment variable.)
 
 ## Features
 - Restartable. Upon interrupts, this program is able to re-start from the file "swarm_data.txt" of the current run (or even from a different run).

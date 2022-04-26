@@ -42,7 +42,9 @@ def my_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_rank_no=
                 break
 
     return ax
-def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_rank_no=1, no_text=True, ax=None, fig=None, no_colorbar=False, z_filter=None, label=None, bool_return_auto_optimal_design=False, swarm_data_on_pareto_front=None):
+def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], 
+    up_to_rank_no=1, no_text=True, ax=None, fig=None, no_colorbar=False, z_filter=None, label=None, 
+    bool_return_auto_optimal_design=False, swarm_data_on_pareto_front=None):
     # this is adapted from pygmo package but there is a bug therein so I write my own function (I also initiated an issue at their Github page and they acknowledge the issue).
 
     # from pylab import mpl
@@ -220,7 +222,7 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_ran
             if count >= up_to_rank_no:
                 break
     # Y730
-    fig.savefig(r'C:\Users\horyc\Desktop/'+ '2p5D-%d%d.png'%(comp[0],comp[1]), dpi=300)
+    # fig.savefig(r'C:\Users\horyc\Desktop/'+ '2p5D-%d%d.png'%(comp[0],comp[1]), dpi=300)
     if bool_return_auto_optimal_design:
         return scatter_handle, auto_optimal_design_fitnesses, auto_optimal_design_xf
     else:

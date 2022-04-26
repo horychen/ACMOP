@@ -9,7 +9,7 @@ class UserInput_FSPM():
     guess_air_gap_flux_density_B: float = 0.8
     guess_stator_yoke_flux_density_Bsy: float = 0.3
     mm_stack_length: float = 10
-    Pa_TangentialStress: float = 6000 # = 0.5*A*B
+    Pa_TangentialStress: float = 1000 # = 0.5*A*B
     m: int = 3
     Qs: int = 24 # 12
     pm: int = 22 # 10
