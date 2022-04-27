@@ -487,7 +487,7 @@
         "moo.apply_constraints": false,
         "moo.save_acm_variant_object_as_jsonpickle": true,
         "moo.fitness_OA": "TorqueDensity",
-        "moo.fitness_OB": "TorqueRipple",
+        "moo.fitness_OB": "ForceErrorMagnitude",
         "moo.fitness_OC": "ForceErrorAngle",
         "moo.fitness_OD": null
     },

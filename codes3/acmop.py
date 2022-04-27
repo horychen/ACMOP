@@ -459,6 +459,26 @@ class AC_Machine_Optiomization_Wrapper(object):
         self.reproduced_design_variant = reproduced_design_variant
         return reproduced_design_variant
 
+    def reproduce_design_from_index(self, fname, bool_evaluate=False):
+        # 从json重构JMAG模型（x_denorm）
+        # Recover a design from its jsonpickle-object file
+        import utility_json
+        try:
+            reproduced_design_variant = utility_json.from_json_recursively(fname, load_here=self.ad.fea_config_dict['output_dir']+'jsonpickle/')
+            reproduced_design_variant.reproduce_wily()
+            if bool_evaluate:
+                GP = reproduced_design_variant.template.d['GP']
+                x_denorm = reproduced_design_variant.template.build_x_denorm()
+                print(reproduced_design_variant.template.get_x_denorm_dict_from_geometric_parameters(GP))
+                print(x_denorm)
+                self.part_evaluation_geometry(specify_x_denorm=x_denorm)
+                self.part_evaluation(specify_counter='PickleReproduced', specify_x_denorm=x_denorm)
+                # reproduced_design_variant.build_jmag_project(reproduced_design_variant.project_meta_data) # obsolete
+        except FileNotFoundError as e:
+            raise e
+        self.reproduced_design_variant = reproduced_design_variant
+        return reproduced_design_variant
+
     def part_post_optimization_analysis(self, project_name):
         # Status report: Generation, individuals, geometry as input, fea tools, performance as output (based on JSON files)
         # Do not show every step, but only those key steps showing how this population is built 
@@ -555,7 +575,7 @@ def main(number_which_part):
 
         # select_spec= 'Flux Alternator 1955',
 
-        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype",
+        select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype",
 
         # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
         # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
@@ -571,6 +591,7 @@ def main(number_which_part):
             # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
             # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
         select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples 2 (free tooth tip depth and fix sleeve length)",
+        # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
         # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
 
@@ -609,8 +630,8 @@ def main(number_which_part):
 if __name__ == '__main__':
     # main(31)
     # main(3)
-    # main(4)
-    main(5)
+    main(4)
+    # main(5)
 
 if __name__ == '__main__':
     ''' Interactive variable checking examples:

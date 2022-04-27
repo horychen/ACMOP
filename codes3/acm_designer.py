@@ -122,7 +122,7 @@ class Swarm_Data_Analyzer(object):
         self.l_rotor_copper_loss_in_end_turn        = self.get_metric_of_the_whole_swarm('rotor_copper_loss_in_end_turn') # [raw[6] for raw in self.rated_data]
         self.l_rated_iron_loss                      = self.get_metric_of_the_whole_swarm('rated_iron_loss') # [raw[7] for raw in self.rated_data]
         self.l_rated_windage_loss                   = self.get_metric_of_the_whole_swarm('rated_windage_loss') # [raw[8] for raw in self.rated_data]
-        self.l_rated_magnet_Joule_loss              = self.get_metric_of_the_whole_swarm('rated_magnet_Joule_loss')
+        # self.l_rated_magnet_Joule_loss              = self.get_metric_of_the_whole_swarm('rated_magnet_Joule_loss')
         # self.l_rated_rotor_volume                   = self.get_metric_of_the_whole_swarm('rated_rotor_volume') # [raw[9] for raw in self.rated_data]
         # self.l_rated_rotor_weight                   = self.get_metric_of_the_whole_swarm('rated_rotor_weight') # [(V*8050*9.8) for V in self.l_rated_rotor_volume] # density of rotor is estimated to be that of steraw of 8050 g/cm^3
         self.l_rated_stack_length                   = self.get_metric_of_the_whole_swarm('rated_stack_length_mm') # [raw[10] for raw in self.rated_data] # new!
@@ -1112,6 +1112,7 @@ class acm_designer(object):
             spec_performance_dict['rated_total_loss'] = rated_total_loss
             spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
             spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
+            spec_performance_dict['rated_magnet_Joule_loss'] = rated_magnet_Joule_loss
             spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
             spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
             spec_performance_dict['rated_iron_loss'] = rated_iron_loss

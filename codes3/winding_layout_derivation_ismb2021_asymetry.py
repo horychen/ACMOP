@@ -924,7 +924,8 @@ def main_derivation():
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
                                 # (15, 30, 2, 3, 10, 0),
-                                (3, 6, 5, 4, 2, 0), # 6s/14pp slot FSPM y=2 （y=3 has no suspension field)
+                                (3, 81, 3, 2, 13, 0), # 哔哩哔哩 NJ伯乐在此
+                                # (3, 6, 5, 4, 2, 0), # 6s/14pp slot FSPM y=2 （y=3 has no suspension field)
                                 # (3, 6, 1, 2, 2, 0), # 6s/14pp slot FSPM y=2
                                 # (3, 6, 4, 5, 2, 0), # 6s/14pp slot FSPM y=2
                                 # (3, 12, 14, 13, 1, 0), # 12 slot FSPM y=1

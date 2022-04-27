@@ -2477,13 +2477,17 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             f2 = - rated_efficiency
         elif acm_variant.template.fea_config_dict["moo.fitness_OB"] == 'TorqueRipple':
             f2 = normalized_torque_ripple
+        elif acm_variant.template.fea_config_dict["moo.fitness_OB"] == 'ForceErrorMagnitude':
+            f2 = normalized_force_error_magnitude
         else:
             raise 
 
         if acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'BearinglessRippleSum':
             # Ripple Performance (Weighted Sum)
             f3 = sum(list_weighted_ripples)
-        if acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'ForceErrorAngle':
+        elif acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'ForceErrorMagnitude':
+            f3 = normalized_force_error_magnitude
+        elif acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'ForceErrorAngle':
             f3 = force_error_angle
         else:
             raise 

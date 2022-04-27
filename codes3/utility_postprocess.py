@@ -833,13 +833,17 @@ def performance_table_plus_donut_chart(ad, folder_as_select_spec, _best_index, _
     print('\trotor_copper_loss_in_end_turn       :', ad.analyzer.l_rotor_copper_loss_in_end_turn       [_best_index], 'W')
     print('\trated_iron_loss                     :', ad.analyzer.l_rated_iron_loss                     [_best_index], 'W')
     print('\trated_windage_loss                  :', ad.analyzer.l_rated_windage_loss                  [_best_index], 'W')
-    print('\trated_magnet_Joule_loss             :', ad.analyzer.l_rated_magnet_Joule_loss             [_best_index], 'W')
+    # print('\trated_magnet_Joule_loss             :', ad.analyzer.l_rated_magnet_Joule_loss             [_best_index], 'W')
     # print('\trated_rotor_volume                  :', ad.analyzer.RatedVol    [_best_index], 'm3')
     # print('\trated_rotor_weight                  :', ad.analyzer.RatedWeight [_best_index], 'N')
     print('\trated_stack_length                  :', ad.analyzer.RatedStkLen [_best_index], 'mm')
     total_loss = ad.analyzer.l_rated_total_loss[_best_index]
+    print('[Warning] Magnet loss is not included in donut plot')
+    print('[Warning] Magnet loss is not included in donut plot')
+    print('[Warning] Magnet loss is not included in donut plot')
     sizes_in_percentage = np.array( [ ad.analyzer.l_rated_iron_loss[_best_index],
-                        ad.analyzer.l_rated_magnet_Joule_loss[_best_index] + ad.analyzer.l_rated_rotor_copper_loss_along_stack [_best_index] + ad.analyzer.l_rotor_copper_loss_in_end_turn[_best_index], # <- l_rotor_copper_loss_in_end_turn only exists for IM, there is no l_rotor_copper_loss_in_end_turn for PM motor.
+                        # ad.analyzer.l_rated_magnet_Joule_loss[_best_index] + 
+                        ad.analyzer.l_rated_rotor_copper_loss_along_stack [_best_index] + ad.analyzer.l_rotor_copper_loss_in_end_turn[_best_index], # <- l_rotor_copper_loss_in_end_turn only exists for IM, there is no l_rotor_copper_loss_in_end_turn for PM motor.
                         ad.analyzer.l_rated_stator_copper_loss_along_stack[_best_index] + ad.analyzer.l_stator_copper_loss_in_end_turn[_best_index], 
                         ad.analyzer.l_rated_windage_loss[_best_index]
                         ]
