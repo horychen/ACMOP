@@ -122,9 +122,9 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
             rotor_to_stator_tooth_width_ratio = 1.0
 
         if pm == 28 and Qs == 12:
-            rotor_to_stator_tooth_width_ratio = 0.5
+            rotor_to_stator_tooth_width_ratio = 1.0
         if pm == 20 and Qs == 12:
-            rotor_to_stator_tooth_width_ratio = 0.5
+            rotor_to_stator_tooth_width_ratio = 1.0
         k4 = rotor_to_stator_tooth_width_ratio
 
         # mm_stator_tooth_width_w_UCoreWidth = 2*np.pi*mm_r_si / Qs / 4

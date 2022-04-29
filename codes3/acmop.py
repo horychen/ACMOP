@@ -575,11 +575,10 @@ def main(number_which_part):
 
         # select_spec= 'Flux Alternator 1955',
 
-        select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype",
+        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype", # r_ro ~= 80 mm
+        select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test", # r_ro ~= 80 mm
 
-        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
-        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
-
+        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test", # small rotor outer diameter
         # select_spec= "FSPM-24s22pp-50W-400RPM-100Pa-Huge",
 
         # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",

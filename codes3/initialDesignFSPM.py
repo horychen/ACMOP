@@ -86,4 +86,25 @@ mm_d_sy = slice.guess_air_gap_flux_density_B * mm_stator_tooth_width_w_UCoreWidt
 
 # %%
 
+from pylab import np
+
+Qs = 24
+g = 3
+r_ro = 80
+w_PM = 3
+d_stt = 6
+
+k1, k2, k3, k4 = 0.7, 1.2, 1.2, 1.0
+
+r_si = r_ro + g
+r_so = k1 / r_ro
+print(f'w_PM <= {2*np.pi*r_si/4/Qs}')
+if w_PM > 2*np.pi*r_si/4/Qs:
+    raise
+w_st = 2*(k2*w_PM) + w_PM
+d_sy = k3*(k2*w_PM)
+w_rt = k4*(k2*w_PM)
+
+d_st = r_so - r_si - d_sy - d_stt
+
 # %%
