@@ -415,7 +415,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         # swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
         number_of_chromosome = ad.analyzer.number_of_chromosome
         number_of_finished_iterations = number_of_chromosome // popsize
-        number_of_iterations = 50
+        number_of_iterations = 500
 
         for _ in range(number_of_finished_iterations, number_of_iterations):
             msg = '[acmop.py] This is iteration #%d. '%(_)

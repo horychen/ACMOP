@@ -1,5 +1,9 @@
 import win32com.client, os, logging, utility
-from pylab import np, plt
+from pylab import np, plt, mpl
+print('The mpl backend is', mpl.rcParams['backend'])
+print('The mpl backend is', mpl.rcParams['backend'])
+print('The mpl backend is', mpl.rcParams['backend'])
+mpl.use('Agg') # ('pdf') #   # https://github.com/matplotlib/matplotlib/issues/21950
 EPS=0.01 # mm
 
 class data_manager(object):

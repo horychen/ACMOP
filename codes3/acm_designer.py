@@ -1,5 +1,5 @@
 from time import time as clock_time
-from pylab import plt, np, mpl
+from pylab import np # plt, mpl
 import os, logging, win32com.client, json
 import utility, utility_json
 import population, FEMM_Solver, pyrhonen_procedure_as_function
