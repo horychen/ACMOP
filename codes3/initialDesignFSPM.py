@@ -36,6 +36,14 @@ class UserInput_FSPM():
                     2*np.pi/rotor_angular_slot_span_theta_r_verNegative, \
                     number_of_cells_per_phase_Nc*(self.m+0.5*i),\
                     number_of_cells_per_phase_Nc*(self.m-0.5*i) )
+            # pm = 2*np.pi/rotor_angular_slot_span_theta_r_verNegative
+            # pm = (self.Qs + self.Qs*i/2/self.m)
+            # pm = (self.Qs + number_of_cells_per_phase_Nc*i/2)
+            # pm = number_of_cells_per_phase_Nc * (self.m + i*0.5)
+
+        print('New clean version with a different factor of i*0.25 instead of i*0.5:')
+        print([number_of_cells_per_phase_Nc*(self.m+0.25*i) for i in range(1, 2*self.m)])
+        print([number_of_cells_per_phase_Nc*(self.m-0.25*i) for i in range(1, 2*self.m)])
 
 # slice = UserInput_FSPM(mec_power=100, speed_rpm=200, Pa_TangentialStress=12000)
 # slice = UserInput_FSPM(mec_power=50, speed_rpm=400, Pa_TangentialStress=3000)

@@ -1,5 +1,7 @@
 .*/
 
+*.code-workspace
+
 Initial
 
 streamllit_user_session_data.json
