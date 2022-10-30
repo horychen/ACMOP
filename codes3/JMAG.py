@@ -155,13 +155,19 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             try:
                 # app = win32com.client.Dispatch('designer.Application.200')
                 app = win32com.client.Dispatch('designer.Application.171')
+                print('JMAG 17.1 is not found. Will use any other JMAG version avaiilable.')
                 # app = win32com.client.gencache.EnsureDispatch('designer.Application.171') # https://stackoverflow.com/questions/50127959/win32-dispatch-vs-win32-gencache-in-python-what-are-the-pros-and-cons
             except:
                 try:
-                    app = win32com.client.Dispatch('designer.Application.181')
+                    app = win32com.client.Dispatch('designer.Application')
+                    # app = win32com.client.Dispatch('designer.Application.181')
                     # app = win32com.client.gencache.EnsureDispatch('designer.Application.171')
                 except:
-                    raise Exception('No JMAG Designer 17 or 18 is found in this PC.')
+                    raise Exception('No JMAG Designer 17 is found in this PC.')
+
+            self.JMAG_version_string = app.VersionString(0)
+            self.JMAG_version_number = float(app.VersionString(0)[:2])
+
             if self.fea_config_dict['designer.Show'] == True:
                 app.Show()
             else:
@@ -907,12 +913,21 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             print('[JMAG.py] Cannot create terminal label:', "TerminalLabel"+acm_variant.circuit_coil_names[2])
             print('[JMAG.py] Cannot create terminal label:', "TerminalLabel"+acm_variant.circuit_coil_names[3])
         else:
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 8, -13) # seek WriteTable
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 8, -11)
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupACW", 8, -9)
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupBDU", 23, -13)
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupBDV", 23, -11)
-            study.GetCircuit().CreateTerminalLabel("TerminalGroupBDW", 23, -9)
+            if self.JMAG_version_number >= 20:
+                # 新版JMAG把Y轴反过来了
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 8, 13) # seek WriteTable
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 8, 11)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupACW", 8, 9)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDU", 23, 13)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDV", 23, 11)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDW", 23, 9)
+            else:
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupACU", 8, -13) # seek WriteTable
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupACV", 8, -11)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupACW", 8, -9)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDU", 23, -13)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDV", 23, -11)
+                study.GetCircuit().CreateTerminalLabel("TerminalGroupBDW", 23, -9)
         # Export Stator Core's field results only for iron loss calculation (the csv file of iron loss will be clean with this setting)
             # study.GetMaterial(u"Rotor Core").SetValue(u"OutputResult", 0) # at least one part on the rotor should be output or else a warning "the jplot file does not contains displacement results when you try to calc. iron loss on the moving part." will pop up, even though I don't add iron loss condition on the rotor.
         # study.GetMeshControl().SetValue(u"AirRegionOutputResult", 0)

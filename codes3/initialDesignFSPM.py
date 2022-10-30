@@ -25,9 +25,11 @@ class UserInput_FSPM():
         #     self.RotorOuterRadius_r_or = np.sqrt(self.RotorActiveCrossSectArea_Sr/np.pi)
         #     self.mm_r_ro = self.RotorOuterRadius_r_or*1e3
 
+
         number_of_cells_per_phase_Nc = self.Qs/self.m
         stator_angular_slot_span_theta_s = 2*np.pi / self.Qs
         'The angular difference between stator and rotor teeth should be multiple of 2*pi_elec / (2*self.m)'
+        print('The original work suggests:')
         for i in range(1, 2*self.m):
             rotor_angular_slot_span_theta_r_verPositive = stator_angular_slot_span_theta_s/(1+i/2/self.m)
             rotor_angular_slot_span_theta_r_verNegative = stator_angular_slot_span_theta_s/(1-i/2/self.m)
@@ -44,6 +46,9 @@ class UserInput_FSPM():
         print('New clean version with a different factor of i*0.25 instead of i*0.5:')
         print([number_of_cells_per_phase_Nc*(self.m+0.25*i) for i in range(1, 2*self.m)])
         print([number_of_cells_per_phase_Nc*(self.m-0.25*i) for i in range(1, 2*self.m)])
+        print('And pa should be:')
+        print([number_of_cells_per_phase_Nc*(self.m+0.25*i) - self.Qs/2 for i in range(1, 2*self.m)])
+        print([number_of_cells_per_phase_Nc*(self.m-0.25*i) - self.Qs/2 for i in range(1, 2*self.m)])
 
 # slice = UserInput_FSPM(mec_power=100, speed_rpm=200, Pa_TangentialStress=12000)
 # slice = UserInput_FSPM(mec_power=50, speed_rpm=400, Pa_TangentialStress=3000)
