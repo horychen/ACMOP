@@ -99,6 +99,26 @@ class winding_layout_v2(object):
     # Combined Winding for Bearingless Motor
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         if DPNV_or_SEPA == True \
+        and Qs == 12 \
+        and p == 2 \
+        and ps == 1 \
+        and coil_pitch_y == 3:
+
+            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
+            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
+            self.coil_pitch_y   = coil_pitch_y
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+            self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
+            self.number_parallel_branch = 2
+            self.number_winding_layer   = 2
+
+            self.bool_3PhaseCurrentSource = False
+            self.CommutatingSequenceD = 1
+            self.CommutatingSequenceB = 0
+
+        if DPNV_or_SEPA == True \
         and Qs == 6 \
         and p == 5 \
         and ps == 4 \
@@ -545,6 +565,11 @@ class winding_layout_v2(object):
             # below is valid for PMSM only
 
             q = SPP = Qs / (2*p * m)
+            print(f'{SPP=}')
+            print(f'{SPP=}')
+            print(f'{SPP=}', q%1 == 0, q%1)
+
+
             # print('[wily] q =', q)
             # if q%1 > 0:
             #     print('[wily] Fractional slot winding with an SPP of %g.'%(q))
@@ -614,11 +639,13 @@ class winding_layout_v2(object):
                 # quit()
 
                     # 2019/12/25: Q18, p2, ps1 case is verified to be okay with q=1.5.
+                print('deg_winding_V_phase_phase_axis_angle=', deg_winding_V_phase_phase_axis_angle)
+            print('[wily] self.deg_winding_U_phase_phase_axis_angle=', self.deg_winding_U_phase_phase_axis_angle) 
             print('[wily] q = SPP =', SPP)
-            print('[wily] self.deg_winding_U_phase_phase_axis_angle=', self.deg_winding_U_phase_phase_axis_angle, 'deg_winding_V_phase_phase_axis_angle=', deg_winding_V_phase_phase_axis_angle)
             # quit()
-        except:
-            raise Exception(f'Error: This winding is not implemented to get deg_winding_U_phase_phase_axis_angle: Qs,p,ps,coil_pitch_y = {Qs,p,ps,coil_pitch_y}', Wrap_Around, DPNV_or_SEPA)
+        except Exception as e:
+            print(f'Error: This winding is not implemented to get deg_winding_U_phase_phase_axis_angle: Qs,p,ps,coil_pitch_y = {Qs,p,ps,coil_pitch_y}', Wrap_Around, DPNV_or_SEPA)
+            raise e
 
 
         # 这是实际在pre_procee中调用的字典

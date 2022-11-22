@@ -1,4 +1,47 @@
 {
+    "FRPM-12s16pp-Demo":
+    {
+        "Inputs":
+        {
+            "machine_type":                        "FRPM",
+            "DPNV_or_SEPA":                        true,
+            "minimum_mechanical_air_gap_length_mm": 0.50,
+            "m":                                   3,
+            "Qs":                                  12,
+            "ps":                                  1,
+            "p":                                   2,
+            "number_of_rotor_pole_pairs":              16,
+            "pa":                                  2,
+            "pe":                                  6,
+            "pm":                                      16,
+            "coil_pitch_y":                        3,
+            "mec_power":                           50,
+            "ExcitationFreqSimulated":             100.0,
+            "Steel":                               "M19Gauge29",
+            "lamination_stacking_factor_kFe":      0.95,
+            "Coil":                                "Cu",
+            "Js":                                  4e6,
+            "Temperature":                         75,
+            "space_factor_kCu":                    0.3882,
+            "WindingFill":                         0.3882,
+            "AWG":                                 25,
+            "VoltageRating":                       50,
+            "guess_efficiency":                    0.9,
+            "guess_power_factor":                  0.8,
+            "guess_air_gap_flux_density_Bg":       0.7,
+            "guess_stator_tooth_flux_density_Bst": null,
+            "guess_stator_yoke_flux_density_Bsy":  0.2,
+            "tip_speed":                           70,
+            "TangentialStress":                    6000,
+            "mm_stack_length":                     12,
+            "mm_radius_shaft":                     20,
+            "safety_factor_to_yield":              null,
+            "safety_factor_to_critical_speed":     null,
+            "bool_skew_stator":                    false,
+            "bool_skew_rotor":                     false
+        }
+    },
+
     "FSPM-24s22pp-50W-400RPM-6000Pa-p14ps13pe12":
     {
         "Inputs":

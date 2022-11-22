@@ -1,7 +1,7 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
 
-import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design
+import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, flux_reversal_pm_design
 
 from soupsieve import select
 # from codes3.population import VanGogh_JMAG
@@ -152,6 +152,8 @@ class AC_Machine_Optiomization_Wrapper(object):
             function = flux_alternator_design.flux_alternator_template
         elif 'FSPM' in self.select_spec: 
             function = flux_switching_pm_design.FSPM_template
+        elif 'FRPM' in self.select_spec: 
+            function = flux_reversal_pm_design.FRPM_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
         self.ad = acm_designer.acm_designer(
@@ -266,6 +268,8 @@ class AC_Machine_Optiomization_Wrapper(object):
         elif 'Alternator' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant)
         elif 'FSPM' in acm_variant.template.name:
+            toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
+        elif 'FRPM' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
         else:
             raise
@@ -577,7 +581,9 @@ def main(number_which_part):
 
         # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype", # r_ro ~= 80 mm
         # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test", # r_ro ~= 80 mm
-        select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-p14ps13pe12", # r_ro ~= 80 mm
+        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-p14ps13pe12", # r_ro ~= 80 mm
+
+        select_spec= "FRPM-12s16pp-Demo", 
 
         # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test", # small rotor outer diameter
         # select_spec= "FSPM-24s22pp-50W-400RPM-100Pa-Huge",
@@ -628,9 +634,9 @@ def main(number_which_part):
     return mop
 
 if __name__ == '__main__':
-    # main(31)
+    main(31)
     # main(3)
-    main(4)
+    # main(4)
     # main(5)
 
 if __name__ == '__main__':
