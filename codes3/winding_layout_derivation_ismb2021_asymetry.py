@@ -924,10 +924,13 @@ def main_derivation():
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
                                 # (15, 30, 2, 3, 10, 0),
+                                # (3, 24, 8, 7, 1, 0), # 
+                                # (3, 24, 8, 9, 1, 0), # 
+                                (3, 24, 8, 11, 1, 0), # 
                                 # (3, 6, 5, 4, 1, 0), # concentrated winding with working harmonics
                                 # (3, 6, 5, 4, 2, 0), # concentrated winding with working harmonics
                                 # (3, 6, 10, 11, 3, 0), # concentrated winding with working harmonics
-                                (3, 6, 10, 11, 1, 0), # concentrated winding with working harmonics
+                                # (3, 6, 10, 11, 1, 0), # concentrated winding with working harmonics
                                 # (3, 81, 3, 2, 13, 0), # 哔哩哔哩 NJ伯乐在此
                                 # (3, 6, 5, 4, 2, 0), # 6s/14pp slot FSPM y=2 （y=3 has no suspension field)
                                 # (3, 6, 1, 2, 2, 0), # 6s/14pp slot FSPM y=2
@@ -938,6 +941,8 @@ def main_derivation():
                                 # (3, 12, 22, 23, 2, 0), # 12 slot FSPM y=2
                                 # (3, 24, 14, 13, 1, 0), # 24 slot FSPM
                                 # (3, 24, 10, 11, 1, 0), # 24 slot FSPM
+                                # (3, 24, 10, 11, 2, 0), # 24 slot FSPM (y=2  is gabbage)
+                                # (3, 24, 10, 9, 1, 0), # 24 slot FSPM (ps=9)
                                 # (3, 24, 9, 1, 1, 0), # Type 3 winding with odd p and ps=1
                                 # (3, 12, 4, 1, 1, 0), # Eric's Homopolar Motor??? p is even number?
                                 # (3, 18, 4, 1, 1, 0), # Eric's Homopolar Motor??? p is even number?
