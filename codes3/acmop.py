@@ -583,7 +583,7 @@ def main(number_which_part):
         # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test", # r_ro ~= 80 mm
         # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-p14ps13pe12", # r_ro ~= 80 mm
 
-        select_spec= "FRPM-12s16pp-Demo", 
+        select_spec= "FRPM-12s16pp-Demo",
 
         # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test", # small rotor outer diameter
         # select_spec= "FSPM-24s22pp-50W-400RPM-100Pa-Huge",

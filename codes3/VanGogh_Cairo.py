@@ -59,7 +59,7 @@ class VanGogh_Cairo:
 
     def draw_doubly_salient(self, acm_variant, bool_draw_whole_model=True, bool_show_pdf=False):
         # Rotor Core
-        list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.rotorCore.p*2
         # region1 = self.prepareSection(list_regions_1)
