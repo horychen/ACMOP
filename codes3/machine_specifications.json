@@ -5,7 +5,7 @@
         {
             "machine_type":                        "FRPM",
             "DPNV_or_SEPA":                        true,
-            "minimum_mechanical_air_gap_length_mm": 0.50,
+            "minimum_mechanical_air_gap_length_mm": 6,
             "m":                                   3,
             "Qs":                                  12,
             "ps":                                  1,

@@ -267,6 +267,7 @@ class template_machine_as_numbers(object):
                         parameter.value = parameter.calc(self.d['GP'], self.SI)
                     except TypeError as e: # TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType' 用来计算的变量还未被赋值
                         count_TypeError += 1
+                        print(parameter)
                         print('[inner_rotor_motor.py] [Re] TypeError: None is used for derivation.')
                         pass
                     finally:

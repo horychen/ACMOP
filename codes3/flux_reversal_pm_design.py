@@ -2,7 +2,7 @@ import inner_rotor_motor, pyrhonen_procedure_as_function
 import logging
 from collections import OrderedDict
 from utility import acmop_parameter
-from pylab import np
+from pylab import np, sin
 from pprint import pprint
 
 import CrossSectInnerSalientPoleRotor, CrossSectInnerNotchedRotor, CrossSectStator, Location2D
@@ -43,7 +43,6 @@ class FRPM_template(inner_rotor_motor.template_machine_as_numbers):
             # FRPM Peculiar                     Type       Name                         Value  Bounds       Calc
             "split_ratio_rotor_salient" : acmop_parameter("free",     "rotor_salient_split_ratio",  None, [None, None], lambda GP,SI:None),
             "deg_alpha_rsp"             : acmop_parameter("free",     "rotor_salient_pole_angle",   None, [None, None], lambda GP,SI:None),
-            "PM_to_tooth_width_ratio"   : acmop_parameter("free",     "PM_to_tooth_width_ratio",    None, [None, None], lambda GP,SI:None),
             "mm_d_pm"                   : acmop_parameter("fixed",    "permanent_magnet_depth",     None, [None, None], lambda GP,SI:None), #derive_mm_d_pm(GP,SI)),
             "mm_d_air_pm"               : acmop_parameter("fixed",    "permanent_magnet_air_depth", None, [None, None], lambda GP,SI:None),
             "deg_alpha_pm_at_airgap"    : acmop_parameter("derived",  "permanent_magnet_span_angle_at_airgap",   None, [None, None], lambda GP,SI:derive_deg_alpha_pm_at_airgap(GP,SI)),
@@ -51,10 +50,10 @@ class FRPM_template(inner_rotor_motor.template_machine_as_numbers):
             "FRPM_k3"                   : acmop_parameter("fixed",    "FRPM k3 (yoke to U core iron leg ratio)",   None, [None, None], lambda GP,SI:None),
             "mm_r_ri"                   : acmop_parameter("fixed",    "rotor_inner_radius (shaft_radius)", None, [None, None], lambda GP,SI:None),
             "mm_d_ri"                   : acmop_parameter("derived",  "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SI:derive_mm_d_ri(GP,SI)),
-            "mm_d_sy"                   : acmop_parameter("derived",  "stator_yoke_depth (OVERWRITE)", None, [None, None], lambda GP,SI:derive_mm_d_sy_overwrite(GP,SI)),
+            "mm_d_sy"                   : acmop_parameter("free",  "stator_yoke_depth (OVERWRITE)", None, [None, None], lambda GP,SI:None),
+            "mm_d_sp"                   : acmop_parameter("fixed",    "stator_tip_depth", None, [None, None], lambda GP,SI:None),
         })
         GP.update(childGP)
-
         # Get Analytical Design
         # self.MyCustomizedInitialDesignScript(fea_config_dict, SI, GP, EX)
         self.MyCustomizedInitialDesignScript_Version2(fea_config_dict, SI, GP, EX)
@@ -108,62 +107,79 @@ class FRPM_template(inner_rotor_motor.template_machine_as_numbers):
         mm_r_airgap = mm_r_ro + mm_air_gap_length*0.5
 
         # note this is only valid for 12s/10pp motor
-        if pm == 10 or pm == 20:
-            rotor_to_stator_tooth_width_ratio = 1.4 # 2010 诸自强 1点4倍的来源 Analysis of Electromagnetic Performance of Flux
-        elif pm == 14 or pm == 28:
-            rotor_to_stator_tooth_width_ratio = 1.0
-        else:
-            rotor_to_stator_tooth_width_ratio = 1.4
-            # raise Exception('Not supported pm value:', pm)
+        # if pm == 10 or pm == 20:
+        #     rotor_to_stator_tooth_width_ratio = 1.4 # 2010 诸自强 1点4倍的来源 Analysis of Electromagnetic Performance of Flux
+        # elif pm == 14 or pm == 28:
+        #     rotor_to_stator_tooth_width_ratio = 1.0
+        # else:
+        #     rotor_to_stator_tooth_width_ratio = 1.4
+        #     # raise Exception('Not supported pm value:', pm)
 
-        if Qs == 6:
-            rotor_to_stator_tooth_width_ratio = 1.0
+        # if Qs == 6:
+        #     rotor_to_stator_tooth_width_ratio = 1.0
 
-        if pm == 28 and Qs == 12:
-            rotor_to_stator_tooth_width_ratio = 1.0
-        if pm == 20 and Qs == 12:
-            rotor_to_stator_tooth_width_ratio = 1.0
-        k4 = rotor_to_stator_tooth_width_ratio
+        # if pm == 28 and Qs == 12:
+        #     rotor_to_stator_tooth_width_ratio = 1.0
+        # if pm == 20 and Qs == 12:
+        #     rotor_to_stator_tooth_width_ratio = 1.0
+        # if Qs == 12:
+        #     rotor_to_stator_tooth_width_ratio = 1
+        # rotor_to_stator_tooth_width_ratio = 0.5
+        # k4 = rotor_to_stator_tooth_width_ratio
 
         # mm_stator_tooth_width_w_UCoreWidth = 2*np.pi*mm_r_si / Qs / 4
-        if Qs < 18:
-            mm_d_pm = 5 #mm_stator_tooth_width_w_UCoreWidth
-        else:
-            mm_d_pm = 3
-
-        k2 = 1.2
-        PM_to_tooth_width_ratio = 1 / (1+2*k2)
-        mm_stator_tooth_width_w_UCoreWidth = k2*mm_d_pm
-        mm_w_st = mm_d_pm + 2*mm_stator_tooth_width_w_UCoreWidth
-        mm_w_rt = k4 * mm_stator_tooth_width_w_UCoreWidth # Empirical: slightly wider (5.18) Habil-Gruber
-
-        k1 = split_ratio = 0.7
+        # if Qs < 18:
+        #     mm_d_pm = 5 #mm_stator_tooth_width_w_UCoreWidth
+        # else:
+        #     mm_d_pm = 3
+        k1 = split_ratio = 0.6
         mm_r_so = mm_r_ro / split_ratio
 
-        k3 = 1.2
-        mm_d_sy = k3*mm_stator_tooth_width_w_UCoreWidth
-        mm_d_st = mm_r_so - (mm_r_si + mm_d_sy)
+        mm_d_pm = 3.1
+        k6 = 0.67
+        deg_alpha_st = k6 * 360 / Qs # 包含了 tooth tip
+        k7 = 0.5
+        deg_alpha_rsp = k7 * deg_alpha_st
+        mm_w_rt = mm_r_ro * sin(deg_alpha_rsp / 2 * np.pi /180)
+        k2 = 0.14
+        mm_w_st = k2 * mm_r_so    
+        
 
-        弧长 = mm_w_rt
-        deg_alpha_rsp = 弧长 / mm_r_ro /np.pi*180
+        # PM_to_tooth_width_ratio = 1 / (1+2*k2)
+        # mm_stator_tooth_width_w_UCoreWidth = k2*mm_d_pm
+        # mm_w_st = mm_d_pm + 2*mm_stator_tooth_width_w_UCoreWidth
+        # mm_w_rt = k4 * mm_stator_tooth_width_w_UCoreWidth # Empirical: slightly wider (5.18) Habil-Gruber
+        # mm_w_rt = k4 * mm_w_st # Empirical: slightly wider (5.18) Habil-Gruber
+        # mm_w_rt = mm_r_ro * math.sin()
 
-        弧长 = mm_w_st
-        deg_alpha_st = 弧长 / mm_r_si /np.pi*180 + 2 # 2 deg of tooth tip
+        k3 = 0.03
+        mm_d_sy = k3 * mm_r_so
+        k5 = 0.051
+        mm_d_sp = k5 * mm_r_so
+        mm_d_st = mm_r_so - (mm_r_si + mm_d_sy + mm_d_sp)
+          
 
+        # 弧长 = mm_w_st
+        # deg_alpha_st = 弧长 / mm_r_si /np.pi*180 + 2 # 2 deg of tooth tip
+        # print(GP)
+        # quit()
         # STATOR
         GP['deg_alpha_st'].value         = deg_alpha_st
         GP['deg_alpha_sto'].value        = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
         GP['mm_d_sto'].value             = 2 # mm
         GP['mm_d_stt'].value             = 3 * GP['mm_d_sto'].value # 1.5* # reduce tooth tip saturation
         GP['mm_r_si'].value              = mm_r_si
+        # print(GP)
+        # quit()
         GP['mm_r_so'].value              = mm_r_so
-        GP['mm_d_st'].value              = mm_d_st - GP['mm_d_stt'].value
+        GP['mm_d_st'].value              = mm_d_st
         GP['mm_d_sy'].value              = mm_d_sy
+        GP['mm_d_sp'].value              = mm_d_sp
         # print(mm_r_so, mm_d_sy)
         # print(mm_r_so, mm_d_sy)
         # print(mm_r_so, mm_d_sy)
         GP['FRPM_k3'].value              = k3
-        GP['PM_to_tooth_width_ratio'].value = PM_to_tooth_width_ratio
+        # GP['PM_to_tooth_width_ratio'].value = PM_to_tooth_width_ratio
         GP['mm_w_st'].value              = mm_w_st
         GP['mm_d_pm'].value              = mm_d_pm
         GP['deg_alpha_pm_at_airgap'].value = mm_d_pm / (2*np.pi*mm_r_si) * 360
@@ -173,6 +189,7 @@ class FRPM_template(inner_rotor_motor.template_machine_as_numbers):
         GP['split_ratio'].value          = split_ratio
         GP['mm_r_ro'].value              = mm_r_ro
         GP['deg_alpha_rsp'].value        = deg_alpha_rsp
+
 
     def MyCustomizedInitialDesignScript(self, fea_config_dict, SI, GP, EX):
 
@@ -306,6 +323,7 @@ class FRPM_template(inner_rotor_motor.template_machine_as_numbers):
             "deg_alpha_st": [ 0.35*360/Q, 0.9*360/Q],
             "mm_d_sto":     [  0.5, 5],
             "mm_d_stt":     [  3,   8],
+            # "mm_d_sp":     [  3,   10],
             "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value],
             "PM_to_tooth_width_ratio": [1/4, 0.3], # = 1/(1+2*k2), k2=1.5 (max), k2>=1
@@ -367,6 +385,8 @@ class FRPM_design_variant(inner_rotor_motor.variant_machine_as_objects):
                                             mm_d_st = GP['mm_d_st'].value,
                                             mm_d_sy = GP['mm_d_sy'].value,
                                             mm_w_st = GP['mm_w_st'].value,
+                                            mm_d_sp = GP['mm_d_sp'].value,
+                                            mm_r_so = GP['mm_r_so'].value,
                                             mm_r_st = 0.0, # =0
                                             mm_r_sf = 0.0, # =0
                                             mm_r_sb = 0.0, # =0

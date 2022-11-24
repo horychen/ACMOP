@@ -1,4 +1,4 @@
-from pylab import np, cos, sin, arctan
+from pylab import np, cos, sin, arctan, sqrt
 class CrossSectInnerRotorStator:
     # CrossSectInnerRotorStator Describes the inner rotor motor stator.
     #    Properties are set upon class creation and cannot be modified.
@@ -1195,9 +1195,11 @@ class CrossSectInnerRotorStator_PMAtToothTipSurface:
                     mm_d_st      = 15, # tooth base length: class type DimLinear
                     mm_d_sy      = 15, # back iron thickness: class type DimLinear
                     mm_w_st      = 13, # tooth base width: class type DimLinear
+                    mm_r_so      = 124, # outer radius of stator 
                     mm_r_st      = 0,  # fillet on outter tooth: class type DimLinear
                     mm_r_sf      = 0,  # fillet between tooth tip and base: class type DimLinear
                     mm_r_sb      = 0,  # fillet at tooth base: class type DimLinear
+                    mm_d_sp      = 0,  # stator tip width
                     Q            = 6,  # number of stator slots (integer)
                     mm_d_pm      = 5,
                     deg_alpha_pm_at_airgap = None,
@@ -1224,7 +1226,9 @@ class CrossSectInnerRotorStator_PMAtToothTipSurface:
         # self.mm_w_st = 2*(self.mm_r_si+self.mm_d_stt)*sin(0.5*(self.alpha_slot_span/2))
         self.mm_r_st      = mm_r_st     
         self.mm_r_sf      = mm_r_sf     
-        self.mm_r_sb      = mm_r_sb  
+        self.mm_r_sb      = mm_r_sb
+        self.mm_d_sp      = mm_d_sp  
+        self.mm_r_so      = mm_r_so
         self.mm_d_pm =  mm_d_pm
         self.deg_alpha_pm_at_airgap = deg_alpha_pm_at_airgap
         self.mm_difference_pm_yoke = mm_difference_pm_yoke
@@ -1247,6 +1251,8 @@ class CrossSectInnerRotorStator_PMAtToothTipSurface:
         r_st = self.mm_r_st
         r_sf = self.mm_r_sf
         r_sb = self.mm_r_sb
+        d_sp = self.mm_d_sp
+        r_so = self.mm_r_so
         Q    = self.Q
         mm_d_pm = self.mm_d_pm
         alpha_pm_at_airgap = self.deg_alpha_pm_at_airgap/180*np.pi
@@ -1254,88 +1260,131 @@ class CrossSectInnerRotorStator_PMAtToothTipSurface:
         alpha_slot_span = self.alpha_slot_span
         # print('DEBUG', alpha_slot_span/np.pi*180)
 
-        P0 = [r_si, 0]
-        P1 = [r_si* cos(alpha_pm_at_airgap/2), 
-              r_si*-sin(alpha_pm_at_airgap/2) ]
-        P2 = [r_si* cos(alpha_st/2), 
-              r_si*-sin(alpha_st/2) ]
+        # P0 = [r_si, 0]
+        # P1 = [r_si* cos(alpha_pm_at_airgap/2), 
+        #       r_si*-sin(alpha_pm_at_airgap/2) ]
+        # P2 = [r_si* cos(alpha_st/2), 
+        #       r_si*-sin(alpha_st/2) ]
 
         # P1 = [r_si, 0]
         # P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
-        P3_temp = [ d_sto*cos(alpha_st*0.5), 
-                    d_sto*-sin(alpha_st*0.5)]
-        P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
-                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
-        P3 = [  P3_local_rotate[0] + P2[0],
-                P3_local_rotate[1] + P2[1] ]
+        # P3_temp = [ d_sto*cos(alpha_st*0.5), 
+        #             d_sto*-sin(alpha_st*0.5)]
+        # P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
+        #                      -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        # P3 = [  P3_local_rotate[0] + P2[0],
+        #         P3_local_rotate[1] + P2[1] ]
 
-        三角形的底 = r_si + d_stt
-        三角形的高 = w_st*0.5
-        三角形的角度 = arctan(三角形的高 / 三角形的底)
-        P4 = [  三角形的底*cos(三角形的角度), 
-                三角形的底*-sin(三角形的角度)]
+        # 三角形的底 = r_si + d_stt
+        # 三角形的高 = w_st*0.5
+        # 三角形的角度 = arctan(三角形的高 / 三角形的底)
+        # P4 = [  三角形的底*cos(三角形的角度), 
+        #         三角形的底*-sin(三角形的角度)]
 
-        P5 = [ P4[0] + d_st, 
-               P4[1]]
+        # P5 = [ P4[0] + d_st, 
+        #        P4[1]]
 
         # Option 1
         # 6 [94.01649113009418, -25.191642873516543] 97.33303383272235
         # Radius_InnerStatorYoke = r_si+d_sp+d_st
         # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
         # Option 2
-        r_sy = Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        # r_sy = Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
         # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
-        P6 = [ r_sy *  cos(alpha_slot_span*0.5),
-               r_sy * -sin(alpha_slot_span*0.5) ]
+        # P6 = [ r_sy *  cos(alpha_slot_span*0.5),
+        #        r_sy * -sin(alpha_slot_span*0.5) ]
 
-        if False:
-            P7 = [  (r_si+d_stt+d_st+d_sy)*cos(alpha_slot_span*0.5),
-                    (r_si+d_stt+d_st+d_sy)*-sin(alpha_slot_span*0.5) ]
-            P8 = [  r_si+d_stt+d_st+d_sy, 0]
-        else:
-            P7 = [  (r_sy+d_sy)*cos(alpha_slot_span*0.5),
-                    (r_sy+d_sy)*-sin(alpha_slot_span*0.5) ]
-            P8 = [   r_sy+d_sy, 0]
+        # if False:
+        #     P7 = [  (r_si+d_stt+d_st+d_sy)*cos(alpha_slot_span*0.5),
+        #             (r_si+d_stt+d_st+d_sy)*-sin(alpha_slot_span*0.5) ]
+        #     P8 = [  r_si+d_stt+d_st+d_sy, 0]
+        # else:
+        #     P7 = [  (r_sy+d_sy)*cos(alpha_slot_span*0.5),
+        #             (r_sy+d_sy)*-sin(alpha_slot_span*0.5) ]
+        #     P8 = [   r_sy+d_sy, 0]
 
-        r_so = r_sy + d_sy
-        P_PM = [np.sqrt((r_so)**2 - P1[1]**2) - self.mm_difference_pm_yoke, P1[1]]
+        # guanghui:
+        # -----------------------
+        P1 = [r_si, 0]
+        P2 = [r_si * cos(alpha_st/2), r_si * sin(alpha_st/2)]
+        P3 = [(r_si + d_sp) * cos(alpha_st/2), (r_si + d_sp) * sin(alpha_st/2)]
+        P4 = [sqrt( (r_si + d_sp) ** 2 + (w_st / 2) ** 2), w_st / 2]
+        P5 = [P4[0] + d_st, w_st / 2]
+        P6 = [(r_so - d_sy) * cos(2 * np.pi / Q / 2), (r_so - d_sy) * sin(2 * np.pi / Q / 2)]
+        P7 = [r_so * cos(2 * np.pi / Q / 2), r_so * sin(2 * np.pi / Q / 2)]
+        P8 = [r_so, 0]
+        # -----------------------
+        # r_so = r_sy + d_sy
+        # P_PM = [np.sqrt((r_so)**2 - P1[1]**2) - self.mm_difference_pm_yoke, P1[1]]
 
-        斜边 = r_so
-        高 = np.abs(P5[1])
-        底边 = np.sqrt(斜边**2 - 高**2)
-        P5_OuterEdge = [底边, -高]
+        # 斜边 = r_so
+        # 高 = np.abs(P5[1])
+        # 底边 = np.sqrt(斜边**2 - 高**2)
+        # P5_OuterEdge = [底边, -高]
 
+        # P1_Mirror = [P1[0], -P1[1]]
+        # P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
+        # P3_Mirror = [P3[0], -P3[1]]
+        # P4_Mirror = [P4[0], -P4[1]]
+        # P5_Mirror = [P5[0], -P5[1]]
+        # P_PM_Mirror = [P_PM[0], -P_PM[1]]
+        # guanghui:
+        # -----------------------
         P1_Mirror = [P1[0], -P1[1]]
-        P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
+        P2_Mirror = [P2[0], -P2[1]] 
         P3_Mirror = [P3[0], -P3[1]]
         P4_Mirror = [P4[0], -P4[1]]
         P5_Mirror = [P5[0], -P5[1]]
-        P_PM_Mirror = [P_PM[0], -P_PM[1]]
+        P6_Mirror = [P6[0], -P6[1]]
+        P7_Mirror = [P7[0], -P7[1]]
+        P8_Mirror = [P8[0], -P8[1]]
+        # -----------------------
         def iPark(P, theta):
             return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
 
         list_segments = []
         if bool_draw_whole_model:
-            def draw_fraction(list_segments, i, P1, P2, P3, P4, P5,
-                                            P1_Mirror,
-                                            P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror,
-                                            P_PM, P_PM_Mirror):
-                P5_Rotate = iPark(P5, alpha_slot_span)
-                list_segments += drawer.drawArc([0,0], P2, P1)
+            def draw_fraction(list_segments, i, P1, P2, P3, P4, P5, P6, P7, P8,
+                                            P1_Mirror, P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror,
+                                            P6_Mirror, P7_Mirror, P8_Mirror,
+                                            ):
+                # P5_Rotate = iPark(P5, alpha_slot_span)
+                # list_segments += drawer.drawArc([0,0], P2, P1)
+                # list_segments += drawer.drawLine(P2, P3)
+                # list_segments += drawer.drawLine(P3, P4)
+                # list_segments += drawer.drawLine(P4, P5)
+
+                # list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
+                # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
+                # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
+                # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+
+                # list_segments += drawer.drawLine(P1, P_PM)
+                # list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+                # list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
+
+                # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+
+                # guanghui:
+                # -----------------------
+                list_segments += drawer.drawArc([0,0], P1, P2)
                 list_segments += drawer.drawLine(P2, P3)
-                list_segments += drawer.drawLine(P3, P4)
+                list_segments += drawer.drawArc([0,0],P4, P3)
+                # list_segments += drawer.drawLine(P4, P3)
                 list_segments += drawer.drawLine(P4, P5)
+                list_segments += drawer.drawArc([0,0], P5, P6)   
+                list_segments += drawer.drawArc([0,0], P8, P7)
 
-                list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
+                list_segments += drawer.drawArc([0,0], P2_Mirror, P1_Mirror)
                 list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
+                list_segments += drawer.drawArc([0,0],P3_Mirror, P4_Mirror)
                 list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
-
-                list_segments += drawer.drawLine(P1, P_PM)
-                list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
-                list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
-
-                list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+                list_segments += drawer.drawArc([0,0], P6_Mirror, P5_Mirror)   
+                list_segments += drawer.drawArc([0,0], P5_Mirror, P6_Mirror) 
+                print(P5,P6)
+                print(P5_Mirror,P6_Mirror)  
+                list_segments += drawer.drawArc([0,0], P7_Mirror, P8_Mirror)
+                # -----------------------
 
             for i in range(Q):
                 draw_fraction(list_segments, i,
@@ -1344,27 +1393,36 @@ class CrossSectInnerRotorStator_PMAtToothTipSurface:
                                              iPark(P3, i*alpha_slot_span), 
                                              iPark(P4, i*alpha_slot_span), 
                                              iPark(P5, i*alpha_slot_span),
+                                             iPark(P6, i*alpha_slot_span),
+                                             iPark(P7, i*alpha_slot_span),
+                                             iPark(P8, i*alpha_slot_span),
                                              iPark(P1_Mirror, i*alpha_slot_span), 
                                              iPark(P2_Mirror, i*alpha_slot_span), 
                                              iPark(P3_Mirror, i*alpha_slot_span), 
                                              iPark(P4_Mirror, i*alpha_slot_span), 
                                              iPark(P5_Mirror, i*alpha_slot_span),
-                                             iPark(P_PM, i*alpha_slot_span),
-                                             iPark(P_PM_Mirror, i*alpha_slot_span), )
+                                             iPark(P6_Mirror, i*alpha_slot_span),
+                                             iPark(P7_Mirror, i*alpha_slot_span),
+                                             iPark(P8_Mirror, i*alpha_slot_span), )
+                print(i)
+                break
+                                            #  iPark(P_PM, i*alpha_slot_span),
+                                            #  iPark(P_PM_Mirror, i*alpha_slot_span), )
                 # if i >=1:
                 #     break
                 # raise
                 # break
             # draw a circle (this is officially suggested)
-            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
-            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+
+            # list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
+            # list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
 
 
             # DEBUG
             # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
             #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
 
-            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+            self.innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))   
 
             # return [list_segments]
             return {'innerCoord': self.innerCoord, 
@@ -1373,27 +1431,38 @@ class CrossSectInnerRotorStator_PMAtToothTipSurface:
                     'inner_or_outer_region_to_remove': [False, True]
                     }
         else:
-            P5_Rotate = iPark(P5, alpha_slot_span)
-            P5_OuterEdge_Rotate = iPark(P5_OuterEdge, alpha_slot_span)
+            # P5_Rotate = iPark(P5, alpha_slot_span)
+            # P5_OuterEdge_Rotate = iPark(P5_OuterEdge, alpha_slot_span)
+
+            # list_segments += drawer.drawArc([0,0], P2, P1)
+            # list_segments += drawer.drawLine(P2, P3)
+            # list_segments += drawer.drawLine(P3, P4)
+            # list_segments += drawer.drawLine(P4, P5_OuterEdge)
+            # list_segments += drawer.drawLine(P5_Rotate, P5_OuterEdge_Rotate)
+            # list_segments += drawer.drawArc([0,0], P5_OuterEdge, P5_OuterEdge_Rotate)
+
+            # list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
+            # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
+            # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
+            # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+
+            # list_segments += drawer.drawLine(P1, P_PM)
+            # list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+            # list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
+
+            # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+
+            # guanghui:
+            # -----------------------
             list_segments += drawer.drawArc([0,0], P2, P1)
             list_segments += drawer.drawLine(P2, P3)
-            list_segments += drawer.drawLine(P3, P4)
-            list_segments += drawer.drawLine(P4, P5_OuterEdge)
-            list_segments += drawer.drawLine(P5_Rotate, P5_OuterEdge_Rotate)
-            list_segments += drawer.drawArc([0,0], P5_OuterEdge, P5_OuterEdge_Rotate)
-
-            list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
-            list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-            list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-            list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
-
-            list_segments += drawer.drawLine(P1, P_PM)
-            list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
-            list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
-
-            list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
-
-            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+            list_segments += drawer.drawArc([0,0],P3, P4)
+            list_segments += drawer.drawLine(P4, P5)
+            list_segments += drawer.drawArc([0,0], P6, P5)    #P6到P7还要连吗
+            list_segments += drawer.drawArc([0,0], P8, P7)
+            # -----------------------
+            
+            self.innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1])) ##??
 
             # return [list_segments]
             return {'innerCoord': self.innerCoord, 
@@ -1405,10 +1474,10 @@ class CrossSectInnerRotorStator_PMAtToothTipSurface:
 
 class CrossSectStatorMagnetAtToothTipSurface:
     def __init__(self,
-                    name  = 'StatorMagnetAtToothBody',
+                    name  = 'StatorMagnetAtToothTip',
                     color = '#0BA0E2',
                     stator_core = None,
-                    mm_d_air_pm = 5,
+                    mm_d_air_pm = 3,
                 ):
         self.name = name
         self.color = color
@@ -1430,93 +1499,114 @@ class CrossSectStatorMagnetAtToothTipSurface:
         r_sf = self.stator_core.mm_r_sf
         r_sb = self.stator_core.mm_r_sb
         Q    = self.stator_core.Q
-        mm_d_pm = self.stator_core.mm_d_pm
+        d_pm = self.stator_core.mm_d_pm
+        r_so = self.stator_core.mm_r_so
 
-        mm_d_air_pm = self.mm_d_air_pm
+        # mm_d_air_pm = self.mm_d_air_pm
 
         alpha_slot_span = self.stator_core.alpha_slot_span
 
-        alpha_pm_at_airgap = self.stator_core.deg_alpha_pm_at_airgap/180*np.pi
+        # alpha_pm_at_airgap = self.stator_core.deg_alpha_pm_at_airgap/180*np.pi
 
-        P0 = [r_si + mm_d_air_pm, 0]
-        P1 = [r_si* cos(alpha_pm_at_airgap/2) + mm_d_air_pm, 
-              r_si*-sin(alpha_pm_at_airgap/2) ]
-        P2 = [r_si* cos(alpha_st/2), 
-              r_si*-sin(alpha_st/2) ]
+        # P0 = [r_si + mm_d_air_pm, 0]
+        # P1 = [r_si* cos(alpha_pm_at_airgap/2) + mm_d_air_pm, 
+        #       r_si*-sin(alpha_pm_at_airgap/2) ]
+        # P2 = [r_si* cos(alpha_st/2), 
+        #       r_si*-sin(alpha_st/2) ]
+        # guanghui:
+        # -----------------------
+        P1 = [r_si, 0]
+        P2 = [r_si * cos(alpha_st/2), r_si * sin(alpha_st/2)]
+        P3 = [(r_si-d_pm) * cos(alpha_st/2), (r_si-d_pm) * sin(alpha_st/2)]
+        P4 = [r_si - d_pm, 0]
 
+        P8 = [r_so, 0]
+        # -----------------------
         # P1 = [r_si, 0]
         # P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
-        P3_temp = [ d_sto*cos(alpha_st*0.5), 
-                    d_sto*-sin(alpha_st*0.5)]
-        P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
-                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
-        P3 = [  P3_local_rotate[0] + P2[0],
-                P3_local_rotate[1] + P2[1] ]
+        # P3_temp = [ d_sto*cos(alpha_st*0.5), 
+        #             d_sto*-sin(alpha_st*0.5)]
+        # P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
+        #                      -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        # P3 = [  P3_local_rotate[0] + P2[0],
+        #         P3_local_rotate[1] + P2[1] ]
 
-        三角形的底 = r_si + d_stt
-        三角形的高 = w_st*0.5
-        三角形的角度 = arctan(三角形的高 / 三角形的底)
-        P4 = [  三角形的底*cos(三角形的角度), 
-                三角形的底*-sin(三角形的角度)]
+        # 三角形的底 = r_si + d_stt
+        # 三角形的高 = w_st*0.5
+        # 三角形的角度 = arctan(三角形的高 / 三角形的底)
+        # P4 = [  三角形的底*cos(三角形的角度), 
+        #         三角形的底*-sin(三角形的角度)]
 
-        P5 = [ P4[0] + d_st, 
-               P4[1]]
+        # P5 = [ P4[0] + d_st, 
+        #        P4[1]]
 
         # Option 1
         # 6 [94.01649113009418, -25.191642873516543] 97.33303383272235
         # Radius_InnerStatorYoke = r_si+d_sp+d_st
         # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
         # Option 2
-        r_sy = Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
-        # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
-        P6 = [ r_sy *  cos(alpha_slot_span*0.5),
-               r_sy * -sin(alpha_slot_span*0.5) ]
+        # r_sy = Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        # # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
+        # P6 = [ r_sy *  cos(alpha_slot_span*0.5),
+        #        r_sy * -sin(alpha_slot_span*0.5) ]
 
-        if False:
-            P7 = [  (r_si+d_stt+d_st+d_sy)*cos(alpha_slot_span*0.5),
-                    (r_si+d_stt+d_st+d_sy)*-sin(alpha_slot_span*0.5) ]
-            P8 = [  r_si+d_stt+d_st+d_sy, 0]
-        else:
-            P7 = [  (r_sy+d_sy)*cos(alpha_slot_span*0.5),
-                    (r_sy+d_sy)*-sin(alpha_slot_span*0.5) ]
-            P8 = [   r_sy+d_sy, 0]
+        # if False:
+        #     P7 = [  (r_si+d_stt+d_st+d_sy)*cos(alpha_slot_span*0.5),
+        #             (r_si+d_stt+d_st+d_sy)*-sin(alpha_slot_span*0.5) ]
+        #     P8 = [  r_si+d_stt+d_st+d_sy, 0]
+        # else:
+        #     P7 = [  (r_sy+d_sy)*cos(alpha_slot_span*0.5),
+        #             (r_sy+d_sy)*-sin(alpha_slot_span*0.5) ]
+        #     P8 = [   r_sy+d_sy, 0]
 
-        r_so = r_sy + d_sy
-        P_PM = [np.sqrt((r_so)**2 - P1[1]**2) - self.stator_core.mm_difference_pm_yoke, P1[1]]
+        # r_so = r_sy + d_sy
+        # P_PM = [np.sqrt((r_so)**2 - P1[1]**2) - self.stator_core.mm_difference_pm_yoke, P1[1]]
 
+        # P1_Mirror = [P1[0], -P1[1]]
+        # P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
+        # P3_Mirror = [P3[0], -P3[1]]
+        # P4_Mirror = [P4[0], -P4[1]]
+        # P5_Mirror = [P5[0], -P5[1]]
+        # P_PM_Mirror = [P_PM[0], -P_PM[1]]
+        # guanghui:
+        # -----------------------
         P1_Mirror = [P1[0], -P1[1]]
-        P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
+        P2_Mirror = [P2[0], -P2[1]] 
         P3_Mirror = [P3[0], -P3[1]]
         P4_Mirror = [P4[0], -P4[1]]
-        P5_Mirror = [P5[0], -P5[1]]
-        P_PM_Mirror = [P_PM[0], -P_PM[1]]
+        # -----------------------
+
         def iPark(P, theta):
             return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
 
-        self.mm2_magnet_area = np.sqrt( (         P1[0]-P_PM[0])**2 + (         P1[1]-P_PM[1])**2 ) \
-                             * np.sqrt( (P_PM_Mirror[0]-P_PM[0])**2 + (P_PM_Mirror[1]-P_PM[1])**2 ) * Q # Note Q = 2*pe
+        # self.mm2_magnet_area = np.sqrt( (         P1[0]-P_PM[0])**2 + (         P1[1]-P_PM[1])**2 ) \
+        #                      * np.sqrt( (P_PM_Mirror[0]-P_PM[0])**2 + (P_PM_Mirror[1]-P_PM[1])**2 ) * Q # Note Q = 2*pe
 
         list_segments = []
         if bool_draw_whole_model:
-            def draw_fraction(list_segments, i, P1, P2, P3, P4, P5,
-                                            P1_Mirror,
-                                            P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror,
-                                            P_PM, P_PM_Mirror):
-                P5_Rotate = iPark(P5, alpha_slot_span)
-                # list_segments += drawer.drawArc([0,0], P2, P1)
-                # list_segments += drawer.drawLine(P2, P3)
-                # list_segments += drawer.drawLine(P3, P4)
-                # list_segments += drawer.drawLine(P4, P5)
+            def draw_fraction(list_segments, i, P1, P2, P3, P4, P1_Mirror,
+                                            P2_Mirror, P3_Mirror, P4_Mirror, ):
+                # P5_Rotate = iPark(P5, alpha_slot_span)
 
-                # list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
-                # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-                # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-                # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
 
-                list_segments += drawer.drawLine(P1, P1_Mirror)
-                list_segments += drawer.drawLine(P1, P_PM)
-                list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
-                list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+                # list_segments += drawer.drawLine(P1, P1_Mirror)
+                # list_segments += drawer.drawLine(P1, P_PM)
+                # list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
+                # list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+
+                # guanghui:
+                # -----------------------
+                list_segments += drawer.drawArc([0,0], P2, P1)
+                list_segments += drawer.drawLine(P2, P3)
+                list_segments += drawer.drawArc([0,0],P3, P4)
+                list_segments += drawer.drawLine(P4, P1)
+
+                list_segments += drawer.drawArc([0,0], P2_Mirror, P1_Mirror)
+                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
+                list_segments += drawer.drawArc([0,0],P3_Mirror, P4_Mirror)
+                list_segments += drawer.drawLine(P4_Mirror, P1_Mirror)
+                # -----------------------
+
 
                 # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
 
@@ -1526,28 +1616,12 @@ class CrossSectStatorMagnetAtToothTipSurface:
                                              iPark(P2, i*alpha_slot_span), 
                                              iPark(P3, i*alpha_slot_span), 
                                              iPark(P4, i*alpha_slot_span), 
-                                             iPark(P5, i*alpha_slot_span),
                                              iPark(P1_Mirror, i*alpha_slot_span), 
                                              iPark(P2_Mirror, i*alpha_slot_span), 
                                              iPark(P3_Mirror, i*alpha_slot_span), 
-                                             iPark(P4_Mirror, i*alpha_slot_span), 
-                                             iPark(P5_Mirror, i*alpha_slot_span),
-                                             iPark(P_PM, i*alpha_slot_span),
-                                             iPark(P_PM_Mirror, i*alpha_slot_span), )
-                # if i >=1:
-                #     break
-                # raise
-                # break
-            # draw a circle (this is officially suggested)
-            # list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
-            # list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+                                             iPark(P4_Mirror, i*alpha_slot_span), )
 
-
-            # DEBUG
-            # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
-            #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
-
-            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+            self.innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))
 
             # return [list_segments]
             return {'innerCoord': self.innerCoord, 
@@ -1556,7 +1630,7 @@ class CrossSectStatorMagnetAtToothTipSurface:
                     'inner_or_outer_region_to_remove': [False, True]
                     }
         else:
-            P5_Rotate = iPark(P5, alpha_slot_span)
+            # P5_Rotate = iPark(P5, alpha_slot_span)
             # list_segments += drawer.drawArc([0,0], P2, P1)
             # list_segments += drawer.drawLine(P2, P3)
             # list_segments += drawer.drawLine(P3, P4)
@@ -1567,11 +1641,18 @@ class CrossSectStatorMagnetAtToothTipSurface:
             # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
             # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
 
-            list_segments += drawer.drawLine(P1, P1_Mirror)
-            list_segments += drawer.drawLine(P1, P_PM)
-            list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
-            list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
-            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+            # list_segments += drawer.drawLine(P1, P1_Mirror)
+            # list_segments += drawer.drawLine(P1, P_PM)
+            # list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
+            # list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+            # guanghui:
+            # -----------------------
+            list_segments += drawer.drawArc([0,0], P2, P1)
+            list_segments += drawer.drawLine(P2, P3)
+            list_segments += drawer.drawArc([0,0],P3, P4)
+            list_segments += drawer.drawLine(P4, P1)
+
+            self.innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))
 
             # return [list_segments]
             return {'innerCoord': self.innerCoord, 

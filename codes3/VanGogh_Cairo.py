@@ -47,6 +47,8 @@ class VanGogh_Cairo:
         angle_between = np.arccos(cos夹角)
 
         radius = np.sqrt(v1.dot(v1))
+        # radius2 = np.sqrt(v2.dot(v2))
+        # print(radius, radius2)
         angle_start = np.arctan2(v1[1], v1[0])
         angle_end = angle_start + angle_between
 
@@ -68,7 +70,7 @@ class VanGogh_Cairo:
         # self.iRotateCopy = 1
         # region0 = self.prepareSection(list_regions)
 
-        list_regions = acm_variant.statorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # list_regions = acm_variant.statorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
         # Stator Core
@@ -78,7 +80,7 @@ class VanGogh_Cairo:
         # region3 = self.prepareSection(list_regions)
 
         # Stator Winding
-        list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.coils.stator_core.Q
         # region4 = self.prepareSection(list_regions)
