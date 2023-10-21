@@ -29,13 +29,13 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
     '''
     def __init__(self, fea_config_dict, spec_input_dict):
         # 初始化父类
-        super(bearingless_spmsm_template, self).__init__(fea_config_dict, spec_input_dict)
+        super(bearingless_consequentPole_template, self).__init__(fea_config_dict, spec_input_dict)
 
         # 基本信息
-        self.machine_type = 'SPMSM'
-        self.name = '__SPMSM'
+        self.machine_type = 'CPPM'
+        self.name = '__CPPM'
 
-        # 初始化搜索空间
+       # 初始化搜索空间
         GP = self.d['GP'] # Geometry Parameter
         EX = self.d['EX'] # EXcitations (was OP: Other Property)
         SI = self.SI      # Specification Input dictionary (was SD)
@@ -45,8 +45,8 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
             "mm_d_ri"           : acmop_parameter("free",     "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SI:None),
             "deg_alpha_rm"      : acmop_parameter("free",     "magnet_pole_span_angle",        None, [None, None], lambda GP,SI:None),
             "mm_d_rp"           : acmop_parameter("free",     "inter_polar_iron_thickness",    None, [None, None], lambda GP,SI:None),
-            "deg_alpha_rs"      : acmop_parameter("free" if SI['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None], lambda GP,SI:None),
-            "mm_d_rs"           : acmop_parameter("free" if SI['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None], lambda GP,SI:None),
+        #    "deg_alpha_rs"      : acmop_parameter("free",     "magnet_segment_span_angle",     None, [None, None], lambda GP,SI:None),
+        #    "mm_d_rs"           : acmop_parameter("free",     "inter_segment_iron_thickness",  None, [None, None], lambda GP,SI:None),
             "mm_r_ri"           : acmop_parameter("derived",  "rotor_inner_radius",            None, [None, None], lambda GP,SI:derive_mm_r_ri(GP,SI)),
         })
         GP.update(childGP)
@@ -88,7 +88,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
 
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
         stator_outer_diameter_Dse = 0.225 # this is related to the stator current density and should be determined by Js and power.
-        sleeve_length = 3
+        sleeve_length = 1
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
@@ -117,7 +117,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         GP['deg_alpha_sto'].value         = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
         GP['mm_r_si'].value              = 1e3*stator_inner_radius_r_is # mm
         GP['mm_r_so'].value              = 1e3*stator_outer_diameter_Dse/2 # mm
-        GP['mm_d_sto'].value              = 1 # mm
+        GP['mm_d_sto'].value              = 0.7594 # mm
         GP['mm_d_stt'].value              = 1.5*GP['mm_d_sto'].value
         GP['mm_d_st'].value              = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - GP['mm_r_si'].value - GP['mm_d_stt'].value  # mm
         # print(GP['mm_d_st'].value)
@@ -132,15 +132,15 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         GP['mm_d_sleeve'].value          = sleeve_length
         GP['mm_d_mech_air_gap'].value    = SI['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
-        GP['mm_d_pm'].value              = 4  # mm
+        GP['mm_d_pm'].value              = 5  # mm
         GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is epirically specified
         GP['mm_r_ro'].value              = 1e3*rotor_outer_radius_r_or
         GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
         # SPMSM specific
         GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
-        GP['mm_d_rp'].value              = 3  # mm
-        GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SI['no_segmented_magnets']
-        GP['mm_d_rs'].value              = 0.20*GP['mm_d_rp'].value # d_pm > d_rp and d_pm > d_rs
+    #    GP['mm_d_rp'].value              = 3  # mm
+    #    GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SI['no_segmented_magnets']
+        # GP['mm_d_rs'].value              = 0.20*GP['mm_d_rp'].value # d_pm > d_rp and d_pm > d_rs
 
         # Those are some obsolete variables that are convenient to have.
         # template.Radius_OuterStatorYoke = spec_geometry_dict['Radius_OuterStatorYoke'] = 1e3*0.5*stator_outer_diameter_Dse # mm
@@ -159,7 +159,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
 
         Q = self.SI['Qs']
         p = self.SI['p']
-        s = self.SI['no_segmented_magnets']
+        # s = self.SI['no_segmented_magnets']
 
         GP = self.d['GP']
 
@@ -172,7 +172,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value],
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
             # ROTOR
-            "mm_d_sleeve":  [3,   6],
+            "mm_d_sleeve":  [0.5,   2],
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30>)")
             "mm_d_pm":      [2.5, 7],
@@ -180,8 +180,8 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
             # SPMSM specific
             "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],
             "mm_d_rp":      [2.5,   6],
-            "deg_alpha_rs": [0.8*360/(2*p)/s,        0.975*360/(2*p)/s],
-            "mm_d_rs":      [2.5,   6]
+            # "deg_alpha_rs": [0.8*360/(2*p)/s,        0.975*360/(2*p)/s],
+            # "mm_d_rs":      [2.5,   6]
         }
         return original_template_neighbor_bounds
 
