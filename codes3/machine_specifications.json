@@ -1,46 +1,4 @@
 {
-    "CPPM-24s4pp-ps1-Chiba05":
-    {
-        "Inputs":
-        {
-            "machine_type":                        "CPPM",
-            "DPNV_or_SEPA":                        true,
-            "minimum_mechanical_air_gap_length_mm": 0.50,
-            "m":                                   3,
-            "Qs":                                  24,
-            "ps":                                  1,
-            "p":                                   4,
-            "pm":                                  2,
-            "number_of_rotor_pole_pairs":          2,
-            "coil_pitch_y":                        9,
-            "mec_power":                           929,
-            "ExcitationFreqSimulated":             66.7,
-            "Steel":                               "M19Gauge29",
-            "lamination_stacking_factor_kFe":      0.95,
-            "Coil":                                "Cu",
-            "Js":                                  4e6,
-            "Temperature":                         75,
-            "space_factor_kCu":                    0.3882,
-            "WindingFill":                         0.3882,
-            "AWG":                                 25,
-            "VoltageRating":                       50,
-            "guess_efficiency":                    0.9,
-            "guess_power_factor":                  0.8,
-            "guess_air_gap_flux_density_Bg":       0.9,
-            "guess_stator_tooth_flux_density_Bst": 1.5,
-            "guess_stator_yoke_flux_density_Bsy":  1.2,
-            "tip_speed":                           70,
-            "TangentialStress":                    6000,
-            "mm_stack_length":                     10,
-            "mm_radius_shaft":                     50,
-            "no_segmented_magnets":                1,
-            "safety_factor_to_yield":              null,
-            "safety_factor_to_critical_speed":     null,
-            "bool_skew_stator":                    false,
-            "bool_skew_rotor":                     false
-        }
-    },
-
     "FSPM-24s22pp-50W-400RPM-6000Pa-p14ps13pe12":
     {
         "Inputs":
@@ -987,7 +945,7 @@
             "m":                                    3,
             "Qs":                                 12,
             "p":                                  2,
-            "number_of_rotor_pole_pairs":         2,
+            "number_of_rotor_pole_pairs":                                  2,
             "ps":                                 1,
             "coil_pitch_y":                       3,
             "mec_power":                            50e3,
