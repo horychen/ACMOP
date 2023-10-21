@@ -99,6 +99,26 @@ class winding_layout_v2(object):
     # Combined Winding for Bearingless Motor
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         if DPNV_or_SEPA == True \
+        and Qs == 24 \
+        and p == 4 \
+        and ps == 1 \
+        and coil_pitch_y == 9:
+
+            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
+            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
+            self.coil_pitch_y   = coil_pitch_y
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+            self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0]
+            self.number_parallel_branch = 2
+            self.number_winding_layer   = 2
+
+            self.bool_3PhaseCurrentSource = False
+            self.CommutatingSequenceD = 1
+            self.CommutatingSequenceB = 0
+
+        if DPNV_or_SEPA == True \
         and Qs == 6 \
         and p == 5 \
         and ps == 4 \
@@ -579,6 +599,8 @@ class winding_layout_v2(object):
                     phase_U_starting_slot_number = 1 # 没有等于0的哈，等于0你得以槽的中线作图绘制定子铁芯；现在的代码是以齿的中线作图绘制定子铁芯的哦。
 
                 self.deg_winding_U_phase_phase_axis_angle = 360/Qs*0.5 * (phase_U_starting_slot_number + self.coil_pitch_y+(SPP-1) )
+                print('[wily] self.deg_winding_U_phase_phase_axis_angle=', self.deg_winding_U_phase_phase_axis_angle)
+                print('[wily] q = SPP =', SPP)
             else:
                 # This clause includes fractional slot winding with an SPP value below 1.
 
@@ -609,13 +631,13 @@ class winding_layout_v2(object):
                     print(msg)
                     if q>2:
                         raise Exception(msg)
+                print('[wily] self.deg_winding_U_phase_phase_axis_angle=', self.deg_winding_U_phase_phase_axis_angle, 'deg_winding_V_phase_phase_axis_angle=', deg_winding_V_phase_phase_axis_angle)
+                print('[wily] q = SPP =', SPP)
 
                 # print(self.deg_winding_U_phase_phase_axis_angle, deg_winding_V_phase_phase_axis_angle, 尾, 头, 相邻的属于同一相的线圈的个数)
                 # quit()
 
                     # 2019/12/25: Q18, p2, ps1 case is verified to be okay with q=1.5.
-            print('[wily] q = SPP =', SPP)
-            print('[wily] self.deg_winding_U_phase_phase_axis_angle=', self.deg_winding_U_phase_phase_axis_angle, 'deg_winding_V_phase_phase_axis_angle=', deg_winding_V_phase_phase_axis_angle)
             # quit()
         except:
             raise Exception(f'Error: This winding is not implemented to get deg_winding_U_phase_phase_axis_angle: Qs,p,ps,coil_pitch_y = {Qs,p,ps,coil_pitch_y}', Wrap_Around, DPNV_or_SEPA)

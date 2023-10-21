@@ -1,6 +1,7 @@
 # importing pycairo
 import cairo
 from pylab import np
+EPS=1e-4
 
 class VanGogh_Cairo:
     def __init__(self, acm_variant, width_in_points=500, height_in_points=500):
@@ -44,6 +45,16 @@ class VanGogh_Cairo:
         v1 = np.array([startxy[0] - centerxy[0], startxy[1] - centerxy[1]])
         v2 = np.array([endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]])
         cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (np.sqrt(v1.dot(v1))*np.sqrt(v2.dot(v2)))
+        if 1.0 < cos夹角 < 1.0+EPS:
+            cos夹角 = 1.0
+            print(f'{cos夹角=}')
+            print(f'{cos夹角=}')
+            print(f'{cos夹角=}')
+        elif -1.0-EPS < cos夹角 < -1.0:
+            cos夹角 = -1.0
+            print(f'{cos夹角=}')
+            print(f'{cos夹角=}')
+            print(f'{cos夹角=}')
         angle_between = np.arccos(cos夹角)
 
         radius = np.sqrt(v1.dot(v1))
@@ -68,11 +79,11 @@ class VanGogh_Cairo:
         # self.iRotateCopy = 1
         # region0 = self.prepareSection(list_regions)
 
-        list_regions = acm_variant.statorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # list_regions = acm_variant.statorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
         # Stator Core
-        list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = True
         # self.iRotateCopy = acm_variant.stator_core.Q
         # region3 = self.prepareSection(list_regions)
@@ -105,12 +116,13 @@ class VanGogh_Cairo:
 
         return True
 
-    def draw_spmsm(self, acm_variant, bool_draw_whole_model=True):
+    def draw_spmsm(self, acm_variant, bool_draw_whole_model=True, bool_show_pdf=False):
         # Rotor Core
         list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.rotorCore.p*2
         # region1 = self.prepareSection(list_regions_1)
+
 
         # Shaft
         # list_regions = acm_variant.shaft.draw(self)
@@ -119,7 +131,8 @@ class VanGogh_Cairo:
         # region0 = self.prepareSection(list_regions)
 
         # Rotor Magnet
-        list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        if 0:
+            list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
         # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
@@ -131,7 +144,8 @@ class VanGogh_Cairo:
         # regionS = self.prepareSection(list_regions)
 
         # Stator Core
-        list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        if 0:
+            list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = True
         # self.iRotateCopy = acm_variant.stator_core.Q
         # region3 = self.prepareSection(list_regions)
@@ -184,7 +198,7 @@ class VanGogh_Cairo:
         if bool_open_pdf:
             import os
             try:
-                os.system('sumatraPDF2.exe ' + self.output_fname_no_suffix+'.pdf')
+                os.system(self.output_fname_no_suffix+'.pdf')
             except:
                 print('Viewer sumatraPDF2.exe is not found in this PC. Please manually open the pdf at', self.output_fname_no_suffix+'.pdf')
 
