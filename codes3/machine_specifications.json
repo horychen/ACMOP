@@ -33,6 +33,7 @@
             "TangentialStress":                    6000,
             "mm_stack_length":                     10,
             "mm_radius_shaft":                     50,
+            "no_segmented_magnets":                1,
             "safety_factor_to_yield":              null,
             "safety_factor_to_critical_speed":     null,
             "bool_skew_stator":                    false,
