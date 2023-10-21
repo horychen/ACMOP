@@ -14,7 +14,9 @@
     - conda config --add channels conda-forge
     - conda install pygmo
 
-- pyfemm, streamlit, jsonpickle, pycairo, cairosvg, pyx, and others (if any) can be installed via pip
+- pip install recordtype jsonpickle pyx pyfemm scipy soupsieve pycairo cairosvg
+
+    - pyfemm, streamlit, jsonpickle, pycairo, cairosvg, pyx, and others (if any) can be installed via pip
 
 - texlive, or other latex compiler (if you want pdf report for motor design)
 

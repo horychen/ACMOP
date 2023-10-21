@@ -270,7 +270,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         elif 'FSPM' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
         elif 'CPPM' in acm_variant.template.name:
-            toolCairo.draw_spmsm(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
+            toolCairo.draw_cppm(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
         else:
             raise Exception("Nothing to draw. Are you adding a new machine type?????")
 
@@ -596,6 +596,7 @@ def main(number_which_part):
             # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
 
         select_spec= "CPPM-24s4pp-ps1-Chiba05",
+
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
 
             # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",

@@ -239,7 +239,7 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
 
         # Parts
         self.rotorCore = CrossSectInnerConsequentPoleRotor.CrossSectInnerConsequentPoleRotor(
-                            name = 'NotchedRotor',
+                            name = 'ConsequentPoleRotor',
                             mm_d_pm      = GP['mm_d_pm'].value,
                             deg_alpha_rm = GP['deg_alpha_rm'].value, # angular span of the pole: class type DimAngular
                             # deg_alpha_rs = GP['deg_alpha_rs'].value, # segment span: class type DimAngular
@@ -255,7 +255,7 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
                                                       notched_rotor = self.rotorCore
                                                     )
 
-        self.rotorMagnet = CrossSectInnerConsequentPoleRotor.CrossSectInnerConsequentPoleMagnet( name = 'RotorMagnet',
+        self.rotorMagnet = CrossSectInnerConsequentPoleRotor.CrossSectInnerConsequentPoleMagnet( name = 'ConsequentPoleRotorMagnet',
                                                       notched_rotor = self.rotorCore
                                                     )
 
