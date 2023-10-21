@@ -8,7 +8,7 @@ from utility import acmop_parameter
 from pylab import np
 from pprint import pprint
 
-import CrossSectInnerNotchedRotor
+import CrossSectInnerNotchedRotor, CrossSectInnerConsequentPoleRotor
 import CrossSectStator
 import Location2D
 
@@ -138,7 +138,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
         # SPMSM specific
         GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
-    #    GP['mm_d_rp'].value              = 3  # mm
+        GP['mm_d_rp'].value              = 3  # mm
     #    GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SI['no_segmented_magnets']
         # GP['mm_d_rs'].value              = 0.20*GP['mm_d_rp'].value # d_pm > d_rp and d_pm > d_rs
 
@@ -224,7 +224,7 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
             raise
 
         # 初始化父类
-        super(bearingless_spmsm_design_variant, self).__init__(template, x_denorm, counter, counter_loop)
+        super(bearingless_consequentPole_design_variant, self).__init__(template, x_denorm, counter, counter_loop)
 
         # Give it a name
         self.name = f'ind{counter}'
@@ -238,15 +238,15 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
         self.check_invalid_design(GP, SI)
 
         # Parts
-        self.rotorCore = CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
+        self.rotorCore = CrossSectInnerConsequentPoleRotor.CrossSectInnerConsequentPoleRotor(
                             name = 'NotchedRotor',
                             mm_d_pm      = GP['mm_d_pm'].value,
                             deg_alpha_rm = GP['deg_alpha_rm'].value, # angular span of the pole: class type DimAngular
-                            deg_alpha_rs = GP['deg_alpha_rs'].value, # segment span: class type DimAngular
+                            # deg_alpha_rs = GP['deg_alpha_rs'].value, # segment span: class type DimAngular
                             mm_d_ri      = GP['mm_d_ri'].value, # rotor iron thickness: class type DimLinear
                             mm_r_ri      = GP['mm_r_ri'].value, # inner radius of rotor: class type DimLinear
                             mm_d_rp      = GP['mm_d_rp'].value, # interpolar iron thickness: class type DimLinear
-                            mm_d_rs      = GP['mm_d_rs'].value, # inter segment iron thickness: class type DimLinear
+                            # mm_d_rs      = GP['mm_d_rs'].value, # inter segment iron thickness: class type DimLinear
                             p = template.SI['p'], # Set pole-pairs to 2
                             s = template.SI['no_segmented_magnets'], # Set magnet segments/pole to 4
                             location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0))
@@ -255,7 +255,7 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
                                                       notched_rotor = self.rotorCore
                                                     )
 
-        self.rotorMagnet = CrossSectInnerNotchedRotor.CrossSectInnerNotchedMagnet( name = 'RotorMagnet',
+        self.rotorMagnet = CrossSectInnerConsequentPoleRotor.CrossSectInnerConsequentPoleMagnet( name = 'RotorMagnet',
                                                       notched_rotor = self.rotorCore
                                                     )
 
@@ -314,6 +314,7 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
     def check_invalid_design(self, GP, SI):
 
         # 不合理的变量选择（mm_d_rp）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
+
         if GP['mm_d_rp'].value > GP['mm_d_pm'].value:
             GP['mm_d_rp'].value            = GP['mm_d_pm'].value
             # free_variables[11] = free_variables[6]
@@ -323,24 +324,24 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
             logger = logging.getLogger(__name__).warn(msg)
 
         # 不合理的变量选择（mm_d_rs）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
-        if GP['mm_d_rs'].value > GP['mm_d_pm'].value:
-            GP['mm_d_rs'].value            = GP['mm_d_pm'].value
-            # free_variables[12] = free_variables[6]
+        # if GP['mm_d_rs'].value > GP['mm_d_pm'].value:
+        #     GP['mm_d_rs'].value            = GP['mm_d_pm'].value
+        #     # free_variables[12] = free_variables[6]
 
-            msg = '[Warning from bearingless_spmsm_design.py]: Inter-segment notch depth mm_d_rs cannot be larger than mm_d_pm or else the sleeve cannot really hold or even touch the PM. So mm_d_rs is set to mm_d_pm.'
-            print(msg)
-            logger = logging.getLogger(__name__).warn(msg)
+        #     msg = '[Warning from bearingless_spmsm_design.py]: Inter-segment notch depth mm_d_rs cannot be larger than mm_d_pm or else the sleeve cannot really hold or even touch the PM. So mm_d_rs is set to mm_d_pm.'
+        #     print(msg)
+        #     logger = logging.getLogger(__name__).warn(msg)
 
-        # 不合理的变量选择（deg_alpha_rs）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
-        if not (GP['deg_alpha_rs'].value > GP['deg_alpha_rm'].value/SI['no_segmented_magnets']):
-            GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value/SI['no_segmented_magnets']
-            msg = '[Warning from bearingless_spmsm_design.py]: deg_alpha_rs cannot be larger than deg_alpha_rm/s. Note deg_alpha_rs is set to deg_alpha_rm/s.'
-            print(msg)
-            logger = logging.getLogger(__name__).warn(msg)
+        # # 不合理的变量选择（deg_alpha_rs）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
+        # if not (GP['deg_alpha_rs'].value > GP['deg_alpha_rm'].value/SI['no_segmented_magnets']):
+        #     GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value/SI['no_segmented_magnets']
+        #     msg = '[Warning from bearingless_spmsm_design.py]: deg_alpha_rs cannot be larger than deg_alpha_rm/s. Note deg_alpha_rs is set to deg_alpha_rm/s.'
+        #     print(msg)
+        #     logger = logging.getLogger(__name__).warn(msg)
 
         # 如果没有永磁体分段，那么alpha_rs应该等于alpha_rm。
-        if SI['no_segmented_magnets'] == 1:
-            GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value # raise Exception('Invalid alpha_rs. Check that it is equal to alpha_rm for s=1')
-            GP['mm_d_rs'].value = 0 # raise Exception('Invalid d_rs. Check that it is equal to 0 for s =1')
+        # if SI['no_segmented_magnets'] == 1:
+        #     GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value # raise Exception('Invalid alpha_rs. Check that it is equal to alpha_rm for s=1')
+        #     GP['mm_d_rs'].value = 0 # raise Exception('Invalid d_rs. Check that it is equal to 0 for s =1')
         # This is all we need
 

@@ -269,11 +269,13 @@ class AC_Machine_Optiomization_Wrapper(object):
             toolCairo.draw_doubly_salient(acm_variant)
         elif 'FSPM' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
+        elif 'CPPM' in acm_variant.template.name:
+            toolCairo.draw_spmsm(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
         else:
-            raise
+            raise Exception("Nothing to draw. Are you adding a new machine type?????")
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    # '[4] Optimization Part' Multi-Objective Optimization
+    # '[4] Optimization Part' Multi-Objective Optimization0
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def part_optimization(self):
         ad = self.ad
