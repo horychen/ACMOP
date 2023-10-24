@@ -1,6 +1,7 @@
 # importing pycairo
 import cairo
 from pylab import np
+EPS=1e-4
 
 class VanGogh_Cairo:
     def __init__(self, acm_variant, width_in_points=500, height_in_points=500):

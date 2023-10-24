@@ -6,7 +6,7 @@ import population, FEMM_Solver, pyrhonen_procedure_as_function
 
 # BPMSM codes
 import JMAG, FEMM_SlidingMesh
-import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design, flux_switching_pm_design
+import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design
 
 class Swarm_Data_Analyzer(object):
     def __init__(self, fname, desired_x_denorm_dict):
