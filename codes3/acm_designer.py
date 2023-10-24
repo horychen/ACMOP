@@ -6,7 +6,7 @@ import population, FEMM_Solver, pyrhonen_procedure_as_function
 
 # BPMSM codes
 import JMAG, FEMM_SlidingMesh
-import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design
+import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design, flux_switching_pm_design
 
 class Swarm_Data_Analyzer(object):
     def __init__(self, fname, desired_x_denorm_dict):
@@ -1306,8 +1306,6 @@ class acm_designer(object):
             acm_variant = flux_alternator_design.flux_alternator_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         elif 'FSPM' in template.machine_type:
             acm_variant = flux_switching_pm_design.FSPM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-        elif 'CPPM' in template.machine_type:
-            acm_variant = bearingless_consequentPole_design.bearingless_consequentPole_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)  
         else:
             raise Exception('Not supported machine_type:', template.machine_type)
         return acm_variant
@@ -1397,7 +1395,10 @@ class acm_designer(object):
                 DRAW_SUCCESS = toolJd.draw_doublySalient(acm_variant, bool_draw_whole_model=True)
             elif 'FSPM' in acm_variant.template.name:
                 DRAW_SUCCESS = toolJd.draw_FSPM(acm_variant, bool_draw_whole_model=False)
-
+            elif 'CPPM' in acm_variant.template.name:
+                DRAW_SUCCESS = toolJd.draw_CPPM(acm_variant)
+            else:
+                raise Exception ('Add a new motor type')
             if DRAW_SUCCESS != 1:
                 raise Exception('Drawer failed.')
 
@@ -1417,6 +1418,8 @@ class acm_designer(object):
                 toolJd.pre_process_FSPM(app, model, acm_variant)
             elif 'Flux_Alternator' in acm_variant.template.name:
                 toolJd.pre_process_fluxAlternator(app, model, acm_variant)
+            elif 'CPPM' in acm_variant.template.name:
+                toolJd.pre_process_CPPM(app, model, acm_variant)
 
             study = toolJd.add_magnetic_transient_study(app, model, dir_csv_output_folder, study_name, acm_variant)
             toolJd.mesh_study(acm_variant, app, model, study, output_dir=output_dir)

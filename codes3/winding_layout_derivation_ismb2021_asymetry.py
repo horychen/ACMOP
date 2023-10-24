@@ -1,6 +1,11 @@
 ABCDEFGHIJKLMNOPQRSTUVWXYZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 import os
+# import sys
 output_dir = os.path.dirname(__file__) + r'/../_wily/'
+# print(os.path.dirname(__file__))
+# print('hfisdjkfbklrdjfgblkejghbselkfgbsefkljgbsdlkfj',output_dir)
+# print(sys.path)
+
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 print('Output directory is:', output_dir)
@@ -923,18 +928,22 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
+<<<<<<< HEAD
                                 (3, 24, 4, 1, 9, 0), # chiba 2005 Consequent pole
+                                # (3, 12, 4, 1, 6, 0), # chiba 2005 Consequent pole modified
+                                # (3, 24, 4, 1, 10, 0), # chiba 2005 Consequent pole v2
                                 #   (3, 48, 22, 23, 1, 0), # 黑kesilizuo
                                 #   (3, 6, 1, 2, 3, 0), # ee275
                                 #   (3, 6, 1, 2, 1, 0), # ee275
                                 #   (3, 12, 1, 2, 6, 0), # ee275
                                 #   (3, 12, 1, 2, 5, 0), # ee275
                                 #   (3, 12, 3, 2, 1, 0), # ee275
+=======
+>>>>>>> ca9482cac4f6a6b5278d187a2e0f788bb01536e8
                                 # (15, 30, 2, 3, 10, 0),
-                                # (3, 39, 5, 4, 3, 0), # 丁凯
                                 # (3, 24, 8, 7, 1, 0), # 
                                 # (3, 24, 8, 9, 1, 0), # 
-                                # (3, 24, 8, 11, 1, 0), # 
+                                (3, 24, 8, 11, 1, 0), # 
                                 # (3, 6, 5, 4, 1, 0), # concentrated winding with working harmonics
                                 # (3, 6, 5, 4, 2, 0), # concentrated winding with working harmonics
                                 # (3, 6, 10, 11, 3, 0), # concentrated winding with working harmonics
@@ -1674,7 +1683,7 @@ if __name__ == '__main__':
 
     if True:
         phases, signs, grouping_AC, coil_pitch_y = main_derivation()
-        # quit()
+        quit()
     else:
         phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
         signs = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
