@@ -1228,7 +1228,19 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             study.GetMaterial(      u"Magnet-CCW").SetValue(u"Temperature", magnet_temperature) # 80 deg TEMPERATURE (There is no 75 deg C option)
             study.GetMaterial(      u"Magnet-CCW").SetOriginXYZ(0, 0, 0)
             study.GetMaterial(      u"Magnet-CCW").SetPattern(u"Circular")
+        
+        
+        elif 'FSPM' in acm_variant.template.name:
+            study.SetMaterialByName(u"Magnet", u"Arnold/Reversible/N40H")
+            study.GetMaterial(u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
+            study.GetMaterial(u"Magnet").SetValue(u"Temperature", magnet_temperature) # 80 deg TEMPERATURE (There is no 75 deg C option)
 
+            study.GetMaterial(u"Magnet").SetValue(u"Poles", acm_template.d['EX']['DriveW_poles'])
+            study.GetMaterial(u"Magnet").SetDirectionXYZ(1, 0, 0)
+            study.GetMaterial(u"Magnet").SetAxisXYZ(0, 0, 1)
+            study.GetMaterial(u"Magnet").SetOriginXYZ(0, 0, 0)
+            study.GetMaterial(u"Magnet").SetPattern(u"RadialCircular")
+            study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*acm_template.SI['p']) ) # 半个极距
 
             # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Direction")
             # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Inward/Outward")

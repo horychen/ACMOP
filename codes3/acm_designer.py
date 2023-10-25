@@ -1306,6 +1306,8 @@ class acm_designer(object):
             acm_variant = flux_alternator_design.flux_alternator_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         elif 'FSPM' in template.machine_type:
             acm_variant = flux_switching_pm_design.FSPM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        elif 'CPPM' in template.machine_type:
+            acm_variant = bearingless_consequentPole_design.bearingless_consequentPole_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)  
         else:
             raise Exception('Not supported machine_type:', template.machine_type)
         return acm_variant

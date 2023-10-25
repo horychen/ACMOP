@@ -1762,6 +1762,14 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
                 print('[pyrhonen_procedure_as_function.py] The winding is a fractional slot one and the distribution factor is absent... Set as kd1 = 1.')
         # kd1 = 2*sin(1/SI['m']*np.pi/2)/(SI['Qs']/(SI['m']*SI['p'])*sin(1*np.pi*SI['p']/SI['Qs']))
         kq1 = sin(1*coil_span_W/pole_pitch_tau_p*np.pi/2)
+        if kq1<0:
+            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
+            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
+            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
+            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
+            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
+            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
+            kq1 *= -1.0
         ksq1 = 1
         kw1 = kd1 * kq1 * ksq1
         print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SI["coil_pitch_y"]}, kw1={kw1}, kd1={kd1}, kq1={kq1}')
@@ -1791,9 +1799,9 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
     # print(alpha_i, guess_air_gap_flux_density_Bg,  pole_pitch_tau_p,  stack_length_eff)
 
     no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi*SI['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
-    # print(sqrt(2)*desired_emf_Em , SI['ExcitationFreqSimulated'], kw1,  air_gap_flux_Phi_m)
+    print(sqrt(2)*desired_emf_Em , SI['ExcitationFreqSimulated'], kw1,  air_gap_flux_Phi_m)
     if no_series_coil_turns_N<1:
-        raise Exception('What? no_series_coil_turns_N is negative?')
+        raise Exception(f'What? no_series_coil_turns_N is negative? {no_series_coil_turns_N=}')
     print('[Pyrhonen_procedure_as_function.py] [zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_Bg is', no_series_coil_turns_N)
     no_series_coil_turns_N = round(no_series_coil_turns_N)
     print('[Pyrhonen_procedure_as_function.py] [zQ] Rounds up to:', no_series_coil_turns_N)

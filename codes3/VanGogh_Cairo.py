@@ -45,6 +45,16 @@ class VanGogh_Cairo:
         v1 = np.array([startxy[0] - centerxy[0], startxy[1] - centerxy[1]])
         v2 = np.array([endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]])
         cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (np.sqrt(v1.dot(v1))*np.sqrt(v2.dot(v2)))
+        if 1.0 < cos夹角 < 1.0+EPS:
+            cos夹角 = 1.0
+            print(f'{cos夹角=}')
+            print(f'{cos夹角=}')
+            print(f'{cos夹角=}')
+        elif -1.0-EPS < cos夹角 < -1.0:
+            cos夹角 = -1.0
+            print(f'{cos夹角=}')
+            print(f'{cos夹角=}')
+            print(f'{cos夹角=}')
         angle_between = np.arccos(cos夹角)
 
         radius = np.sqrt(v1.dot(v1))
@@ -122,12 +132,8 @@ class VanGogh_Cairo:
         # region0 = self.prepareSection(list_regions)
 
         # Rotor Magnet
-<<<<<<< HEAD
         if 1:
             list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
-=======
-        list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
->>>>>>> ca9482cac4f6a6b5278d187a2e0f788bb01536e8
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
         # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
@@ -139,12 +145,71 @@ class VanGogh_Cairo:
         # regionS = self.prepareSection(list_regions)
 
         # Stator Core
-<<<<<<< HEAD
         if 1:
             list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
-=======
-        list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
->>>>>>> ca9482cac4f6a6b5278d187a2e0f788bb01536e8
+        # self.bMirror = True
+        # self.iRotateCopy = acm_variant.stator_core.Q
+        # region3 = self.prepareSection(list_regions)
+
+        # Stator Winding
+        if 1:
+            list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # self.bMirror = False
+        # self.iRotateCopy = acm_variant.coils.stator_core.Q
+        # region4 = self.prepareSection(list_regions)
+
+        self.apply_stroke()
+        self.save()
+
+        if False:
+            # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
+            EX = acm_variant.template.d['EX']
+            CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+            CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
+            CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+
+            # Maybe there is a bug here... regarding the excitation for suspension winding...
+            variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
+            variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
+            EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
+            EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+            EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+
+            slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+            # print('[FEMM_SlidingMesh.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
+
+        return True
+    def draw_cppm(self, acm_variant, bool_draw_whole_model=True):
+        # Rotor Core
+        if 1:
+            list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # self.bMirror = False
+        # self.iRotateCopy = acm_variant.rotorCore.p*2
+        # region1 = self.prepareSection(list_regions_1)
+
+        # Shaft
+        if 1:
+            list_regions = acm_variant.shaft.draw(self)
+        # self.bMirror = False
+        # self.iRotateCopy = 1
+        # region0 = self.prepareSection(list_regions)
+
+        # Rotor Magnet
+        if 1:
+            list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # self.bMirror = False
+        # self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
+        # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
+
+        # Sleeve
+        # list_regions = acm_variant.sleeve.draw(self)
+        # self.bMirror = False
+        # self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
+        # regionS = self.prepareSection(list_regions)
+
+        # Stator Core
+        if 1:
+            list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = True
         # self.iRotateCopy = acm_variant.stator_core.Q
         # region3 = self.prepareSection(list_regions)

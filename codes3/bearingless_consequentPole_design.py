@@ -148,7 +148,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
         # SPMSM specific
         GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
-        GP['mm_d_rp'].value              = 3  # mm
+        GP['mm_d_rp'].value              = 10  # mm
     #    GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SI['no_segmented_magnets']
         # GP['mm_d_rs'].value              = 0.20*GP['mm_d_rp'].value # d_pm > d_rp and d_pm > d_rs
 
