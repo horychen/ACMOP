@@ -15,7 +15,7 @@ class CrossSectConsequentPoleRotor(object):
     #    The anchor point for this is the center of the rotor,
     #    with the x-axis directed along the center of one of the rotor poles
     def __init__(self, 
-                    name = 'ConsequentPole Rotor',
+                    name = 'Consequent Pole Rotor',
                     color = '#FE840E',
                     mm_d_pm = 6,
                     deg_alpha_rm = 60,
@@ -114,6 +114,7 @@ class CrossSectConsequentPoleRotor(object):
         P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
 
         list_segments = []
+
         if s == 1:
             # No magnet segment!
             # Then P6 is an extra point for a full rotor
@@ -256,53 +257,52 @@ class CrossSectConsequentPoleRotor(object):
 
             P8 = [r_P4*cos(alpha_P7), r_P4*-sin(alpha_P7)]
 
-            if alpha_rm >= alpha_rp*0.9800: # no inter-pole notch
-                P1p5 = [r_ri + d_ri, 0]
+        if alpha_rm >= alpha_rp*0.9800:
+            print('[CrossSectInnerNotchedRotor.py] Non-NOTCHED ROTOR IS USED.\n')
+            print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)
+            P1p5 = [P2[0] - d_rp, P2[1]]
+            if bool_draw_whole_model:
+                list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1)
+                list_segments += drawer.drawArc([0,0], P1p5, [-P1p5[0], P1p5[1]])
+                list_segments += drawer.drawArc([0,0], [-P1p5[0], P1p5[1]], P1p5)
+                # raise
+            else:
                 list_segments += drawer.drawLine(P1, P1p5)
                 list_segments += drawer.drawArc([0,0], P5, P1p5)
                 list_segments += drawer.drawLine(P5, P6)
-                list_segments += drawer.drawArc([0,0], P7, P6)
-                list_segments += drawer.drawLine(P7, P8)
+                list_segments += drawer.drawArc([0,0], P6, P1)
+        else:
+            if bool_draw_whole_model:
+                def iPark(P, theta):
+                    return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                def draw_fraction(list_segments, P2, P3, P4, P5):
+                    list_segments += drawer.drawArc([0,0], P3, P2)
+                    list_segments += drawer.drawLine(P3, P4)
+                    list_segments += drawer.drawArc([0,0], P5, P4)
+                    P5_CCW = iPark(P5, alpha_rp)
+                    list_segments += drawer.drawLine(P5_CCW, P2)
+                for i in range(2*p):
+                    draw_fraction(list_segments, iPark(P2, i*alpha_rp), iPark(P3, i*alpha_rp), iPark(P4, i*alpha_rp), iPark(P5, i*alpha_rp))
+                # draw a circle (this is officially suggested by FEMM)
+                list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
             else:
                 list_segments += drawer.drawLine(P1, P2)
                 list_segments += drawer.drawArc([0,0], P3, P2)
                 list_segments += drawer.drawLine(P3, P4)
                 list_segments += drawer.drawArc([0,0], P5, P4)
                 list_segments += drawer.drawLine(P5, P6)
-                list_segments += drawer.drawArc([0,0], P7, P6)
-                list_segments += drawer.drawLine(P7, P8)
-            # raise
-            for _ in range(1, s-1):
-                alpha_temp = (alpha_rs+alpha_notch) # alpha_rs means rotor segment (of PM)
-
-                P4 = P8 #[  cos(alpha_temp)*P4[0] + -sin(alpha_temp)*P4[0],
-                        #sin(alpha_temp)*P4[1] + cos(alpha_temp)*P4[1] ]
-
-                P5 = [  cos(alpha_temp)*P5[0] + sin(alpha_temp)*P5[1],
-                        -sin(alpha_temp)*P5[0] + cos(alpha_temp)*P5[1] ]
-
-                P6 = [  cos(alpha_temp)*P6[0] + sin(alpha_temp)*P6[1],
-                        -sin(alpha_temp)*P6[0] + cos(alpha_temp)*P6[1] ]
-
-                P7 = [  cos(alpha_temp)*P7[0] + sin(alpha_temp)*P7[1],
-                        -sin(alpha_temp)*P7[0] + cos(alpha_temp)*P7[1] ]
-
-                P8 = [  cos(alpha_temp)*P8[0] + sin(alpha_temp)*P8[1],
-                        -sin(alpha_temp)*P8[0] + cos(alpha_temp)*P8[1] ]
-
-                list_segments += drawer.drawArc([0,0], P5, P4)
-                list_segments += drawer.drawLine(P5, P6)
-                list_segments += drawer.drawArc([0,0], P7, P6)
-                list_segments += drawer.drawLine(P7, P8)
-
-            P9 = [  cos(alpha_rs)*P8[0] + sin(alpha_rs)*P8[1],
-                    -sin(alpha_rs)*P8[0] + cos(alpha_rs)*P8[1] ] # alpha_rs means rotor segment (of PM)
-            P10 = [ r_ri*cos(alpha_rp), r_ri*-sin(alpha_rp)] # alpha_rp is pole span
-
-            list_segments += drawer.drawArc([0,0], P9, P8)
-            list_segments += drawer.drawLine(P9, P10)
-
-            list_segments += drawer.drawArc([0,0], P10, P1)
+                list_segments += drawer.drawArc([0,0], P6, P1)
+                # debug
+                # def print_point(P):
+                #     print( '(%g, %g)' % (P[0], P[1]) )
+                # print_point(P1)
+                # print_point(P2)
+                # print_point(P3)
+                # print_point(P4)
+                # print_point(P5)
+                # print_point(P6)
 
         innerCoord = ( 0.5*(P1[0]+P3[0]), 0.5*(P1[1]+P3[1]))
 
@@ -311,7 +311,7 @@ class CrossSectConsequentPoleRotor(object):
 
 class CrossSectConsequentPoleMagnet(object):
     def __init__(self, 
-                    name = 'ConsequentPole',
+                    name = 'Consequent Pole Rotor',
                     color = '#0BA0E2',
                     ConsequentPole_rotor = None,
                     ):

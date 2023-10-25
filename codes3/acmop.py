@@ -596,6 +596,7 @@ def main(number_which_part):
             # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
 
         select_spec= "CPPM-24s4pp-ps1-Chiba05",
+
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
 
             # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
