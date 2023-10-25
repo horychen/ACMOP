@@ -9,8 +9,8 @@ EPS = 1e-3 # [mm]
 #     def __str__(self):
 #         return str(self.message)
 
-class CrossSectInnerConsequentPoleRotor(object):
-    # CrossSectInnerNotchedRotor Describes the inner notched rotor.
+class CrossSectConsequentPoleRotor(object):
+    # CrossSectInnerConsequentPoleRotor Describes the inner ConsequentPole rotor.
     #    Properties are set upon class creation and cannot be modified.
     #    The anchor point for this is the center of the rotor,
     #    with the x-axis directed along the center of one of the rotor poles
@@ -30,12 +30,14 @@ class CrossSectInnerConsequentPoleRotor(object):
                     ):
         self.name = name
         self.color = color
+
         self.mm_d_pm = mm_d_pm # depth of the permanent magnet
+
         self.deg_alpha_rm = deg_alpha_rm # angular span of the pole: class type DimAngular
         # self.deg_alpha_rs = deg_alpha_rs # segment span: class type DimAngular
         self.mm_d_ri = mm_d_ri           # rotor iron thickness: class type DimLinear
         self.mm_r_ri = mm_r_ri           # inner radius of rotor: class type DimLinear
-        self.mm_d_rp = mm_d_rp           # interpolar iron thickness: class type DimLinear
+        self.mm_d_rp = mm_d_rp           # interpolar iron thickness: class type DimLinear   
         # self.mm_d_rs = mm_d_rs           # inter segment iron thickness: class type DimLinear
         self.p = p                       # number of pole pairs
         self.s = s                       # number of segments  
@@ -66,7 +68,7 @@ class CrossSectInnerConsequentPoleRotor(object):
 
         drawer.getSketch(self.name, self.color)
 
-        mm_d_pm  = self.mm_d_pm
+        d_pm  = self.mm_d_pm
         alpha_rm = self.deg_alpha_rm * np.pi/180
         # alpha_rs = self.deg_alpha_rs * np.pi/180
         r_ri     = self.mm_r_ri
@@ -75,7 +77,7 @@ class CrossSectInnerConsequentPoleRotor(object):
         # d_rs     = self.mm_d_rs
         p        = self.p
         s        = self.s
-        alpha_rp = 2*np.pi/(2*p) # pole span
+        alpha_rp = 2*np.pi/(2*p) # pole span    
         alpha_rs = 0
         # if abs(d_pm - d_rp) < 2*EPS: # d_pm is not defined
         #     print('Warn: [class CrossSectInnerNotchedRotor] Detect d_rp is too close to d_pm. To avoid small line entity error in JMAG, will set d_pm equal to d_rp in CrossSectInnerNotchedMagnet.') # d_pm is not defined here so we cannot set d_rp to d_pm.
@@ -93,15 +95,17 @@ class CrossSectInnerConsequentPoleRotor(object):
 
         P1 = [r_ri, 0]
 
-        r_P2 = r_ri + d_ri + d_rp
+        print(f'P1 =')
+        r_P2 = r_ri + d_ri + d_pm
         # print('[CrossSectInnerNotchedRotor.py] DEBUG: ', r_P2, mm_r_ro)
         P2 = [r_P2, 0]
 
-        alpha_P3 = alpha_rp - alpha_rm
+        alpha_P3 = alpha_rp - alpha_rm    
         P3 = [r_P2*cos(alpha_P3), r_P2*-sin(alpha_P3)]
 
         r_P4 = r_ri + d_ri # = (r_P2 - d_rp) 
-        P4 = [r_P4*cos(alpha_P3), r_P4*-sin(alpha_P3)]
+        P4 = [r_P4, 0]
+        # P4 = [r_P4*cos(alpha_P3), r_P4*-sin(alpha_P3)]
 
         alpha_P5 = alpha_P3 + alpha_rs # alpha_rs means rotor segment (of PM)
         if abs(alpha_rs*s - alpha_rm)<EPS: # This means the inter-segment notch should span 0 deg, which mans the segmented design is reduced to a non-segmented design such that alpha_rm == alpha_rs*s
@@ -110,17 +114,148 @@ class CrossSectInnerConsequentPoleRotor(object):
         P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
 
         list_segments = []
-        # if s == 1:
-        # No magnet sement!
-        # Then P6 is an extra point for a full rotor
-        P6 = [r_ri*cos(alpha_P5), r_ri*-sin(alpha_P5)]
 
-        list_segments += drawer.drawLine([5,10], [0,0])
-        list_segments += drawer.drawLine([5,10], [-10,20])
-        list_segments += drawer.drawLine([25,10], [-10,200])
-        print(P1, P2, P3, P4, P5, P6)
-        print(P1, P2, P3, P4, P5, P6)
-        print(P1, P2, P3, P4, P5, P6)
+        if s == 1:
+            # No magnet segment!
+            # Then P6 is an extra point for a full rotor
+
+            P6 = [r_ri*cos(alpha_P5), r_ri*-sin(alpha_P5)]
+
+
+            # list_segments += drawer.drawLine([5, 10], [0, 0])
+            # list_segments += drawer.drawLine([5, 10], [-10, 20])
+            # list_segments += drawer.drawLine([5, 10], [-10, 200])
+            # print(P1, P2, P3, P4, P5, P6)
+            # print(P1, P2, P3, P4, P5, P6)
+            # print(P1, P2, P3, P4, P5, P6)
+
+
+            
+            if alpha_rm >= alpha_rp*0.9800:
+                print('[CrossSectInnerNotchedRotor.py] Non-NOTCHED ROTOR IS USED.\n')
+                print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)
+                P1p5 = [P2[0] - d_rp, P2[1]]
+                if bool_draw_whole_model:
+                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                    list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1)
+                    list_segments += drawer.drawArc([0,0], P1p5, [-P1p5[0], P1p5[1]])
+                    list_segments += drawer.drawArc([0,0], [-P1p5[0], P1p5[1]], P1p5)
+                    
+                    # list_segments += drawer.drawLine([5, 10], [0, 0])
+                    # list_segments += drawer.drawLine([5, 10], [-10, 20])
+                    # list_segments += drawer.drawLine([5, 10], [-10, 200])
+                    # print(P1, P2, P3, P4, P5, P6)
+                    # print(P1, P2, P3, P4, P5, P6)
+                    # print(P1, P2, P3, P4, P5, P6)
+
+                    # useless
+
+                    # raise
+                else:
+                    list_segments += drawer.drawLine(P1, P1p5)
+                    list_segments += drawer.drawArc([0,0], P5, P1p5)
+                    list_segments += drawer.drawLine(P5, P6)
+                    list_segments += drawer.drawArc([0,0], P6, P1)
+                    # list_segments += drawer.drawLine([5, 10], [0, 0])
+                    # list_segments += drawer.drawLine([5, 10], [-10, 20])
+                    # list_segments += drawer.drawLine([5, 10], [-10, 200])
+                    # print(P1, P2, P3, P4, P5, P6)
+                    # print(P1, P2, P3, P4, P5, P6)
+                    # print(P1, P2, P3, P4, P5, P6)
+
+                    # useless
+
+            else:
+                if bool_draw_whole_model:
+                    def iPark(P, theta):
+                        return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                    def draw_fraction(list_segments, P2, P3, P4, P5):
+                        # list_segments += drawer.drawArc([0,0], P1, P1)
+                        # list_segments += drawer.drawArc([0,0], P2, P2)
+                        # list_segments += drawer.drawArc([0,0], P3, P3)
+                        # list_segments += drawer.drawArc([0,0], P4, P4)
+                        # list_segments += drawer.drawArc([0,0], P5, P5)
+                        # list_segments += drawer.drawArc([0,0], P3, P2)
+                        # list_segments += drawer.drawLine(P3, P4)
+                        # list_segments += drawer.drawArc([0,0], P5, P4)
+                        # P5_CCW = iPark(P5, alpha_rp)
+                        # list_segments += drawer.drawLine(P5_CCW, P2)
+
+                        list_segments += drawer.drawLine(P2, P4)
+                        if (i % 2) == 0:
+                            P2_CCW = iPark(P2, alpha_rp)
+                            list_segments += drawer.drawArc([0,0], P2_CCW, P2)
+                        else :
+                            P4_CCW = iPark(P4, alpha_rp)
+                            list_segments += drawer.drawArc([0,0], P4_CCW, P4)
+
+
+                        # list_segments += drawer.drawLine([5, 10], [0, 0])
+                        # list_segments += drawer.drawLine([5, 10], [-10, 20])
+                        # list_segments += drawer.drawLine([5, 10], [-10, 200])
+                        # print(P1, P2, P3, P4, P5, P6)
+                        # print(P1, P2, P3, P4, P5, P6)
+                        # print(P1, P2, P3, P4, P5, P6)
+
+######################### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
+
+
+                    for i in range(2*p):
+                        draw_fraction(list_segments, iPark(P2, i*alpha_rp), iPark(P3, i*alpha_rp), iPark(P4, i*alpha_rp), iPark(P5, i*alpha_rp))
+                                               
+                        # if (i % 2) == 0:
+                            
+                        # else :
+                    
+                    
+                    # draw a circle (this is officially suggested by FEMM)
+                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                    list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
+
+
+######################### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
+
+                    
+                else:
+                    list_segments += drawer.drawLine(P1, P2)
+                    list_segments += drawer.drawArc([0,0], P3, P2)
+                    list_segments += drawer.drawLine(P3, P4)
+                    list_segments += drawer.drawArc([0,0], P5, P4)
+                    list_segments += drawer.drawLine(P5, P6)
+                    list_segments += drawer.drawArc([0,0], P6, P1)
+                    # list_segments += drawer.drawLine([5, 10], [0, 0])
+                    # list_segments += drawer.drawLine([5, 10], [-10, 20])
+                    # list_segments += drawer.drawLine([5, 10], [-10, 200])
+                    # print(P1, P2, P3, P4, P5, P6)
+                    # print(P1, P2, P3, P4, P5, P6)
+                    # print(P1, P2, P3, P4, P5, P6)
+
+                    # useless
+
+                    # debug
+    # def print_point(P):
+    # print( '(%g, %g)' % (P[0], P[1]) )
+    # print_point(P1)
+    # print_point(P2)
+    # print_point(P3)
+    # print_point(P4)
+    # print_point(P5)
+    # print_point(P6)
+    # quit('')
+        else:
+            if bool_draw_whole_model == True:
+                raise Exception('NOT IMPLEMENTED for s>1.')
+
+            alpha_notch  = (alpha_rm - s*alpha_rs) / (s-1) # inter-segment notch占的弧度
+            P5
+
+            r_P6 = r_ri + d_ri + d_rs
+            P6 = [r_P6*cos(alpha_P5), r_P6*-sin(alpha_P5)]
+
+            alpha_P7 = alpha_P5 + alpha_notch
+            P7 = [r_P6*cos(alpha_P7), r_P6*-sin(alpha_P7)]
+
+            P8 = [r_P4*cos(alpha_P7), r_P4*-sin(alpha_P7)]
 
         if alpha_rm >= alpha_rp*0.9800:
             print('[CrossSectInnerNotchedRotor.py] Non-NOTCHED ROTOR IS USED.\n')
@@ -174,35 +309,37 @@ class CrossSectInnerConsequentPoleRotor(object):
         # return [list_segments] # csToken # cross section token
         return {'innerCoord': innerCoord, 'list_regions':[list_segments], 'mirrorAxis': None}
 
-class CrossSectInnerConsequentPoleMagnet(object):
+class CrossSectConsequentPoleMagnet(object):
     def __init__(self, 
                     name = 'Consequent Pole Rotor',
                     color = '#0BA0E2',
-                    notched_rotor = None,
+                    ConsequentPole_rotor = None,
                     ):
         self.name = name
         self.color = color
-        self.notched_rotor = notched_rotor
+        self.ConsequentPole_rotor = ConsequentPole_rotor
 
-    def draw(self, drawer, bool_re_evaluate=False, bool_draw_whole_model=False):
+    def draw(self, drawer, bool_re_evaluate= False, bool_draw_whole_model= False):
 
         if False == bool_re_evaluate:
             drawer.getSketch(self.name, self.color)
 
-        d_pm     = self.notched_rotor.mm_d_pm
-        alpha_rm = self.notched_rotor.deg_alpha_rm * np.pi/180
-        alpha_rs = self.notched_rotor.deg_alpha_rs * np.pi/180
-        r_ri     = self.notched_rotor.mm_r_ri
-        d_ri     = self.notched_rotor.mm_d_ri
-        d_rp     = self.notched_rotor.mm_d_rp
-        d_rs     = self.notched_rotor.mm_d_rs
-        p        = self.notched_rotor.p
-        s        = self.notched_rotor.s
+        d_pm     = self.ConsequentPole_rotor.mm_d_pm
+        alpha_rm = self.ConsequentPole_rotor.deg_alpha_rm * np.pi/180
+        # alpha_rs = self.ConsequentPole_rotor.deg_alpha_rs * np.pi/180
+        r_ri     = self.ConsequentPole_rotor.mm_r_ri
+        d_ri     = self.ConsequentPole_rotor.mm_d_ri
+        d_rp     = self.ConsequentPole_rotor.mm_d_rp
+        # d_rs     = self.ConsequentPole_rotor.mm_d_rs
+        p        = self.ConsequentPole_rotor.p
+        s        = self.ConsequentPole_rotor.s
         alpha_rp = 2*np.pi/(2*p) # pole span
+        alpha_rs = 0
+
 
         # rotor inter-pole notch being too small
         if alpha_rm >= alpha_rp*0.9800:
-            print('[CrossSectInnerNotchedRotor.py] FULL POLE PITCH MAGNET IS USED.')
+            print('[CrossSectInnerConsequentPoleRotor.py] FULL POLE PITCH MAGNET IS USED.')
             alpha_rm = alpha_rp
 
         # print(alpha_rm/np.pi*180)
@@ -215,7 +352,7 @@ class CrossSectInnerConsequentPoleMagnet(object):
                 alpha_rs = alpha_rm # alpha_rs is the variable actually being used in the following...
             else:
                 print('[Warn] s=%d: This is not tested. For now it simply assumes the iron notch between poles becomes the iron notch between the segments of one pole.' % (s))
-            print('[Warn] [class CrossSectInnerNotchedMagnet] Magnet is fully spanned.')
+            print('[Warn] [class CrossSectInnerConsequentPoleMagnet] Magnet is fully spanned.')
 
 
         # print(alpha_rm/np.pi*180)
@@ -228,7 +365,7 @@ class CrossSectInnerConsequentPoleMagnet(object):
 
         P1 = [r_ri, 0]
 
-        r_P2 = r_ri + d_ri + d_rp
+        r_P2 = r_ri + d_ri + d_pm
         P2 = [r_P2, 0]
 
         alpha_P3 = alpha_rp - alpha_rm
@@ -236,11 +373,20 @@ class CrossSectInnerConsequentPoleMagnet(object):
 
         r_P4 = r_ri + d_ri # = (r_P2 - d_rp) 
         P4 = [r_P4*cos(alpha_P3), r_P4*-sin(alpha_P3)]
+        P4_extra = [r_P4, 0]
 
         P3_extra = [(r_P4+d_pm)*cos(alpha_P3), (r_P4+d_pm)*-sin(alpha_P3)]
 
         alpha_P5 = alpha_P3 + alpha_rs # alpha_rs means rotor segment (of PM)
         P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
+
+
+        # list_segments += drawer.drawLine([5, 10], [0, 0])
+        # list_segments += drawer.drawLine([5, 10], [-10, 20])
+        # list_segments += drawer.drawLine([5, 10], [-10, 200])
+        # print(P1, P2, P3_extra, P4, P5)
+        # print(P1, P2, P3_extra, P4, P5)
+        # print(P1, P2, P3_extra, P4, P5)
 
         list_regions = []
         list_segments = []
@@ -253,28 +399,73 @@ class CrossSectInnerConsequentPoleMagnet(object):
             Rout = r_P4+d_pm
             Rin  = r_P4
             self.mm2_magnet_area = alpha_rm/alpha_rp  *  np.pi*(Rout**2 - Rin**2) # magnet area for all the poles
-            print('[CrossSectInnerNotchedRotor.py] Magnet area in total is %g mm^2'%(self.mm2_magnet_area))
+            print('[CrossSectInnerConsequentPoleRotor.py] Magnet area in total is %g mm^2'%(self.mm2_magnet_area))
             if bool_re_evaluate:
                 return self.mm2_magnet_area
+
+
+                    ################## 只有我有用 ###############################
+                    ################## 只有我有用 ###############################
 
             if bool_draw_whole_model:
                 def iPark(P, theta):
                     return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
-                def draw_fraction(list_segments, P3_extra, P4, P5, P6_extra):
-                    list_segments += drawer.drawLine(P3_extra, P4)
-                    list_segments += drawer.drawArc([0,0], P5, P4)
-                    list_segments += drawer.drawLine(P5, P6_extra)
-                    list_segments += drawer.drawArc([0,0], P6_extra, P3_extra)
+                def draw_fraction(list_segments, P2, P3_extra, P4_extra, P5):
+                   
+                   
+
+                    list_segments += drawer.drawLine(P2, P4_extra)
+                    if (i % 2) == 1:
+                        P2_CCW = iPark(P2, alpha_rp)
+                        list_segments += drawer.drawArc([0,0], P2_CCW, P2)
+                        P4_CCW = iPark(P4_extra, alpha_rp)
+                        list_segments += drawer.drawArc([0,0], P4_CCW, P4_extra)
+
+                    # list_segments += drawer.drawLine(P3_extra, P4)
+                    # list_segments += drawer.drawArc([0,0], P5, P4)
+                    # list_segments += drawer.drawLine(P5, P6_extra)
+                    # list_segments += drawer.drawArc([0,0], P6_extra, P3_extra)
+
+                    
+                    # list_segments += drawer.drawLine(P3_extra, P4)
+
+
+                    # list_segments += drawer.drawLine([5, 10], [0, 0])
+                    # list_segments += drawer.drawLine([5, 10], [-10, 20])
+                    # list_segments += drawer.drawLine([5, 10], [-10, 200])
+                    # print(P1, P2, P3_extra, P4, P5)
+                    # print(P1, P2, P3_extra, P4, P5)
+                    # print(P1, P2, P3_extra, P4, P5)
+
                 for i in range(2*p):
-                    draw_fraction(list_segments, iPark(P3_extra, i*alpha_rp), 
-                                                 iPark(P4, i*alpha_rp), 
-                                                 iPark(P5, i*alpha_rp), 
+                    draw_fraction(list_segments, iPark(P2, i*alpha_rp), 
+                                                 iPark(P3_extra, i*alpha_rp), 
+                                                 iPark(P4_extra, i*alpha_rp), 
                                                  iPark(P6_extra, i*alpha_rp))
+                    
+                    # list_segments += drawer.drawLine([5, 10], [0, 0])
+                    # list_segments += drawer.drawLine([5, 10], [-10, 20])
+                    # list_segments += drawer.drawLine([5, 10], [-10, 200])
+                    # print(P1, P2, P3_extra, P4, P5)
+                    # print(P1, P2, P3_extra, P4, P5)
+                    # print(P1, P2, P3_extra, P4, P5)
+
+
+
+                    ################## 只有我有用 ###############################
+                    ################## 只有我有用 ###############################
             else:
                 list_segments += drawer.drawLine(P3_extra, P4)
                 list_segments += drawer.drawArc([0,0], P5, P4)
                 list_segments += drawer.drawLine(P5, P6_extra)
                 list_segments += drawer.drawArc([0,0], P6_extra, P3_extra)
+
+                # list_segments += drawer.drawLine([5, 10], [0, 0])
+                # list_segments += drawer.drawLine([5, 10], [-10, 20])
+                # list_segments += drawer.drawLine([5, 10], [-10, 200])
+                # print(P1, P2, P3_extra, P4, P5)
+                # print(P1, P2, P3_extra, P4, P5)
+                # print(P1, P2, P3_extra, P4, P5)
 
             list_regions.append(list_segments)
             list_segments = []
@@ -300,6 +491,14 @@ class CrossSectInnerConsequentPoleMagnet(object):
                 list_segments += drawer.drawLine(P5, P6_extra)
                 list_segments += drawer.drawArc([0,0], P6_extra, P3_extra)
 
+
+                # list_segments += drawer.drawLine([5, 10], [0, 0])
+                # list_segments += drawer.drawLine([5, 10], [-10, 20])
+                # list_segments += drawer.drawLine([5, 10], [-10, 200])
+                # print(P1, P2, P3_extra, P4, P5)
+                # print(P1, P2, P3_extra, P4, P5)
+                # print(P1, P2, P3_extra, P4, P5)
+
                 list_regions.append(list_segments)
                 list_segments = []
 
@@ -308,29 +507,32 @@ class CrossSectInnerConsequentPoleMagnet(object):
         # return list_regions # csToken # cross section token
 
 
+####################### Shaft ########################
+class CrossSectConsequentPoleShaft(object):
+
     def __init__(self, 
                     name = 'Shaft',
                     color = '#0EE0E2',
-                    notched_rotor = None,
+                    ConsequentPole_rotor = None,
                     ):
         self.name = name
         self.color = color
-        self.notched_rotor = notched_rotor
+        self.ConsequentPole_rotor = ConsequentPole_rotor
 
     def draw(self, drawer, bool_draw_whole_model=False):
 
         drawer.getSketch(self.name, self.color)
 
-        # d_pm     = self.notched_rotor.mm_d_pm
-        # alpha_rm = self.notched_rotor.deg_alpha_rm * np.pi/180
+        d_pm     = self.ConsequentPole_rotor.mm_d_pm
+        alpha_rm = self.ConsequentPole_rotor.deg_alpha_rm * np.pi/180
         # alpha_rs = self.notched_rotor.deg_alpha_rs * np.pi/180
-        r_ri     = self.notched_rotor.mm_r_ri
-        # d_ri     = self.notched_rotor.mm_d_ri
-        # d_rp     = self.notched_rotor.mm_d_rp
+        r_ri     = self.ConsequentPole_rotor.mm_r_ri
+        d_ri     = self.ConsequentPole_rotor.mm_d_ri
+        d_rp     = self.ConsequentPole_rotor.mm_d_rp
         # d_rs     = self.notched_rotor.mm_d_rs
-        # p        = self.notched_rotor.p
-        # s        = self.notched_rotor.s
-        # alpha_rp = 2*np.pi/(2*p) # pole span
+        p        = self.ConsequentPole_rotor.p
+        s        = self.ConsequentPole_rotor.s
+        alpha_rp = 2*np.pi/(2*p) # pole span
 
         P1 = [r_ri, 0]
         NP1 = [-r_ri, 0]
@@ -341,6 +543,14 @@ class CrossSectInnerConsequentPoleMagnet(object):
             list_segments += drawer.drawArc([0,0], NP1, P1)
             list_segments += drawer.drawArc([0,0], P1, NP1)
 
+            # list_segments += drawer.drawLine([5, 10], [0, 0])
+            # list_segments += drawer.drawLine([5, 10], [-10, 20])
+            # list_segments += drawer.drawLine([5, 10], [-10, 200])
+            # print(P1)
+            # print(P1)
+            # print(P1)
+
+
             list_regions.append(list_segments)
             list_segments = []
 
@@ -348,6 +558,9 @@ class CrossSectInnerConsequentPoleMagnet(object):
 
         # return list_regions # csToken # cross section token
         return {'innerCoord': innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
+
+
+### testrun
 
 if __name__ == '__main__':
     import JMAG

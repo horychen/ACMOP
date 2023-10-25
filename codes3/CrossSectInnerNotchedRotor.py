@@ -108,13 +108,38 @@ class CrossSectInnerNotchedRotor(object):
             alpha_P5 = alpha_P3 + alpha_rs*s
             s = 1 # this is a bad practice but it will help to re-use the drawing code of case s==1 below
         P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
+        # debug
+
+        # list_segments += drawer.drawLine([5, 10], [0, 0])
+        # list_segments += drawer.drawLine([5, 10], [-10, 20])
+        # list_segments += drawer.drawLine([5, 10], [-10, 200])
+        # print(P1, P2, P3, P4, P5)
+        # print(P1, P2, P3, P4, P5)
+        # print(P1, P2, P3, P4, P5)
+
+
+
+        def print_point(P):
+            print( '(%g, %g)' % (P[0], P[1]) )
+            print_point(P1)
+            print_point(P2)
+            print_point(P3)
+            print_point(P4)
+            print_point(P5)
+            print_point(P6)
+            quit()
 
         list_segments = []
         if s == 1:
             # No magnet sement!
             # Then P6 is an extra point for a full rotor
             P6 = [r_ri*cos(alpha_P5), r_ri*-sin(alpha_P5)]
-
+            # list_segments += drawer.drawLine([5, 10], [0, 0])
+            # list_segments += drawer.drawLine([5, 10], [-10, 20])
+            # list_segments += drawer.drawLine([5, 10], [-10, 200])
+            # print(P1, P2, P3, P4, P5, P6)
+            # print(P1, P2, P3, P4, P5, P6)
+            # print(P1, P2, P3, P4, P5, P6)
             if alpha_rm >= alpha_rp*0.9800:
                 print('[CrossSectInnerNotchedRotor.py] Non-NOTCHED ROTOR IS USED.\n')
                 print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)

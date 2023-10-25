@@ -87,7 +87,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
             # stator_yoke_flux_density_Bsy = 1.5
 
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
-        stator_outer_diameter_Dse = 0.225 # this is related to the stator current density and should be determined by Js and power.
+        stator_outer_diameter_Dse = 0.400 # this is related to the stator current density and should be determined by Js and power.
         sleeve_length = 1
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
@@ -98,7 +98,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         stator_inner_diameter_Dis = stator_inner_radius_r_is*2
         split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
 
-        stator_yoke_height_h_ys = air_gap_flux_density_Bg * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bsy * 2*SI['p'])
+        stator_yoke_height_h_ys = air_gap_flux_density_Bg * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bsy *2 *SI['p'])
         # print(stator_outer_diameter_Dse, stator_inner_diameter_Dis, stator_yoke_height_h_ys)
         stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
         stator_slot_height_h_ss = stator_tooth_height_h_ds
@@ -117,14 +117,24 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         GP['deg_alpha_sto'].value         = GP['deg_alpha_st'].value/2 # im_template uses alpha_so as 0.
         GP['mm_r_si'].value              = 1e3*stator_inner_radius_r_is # mm
         GP['mm_r_so'].value              = 1e3*stator_outer_diameter_Dse/2 # mm
-        GP['mm_d_sto'].value              = 0.7594 # mm
+        GP['mm_d_sto'].value              = 3 # mm
         GP['mm_d_stt'].value              = 1.5*GP['mm_d_sto'].value
         GP['mm_d_st'].value              = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - GP['mm_r_si'].value - GP['mm_d_stt'].value  # mm
-        # print(GP['mm_d_st'].value)
-        # print (1e3*stator_outer_diameter_Dse)
-        # print(1e3*stator_yoke_height_h_ys)
-        # print(GP['mm_r_si'].value)
-        # print (GP['mm_d_stt'].value)
+        # print(f"{GP['mm_d_st'].value=}")
+        # print (f"{1e3*stator_outer_diameter_Dse=}")
+        # print(f"{1e3*stator_yoke_height_h_ys=}")
+        # print(f"{speed_rpm=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{stator_tooth_height_h_ds=}")
+        # print(f"{GP['mm_r_si'].value=}")
+        # print(f"{GP['mm_r_si'].value=}")
+        # print(f"{GP['mm_r_si'].value=}")
+        # print(f"{air_gap_flux_density_Bg =}")
+        # print(f"{stator_inner_diameter_Dis=}")
+        # print(f"{alpha_rm_over_alpha_rp =}")
+        # print(f"{2*stator_yoke_flux_density_Bsy =}")
+        # print(f"{2*SI['p']=}")
+        # print (f"{GP['mm_d_stt'].value =}")
         # quit()
         GP['mm_d_sy'].value              = 1e3*stator_yoke_height_h_ys # mm
         GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
@@ -132,13 +142,13 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         GP['mm_d_sleeve'].value          = sleeve_length
         GP['mm_d_mech_air_gap'].value    = SI['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
-        GP['mm_d_pm'].value              = 5  # mm
+        GP['mm_d_pm'].value              = 10  # mm
         GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is epirically specified
         GP['mm_r_ro'].value              = 1e3*rotor_outer_radius_r_or
         GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
         # SPMSM specific
         GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
-        GP['mm_d_rp'].value              = 3  # mm
+        GP['mm_d_rp'].value              = 10  # mm
     #    GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SI['no_segmented_magnets']
         # GP['mm_d_rs'].value              = 0.20*GP['mm_d_rp'].value # d_pm > d_rp and d_pm > d_rs
 
@@ -238,7 +248,7 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
         self.check_invalid_design(GP, SI)
 
         # Parts
-        self.rotorCore = CrossSectInnerConsequentPoleRotor.CrossSectInnerConsequentPoleRotor(
+        self.rotorCore = CrossSectInnerConsequentPoleRotor.CrossSectConsequentPoleRotor(
                             name = 'ConsequentPoleRotor',
                             mm_d_pm      = GP['mm_d_pm'].value,
                             deg_alpha_rm = GP['deg_alpha_rm'].value, # angular span of the pole: class type DimAngular
@@ -251,12 +261,12 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
                             s = template.SI['no_segmented_magnets'], # Set magnet segments/pole to 4
                             location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0))
 
-        self.shaft = CrossSectInnerNotchedRotor.CrossSectShaft(name = 'Shaft',
-                                                      notched_rotor = self.rotorCore
+        self.shaft = CrossSectInnerConsequentPoleRotor.CrossSectConsequentPoleShaft(name = 'Shaft',
+                                                      ConsequentPole_rotor = self.rotorCore
                                                     )
 
-        self.rotorMagnet = CrossSectInnerConsequentPoleRotor.CrossSectInnerConsequentPoleMagnet( name = 'ConsequentPoleRotorMagnet',
-                                                      notched_rotor = self.rotorCore
+        self.rotorMagnet = CrossSectInnerConsequentPoleRotor.CrossSectConsequentPoleMagnet( name = 'ConsequentPole',
+                                                      ConsequentPole_rotor = self.rotorCore
                                                     )
 
         self.stator_core = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',

@@ -1,6 +1,11 @@
 ABCDEFGHIJKLMNOPQRSTUVWXYZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 import os
+# import sys
 output_dir = os.path.dirname(__file__) + r'/../_wily/'
+# print(os.path.dirname(__file__))
+# print('hfisdjkfbklrdjfgblkejghbselkfgbsefkljgbsdlkfj',output_dir)
+# print(sys.path)
+
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 print('Output directory is:', output_dir)
@@ -1674,7 +1679,7 @@ if __name__ == '__main__':
 
     if True:
         phases, signs, grouping_AC, coil_pitch_y = main_derivation()
-        # quit()
+        quit()
     else:
         phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
         signs = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']

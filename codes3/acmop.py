@@ -270,7 +270,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         elif 'FSPM' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
         elif 'CPPM' in acm_variant.template.name:
-            toolCairo.draw_cppm(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
+            toolCairo.draw_cppm(acm_variant, bool_draw_whole_model=True)
         else:
             raise Exception("Nothing to draw. Are you adding a new machine type?????")
 
@@ -605,7 +605,7 @@ def main(number_which_part):
             # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
 
         project_loc            = fr'../_ConsequentPole/',
-        bool_show_GUI          = False
+        bool_show_GUI          = True
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -637,8 +637,8 @@ def main(number_which_part):
     return mop
 
 if __name__ == '__main__':
-    main(31)
-    # main(3)
+    # main(31)
+    main(3)
     # main(4)
     # main(5)
 
