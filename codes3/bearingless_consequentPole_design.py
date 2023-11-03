@@ -315,8 +315,8 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
             deg_pole_span = 180/SI['p']
             wily = self.template.d['EX']['wily']
             #                                                              inter-pole notch (0.5 for half)         rotate to x-axis    winding placing bias (half adjacent slot angle)      reverse north and south pole to make torque positive.
-            print('[bearingless_spmsm_design.py] [PMSM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,  + deg_pole_span)
-            print('[bearingless_spmsm_design.py] [PMSM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5  - deg_pole_span*0.5  + wily.deg_winding_U_phase_phase_axis_angle   + deg_pole_span, 'deg')
+            print('[bearingless_spmsm_design.py] [CPPM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,  + deg_pole_span)
+            print('[bearingless_spmsm_design.py] [CPPM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5  - deg_pole_span*0.5  + wily.deg_winding_U_phase_phase_axis_angle   + deg_pole_span, 'deg')
             self.InitialRotationAngle = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span
 
         self.boolCustomizedCircuit = False
