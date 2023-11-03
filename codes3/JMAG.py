@@ -244,7 +244,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 # model.GetGroupList().AddPartToGroup(name, name) #<- this also works
 
         part_ID_list = model.GetPartIDs()
-       
+        
         print(part_ID_list)
         print(part_ID_list)
         print(part_ID_list)
@@ -254,7 +254,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         print(part_ID_list)
         print(len(part_ID_list))
        
-
+    
         # view = app.View()
         # view.ClearSelect()
         # sel = view.GetCurrentSelection()
@@ -264,31 +264,37 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         p = SI['p']
         s = SI['no_segmented_magnets']
         Q = SI['Qs']
-
-        print(int(1 + 1 + p*2*s + 1 + 1 + Q*2))
+        print(Q)
+        print(int(1 + 1 + p*1*s + 1 + 1 + Q*2))
         # quit()
                                 #   轴 转子 永磁体  护套 定子 绕组
-        # if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
-        if len(part_ID_list) != int(1 + Q*2 + 1):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
-            logger = logging.getLogger(__name__)
-            logger.error(msg)
-            raise utility.ExceptionBadNumberOfParts(msg)
+        # if len(part_ID_list) != int(1 + 1 + p*1*s + 1 + 1 + Q*2):
+        # if len(part_ID_list) != int(1 + 1 + p*1*s +      1 + Q*2):
+        # # if len(part_ID_list) != int(1 + Q*2 + 1):
+        #     msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
+        #     logger = logging.getLogger(__name__)
+        #     logger.error(msg)
+        #     raise utility.ExceptionBadNumberOfParts(msg)
 
         self.id_rotorCore = id_rotorCore = part_ID_list[0]
         id_shaft = part_ID_list[1]
-        partIDRange_Magnet = part_ID_list[2:int(2+p*s*2)]
-        id_sleeve = part_ID_list[int(2+p*s*2)]
-        self.id_statorCore = id_statorCore = part_ID_list[int(2+p*s*2)+1]
-        partIDRange_Coil = part_ID_list[int(2+p*s*2)+2 : int(2+p*s*2)+2 + int(Q*2)]
+        partIDRange_Magnet = part_ID_list[2:int(2+p*s*1)]                           # 此处C.P.应为1*p
+        # id_sleeve = part_ID_list[int(2+p*s*2)]
+        self.id_statorCore = id_statorCore = part_ID_list[int(2+p*s*1)+1]
+        partIDRange_Coil = part_ID_list[int(2+p*s*1)+2 : int(2+p*s*1)+2 + int(Q*2)]
 
         # debug
-        # print(id_rotorCore)
-        # print(id_shaft)
-        # print(partIDRange_Magnet)
+        print(int(1 + 1 + p*1*s + 1 + 1 + Q*2))
+        print(p)
+        print(int(s))
+        print(id_rotorCore)
+        print(id_shaft)
+        print(partIDRange_Magnet)
         # print(id_sleeve)
-        # print(id_statorCore)
-        # print(partIDRange_Coil)
+        print(id_statorCore)
+        print(partIDRange_Coil)
+        print(len(partIDRange_Coil))
+        quit()
 
         self.bool_suppressShaft = False
         model.SuppressPart(id_sleeve, 1)
@@ -1851,8 +1857,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
     ''' BELOW is for JMAG Designer
     '''
-    def draw_CPPM(self, acm_variant, bool_pyx=False):
-
+    def draw_CPPM(self, acm_variant, bool_pyx=False, bool_draw_whole_model=True):
+        if bool_draw_whole_model:
+            self.bMirror = False
+            self.iRotateCopy = 1
         # blue
         # color_rgb_A = np.array([113, 142, 164])/255
         # color_rgb_B = np.array([73, 109, 137])/255
@@ -1865,36 +1873,28 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         color_rgb_A = np.array([236,236,236])/255
         color_rgb_B = np.array([226,226,226])/255
 
-        # Rotor Core
-        list_regions_1 = acm_variant.rotorCore.draw(self)
-        self.bMirror = False
-        self.iRotateCopy = acm_variant.rotorCore.p*2
-        region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
-
-        # Shaft
-        if not bool_pyx:
-            list_regions = acm_variant.shaft.draw(self)
-            self.bMirror = False
-            self.iRotateCopy = 1
-            region0 = self.prepareSection(list_regions)
-
-        # Rotor Magnet
-        list_regions = acm_variant.rotorMagnet.draw(self)
-        self.bMirror = False
-        self.iRotateCopy = acm_variant.rotorMagnet.ConsequentPole_rotor.p*2
-        region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
-
-        # This is only for post-processing and it is for handle a un-fixable filling bug with PyX.
-        if bool_pyx:
+        # Rotor Core 1
+        if 1:
+            list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
             region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
 
+        # Rotor Magnet
+        if 0:
+            list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
+
+        # Shaft
+
+        list_regions = acm_variant.shaft.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        region0 = self.prepareSection(list_regions)
 
         # Sleeve
-        # if not bool_pyx:
-        #     list_regions = acm_variant.sleeve.draw(self)
-        #     self.bMirror = False
-        #     self.iRotateCopy = acm_variant.rotorMagnet.ConsequentPole_rotor.p*2
-        #     regionS = self.prepareSection(list_regions)
+        # list_regions = acm_variant.sleeve.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # regionS = self.prepareSection(list_regions)
+
+        # This is only for post-processing and it is for handle a un-fixable filling bug with PyX.
+        # if bool_pyx:
+        #     region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
 
         # Stator Core
         list_regions = acm_variant.stator_core.draw(self)

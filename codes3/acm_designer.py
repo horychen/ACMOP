@@ -1398,7 +1398,7 @@ class acm_designer(object):
             elif 'FSPM' in acm_variant.template.name:
                 DRAW_SUCCESS = toolJd.draw_FSPM(acm_variant, bool_draw_whole_model=False)
             elif 'CPPM' in acm_variant.template.name:
-                DRAW_SUCCESS = toolJd.draw_CPPM(acm_variant)
+                DRAW_SUCCESS = toolJd.draw_CPPM(acm_variant, bool_draw_whole_model=True)
             else:
                 raise Exception ('Add a new motor type')
             if DRAW_SUCCESS != 1:
