@@ -195,7 +195,7 @@ class VanGogh_Cairo:
         # region0 = self.prepareSection(list_regions)
 
         # Rotor Magnet
-        if 1:
+        if 0:
             list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
@@ -208,14 +208,14 @@ class VanGogh_Cairo:
         # regionS = self.prepareSection(list_regions)
 
         # Stator Core
-        if 1:
+        if 0:
             list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = True
         # self.iRotateCopy = acm_variant.stator_core.Q
         # region3 = self.prepareSection(list_regions)
 
         # Stator Winding
-        if 1:
+        if 0:
             list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.coils.stator_core.Q
@@ -259,7 +259,7 @@ class VanGogh_Cairo:
         self.surface.finish()
         import cairosvg
         cairosvg.svg2pdf(url=self.output_fname_no_suffix+'.svg', write_to=self.output_fname_no_suffix+'.pdf')
-        print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+'.svg (and .pdf)'}")
+        print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+'.pdf (and .svg)'}")
         if bool_open_pdf:
             import os
             try:

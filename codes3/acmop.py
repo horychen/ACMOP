@@ -572,7 +572,7 @@ def main(number_which_part):
         # select_spec='IM Q24p1y9 Qr32 Round Bar',
         # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
-        # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
+        select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
         # select_spec            = 'PMSM Q24p1y9 PEMD', # 
         # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
@@ -595,7 +595,7 @@ def main(number_which_part):
             # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
             # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
 
-        select_spec= "CPPM-24s4pp-ps1-Chiba05",
+        # select_spec= "CPPM-24s4pp-ps1-Chiba05",
 
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
 

@@ -249,7 +249,7 @@ class CrossSectInnerNotchedRotor(object):
 
             list_segments += drawer.drawArc([0,0], P10, P1)
 
-        innerCoord = ( 0.5*(P1[0]+P3[0]), 0.5*(P1[1]+P3[1]))
+        innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))
 
         # return [list_segments] # csToken # cross section token
         return {'innerCoord': innerCoord, 'list_regions':[list_segments], 'mirrorAxis': None}

@@ -1590,7 +1590,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         list_region_objects = []
         for idx, list_segments in enumerate(list_regions):
-            # print(list_segments)
 
             # Region
             self.doc.GetSelection().Clear()
@@ -1598,6 +1597,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 # print(segment)
                 # debugging = list_segments(i).GetName()
                 self.doc.GetSelection().Add(self.sketch.GetItem(segment.GetName()))
+            print(__file__)
+            quit()
 
             self.sketch.CreateRegions()
             # self.sketch.CreateRegionsWithCleanup(EPS, True) # StatorCore will fail
@@ -1879,76 +1880,75 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
 
         # Rotor Magnet
-        if 0:
+        if 1:
             list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
             region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
-        # Shaft
+            # Shaft
+            list_regions = acm_variant.shaft.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            region0 = self.prepareSection(list_regions)
 
-        list_regions = acm_variant.shaft.draw(self, bool_draw_whole_model=bool_draw_whole_model)
-        region0 = self.prepareSection(list_regions)
+            # Sleeve
+            # list_regions = acm_variant.sleeve.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            # regionS = self.prepareSection(list_regions)
 
-        # Sleeve
-        # list_regions = acm_variant.sleeve.draw(self, bool_draw_whole_model=bool_draw_whole_model)
-        # regionS = self.prepareSection(list_regions)
+            # This is only for post-processing and it is for handle a un-fixable filling bug with PyX.
+            # if bool_pyx:
+            #     region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
 
-        # This is only for post-processing and it is for handle a un-fixable filling bug with PyX.
-        # if bool_pyx:
-        #     region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
+            # Stator Core
+            list_regions = acm_variant.stator_core.draw(self)
+            self.bMirror = True
+            self.iRotateCopy = acm_variant.stator_core.Q
+            region3 = self.prepareSection(list_regions, color=color_rgb_A)
 
-        # Stator Core
-        list_regions = acm_variant.stator_core.draw(self)
-        self.bMirror = True
-        self.iRotateCopy = acm_variant.stator_core.Q
-        region3 = self.prepareSection(list_regions, color=color_rgb_A)
+            if not bool_pyx:
+                # Stator Winding
+                list_regions = acm_variant.coils.draw(self)
+                self.bMirror = False
+                self.iRotateCopy = acm_variant.coils.stator_core.Q
+                region4 = self.prepareSection(list_regions)
 
-        if not bool_pyx:
-            # Stator Winding
-            list_regions = acm_variant.coils.draw(self)
-            self.bMirror = False
-            self.iRotateCopy = acm_variant.coils.stator_core.Q
-            region4 = self.prepareSection(list_regions)
+                self.calculate_excitation_current(acm_variant)
 
-            self.calculate_excitation_current(acm_variant)
+                    # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
+                    # EX = acm_variant.template.d['EX']
+                    # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+                    # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
+                    # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+                    #     # try:
+                    #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+                    #     # except AttributeError:
+                    #     #     # print(EX['wily'])
+                    #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily']['number_parallel_branch']
+                    #     #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'number_parallel_branch', implying that the object wily has become a dict after jsonpickle.")
+                    #     #     # quit() 
 
-                # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
-                # EX = acm_variant.template.d['EX']
-                # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
-                # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
-                # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
-                #     # try:
-                #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
-                #     # except AttributeError:
-                #     #     # print(EX['wily'])
-                #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily']['number_parallel_branch']
-                #     #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'number_parallel_branch', implying that the object wily has become a dict after jsonpickle.")
-                #     #     # quit() 
+                    # # Maybe there is a bug here... regarding the excitation for suspension winding...
+                    # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
+                    # variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
+                    # EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
+                    # EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+                    # EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+                    # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
+                    #                                                                                             EX['CurrentAmp_per_phase'],
+                    #                                                                                             EX['DriveW_CurrentAmp'],
+                    #                                                                                             EX['BeariW_CurrentAmp'])
 
-                # # Maybe there is a bug here... regarding the excitation for suspension winding...
-                # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
-                # variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
-                # EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
-                # EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
-                # EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
-                # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
-                #                                                                                             EX['CurrentAmp_per_phase'],
-                #                                                                                             EX['DriveW_CurrentAmp'],
-                #                                                                                             EX['BeariW_CurrentAmp'])
+                    # # acm_variant.spec_geometry_dict['DriveW_CurrentAmp'] = acm_variant.DriveW_CurrentAmp
 
-                # # acm_variant.spec_geometry_dict['DriveW_CurrentAmp'] = acm_variant.DriveW_CurrentAmp
+                    # slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+                    # print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
 
-                # slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
-                # print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
+                    # # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
+                    # # print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
+                    # # print('---acm_variant.DriveW_CurrentAmp =', acm_variant.DriveW_CurrentAmp)
+                    # # print('---acm_variant.BeariW_CurrentAmp =', acm_variant.BeariW_CurrentAmp)
+                    # # print('---TORQUE_CURRENT_RATIO:', acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'])
+                    # # print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
 
-                # # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
-                # # print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
-                # # print('---acm_variant.DriveW_CurrentAmp =', acm_variant.DriveW_CurrentAmp)
-                # # print('---acm_variant.BeariW_CurrentAmp =', acm_variant.BeariW_CurrentAmp)
-                # # print('---TORQUE_CURRENT_RATIO:', acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'])
-                # # print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
-
-            # Import Model into Designer
-            self.save(acm_variant.name, self.show(acm_variant, toString=True))
+                # Import Model into Designer
+                self.save(acm_variant.name, self.show(acm_variant, toString=True))
 
         return True
 
