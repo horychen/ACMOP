@@ -244,17 +244,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 # model.GetGroupList().AddPartToGroup(name, name) #<- this also works
 
         part_ID_list = model.GetPartIDs()
-        
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(part_ID_list) 
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(len(part_ID_list))
-       
-    
+
         # view = app.View()
         # view.ClearSelect()
         # sel = view.GetCurrentSelection()
@@ -1915,17 +1905,17 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             self.iRotateCopy = acm_variant.rotorCore.p
             region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
 
+        # Shaft
+        if 1:
+            list_regions = acm_variant.shaft.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            region0 = self.prepareSection(list_regions)
+
         # Rotor Magnet
         if 1:
             list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
             self.bMirror = False
             self.iRotateCopy = acm_variant.rotorCore.p
             region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
-
-        # Shaft
-        if 1:
-            list_regions = acm_variant.shaft.draw(self, bool_draw_whole_model=bool_draw_whole_model)
-            region0 = self.prepareSection(list_regions)
 
         # Sleeve
         # list_regions = acm_variant.sleeve.draw(self, bool_draw_whole_model=bool_draw_whole_model)
