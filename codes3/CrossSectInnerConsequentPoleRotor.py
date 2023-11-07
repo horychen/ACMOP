@@ -95,23 +95,40 @@ class CrossSectConsequentPoleRotor(object):
         # print('[CrossSectInnerNotchedRotor.py] DEBUG: ', r_P2, mm_r_ro)
         P2 = [r_P2, 0]
 
-        alpha_P3 = alpha_rp - alpha_rm    
-        P3 = [r_P2*cos(alpha_P3), r_P2*-sin(alpha_P3)]
 
+        # For consequent-pole iron span is equal to pole span
+
+        alpha_P3 = alpha_rp   
+        P3 = [r_P2*cos(alpha_P3), r_P2*sin(alpha_P3)]
+        
+        # print(alpha_rm)
+        # print(alpha_rm)        
+        # print(alpha_rm)
+        # print(alpha_rm)
+        # quit()        
+
+        alpha_P4 = alpha_rp  
         r_P4 = r_ri + d_ri # = (r_P2 - d_rp) 
-        P4 = [r_P4, 0]
+        P4 = [r_P4*cos(alpha_P4), r_P4*sin(alpha_P4)]
+        print(alpha_P4)
+        print(P4)
+        
+        r_P5 = r_P4
+        P5 = [0, r_P5]
+        print(P5)
 
-        alpha_P5 = alpha_P3 + alpha_rs # alpha_rs means rotor segment (of PM)
-        if abs(alpha_rs*s - alpha_rm)<EPS: # This means the inter-segment notch should span 0 deg, which mans the segmented design is reduced to a non-segmented design such that alpha_rm == alpha_rs*s
-            alpha_P5 = alpha_P3 + alpha_rs*s
-            s = 1 # this is a bad practice but it will help to re-use the drawing code of case s==1 below
-        P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
+        # alpha_P5 = alpha_P3 + alpha_rs # alpha_rs means rotor segment (of PM)
+        # if abs(alpha_rs*s - alpha_rm)<EPS: # This means the inter-segment notch should span 0 deg, which mans the segmented design is reduced to a non-segmented design such that alpha_rm == alpha_rs*s
+        #     alpha_P5 = alpha_P3 + alpha_rs*s
+        #     s = 1 # this is a bad practice but it will help to re-use the drawing code of case s==1 below
+        # P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
 
         list_segments = []
         if s == 1:
             # No magnet segment!
-
-            P6 = [r_ri*cos(alpha_P5), r_ri*-sin(alpha_P5)]
+            
+            P6 = [0, r_ri]
+            # P6 = [r_ri*cos(alpha_P5), r_ri*-sin(alpha_P5)]
 
             if alpha_rm >= alpha_rp*0.9800:
                 print('[CrossSectInnerNotchedRotor.py] Non-NOTCHED ROTOR IS USED.\n')
@@ -154,21 +171,29 @@ class CrossSectConsequentPoleRotor(object):
                 if bool_draw_whole_model:
                     def iPark(P, theta):
                         return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
-                    def draw_fraction(list_segments, P2, P3, P4, P5):
-                        list_segments += drawer.drawLine(P2, P4)
+                    
+
+                    def draw_fraction(list_segments, P1, P2, P3, P4, P5, P6):
                         if (i % 2) == 0:
-                            P2_CCW = iPark(P2, alpha_rp)
-                            list_segments += drawer.drawArc([0,0], P2, P2_CCW)
+                            list_segments += drawer.drawLine(P1, P2)
+                            list_segments += drawer.drawArc([0,0], P2, P3)
                         else :
-                            P4_CCW = iPark(P4, alpha_rp)
-                            list_segments += drawer.drawArc([0,0], P4, P4_CCW)
+                            list_segments += drawer.drawLine(P3, P4)
+                            list_segments += drawer.drawArc([0,0], P4, P5)
+                            list_segments += drawer.drawLine(P5, P6)
+                            list_segments += drawer.drawArc([0,0], P1, P6)
 ######################### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
                     for i in range(2*p):
-                        draw_fraction(list_segments, iPark(P2, i*alpha_rp), iPark(P3, i*alpha_rp), iPark(P4, i*alpha_rp), iPark(P5, i*alpha_rp))
+                        draw_fraction(list_segments, P1, P2, P3, P4, P5, P6)
                         # break
-                    # draw a circle (this is officially suggested by FEMM)
-                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
-                    list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
+
+
+
+
+
+                    # # draw a circle (this is officially suggested by FEMM)
+                    # list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                    # list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
 ######################### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
 
         innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))
@@ -230,23 +255,33 @@ class CrossSectConsequentPoleMagnet(object):
         if d_pm + 2*EPS < d_rp:
             print('[Warn]: [class CrossSectInnerNotchedMagnet] Detect d_rp is too close to d_pm. To avoid small line entity error in JMAG, set d_pm equal to d_rp because rotor core is plotted already.')
             raise ExceptionBadDesign('[Error] Magnet depth d_pm is too close to inter-pole notch depth d_rp.')
+        
 
+
+        
         P1 = [r_ri, 0]
 
         r_P2 = r_ri + d_ri + d_pm
         P2 = [r_P2, 0]
+        P2_extra = [0, r_P2]
 
-        alpha_P3 = alpha_rp - alpha_rm
-        # P3 = [r_P2*cos(alpha_P3), r_P2*-sin(alpha_P3)]
+        alpha_P3 = alpha_rp           # For consequent-pole iron span is equal to pole span
+        P3 = [r_P2*cos(alpha_P3), r_P2*sin(alpha_P3)]
 
+        alpha_P4 = alpha_rp  
         r_P4 = r_ri + d_ri # = (r_P2 - d_rp) 
-        P4 = [r_P4*cos(alpha_P3), r_P4*-sin(alpha_P3)]
+        P4 = [r_P4*cos(alpha_P4), r_P4*sin(alpha_P4)]
+        # print(alpha_P4)
+        # print(P4)
         P4_extra = [r_P4, 0]
 
         P3_extra = [(r_P4+d_pm)*cos(alpha_P3), (r_P4+d_pm)*-sin(alpha_P3)]
 
         alpha_P5 = alpha_P3 + alpha_rs # alpha_rs means rotor segment (of PM)
         P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
+        r_P5 = r_P4
+        P5 = [0, r_P5]
+        # print(P5)
 
         list_regions = []
         list_segments = []
@@ -270,22 +305,32 @@ class CrossSectConsequentPoleMagnet(object):
             if bool_draw_whole_model:
                 def iPark(P, theta):
                     return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
-                def draw_fraction(list_segments, P2, P3_extra, P4_extra, P5):
+                def draw_fraction(list_segments, P3, P4, P5, P2_extra):
                    
-                   
-
-                    list_segments += drawer.drawLine(P2, P4_extra)
                     if (i % 2) == 1:
-                        P2_CCW = iPark(P2, alpha_rp)
-                        list_segments += drawer.drawArc([0,0], P2, P2_CCW)
-                        P4_CCW = iPark(P4_extra, alpha_rp)
-                        list_segments += drawer.drawArc([0,0], P4_extra, P4_CCW)
+                        list_segments += drawer.drawLine(P3, P4)
+                        list_segments += drawer.drawArc([0,0], P4, P5)
+                        list_segments += drawer.drawArc([0,0], P3, P2_extra)
+                        list_segments += drawer.drawLine(P5, P2_extra)
 
                 for i in range(2*p):
-                    draw_fraction(list_segments, iPark(P2, i*alpha_rp), 
-                                                 iPark(P3_extra, i*alpha_rp), 
-                                                 iPark(P4_extra, i*alpha_rp), 
-                                                 iPark(P6_extra, i*alpha_rp))
+                    draw_fraction(list_segments, P3, 
+                                                 P4, 
+                                                 P5, 
+                                                 P2_extra)
+
+                #     list_segments += drawer.drawLine(P2, P4_extra)
+                #     if (i % 2) == 1:
+                #         P2_CCW = iPark(P2, alpha_rp)
+                #         list_segments += drawer.drawArc([0,0], P2, P2_CCW)
+                #         P4_CCW = iPark(P4_extra, alpha_rp)
+                #         list_segments += drawer.drawArc([0,0], P4_extra, P4_CCW)
+
+                # for i in range(2*p):
+                #     draw_fraction(list_segments, iPark(P2, i*alpha_rp), 
+                #                                  iPark(P3_extra, i*alpha_rp), 
+                #                                  iPark(P4_extra, i*alpha_rp), 
+                #                                  iPark(P6_extra, i*alpha_rp))
 
 
                     ################## 只有我有用 ###############################
