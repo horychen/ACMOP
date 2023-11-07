@@ -245,14 +245,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         part_ID_list = model.GetPartIDs()
         
-        print(part_ID_list)
-        print(part_ID_list)
-        print(part_ID_list)
-        print(part_ID_list)
-        print(part_ID_list)
-        print(part_ID_list)
-        print(part_ID_list)
-        print(len(part_ID_list))
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(part_ID_list) 
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(len(part_ID_list))
        
     
         # view = app.View()
@@ -265,39 +265,39 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         s = SI['no_segmented_magnets']
         Q = SI['Qs']
         print(Q)
-        print(int(1 + 1 + p*1*s + 1 + 1 + Q*2))
+        print(int(1 + 1 + p*1*s + 1 + Q*2))
         # quit()
-                                #   轴 转子 永磁体  护套 定子 绕组
-        # if len(part_ID_list) != int(1 + 1 + p*1*s + 1 + 1 + Q*2):
+                                #   轴 转子 永磁体  定子 绕组
+        if len(part_ID_list) != int(1 + 1 + p*1*s + 1 + Q*2):
         # if len(part_ID_list) != int(1 + 1 + p*1*s +      1 + Q*2):
-        # # if len(part_ID_list) != int(1 + Q*2 + 1):
-        #     msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
-        #     logger = logging.getLogger(__name__)
-        #     logger.error(msg)
-        #     raise utility.ExceptionBadNumberOfParts(msg)
+        # if len(part_ID_list) != int(1 + Q*2 + 1):
+            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
+            logger = logging.getLogger(__name__)
+            logger.error(msg)
+            raise utility.ExceptionBadNumberOfParts(msg)
 
         self.id_rotorCore = id_rotorCore = part_ID_list[0]
         id_shaft = part_ID_list[1]
-        partIDRange_Magnet = part_ID_list[2:int(2+p*s*1)]                           # 此处C.P.应为1*p
+        partIDRange_Magnet = part_ID_list[2:int(1+p*s*1)]                           # 此处C.P.应为1*p
         # id_sleeve = part_ID_list[int(2+p*s*2)]
-        self.id_statorCore = id_statorCore = part_ID_list[int(2+p*s*1)+1]
-        partIDRange_Coil = part_ID_list[int(2+p*s*1)+2 : int(2+p*s*1)+2 + int(Q*2)]
+        self.id_statorCore = id_statorCore = part_ID_list[int(1+p*s*1)+1]
+        partIDRange_Coil = part_ID_list[int(1+p*s*1) + 2 : int(1+p*s*1)+ 2 + int(Q*2)]
 
         # debug
-        print(int(1 + 1 + p*1*s + 1 + 1 + Q*2))
-        print(p)
-        print(int(s))
-        print(id_rotorCore)
-        print(id_shaft)
-        print(partIDRange_Magnet)
-        # print(id_sleeve)
-        print(id_statorCore)
-        print(partIDRange_Coil)
-        print(len(partIDRange_Coil))
-        quit()
+        # print(p)
+        # print(int(s))
+        # print(id_rotorCore)
+        # print(id_shaft)
+        # print(partIDRange_Magnet)
+        # print(len(partIDRange_Magnet))
+        # # print(id_sleeve)
+        # print(id_statorCore)
+        # print(partIDRange_Coil)
+        # print(len(partIDRange_Coil))
+        # quit()
 
         self.bool_suppressShaft = False
-        model.SuppressPart(id_sleeve, 1)
+        # model.SuppressPart(id_sleeve, 1)
 
         group("Magnet", partIDRange_Magnet)
         group("Coils", partIDRange_Coil)
@@ -368,29 +368,38 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             X = R*np.cos(THETA)
             Y = R*np.sin(THETA)
 
+
+
+
+
         # Create Set for Magnets
         GP = acm_variant.template.d['GP']
         R = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value - 0.5*GP['mm_d_pm'].value
         # alpha_rs = GP['deg_alpha_rs'].value /180*np.pi
         deg_pole_span = 360 / (p*2)
 
+        # 这里暂时进不去
         if s>1:
             deg_alpha_notch  = (GP['deg_alpha_rm'].value - s*GP['deg_alpha_rs'].value) / (s-1) # inter-segment notch占的角度
             alpha_notch = deg_alpha_notch /180*np.pi
-
+        # 从这开始
         list_xy_magnets = []
         # list_xy_airWithinRotorSlot = []
-        for ind in range(int(p*2)):
+        for ind in range(int(p)):
             natural_ind = ind + 1
-
+            
             if s==1:
                       # v---This negative sign means we walk CCW to assign sets.
-                THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*np.pi
+                THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*2*ind) /180.*np.pi
                 X = R*np.cos(THETA)
                 Y = R*np.sin(THETA)
 
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
+
+
+            ### 这里进不去（暂时）
+
             else:     # v---This negative sign means we walk CCW to assign sets.
                 THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*np.pi # initial position
                 # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*np.pi # initial position
@@ -401,6 +410,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                     list_xy_magnets.append([X,Y])
                     THETA -= alpha_notch + alpha_rs
                         # ^---This negative sign means we walk CCW to assign sets.
+
+
+
+
+
+
+
 
         # Create Set for Motion Region
         def part_list_set(name, list_xy, list_part_id=None, prefix=None):
@@ -417,6 +433,26 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         part_list_set('Motion_Region', list_xy_magnets, list_part_id=[id_rotorCore, id_shaft])
 
         part_list_set('MagnetSet', list_xy_magnets)
+
+        # debug
+        # print(p)
+        # print(int(s))
+        # print(id_rotorCore)
+        # print(id_shaft)
+        # print(partIDRange_Magnet)
+        # print(len(partIDRange_Magnet))
+        # # print(id_sleeve)
+        # print(id_statorCore)
+        # print(partIDRange_Coil)
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(len(partIDRange_Coil))
+        # quit()
+
+        
         return True
     def pre_process_fluxAlternator(self, app, model, acm_variant):
         # pre-process : you can select part by coordinate!
@@ -1597,8 +1633,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 # print(segment)
                 # debugging = list_segments(i).GetName()
                 self.doc.GetSelection().Add(self.sketch.GetItem(segment.GetName()))
-            print(__file__)
-            quit()
 
             self.sketch.CreateRegions()
             # self.sketch.CreateRegionsWithCleanup(EPS, True) # StatorCore will fail
@@ -1858,7 +1892,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
     ''' BELOW is for JMAG Designer
     '''
-    def draw_CPPM(self, acm_variant, bool_pyx=False, bool_draw_whole_model=True):
+    def draw_CPPM(self, acm_variant, bool_pyx=False, bool_draw_whole_model=False):
         if bool_draw_whole_model:
             self.bMirror = False
             self.iRotateCopy = 1
@@ -1877,78 +1911,84 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         # Rotor Core 1
         if 1:
             list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            self.bMirror = False
+            self.iRotateCopy = acm_variant.rotorCore.p
             region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
 
         # Rotor Magnet
         if 1:
             list_regions = acm_variant.rotorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            self.bMirror = False
+            self.iRotateCopy = acm_variant.rotorCore.p
             region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
-            # Shaft
+        # Shaft
+        if 1:
             list_regions = acm_variant.shaft.draw(self, bool_draw_whole_model=bool_draw_whole_model)
             region0 = self.prepareSection(list_regions)
 
-            # Sleeve
-            # list_regions = acm_variant.sleeve.draw(self, bool_draw_whole_model=bool_draw_whole_model)
-            # regionS = self.prepareSection(list_regions)
+        # Sleeve
+        # list_regions = acm_variant.sleeve.draw(self, bool_draw_whole_model=bool_draw_whole_model)
+        # regionS = self.prepareSection(list_regions)
 
-            # This is only for post-processing and it is for handle a un-fixable filling bug with PyX.
-            # if bool_pyx:
-            #     region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
+        # This is only for post-processing and it is for handle a un-fixable filling bug with PyX.
+        # if bool_pyx:
+        #     region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
 
-            # Stator Core
+        # Stator Core
+        if 1:
             list_regions = acm_variant.stator_core.draw(self)
             self.bMirror = True
             self.iRotateCopy = acm_variant.stator_core.Q
             region3 = self.prepareSection(list_regions, color=color_rgb_A)
 
-            if not bool_pyx:
-                # Stator Winding
-                list_regions = acm_variant.coils.draw(self)
-                self.bMirror = False
-                self.iRotateCopy = acm_variant.coils.stator_core.Q
-                region4 = self.prepareSection(list_regions)
+        if not bool_pyx:
+            # Stator Winding
+            list_regions = acm_variant.coils.draw(self)
+            self.bMirror = False
+            self.iRotateCopy = acm_variant.coils.stator_core.Q
+            region4 = self.prepareSection(list_regions)
 
-                self.calculate_excitation_current(acm_variant)
+            self.calculate_excitation_current(acm_variant)
 
-                    # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
-                    # EX = acm_variant.template.d['EX']
-                    # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
-                    # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
-                    # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
-                    #     # try:
-                    #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
-                    #     # except AttributeError:
-                    #     #     # print(EX['wily'])
-                    #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily']['number_parallel_branch']
-                    #     #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'number_parallel_branch', implying that the object wily has become a dict after jsonpickle.")
-                    #     #     # quit() 
+            # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
+            # EX = acm_variant.template.d['EX']
+            # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+            # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
+            # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+            #     # try:
+            #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+            #     # except AttributeError:
+            #     #     # print(EX['wily'])
+            #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily']['number_parallel_branch']
+            #     #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'number_parallel_branch', implying that the object wily has become a dict after jsonpickle.")
+            #     #     # quit() 
 
-                    # # Maybe there is a bug here... regarding the excitation for suspension winding...
-                    # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
-                    # variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
-                    # EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
-                    # EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
-                    # EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
-                    # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
-                    #                                                                                             EX['CurrentAmp_per_phase'],
-                    #                                                                                             EX['DriveW_CurrentAmp'],
-                    #                                                                                             EX['BeariW_CurrentAmp'])
+            # # Maybe there is a bug here... regarding the excitation for suspension winding...
+            # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
+            # variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
+            # EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
+            # EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+            # EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+            # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
+            #                                                                                             EX['CurrentAmp_per_phase'],
+            #                                                                                             EX['DriveW_CurrentAmp'],
+            #                                                                                             EX['BeariW_CurrentAmp'])
 
-                    # # acm_variant.spec_geometry_dict['DriveW_CurrentAmp'] = acm_variant.DriveW_CurrentAmp
+            # # acm_variant.spec_geometry_dict['DriveW_CurrentAmp'] = acm_variant.DriveW_CurrentAmp
 
-                    # slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
-                    # print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
+            # slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+            # print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
 
-                    # # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
-                    # # print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
-                    # # print('---acm_variant.DriveW_CurrentAmp =', acm_variant.DriveW_CurrentAmp)
-                    # # print('---acm_variant.BeariW_CurrentAmp =', acm_variant.BeariW_CurrentAmp)
-                    # # print('---TORQUE_CURRENT_RATIO:', acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'])
-                    # # print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
+            # # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
+            # # print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
+            # # print('---acm_variant.DriveW_CurrentAmp =', acm_variant.DriveW_CurrentAmp)
+            # # print('---acm_variant.BeariW_CurrentAmp =', acm_variant.BeariW_CurrentAmp)
+            # # print('---TORQUE_CURRENT_RATIO:', acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'])
+            # # print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
 
-                # Import Model into Designer
-                self.save(acm_variant.name, self.show(acm_variant, toString=True))
+            # Import Model into Designer
+            self.save(acm_variant.name, self.show(acm_variant, toString=True))
 
         return True
 
@@ -2071,8 +2111,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         # Shaft
         list_regions = acm_variant.shaft.draw(self, bool_draw_whole_model=bool_draw_whole_model)
-        region0 = self.prepareSection(list_regions)
-
         # Stator Magnet
         list_regions = acm_variant.statorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
