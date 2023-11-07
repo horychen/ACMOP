@@ -324,6 +324,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         #     model.GetSetList().GetSet(name).AddSelected(sel)
         # edge_set(u"AirGapCoast", 0, self.template.d['GP']['mm_r_ro'].value+0.5*self.Length_AirGap)
 
+        # Shaft
+        add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
+
         # Create Set for 4 poles Winding
         Angle_StatorSlotSpan = 360/Q
         # R = self.mm_r_si + self.mm_d_stt + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
@@ -382,12 +385,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         # 从这开始
         list_xy_magnets = []
         # list_xy_airWithinRotorSlot = []
-        for ind in range(int(p*2)):
+        for ind in range(int(p)):
             natural_ind = ind + 1
             
             if s==1:
                       # v---This negative sign means we walk CCW to assign sets.
-                THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*np.pi
+                THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*2*ind) /180.*np.pi
                 X = R*np.cos(THETA)
                 Y = R*np.sin(THETA)
 
@@ -431,26 +434,23 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         part_list_set('MagnetSet', list_xy_magnets)
 
-        # Shaft
-        add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
-
         # debug
-        print(p)
-        print(int(s))
-        print(id_rotorCore)
-        print(id_shaft)
-        print(partIDRange_Magnet)
-        print(len(partIDRange_Magnet))
-        # print(id_sleeve)
-        print(id_statorCore)
-        print(partIDRange_Coil)
-        print(part_ID_list)
-        print(part_ID_list)
-        print(part_ID_list)
-        print(part_ID_list)
-        print(part_ID_list)
-        print(len(partIDRange_Coil))
-        quit()
+        # print(p)
+        # print(int(s))
+        # print(id_rotorCore)
+        # print(id_shaft)
+        # print(partIDRange_Magnet)
+        # print(len(partIDRange_Magnet))
+        # # print(id_sleeve)
+        # print(id_statorCore)
+        # print(partIDRange_Coil)
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(part_ID_list)
+        # print(len(partIDRange_Coil))
+        # quit()
 
         
         return True
