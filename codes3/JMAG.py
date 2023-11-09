@@ -268,10 +268,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         self.id_rotorCore = id_rotorCore = part_ID_list[0]
         id_shaft = part_ID_list[1]
-        partIDRange_Magnet = part_ID_list[2:int(1+p*s*1)]                           # 此处C.P.应为1*p
+        partIDRange_Magnet = part_ID_list[2:int(2+p*s*1)]                           # 此处C.P.应为1*p
         # id_sleeve = part_ID_list[int(2+p*s*2)]
-        self.id_statorCore = id_statorCore = part_ID_list[int(1+p*s*1)+1]
-        partIDRange_Coil = part_ID_list[int(1+p*s*1) + 2 : int(1+p*s*1)+ 2 + int(Q*2)]
+        self.id_statorCore = id_statorCore = part_ID_list[int(2+p*s*1)]
+        partIDRange_Coil = part_ID_list[int(2+p*s*1) + 1 : int(2+p*s*1)+ 1 + int(Q*2)]
 
         # debug
         # print(p)
@@ -358,10 +358,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             X = R*np.cos(THETA)
             Y = R*np.sin(THETA)
 
-
-
-
-
         # Create Set for Magnets
         GP = acm_variant.template.d['GP']
         R = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value - 0.5*GP['mm_d_pm'].value
@@ -401,13 +397,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                     THETA -= alpha_notch + alpha_rs
                         # ^---This negative sign means we walk CCW to assign sets.
 
-
-
-
-
-
-
-
         # Create Set for Motion Region
         def part_list_set(name, list_xy, list_part_id=None, prefix=None):
             model.GetSetList().CreatePartSet(name)
@@ -441,7 +430,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         # print(part_ID_list)
         # print(len(partIDRange_Coil))
         # quit()
-
         
         return True
     def pre_process_fluxAlternator(self, app, model, acm_variant):
@@ -1172,7 +1160,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
             study.SetMaterialByName(rotorCoreName, "M-19 Steel Gauge-29")
             study.GetMaterial(rotorCoreName).SetValue("Laminated", 1)
-            study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 95)
+            study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 98)
 
         elif 'M15' in acm_template.spec_input_dict['Steel']:
             study.SetMaterialByName("StatorCore", "M-15 Steel")
@@ -1262,17 +1250,17 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             study.GetMaterial(      u"Magnet-CCW").SetPattern(u"Circular")
         
         
-        elif 'FSPM' in acm_variant.template.name:
+        elif 'CPPM' in acm_variant.template.name:
             study.SetMaterialByName(u"Magnet", u"Arnold/Reversible/N40H")
-            study.GetMaterial(u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
-            study.GetMaterial(u"Magnet").SetValue(u"Temperature", magnet_temperature) # 80 deg TEMPERATURE (There is no 75 deg C option)
+            study.GetMaterial(      u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
+            study.GetMaterial(      u"Magnet").SetValue(u"Temperature", magnet_temperature) # 80 deg TEMPERATURE (There is no 75 deg C option)
 
-            study.GetMaterial(u"Magnet").SetValue(u"Poles", acm_template.d['EX']['DriveW_poles'])
-            study.GetMaterial(u"Magnet").SetDirectionXYZ(1, 0, 0)
-            study.GetMaterial(u"Magnet").SetAxisXYZ(0, 0, 1)
-            study.GetMaterial(u"Magnet").SetOriginXYZ(0, 0, 0)
-            study.GetMaterial(u"Magnet").SetPattern(u"RadialCircular")
-            study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*acm_template.SI['p']) ) # 半个极距
+            study.GetMaterial(      u"Magnet").SetValue(u"Poles", acm_template.d['EX']['DriveW_poles'])
+            study.GetMaterial(      u"Magnet").SetDirectionXYZ(1, 1, 0)
+            study.GetMaterial(      u"Magnet").SetAxisXYZ(0, 0, 1)
+            study.GetMaterial(      u"Magnet").SetOriginXYZ(0, 0, 0)
+            study.GetMaterial(      u"Magnet").SetPattern(u"RadialCircular")
+            study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 0.5*360/(2*acm_template.SI['p']) ) # 半个极距
 
             # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Direction")
             # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Inward/Outward")
