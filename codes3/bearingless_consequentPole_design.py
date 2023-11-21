@@ -40,7 +40,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         EX = self.d['EX'] # EXcitations (was OP: Other Property)
         SI = self.SI      # Specification Input dictionary (was SD)
         childGP = OrderedDict({
-            # SPMSM Peculiar
+            # CPPM Peculiar
             "mm_d_pm"           : acmop_parameter("free",     "magnet_depth",                  None, [None, None], lambda GP,SI:None),
             "mm_d_ri"           : acmop_parameter("free",     "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SI:None),
             "deg_alpha_rm"      : acmop_parameter("free",     "magnet_pole_span_angle",        None, [None, None], lambda GP,SI:None),
@@ -87,7 +87,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
             # stator_yoke_flux_density_Bsy = 1.5
 
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
-        stator_outer_diameter_Dse = 0.400 # this is related to the stator current density and should be determined by Js and power.
+        stator_outer_diameter_Dse = 0.390 # this is related to the stator current density and should be determined by Js and power.
         sleeve_length = 1
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
@@ -300,7 +300,8 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
         #                            #   轴 转子 永磁体  护套 定子 绕组
         # self.number_of_parts_in_JMAG = 1 + 1 + p*2*s + 1 + 1 + Qs*2
 
-
+        # 暂时有点乱 先这样
+        # self.Rotation_Axis = -1
         #03 Mechanical Parameters
         self.update_mechanical_parameters()
 
@@ -315,8 +316,8 @@ class bearingless_consequentPole_design_variant(inner_rotor_motor.variant_machin
             deg_pole_span = 180/SI['p']
             wily = self.template.d['EX']['wily']
             #                                                              inter-pole notch (0.5 for half)         rotate to x-axis    winding placing bias (half adjacent slot angle)      reverse north and south pole to make torque positive.
-            print('[bearingless_spmsm_design.py] [CPPM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,  + deg_pole_span)
-            print('[bearingless_spmsm_design.py] [CPPM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5  - deg_pole_span*0.5  + wily.deg_winding_U_phase_phase_axis_angle   + deg_pole_span, 'deg')
+            print('[bearingless_cppm_design.py] [CPPM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,  + deg_pole_span)
+            print('[bearingless_cppm_design.py] [CPPM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5  - deg_pole_span*0.5  + wily.deg_winding_U_phase_phase_axis_angle   + deg_pole_span, 'deg')
             self.InitialRotationAngle = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span
 
         self.boolCustomizedCircuit = False
