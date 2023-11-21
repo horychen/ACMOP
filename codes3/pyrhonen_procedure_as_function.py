@@ -1386,7 +1386,7 @@ class desgin_specification(object):
                 ROTOR_STATOR_YOKE_HEIGHT_RATIO = 0.5
                 stator_yoke_flux_density_Bys = 1.5
                 alpha_rm_over_alpha_rp = 0.75
-            stator_outer_diameter_Dse = 0.225 # m
+            stator_outer_diameter_Dse = 0.275 # m
 
             speed_rpm = self.ExcitationFreqSimulated * 60 / self.p # rpm
 
