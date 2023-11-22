@@ -214,10 +214,12 @@ class AC_Machine_Optiomization_Wrapper(object):
             axes[7].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_fluxLinkages)))
             plt.show()
 
-
             print('[acmop.py] Listing analyzer.spec_performance_dict:')
-            for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
-                print('\t', k, v)
+            print (self.ad.acm_template.name)
+            if 'CPPM' in self.ad.acm_template.name:
+                pass
+            # for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
+            #     print('\t', k, v)
 
         else:
 

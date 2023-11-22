@@ -1015,7 +1015,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         study.GetDesignTable().GetEquation("freq").SetDescription("Excitation Frequency in Hz")
         study.GetDesignTable().GetEquation("speed").SetType(1)
         # study.GetDesignTable().GetEquation("speed").SetExpression("freq * %d"%(60/(0.5*EX['RotorPoleNumber'])))
-        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %f"%(60/SI['number_of_rotor_pole_pairs']))
+        if 'number_of_rotor_pole_pairs' not in SI.keys():
+            number_of_rotor_pole_pairs = SI['p']
+        else:
+            number_of_rotor_pole_pairs = SI['number_of_rotor_pole_pairs']
+        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %f"%(60 / number_of_rotor_pole_pairs ))
         study.GetDesignTable().GetEquation("speed").SetDescription("mechanical speed in r/min")
 
         # speed, freq, slip
@@ -1267,11 +1271,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(      u"Magnet").SetPattern(u"RadialCircular")
             study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 0.5*360/(2*acm_template.SI['p']) ) # 半个极距
 
-            study.GetDesignTable().AddParameterVariableName(u"StatorPM: Direction")
-            study.GetDesignTable().AddParameterVariableName(u"StatorPM: Inward/Outward")
-            study.GetDesignTable().AddCase()
-            study.GetDesignTable().SetValue(1, 2, u"(1, 0, 0)")
-            study.GetDesignTable().SetValue(1, 3, u"Inward")
+            # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Direction")
+            # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Inward/Outward")
+            # study.GetDesignTable().AddCase()
+            # study.GetDesignTable().SetValue(1, 2, u"(1, 0, 0)")
+            # study.GetDesignTable().SetValue(1, 3, u"Inward")
 
             #debug
             # study.SetMaterialByName(u"Magnet", u"Ambient/Air/Air")

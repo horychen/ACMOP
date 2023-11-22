@@ -1,47 +1,4 @@
 {
-    "CPPM-24s4pp-ps1-Chiba05-other":
-    {
-        "Inputs":
-
-        {
-            "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_Bg":          0.9,
-            "guess_stator_tooth_flux_density_Bst":1.5,
-            "guess_stator_yoke_flux_density_Bsy":  1.2,
-
-            "machine_type":                         "PMSM",
-            "DPNV_or_SEPA":                         true,
-            "m":                                    3,
-            "Qs":                                   24,
-            "p":                                  1,
-            "number_of_rotor_pole_pairs":         1,
-            "ps":                                 2,
-            "coil_pitch_y":                       9,
-            "mec_power":                            50e3,
-            "ExcitationFreqSimulated":            500,
-            "VoltageRating":                        480,
-            "TangentialStress":                     12000,
-            "Steel":                                "M19Gauge29",
-            "lamination_stacking_factor_kFe":       0.95,
-            "Coil":                                 "Cu",
-            "space_factor_kCu":                     0.5,
-            "Js":                                   4e6,
-            "Temperature":                          75,
-            "WindingFill":                          0.3882,
-            "AWG":                                  25,
-            "guess_efficiency":                   0.95,
-            "guess_power_factor":                 0.9,
-            "no_segmented_magnets":               1,
-            "tip_speed":                            150,
-            "safety_factor_to_yield":               "None",
-            "safety_factor_to_critical_speed":      1.5,
-            "bool_skew_stator":                     false,
-            "bool_skew_rotor":                      false
-        }
-
-
-    },
-    
     "CPPM-12s4pp-ps1-Chiba05":
     {
         "Inputs":
@@ -53,8 +10,6 @@
             "Qs":                                  24,
             "ps":                                  1,
             "p":                                   4,
-            "pm":                                  4,
-            "number_of_rotor_pole_pairs":          4,
             "coil_pitch_y":                        9,
             "mec_power":                           929,
             "ExcitationFreqSimulated":             66.7,
@@ -96,8 +51,6 @@
             "Qs":                                  24,
             "ps":                                  1,
             "p":                                   4,
-            "pm":                                  4,
-            "number_of_rotor_pole_pairs":          2,
             "coil_pitch_y":                        9,
             "mec_power":                           929,
             "ExcitationFreqSimulated":             66.7,

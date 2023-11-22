@@ -345,7 +345,11 @@ class variant_machine_as_objects(object):
         EX = self.template.d['EX']
         SI = self.template.SI
         if syn_freq is None:
-            EX['the_speed'] = EX['DriveW_Freq']*60. / SI['number_of_rotor_pole_pairs'] # rpm
+            if 'number_of_rotor_pole_pairs' not in SI.keys():
+                number_of_rotor_pole_pairs = SI['p']
+            else:
+                number_of_rotor_pole_pairs = SI['number_of_rotor_pole_pairs']
+            EX['the_speed'] = EX['DriveW_Freq']*60. / number_of_rotor_pole_pairs # rpm
             EX['Omega']     = EX['the_speed'] / 60. * 2*np.pi
             # self.omega = None # This variable name is devil! you can't tell its electrical or mechanical! #+ self.DriveW_Freq * (1-self.the_slip) * 2*pi
         else:
