@@ -46,7 +46,7 @@
         {
             "machine_type":                        "CPPM",
             "DPNV_or_SEPA":                        true,
-            "minimum_mechanical_air_gap_length_mm": 0.50,
+            "minimum_mechanical_air_gap_length_mm": 2.0,
             "m":                                   3,
             "Qs":                                  24,
             "ps":                                  1,
@@ -87,7 +87,7 @@
             "machine_type":                        "FSPM",
             "DPNV_or_SEPA":                        true,
             "Number_of_Flux_Switching_Cells":      24,
-            "minimum_mechanical_air_gap_length_mm": 0.50,
+            "minimum_mechanical_air_gap_length_mm": 0.5,
             "m":                                   3,
             "Qs":                                  24,
             "ps":                                  13,
