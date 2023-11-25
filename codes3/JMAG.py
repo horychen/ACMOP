@@ -1,4 +1,4 @@
-import win32com.client, os, logging, utility
+import win32com.client, os, logging, utility, numpy
 from pylab import np, plt, mpl
 print('The mpl backend is', mpl.rcParams['backend'])
 print('The mpl backend is', mpl.rcParams['backend'])
@@ -1310,7 +1310,42 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("PhaseU", phase)
                 # Commutating sequence is essencial for the direction of the field to be consistent with speed: UVW rather than UWV
                 study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("CommutatingSequence", CommutatingSequenceD) 
-            else: 
+            elif 'CPPM' in acm_variant.template.name: 
+                I1 = "CS%s-1"%(Grouping)
+                I2 = "CS%s-2"%(Grouping)
+                I3 = "CS%s-3"%(Grouping)
+                study.GetCircuit().CreateComponent("CurrentSource", I1)
+                study.GetCircuit().CreateInstance(                   I1, x-4, y+3)
+                study.GetCircuit().CreateComponent("CurrentSource", I2)
+                study.GetCircuit().CreateInstance(                   I2, x-4, y+1)
+                study.GetCircuit().CreateComponent("CurrentSource", I3)
+                study.GetCircuit().CreateInstance(                   I3, x-4, y-1)
+
+                phase_shift_drive = -120 if CommutatingSequenceD == 1 else 120
+                phase_shift_beari = -120 if CommutatingSequenceB == 1 else 120
+                dcB = ampB/np.sqrt(2)
+
+                func = app.FunctionFactory().Composite()        
+                f1 = app.FunctionFactory().Sin(ampD, freq, 0*phase_shift_drive) # "freq" variable cannot be used here. So pay extra attension here when you create new case of a different freq.
+                f2 = app.FunctionFactory().Constant(dcB)
+                func.AddFunction(f1)
+                func.AddFunction(f2)
+                study.GetCircuit().GetComponent(I1).SetFunction(func)
+
+                func = app.FunctionFactory().Composite()        
+                f1 = app.FunctionFactory().Sin(ampD, freq, 1*phase_shift_drive)
+                f2 = app.FunctionFactory().Constant(dcB)
+                func.AddFunction(f1)
+                func.AddFunction(f2)
+                study.GetCircuit().GetComponent(I2).SetFunction(func)
+
+                func = app.FunctionFactory().Composite()
+                f1 = app.FunctionFactory().Sin(ampD, freq, 2*phase_shift_drive)
+                f2 = app.FunctionFactory().Constant(dcB)
+                func.AddFunction(f1)
+                func.AddFunction(f2)
+                study.GetCircuit().GetComponent(I3).SetFunction(func)
+            else:
                 I1 = "CS%s-1"%(Grouping)
                 I2 = "CS%s-2"%(Grouping)
                 I3 = "CS%s-3"%(Grouping)
