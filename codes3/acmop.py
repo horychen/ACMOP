@@ -571,41 +571,12 @@ class AC_Machine_Optiomization_Wrapper(object):
 
 def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
-        # select_spec='IM Q24p1y9 Qr32 Round Bar',
-        # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
-        # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
-        # select_spec            = 'PMSM Q24p1y9 PEMD', # 
-        # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
-        # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-
-        # select_spec= 'Flux Alternator 1955',
-
-        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype", # r_ro ~= 80 mm
-        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test", # r_ro ~= 80 mm
-        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-p14ps13pe12", # r_ro ~= 80 mm
-
-        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test", # small rotor outer diameter
-        # select_spec= "FSPM-24s22pp-50W-400RPM-100Pa-Huge",
-
-        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
-        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
-            # select_spec= "FSPM-24s20pp-50W-400RPM-6000Pa-Test",
-            # select_spec= "FSPM-24s28pp-50W-400RPM-6000Pa-Test",
-            # select_spec= "FSPM-12s28pp-50W-400RPM-6000Pa-Test",
-            # select_spec= "FSPM-12s20pp-50W-400RPM-6000Pa-Test",
-            # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
-            # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
-
-        select_spec= "CPPM-24s4pp-ps1-Chiba05",
+        # select_spec = 'PMSM Q12p4y1 PEMD-2020',
+        select_spec = "CPPM-24s4pp-ps1-Chiba05",
 
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
-
-            # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
-            # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples 2 (free tooth tip depth and fix sleeve length)",
-            # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
-            # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
 
         project_loc            = fr'../_ConsequentPole/',
         bool_show_GUI          = True
@@ -752,3 +723,43 @@ def examples_from_the_publications(bool_post_processing=True):
         else:
             # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
             mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5
+
+
+
+if False:
+    # select_spec='IM Q24p1y9 Qr32 Round Bar',
+    # select_fea_config_dict = '#019 JMAG IM Nine Variables',
+
+    # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
+    # select_spec            = 'PMSM Q24p1y9 PEMD', # 
+    # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
+    # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+
+    # select_spec= 'Flux Alternator 1955',
+
+    # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype", # r_ro ~= 80 mm
+    # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test", # r_ro ~= 80 mm
+    # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-p14ps13pe12", # r_ro ~= 80 mm
+
+    # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test", # small rotor outer diameter
+    # select_spec= "FSPM-24s22pp-50W-400RPM-100Pa-Huge",
+
+    # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
+    # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-24s20pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-24s28pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-12s28pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-12s20pp-50W-400RPM-6000Pa-Test",
+        # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
+        # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
+
+    select_spec= "CPPM-24s4pp-ps1-Chiba05",
+
+    select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
+    # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
+
+        # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
+        # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples 2 (free tooth tip depth and fix sleeve length)",
+        # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
+        # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
+
