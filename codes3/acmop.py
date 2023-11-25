@@ -600,6 +600,7 @@ def main(number_which_part):
         select_spec= "CPPM-24s4pp-ps1-Chiba05",
 
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
+        # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
 
             # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
             # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples 2 (free tooth tip depth and fix sleeve length)",
