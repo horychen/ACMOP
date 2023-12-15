@@ -2606,12 +2606,12 @@ def get_bad_fintess_values(machine_type='IM', ref=False):
     if ref == False:
         if 'IM' in machine_type:
             return 0, 0, 99
-        elif 'PMSM' in machine_type:
+        elif 'PM' in machine_type:
             return 9999, 0, 999
     else:
         if 'IM' in machine_type:
             return 1,     10, 100
-        elif 'PMSM' in machine_type:
+        elif 'PM' in machine_type:
             return 10000, 10, 1000
 
 

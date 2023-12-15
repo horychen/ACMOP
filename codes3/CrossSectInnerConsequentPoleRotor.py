@@ -132,7 +132,7 @@ class CrossSectConsequentPoleRotor(object):
 
             if alpha_rm >= alpha_rp*0.9800:
                 print('[CrossSectInnerNotchedRotor.py] Non-NOTCHED ROTOR IS USED.\n')
-                print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)
+                # print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)
                 P1p5 = [P2[0] - d_rp, P2[1]]
                 if bool_draw_whole_model:
                     list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
