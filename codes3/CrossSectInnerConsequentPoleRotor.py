@@ -135,11 +135,40 @@ class CrossSectConsequentPoleRotor(object):
                 # print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)
                 P1p5 = [P2[0] - d_rp, P2[1]]
                 if bool_draw_whole_model:
-                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
-                    list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1)
-                    list_segments += drawer.drawArc([0,0], P1p5, [-P1p5[0], P1p5[1]])
-                    list_segments += drawer.drawArc([0,0], [-P1p5[0], P1p5[1]], P1p5)
+                    # list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                    # list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1)
+                    # list_segments += drawer.drawArc([0,0], P1p5, [-P1p5[0], P1p5[1]])
+                    # list_segments += drawer.drawArc([0,0], [-P1p5[0], P1p5[1]], P1p5)
+                    def iPark(P, theta):
+                        return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
                     
+
+                    def draw_fraction(list_segments, P1, P2, P3, P4, P5, P6):
+                        if (i % 2) == 0:
+                            list_segments += drawer.drawLine(P1, P2)
+                            list_segments += drawer.drawArc([0,0], P2, P3)
+                        else :
+                            list_segments += drawer.drawLine(P3, P4)
+                            list_segments += drawer.drawArc([0,0], P4, P5)
+                            list_segments += drawer.drawLine(P5, P6)
+                            list_segments += drawer.drawArc([0,0], P1, P6)
+######################### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
+                    for i in range(2*p):
+                        draw_fraction(list_segments, P1, P2, P3, P4, P5, P6)
+                        # break
+
+
+
+
+
+                    # # draw a circle (this is officially suggested by FEMM)
+                    # list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                    # list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
+######################### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
+
+
+
+
                     # list_segments += drawer.drawLine([5, 10], [0, 0])
                     # list_segments += drawer.drawLine([5, 10], [-10, 20])
                     # list_segments += drawer.drawLine([5, 10], [-10, 200])
@@ -150,11 +179,11 @@ class CrossSectConsequentPoleRotor(object):
                     # useless
 
                     # raise
-                else:
-                    list_segments += drawer.drawLine(P1, P1p5)
-                    list_segments += drawer.drawArc([0,0], P5, P1p5)
-                    list_segments += drawer.drawLine(P5, P6)
-                    list_segments += drawer.drawArc([0,0], P6, P1)
+                # else:
+                #     list_segments += drawer.drawLine(P1, P1p5)
+                #     list_segments += drawer.drawArc([0,0], P5, P1p5)
+                #     list_segments += drawer.drawLine(P5, P6)
+                #     list_segments += drawer.drawArc([0,0], P6, P1)
                     # list_segments += drawer.drawLine([5, 10], [0, 0])
                     # list_segments += drawer.drawLine([5, 10], [-10, 20])
                     # list_segments += drawer.drawLine([5, 10], [-10, 200])
