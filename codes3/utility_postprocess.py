@@ -936,7 +936,7 @@ def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None, 
 
         # 绘制 Pareto front
         # utility.blockPrint()
-        scatter_handle, more_info, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=40, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+        scatter_handle, more_info, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=140, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
         # utility.enablePrint()
 
         # Save to dictionaries

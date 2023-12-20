@@ -110,6 +110,7 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1],
             min_c_design = None; min_c_value = 99999999.0
             if len(z_filtered_swarm_data_xf_at_this_front) != len(z):
                 raise Exception('[New Regular!] Apply swarm_data_xf to this function!')
+            # min_a_design_xf, min_b_design_xf, min_c_design_xf = None, None, None
             for (design_xf,a,b,c) in zip(z_filtered_swarm_data_xf_at_this_front,x,y,z):
                 # print('DEBUG', design_xf[-5:],a,b,c)
                 if a < min_a_value: 
