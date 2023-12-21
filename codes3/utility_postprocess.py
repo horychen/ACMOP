@@ -709,6 +709,8 @@ class SwarmAnalyzer(object):
             df = pd.DataFrame(data=df_dict, index=['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'Cost', 'disp.PF']).T
         elif 'IM' in selected_specifications[0]:
             df = pd.DataFrame(data=df_dict, index=['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'TRV', 'disp.PF']).T
+        elif 'CPPM' in selected_specifications[0]:
+            df = pd.DataFrame(data=df_dict, index=['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'TRV', 'disp.PF']).T
         elif 'PMVM' in selected_specifications[0]:
             raise Exception('not implemented')
         return df

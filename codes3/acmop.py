@@ -612,8 +612,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # main(31)
-    # main(3)
-    main(4)
+    main(3)
+    # main(4)
     # main(5)
 
 if __name__ == '__main__':
