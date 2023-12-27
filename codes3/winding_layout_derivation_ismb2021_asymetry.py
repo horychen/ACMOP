@@ -928,7 +928,8 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
-                                (3, 24, 4, 1, 9, 0), # chiba 2005 Consequent pole
+                                (3, 24, 8, 1, 10, 0), # chiba 2005 Consequent pole 16pp
+                                # (3, 24, 4, 1, 9, 0), # chiba 2005 Consequent pole
                                 #   (3, 48, 22, 23, 1, 0), # 黑kesilizuo
                                 #   (3, 6, 1, 2, 3, 0), # ee275
                                 #   (3, 6, 1, 2, 1, 0), # ee275

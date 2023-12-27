@@ -256,6 +256,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Q = SI['Qs']
         print(Q)
         print(int(1 + 1 + p*1*s + 1 + Q*2))
+        print(len(part_ID_list))
         # quit()
                                 #   轴 转子 永磁体  定子 绕组
         if len(part_ID_list) != int(1 + 1 + p*1*s + 1 + Q*2):
@@ -1269,7 +1270,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(      u"Magnet").SetDirectionXYZ(1, 1, 0)
             study.GetMaterial(      u"Magnet").SetAxisXYZ(0, 0, 1)
             study.GetMaterial(      u"Magnet").SetOriginXYZ(0, 0, 0)
-            study.GetMaterial(      u"Magnet").SetPattern(u"RadialCircular")
+            study.GetMaterial(      u"Magnet").SetPattern(u"Circular")
+            # study.GetMaterial(      u"Magnet").SetPattern(u"RadialCircular")
             study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 0.5*360/(2*acm_template.SI['p']) ) # 半个极距
 
             # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Direction")
@@ -1328,7 +1330,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 func = app.FunctionFactory().Composite()        
                 f1 = app.FunctionFactory().Sin(ampD, freq, 0*phase_shift_drive) # "freq" variable cannot be used here. So pay extra attension here when you create new case of a different freq.
                 if 'CPPM' in acm_variant.template.name: 
-                    dcB = 0.05*ampB/np.sqrt(2)
+                    dcB = ampB/np.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
                     f2 = app.FunctionFactory().Sin(ampB, freq, 0*phase_shift_beari)
@@ -1339,7 +1341,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 func = app.FunctionFactory().Composite()        
                 f1 = app.FunctionFactory().Sin(ampD, freq, 1*phase_shift_drive)
                 if 'CPPM' in acm_variant.template.name: 
-                    dcB = 0.05*ampB/np.sqrt(2)
+                    dcB = -0.5*ampB/np.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
                     f2 = app.FunctionFactory().Sin(ampB, freq, 1*phase_shift_beari)
@@ -1350,7 +1352,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 func = app.FunctionFactory().Composite()
                 f1 = app.FunctionFactory().Sin(ampD, freq, 2*phase_shift_drive)
                 if 'CPPM' in acm_variant.template.name: 
-                    dcB = 0.05*ampB/np.sqrt(2)
+                    dcB = -0.5*ampB/np.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
                     f2 = app.FunctionFactory().Sin(ampB, freq, 2*phase_shift_beari)

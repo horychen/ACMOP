@@ -1,7 +1,7 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
 
-import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design
+import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design
 
 from soupsieve import select
 # from codes3.population import VanGogh_JMAG
@@ -154,6 +154,8 @@ class AC_Machine_Optiomization_Wrapper(object):
             function = flux_switching_pm_design.FSPM_template
         elif 'CPPM' in self.select_spec:
             function = bearingless_consequentPole_design.bearingless_consequentPole_template
+        elif 'VCPPM' in self.select_spec:
+            function = bearingless_VShapeconsequentPole_design.bearingless_VconsequentPole_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
         self.ad = acm_designer.acm_designer(
@@ -273,6 +275,8 @@ class AC_Machine_Optiomization_Wrapper(object):
             toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
         elif 'CPPM' in acm_variant.template.name:
             toolCairo.draw_cppm(acm_variant, bool_draw_whole_model=True)
+        elif 'VCPPM' in acm_variant.template.name:
+            toolCairo.draw_Vcppm(acm_variant, bool_draw_whole_model=True)
         else:
             raise Exception("Nothing to draw. Are you adding a new machine type?????")
 
@@ -574,7 +578,7 @@ def main(number_which_part):
 
         # select_spec = 'PMSM Q12p4y1 PEMD-2020',
         select_spec = "CPPM-24s4pp-ps1-Chiba05",
-
+        # select_spec = "VCPPM-24s4pp-ps1-Chiba05",
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
 
