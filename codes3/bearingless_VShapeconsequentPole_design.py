@@ -87,7 +87,7 @@ class bearingless_VconsequentPole_template(inner_rotor_motor.template_machine_as
             # stator_yoke_flux_density_Bsy = 1.5
 
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
-        stator_outer_diameter_Dse = 0.390 # this is related to the stator current density and should be determined by Js and power.
+        stator_outer_diameter_Dse = 0.010 # this is related to the stator current density and should be determined by Js and power.
         sleeve_length = 1
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm

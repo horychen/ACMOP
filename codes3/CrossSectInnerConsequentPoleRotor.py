@@ -110,6 +110,7 @@ class CrossSectConsequentPoleRotor(object):
         alpha_P4 = alpha_rp
         alpha_P4_extra = alpha_rp/3*5
         r_P4 = r_ri + d_ri # = (r_P2 - d_rp) 
+        # r_P4 = r_ri + d_ri - 10# just for report
         r_P4_extra = r_ri + 0.1 # = (r_P2 - d_rp) 
         P4 = [r_P4*cos(alpha_P4), r_P4*sin(alpha_P4)]
         P4_extra = [r_P4_extra*cos(alpha_P4_extra), r_P4_extra*sin(alpha_P4_extra)]
@@ -229,6 +230,7 @@ class CrossSectConsequentPoleRotor(object):
                             else :
                                 list_segments += drawer.drawLine(P3_extra, P4_extra)
                                 list_segments += drawer.drawArc([0,0], P4_extra, P5)
+                                # list_segments += drawer.drawLine(P4, P5)
                                 list_segments += drawer.drawLine(P5, P6_extra)
                                 list_segments += drawer.drawArc([0,0], P1, P6_extra)
 ####################    ##### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
@@ -240,6 +242,7 @@ class CrossSectConsequentPoleRotor(object):
                             if (i % 2) == 0:
                                 list_segments += drawer.drawLine(P1, P2)
                                 list_segments += drawer.drawArc([0,0], P2, P3)
+                                # list_segments += drawer.drawLine(P2, P3)
                             else :
                                 list_segments += drawer.drawLine(P3, P4)
                                 list_segments += drawer.drawArc([0,0], P4, P5)
@@ -372,7 +375,7 @@ class CrossSectConsequentPoleMagnet(object):
                     return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
                 
                 
-                if 1:
+                if 0:
                    
                     def draw_fraction(list_segments, P3_spoketype, P4_extra, P5, P2_extra):
                         if (i % 2) == 1:
