@@ -118,8 +118,20 @@ class CrossSectConsequentPoleRotor(object):
         print(P4)
         print(P4_extra)
 
+        print(alpha_rp)
+        print(alpha_rp)
+        print(alpha_rp)
+        print(alpha_rp)
+        print(alpha_rp)
+
+        alpha_p5 = 2*alpha_rp
+        print(alpha_p5)
+        print(alpha_p5)
+        print(alpha_p5)
+        print(alpha_p5)
+        print(alpha_p5)
         r_P5 = r_P4
-        P5 = [0, r_P5]
+        P5 = [r_P5*cos(alpha_p5), r_P5*sin(alpha_p5)]
         print(P5)
 
         # alpha_P5 = alpha_P3 + alpha_rs # alpha_rs means rotor segment (of PM)
@@ -132,11 +144,23 @@ class CrossSectConsequentPoleRotor(object):
         if s == 1:
             # No magnet segment!
             
-            P6 = [0, r_ri]
+            alpha_p6 = 2*alpha_rp
+            P6 = [r_ri*cos(alpha_p6), r_ri*sin(alpha_p6)]
             P6_extra = [0, r_ri + 0.1]
 
             # P6 = [r_ri*cos(alpha_P5), r_ri*-sin(alpha_P5)]
 
+            # print(alpha_rm)
+            # print(alpha_rm)
+            # print(alpha_rm)
+            # print(alpha_rp)
+            # print(alpha_rp)
+            # print(alpha_rp)
+            # print(alpha_rp)
+            # print(alpha_rp)
+
+
+            # quit()
             if alpha_rm >= alpha_rp*0.9800:
                 print('[CrossSectInnerNotchedRotor.py] Non-NOTCHED ROTOR IS USED.\n')
                 # print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)
@@ -159,7 +183,7 @@ class CrossSectConsequentPoleRotor(object):
                                 list_segments += drawer.drawLine(P5, P6_extra)
                                 list_segments += drawer.drawArc([0,0], P1, P6_extra)
 ####################    ##### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
-                        for i in range(2*p):
+                        for i in range(p):
                             draw_fraction(list_segments, P1, P2, P3_extra, P4_extra, P5, P6_extra)
                             # break
 
@@ -325,13 +349,15 @@ class CrossSectConsequentPoleMagnet(object):
         
         P1 = [r_ri, 0]
 
+        alpha_P2_extra = 2*alpha_rp
         r_P2 = r_ri + d_ri + d_pm
         P2 = [r_P2, 0]
-        P2_extra = [0, r_P2]
+        P2_extra = [r_P2*cos(alpha_P2_extra), r_P2*sin(alpha_P2_extra)]
 
         alpha_P3_extra = alpha_rp/3*5
         alpha_P3 = alpha_rp           # For consequent-pole iron span is equal to pole span
-        P3 = [r_P2*cos(alpha_P3), r_P2*sin(alpha_P3)]
+        r_P3 = r_P2
+        P3 = [r_P3*cos(alpha_P3), r_P3*sin(alpha_P3)]
         P3_spoketype = [r_P2*cos(alpha_P3_extra), r_P2*sin(alpha_P3_extra)]
 
         alpha_P4 = alpha_rp  
@@ -339,16 +365,20 @@ class CrossSectConsequentPoleMagnet(object):
         r_P4 = r_ri + d_ri # = (r_P2 - d_rp) 
         r_P4_extra = r_ri + 0.1 # = (r_P2 - d_rp) 
         P4 = [r_P4*cos(alpha_P4), r_P4*sin(alpha_P4)]
+
+         
+
+
         # print(alpha_P4)
         # print(P4)
         P4_extra = [r_P4_extra*cos(alpha_P4_extra), r_P4_extra*sin(alpha_P4_extra)]
 
         P3_extra = [(r_P4+d_pm)*cos(alpha_P3), (r_P4+d_pm)*-sin(alpha_P3)]
 
-        alpha_P5 = alpha_P3 + alpha_rs # alpha_rs means rotor segment (of PM)
+        alpha_P5 = 2*alpha_rp # alpha_rs means rotor segment (of PM)
         # P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
         r_P5 = r_P4
-        P5 = [0, r_P5]
+        P5 = [r_P5*cos(alpha_P5), r_P5*sin(alpha_P5)]
         # print(P5)
 
         list_regions = []

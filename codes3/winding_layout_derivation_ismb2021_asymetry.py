@@ -928,7 +928,7 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [                        
-                                (3, 24, 20, 1, 9, 0), # homopolar 
+                                (3, 24, 8, 1, 9, 0), # homopolar 
                                 # (3, 24, 12, 1, 10, 0), # homopolar 
                                 # (3, 24, 12, 1, 9, 0), # homopolar 
                                 # (3, 24, 12, 1, 8, 0), # homopolar 

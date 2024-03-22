@@ -87,12 +87,12 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
             # stator_yoke_flux_density_Bsy = 1.5
 
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
-        stator_outer_diameter_Dse = 0.390 # this is related to the stator current density and should be determined by Js and power.
+        stator_outer_diameter_Dse = 0.225 # this is related to the stator current density and should be determined by Js and power.
         sleeve_length = 1
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
-        rotor_outer_radius_r_or = pyrhonen_procedure_as_function.eric_specify_tip_speed_get_radius(SI['tip_speed'], speed_rpm)
+        rotor_outer_radius_r_or = 0.3*pyrhonen_procedure_as_function.eric_specify_tip_speed_get_radius(SI['tip_speed'], speed_rpm)
         rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
         stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SI['minimum_mechanical_air_gap_length_mm'])*1e-3 # m (sleeve 3 mm, air gap 0.75 mm)
         stator_inner_diameter_Dis = stator_inner_radius_r_is*2
@@ -125,6 +125,18 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         # print(f"{1e3*stator_yoke_height_h_ys=}")
         # print(f"{speed_rpm=}")
         # print(f"{rotor_outer_radius_r_or=}")
+
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+
+
         # print(f"{stator_tooth_height_h_ds=}")
         # print(f"{GP['mm_r_si'].value=}")
         # print(f"{GP['mm_r_si'].value=}")
