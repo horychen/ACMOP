@@ -87,12 +87,12 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
             # stator_yoke_flux_density_Bsy = 1.5
 
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
-        stator_outer_diameter_Dse = 0.225 # this is related to the stator current density and should be determined by Js and power.
+        stator_outer_diameter_Dse = 0.200 # this is related to the stator current density and should be determined by Js and power.
         sleeve_length = 1
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
-        rotor_outer_radius_r_or = 0.3*pyrhonen_procedure_as_function.eric_specify_tip_speed_get_radius(SI['tip_speed'], speed_rpm)
+        rotor_outer_radius_r_or = pyrhonen_procedure_as_function.eric_specify_tip_speed_get_radius(SI['tip_speed'], speed_rpm)
         rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
         stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SI['minimum_mechanical_air_gap_length_mm'])*1e-3 # m (sleeve 3 mm, air gap 0.75 mm)
         stator_inner_diameter_Dis = stator_inner_radius_r_is*2
@@ -154,7 +154,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         GP['mm_d_sleeve'].value          = sleeve_length
         GP['mm_d_mech_air_gap'].value    = SI['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
-        GP['mm_d_pm'].value              = 10  # mm
+        GP['mm_d_pm'].value              = 8  # mm
         GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is epirically specified
         GP['mm_r_ro'].value              = 1e3*rotor_outer_radius_r_or
         GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
