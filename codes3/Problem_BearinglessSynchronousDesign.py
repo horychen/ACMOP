@@ -6,6 +6,7 @@ else:
     raise Exception('[Problem_BlessSyn] Please add global variable (address) "ad" to module __builtins__.')
 
 # print('[Problem_BlessSyn]', builtins.ad)
+
 # print('[Problem_BlessSyn]', ad)
 # print('[Problem_BlessSyn]', ad.counter_fitness_called)
 # print('[Problem_BlessSyn]', ad.counter_fitness_return)
@@ -53,7 +54,6 @@ class Problem_BearinglessSynchronousDesign(object):
             # if True:
             try:
                 acm_variant = ad.evaluate_design_json_wrapper(ad.acm_template, x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
-
                 cost_function, f1, f2, f3, FRW, \
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \
@@ -84,7 +84,8 @@ class Problem_BearinglessSynchronousDesign(object):
             except utility.ExceptionBadNumberOfParts as error:
                 print('ExceptionBadNumberOfParts captured:', str(error)) 
                 # print("Detail: {}".format(error.payload))
-                f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
+                # f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
+                f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
                 # utility.send_notification(ad.solver.fea_config_dict['pc_name'] + '\n\nExceptionBadNumberOfParts:' + str(error) + '\n'*3)
                 raise error
 
@@ -186,7 +187,8 @@ class Problem_BearinglessSynchronousDesign(object):
                             print('\tabs(force_error_angle) > 20 | (=%f)' % (force_error_angle))
                         if FRW < 0.5:
                             print('\tFRW < 0.5 | (=%f)' % (FRW))
-                        f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
+                        # f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
+                        f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
                     print('[Problem_BearinglessSyn] f1,f2,f3:',f1,f2,f3)
 
                 break

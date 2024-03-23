@@ -128,7 +128,7 @@ class CrossSectVShapeConsequentPoleRotor(object):
 
 class CrossSectVShapeConsequentMagnet(object):
     def __init__(self, 
-                    name = 'Notched Rotor',
+                    name = 'VShapeConsequentPole Rotor',
                     color = '#0BA0E2',
                     notched_rotor = None,
                     ):

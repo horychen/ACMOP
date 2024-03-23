@@ -927,8 +927,25 @@ class Winding_Derivation(object):
 def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
-    Slot_Pole_Combinations = [
-                                (3, 24, 4, 1, 9, 0), # chiba 2005 Consequent pole
+    Slot_Pole_Combinations = [                        
+                                (3, 24, 16, 1, 10, 0), # homopolar 
+                                # (3, 24, 12, 1, 10, 0), # homopolar 
+                                # (3, 24, 12, 1, 9, 0), # homopolar 
+                                # (3, 24, 12, 1, 8, 0), # homopolar 
+                                # (3, 24, 12, 1, 7, 0), # homopolar 
+                                # (3, 24, 12, 1, 6, 0), # homopolar 
+                                # (3, 24, 12, 1, 5, 0), # homopolar 
+                                # (3, 24, 12, 1, 4, 0), # homopolar 
+                                # (3, 24, 12, 1, 3, 0), # homopolar 
+                                # (3, 24, 12, 1, 2, 0), # homopolar 
+                                # (3, 24, 12, 1, 1, 0), # homopolar 
+                                # (3, 24, 10, 1, 10, 0), # best cppm      
+                                # (3, 6, 4, 1, 1, 0), # heartbeta fitness
+                                # (3, 6, 2, 1, 1, 0), # heartbeta
+                                # (3, 12, 2, 1, 1, 0), # Eric's Homopolar Motor??? p is even number?
+                                # (3, 12, 4, 1, 1, 0), # Eric's Homopolar Motor??? p is even number?
+                                # (3, 24, 8, 1, 10, 0), # chiba 2005 Consequent pole 16pp
+                                # (3, 24, 4, 1, 9, 0), # chiba 2005 Consequent pole
                                 #   (3, 48, 22, 23, 1, 0), # 黑kesilizuo
                                 #   (3, 6, 1, 2, 3, 0), # ee275
                                 #   (3, 6, 1, 2, 1, 0), # ee275

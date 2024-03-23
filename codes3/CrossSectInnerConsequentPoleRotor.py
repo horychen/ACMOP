@@ -97,24 +97,41 @@ class CrossSectConsequentPoleRotor(object):
 
 
         # For consequent-pole iron span is equal to pole span
-
-        alpha_P3 = alpha_rp   
+        alpha_P3 = alpha_rp
+        alpha_P3_extra = alpha_rp/3*5
         P3 = [r_P2*cos(alpha_P3), r_P2*sin(alpha_P3)]
+        P3_extra = [r_P2*cos(alpha_P3_extra), r_P2*sin(alpha_P3_extra)]
         
         # print(alpha_rm)
         # print(alpha_rm)        
         # print(alpha_rm)
         # print(alpha_rm)
         # quit()        
-
-        alpha_P4 = alpha_rp  
+        alpha_P4 = alpha_rp
+        alpha_P4_extra = alpha_rp/3*5
         r_P4 = r_ri + d_ri # = (r_P2 - d_rp) 
+        # r_P4 = r_ri + d_ri - 10# just for report
+        r_P4_extra = r_ri + 0.1 # = (r_P2 - d_rp) 
         P4 = [r_P4*cos(alpha_P4), r_P4*sin(alpha_P4)]
+        P4_extra = [r_P4_extra*cos(alpha_P4_extra), r_P4_extra*sin(alpha_P4_extra)]
         print(alpha_P4)
         print(P4)
-        
+        print(P4_extra)
+
+        print(alpha_rp)
+        print(alpha_rp)
+        print(alpha_rp)
+        print(alpha_rp)
+        print(alpha_rp)
+
+        alpha_p5 = 2*alpha_rp
+        print(alpha_p5)
+        print(alpha_p5)
+        print(alpha_p5)
+        print(alpha_p5)
+        print(alpha_p5)
         r_P5 = r_P4
-        P5 = [0, r_P5]
+        P5 = [r_P5*cos(alpha_p5), r_P5*sin(alpha_p5)]
         print(P5)
 
         # alpha_P5 = alpha_P3 + alpha_rs # alpha_rs means rotor segment (of PM)
@@ -127,19 +144,76 @@ class CrossSectConsequentPoleRotor(object):
         if s == 1:
             # No magnet segment!
             
-            P6 = [0, r_ri]
+            alpha_p6 = 2*alpha_rp
+            P6 = [r_ri*cos(alpha_p6), r_ri*sin(alpha_p6)]
+            P6_extra = [0, r_ri + 0.1]
+
             # P6 = [r_ri*cos(alpha_P5), r_ri*-sin(alpha_P5)]
 
+            # print(alpha_rm)
+            # print(alpha_rm)
+            # print(alpha_rm)
+            # print(alpha_rp)
+            # print(alpha_rp)
+            # print(alpha_rp)
+            # print(alpha_rp)
+            # print(alpha_rp)
+
+
+            # quit()
             if alpha_rm >= alpha_rp*0.9800:
                 print('[CrossSectInnerNotchedRotor.py] Non-NOTCHED ROTOR IS USED.\n')
-                print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)
+                # print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)
                 P1p5 = [P2[0] - d_rp, P2[1]]
                 if bool_draw_whole_model:
-                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
-                    list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1)
-                    list_segments += drawer.drawArc([0,0], P1p5, [-P1p5[0], P1p5[1]])
-                    list_segments += drawer.drawArc([0,0], [-P1p5[0], P1p5[1]], P1p5)
-                    
+                    # list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                    # list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1)
+                    # list_segments += drawer.drawArc([0,0], P1p5, [-P1p5[0], P1p5[1]])
+                    # list_segments += drawer.drawArc([0,0], [-P1p5[0], P1p5[1]], P1p5)
+                    def iPark(P, theta):
+                        return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                    if 0:
+                        def draw_fraction(list_segments, P1, P2, P3_extra, P4_extra, P5, P6_extra):
+                            if (i % 2) == 0:
+                                list_segments += drawer.drawLine(P1, P2)
+                                list_segments += drawer.drawArc([0,0], P2, P3_extra)
+                            else :
+                                list_segments += drawer.drawLine(P3_extra, P4_extra)
+                                list_segments += drawer.drawArc([0,0], P4_extra, P5)
+                                list_segments += drawer.drawLine(P5, P6_extra)
+                                list_segments += drawer.drawArc([0,0], P1, P6_extra)
+####################    ##### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
+                        for i in range(p):
+                            draw_fraction(list_segments, P1, P2, P3_extra, P4_extra, P5, P6_extra)
+                            # break
+
+                    else:
+                        def draw_fraction(list_segments, P1, P2, P3, P4, P5, P6):
+                            if (i % 2) == 0:
+                                list_segments += drawer.drawLine(P1, P2)
+                                list_segments += drawer.drawArc([0,0], P2, P3)
+                            else :
+                                list_segments += drawer.drawLine(P3, P4)
+                                list_segments += drawer.drawArc([0,0], P4, P5)
+                                list_segments += drawer.drawLine(P5, P6)
+                                list_segments += drawer.drawArc([0,0], P1, P6)
+####################    ##### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
+                        for i in range(2*p):
+                            draw_fraction(list_segments, P1, P2, P3, P4, P5, P6)
+                            # break
+
+
+
+
+
+                    # # draw a circle (this is officially suggested by FEMM)
+                    # list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
+                    # list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
+######################### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
+
+
+
+
                     # list_segments += drawer.drawLine([5, 10], [0, 0])
                     # list_segments += drawer.drawLine([5, 10], [-10, 20])
                     # list_segments += drawer.drawLine([5, 10], [-10, 200])
@@ -150,11 +224,11 @@ class CrossSectConsequentPoleRotor(object):
                     # useless
 
                     # raise
-                else:
-                    list_segments += drawer.drawLine(P1, P1p5)
-                    list_segments += drawer.drawArc([0,0], P5, P1p5)
-                    list_segments += drawer.drawLine(P5, P6)
-                    list_segments += drawer.drawArc([0,0], P6, P1)
+                # else:
+                #     list_segments += drawer.drawLine(P1, P1p5)
+                #     list_segments += drawer.drawArc([0,0], P5, P1p5)
+                #     list_segments += drawer.drawLine(P5, P6)
+                #     list_segments += drawer.drawArc([0,0], P6, P1)
                     # list_segments += drawer.drawLine([5, 10], [0, 0])
                     # list_segments += drawer.drawLine([5, 10], [-10, 20])
                     # list_segments += drawer.drawLine([5, 10], [-10, 200])
@@ -172,21 +246,36 @@ class CrossSectConsequentPoleRotor(object):
                     def iPark(P, theta):
                         return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
                     
-
-                    def draw_fraction(list_segments, P1, P2, P3, P4, P5, P6):
-                        if (i % 2) == 0:
-                            list_segments += drawer.drawLine(P1, P2)
-                            list_segments += drawer.drawArc([0,0], P2, P3)
-                        else :
-                            list_segments += drawer.drawLine(P3, P4)
-                            list_segments += drawer.drawArc([0,0], P4, P5)
-                            list_segments += drawer.drawLine(P5, P6)
-                            list_segments += drawer.drawArc([0,0], P1, P6)
-######################### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
-                    for i in range(2*p):
-                        draw_fraction(list_segments, P1, P2, P3, P4, P5, P6)
-                        # break
-
+                    if 0:
+                        def draw_fraction(list_segments, P1, P2, P3_extra, P4_extra, P5, P6_extra):
+                            if (i % 2) == 0:
+                                list_segments += drawer.drawLine(P1, P2)
+                                list_segments += drawer.drawArc([0,0], P2, P3_extra)
+                            else :
+                                list_segments += drawer.drawLine(P3_extra, P4_extra)
+                                list_segments += drawer.drawArc([0,0], P4_extra, P5)
+                                # list_segments += drawer.drawLine(P4, P5)
+                                list_segments += drawer.drawLine(P5, P6_extra)
+                                list_segments += drawer.drawArc([0,0], P1, P6_extra)
+####################    ##### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
+                        for i in range(2*p):
+                            draw_fraction(list_segments, P1, P2, P3_extra, P4_extra, P5, P6_extra)
+                            # break
+                    else:
+                        def draw_fraction(list_segments, P1, P2, P3, P4, P5, P6):
+                            if (i % 2) == 0:
+                                list_segments += drawer.drawLine(P1, P2)
+                                list_segments += drawer.drawArc([0,0], P2, P3)
+                                # list_segments += drawer.drawLine(P2, P3)
+                            else :
+                                list_segments += drawer.drawLine(P3, P4)
+                                list_segments += drawer.drawArc([0,0], P4, P5)
+                                list_segments += drawer.drawLine(P5, P6)
+                                list_segments += drawer.drawArc([0,0], P1, P6)
+####################    ##### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
+                        for i in range(2*p):
+                            draw_fraction(list_segments, P1, P2, P3, P4, P5, P6)
+                            # break
 
 
 
@@ -197,7 +286,6 @@ class CrossSectConsequentPoleRotor(object):
 ######################### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
 
         innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))
-
         # return [list_segments] # csToken # cross section token
         return {'innerCoord': innerCoord, 'list_regions':[list_segments], 'mirrorAxis': None,}
                 # 'list_regions_to_remove': }
@@ -261,26 +349,36 @@ class CrossSectConsequentPoleMagnet(object):
         
         P1 = [r_ri, 0]
 
+        alpha_P2_extra = 2*alpha_rp
         r_P2 = r_ri + d_ri + d_pm
         P2 = [r_P2, 0]
-        P2_extra = [0, r_P2]
+        P2_extra = [r_P2*cos(alpha_P2_extra), r_P2*sin(alpha_P2_extra)]
 
+        alpha_P3_extra = alpha_rp/3*5
         alpha_P3 = alpha_rp           # For consequent-pole iron span is equal to pole span
-        P3 = [r_P2*cos(alpha_P3), r_P2*sin(alpha_P3)]
+        r_P3 = r_P2
+        P3 = [r_P3*cos(alpha_P3), r_P3*sin(alpha_P3)]
+        P3_spoketype = [r_P2*cos(alpha_P3_extra), r_P2*sin(alpha_P3_extra)]
 
         alpha_P4 = alpha_rp  
+        alpha_P4_extra = alpha_rp/3*5
         r_P4 = r_ri + d_ri # = (r_P2 - d_rp) 
+        r_P4_extra = r_ri + 0.1 # = (r_P2 - d_rp) 
         P4 = [r_P4*cos(alpha_P4), r_P4*sin(alpha_P4)]
+
+         
+
+
         # print(alpha_P4)
         # print(P4)
-        P4_extra = [r_P4, 0]
+        P4_extra = [r_P4_extra*cos(alpha_P4_extra), r_P4_extra*sin(alpha_P4_extra)]
 
         P3_extra = [(r_P4+d_pm)*cos(alpha_P3), (r_P4+d_pm)*-sin(alpha_P3)]
 
-        alpha_P5 = alpha_P3 + alpha_rs # alpha_rs means rotor segment (of PM)
-        P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
+        alpha_P5 = 2*alpha_rp # alpha_rs means rotor segment (of PM)
+        # P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
         r_P5 = r_P4
-        P5 = [0, r_P5]
+        P5 = [r_P5*cos(alpha_P5), r_P5*sin(alpha_P5)]
         # print(P5)
 
         list_regions = []
@@ -305,20 +403,35 @@ class CrossSectConsequentPoleMagnet(object):
             if bool_draw_whole_model:
                 def iPark(P, theta):
                     return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
-                def draw_fraction(list_segments, P3, P4, P5, P2_extra):
+                
+                
+                if 0:
                    
-                    if (i % 2) == 1:
-                        list_segments += drawer.drawLine(P3, P4)
-                        list_segments += drawer.drawArc([0,0], P4, P5)
-                        list_segments += drawer.drawArc([0,0], P3, P2_extra)
-                        list_segments += drawer.drawLine(P5, P2_extra)
+                    def draw_fraction(list_segments, P3_spoketype, P4_extra, P5, P2_extra):
+                        if (i % 2) == 1:
+                            list_segments += drawer.drawLine(P3_spoketype, P4_extra)
+                            list_segments += drawer.drawArc([0,0], P4_extra, P5)
+                            list_segments += drawer.drawArc([0,0], P3_spoketype, P2_extra)
+                            list_segments += drawer.drawLine(P5, P2_extra)
 
-                for i in range(2*p):
-                    draw_fraction(list_segments, P3, 
-                                                 P4, 
-                                                 P5, 
-                                                 P2_extra)
+                    for i in range(p):
+                        draw_fraction(list_segments, P3_spoketype, 
+                                                     P4_extra, 
+                                                     P5, 
+                                                     P2_extra)
+                else:
+                    def draw_fraction(list_segments, P3, P4, P5, P2_extra):
+                        if (i % 2) == 1:
+                            list_segments += drawer.drawLine(P3, P4)
+                            list_segments += drawer.drawArc([0,0], P4, P5)
+                            list_segments += drawer.drawArc([0,0], P3, P2_extra)
+                            list_segments += drawer.drawLine(P5, P2_extra)
 
+                    for i in range(2*p):
+                        draw_fraction(list_segments, P3, 
+                                                     P4, 
+                                                     P5, 
+                                                     P2_extra)
                 #     list_segments += drawer.drawLine(P2, P4_extra)
                 #     if (i % 2) == 1:
                 #         P2_CCW = iPark(P2, alpha_rp)
@@ -331,7 +444,6 @@ class CrossSectConsequentPoleMagnet(object):
                 #                                  iPark(P3_extra, i*alpha_rp), 
                 #                                  iPark(P4_extra, i*alpha_rp), 
                 #                                  iPark(P6_extra, i*alpha_rp))
-
 
                     ################## 只有我有用 ###############################
                     ################## 只有我有用 ###############################
@@ -368,7 +480,8 @@ class CrossSectConsequentPoleMagnet(object):
                 list_regions.append(list_segments)
                 list_segments = []
 
-        innerCoord = ( 0.5*(P4[0]+P6_extra[0]), 0.5*(P4[1]+P6_extra[1]))
+        # innerCoord = ( 0.5*(P4[0] + P6_extra[0]), 0.5*(P4[1] + P6_extra[1]))
+        innerCoord = ( 0.5*(P2_extra[0] + P5[0]), 0.5*(P2_extra[1] + P5[1]))
         return {'innerCoord': innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
         # return list_regions # csToken # cross section token
 

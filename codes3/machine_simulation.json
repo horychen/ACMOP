@@ -816,8 +816,8 @@
 
     "#02x JMAG PMSM Evaluation Setting (zero torque)": {
 
-        "TORQUE_CURRENT_RATIO" : 0,
-        "SUSPENSION_CURRENT_RATIO" : 0.05,
+        "TORQUE_CURRENT_RATIO" : 0.75,
+        "SUSPENSION_CURRENT_RATIO" : 0.25,
 
         "designer.max_nonlinear_iteration": 50,
         "designer.meshSize_Magnet": 2,

@@ -87,7 +87,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
             # stator_yoke_flux_density_Bsy = 1.5
 
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
-        stator_outer_diameter_Dse = 0.390 # this is related to the stator current density and should be determined by Js and power.
+        stator_outer_diameter_Dse = 0.200 # this is related to the stator current density and should be determined by Js and power.
         sleeve_length = 1
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
@@ -125,6 +125,18 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         # print(f"{1e3*stator_yoke_height_h_ys=}")
         # print(f"{speed_rpm=}")
         # print(f"{rotor_outer_radius_r_or=}")
+
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+        # print(f"{rotor_outer_radius_r_or=}")
+
+
         # print(f"{stator_tooth_height_h_ds=}")
         # print(f"{GP['mm_r_si'].value=}")
         # print(f"{GP['mm_r_si'].value=}")
@@ -142,7 +154,7 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         GP['mm_d_sleeve'].value          = sleeve_length
         GP['mm_d_mech_air_gap'].value    = SI['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
-        GP['mm_d_pm'].value              = 10  # mm
+        GP['mm_d_pm'].value              = 8  # mm
         GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is epirically specified
         GP['mm_r_ro'].value              = 1e3*rotor_outer_radius_r_or
         GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
