@@ -578,7 +578,8 @@ def main(number_which_part):
 
         # select_spec = 'PMSM Q12p4y1 PEMD-2020',
         # select_spec = "CPPM-24s16pp-ps1-RippleRedunction",
-        select_spec = "CPPM-24s8pp-ps1-RippleRedunction",
+        select_spec = "CPPM-24s20pp-ps1-RippleRedunction",
+        # select_spec = "CPPM-24s8pp-ps1-RippleRedunction",
         # select_spec = "VCPPM-24s4pp-ps1-Chiba05",
         # select_spec = "VCPPM-6s4pp-ps1-heartbeta",
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
