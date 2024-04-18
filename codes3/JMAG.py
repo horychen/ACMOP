@@ -1271,7 +1271,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(      u"Magnet").SetAxisXYZ(0, 0, -1)
             study.GetMaterial(      u"Magnet").SetOriginXYZ(0, 0, 0)
             # study.GetMaterial(      u"Magnet").SetPattern(u"Circular")
-            study.GetMaterial(      u"Magnet").SetPattern(u"RadialCircular")
+            # study.GetMaterial(      u"Magnet").SetPattern(u"RadialCircular")
+            study.GetMaterial(      u"Magnet").SetPattern(u"Radial")
             study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 0.5*360/(2*acm_template.SI['p']) ) # 半个极距
 
             # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Direction")

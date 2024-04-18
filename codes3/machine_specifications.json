@@ -95,7 +95,7 @@
             "ps":                                  1,
             "p":                                   20,
             "coil_pitch_y":                        9,
-            "mec_power":                           500,
+            "mec_power":                           300,
             "ExcitationFreqSimulated":             66.7,
             "Steel":                               "M19Gauge29",
             "lamination_stacking_factor_kFe":      0.95,
