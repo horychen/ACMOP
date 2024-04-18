@@ -11,9 +11,9 @@ if not os.path.exists(output_dir):
 print('Output directory is:', output_dir)
 
 # Globals for drawing 
-RADIUS = 8
+RADIUS = 10
 BELT_BIAS = 5 # deg. elec.
-distance_between_label_layers = 1.33 # 1.0, 1.25
+distance_between_label_layers = 1.25 # 1.0, 1.25
 angle_between_arrow_and_label_star_of_slots = 6 # deg
 angle_between_arrow_and_label = 4 # deg
 PLOT_SPACING = 35 # 35
@@ -546,7 +546,7 @@ def winding_short_pitch_factor(h, coil_pitch_y, Q, npp):
     k_ph = np.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)   # if you use this, h/npp = n,         此时h=3，是指极对数为3的谐波。   <- 这是我们要的，
                                                           # 我们要计算气隙中某个极对数的谐波所对应分布绕组和短距绕组，并相乘，所以净极对数(h)要对得上。
                                                           # 换句话说，我们要的是h=3次谐波的短距系数，而不是相对于ps为3次的谐波的短距系数。
-    # coil_pitch_y / (Q/2) * np.pi is the short pitch radian for 1 pole pair field
+    # coil_pitch_y / (Q/2) * np.pi is the short pitch radian for 1 pole pair field 
     # coil_pitch_y / (Q/4) * np.pi is the short pitch radian for 2 pole pair field
     # coil_pitch_y / (Q/(2*npp)) * np.pi is the short pitch radian for npp pole pair field
     # Bb "k_ph = np.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)", you are trying to use the short pitch radian for npp pole pair field to calculate the pitch factor for a h pole pair field.
@@ -928,7 +928,7 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [                        
-                                (3, 24, 16, 1, 10, 0), # homopolar 
+                                (3, 24, 4, 1, 1, 0), # homopolar 
                                 # (3, 24, 12, 1, 1, 0), # homopolar
                                 # (3, 24, 12, 1, 10, 0), # homopolar 
                                 # (3, 24, 12, 1, 9, 0), # homopolar 
