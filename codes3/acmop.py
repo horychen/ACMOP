@@ -585,8 +585,8 @@ def main(number_which_part):
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
 
-        project_loc            = fr'../_ConsequentPole/',
-        bool_show_GUI          = False
+        project_loc            = fr'../_ConsequentPole_24s8pp/',
+        bool_show_GUI          = True
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -619,8 +619,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # main(31)
-    # main(3)
-    main(4)
+    main(3)
+    # main(4)
     # main(5)
 
 if __name__ == '__main__':

@@ -1851,13 +1851,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             refarray[0][1] = 1
             study.GetMeshControl().GetTable("SlideTable2D").SetTable(refarray) 
 
+            # if 
             study.GetMeshControl().SetValue("MeshType", 1) # make sure this has been exe'd: study.GetCondition(u"RotCon").AddSet(model.GetSetList().GetSet(u"Motion_Region"), 0)
-            study.GetMeshControl().SetValue("RadialDivision", 4) # for air region near which motion occurs
-            study.GetMeshControl().SetValue("CircumferentialDivision", 720) #1440) # for air region near which motion occurs 这个数足够大，sliding mesh才准确。
+            study.GetMeshControl().SetValue("RadialDivision", 8) # for air region near which motion occurs
+            study.GetMeshControl().SetValue("CircumferentialDivision", 2880) #1440) # for air region near which motion occurs 这个数足够大，sliding mesh才准确。
             study.GetMeshControl().SetValue("AirRegionScale", 1.05) # [Model Length]: Specify a value within the following area. (1.05 <= value < 1000)
-            study.GetMeshControl().SetValue("MeshSize", 4) # mm
+            study.GetMeshControl().SetValue("MeshSize", 1) # mm
             study.GetMeshControl().SetValue("AutoAirMeshSize", 0)
-            study.GetMeshControl().SetValue("AirMeshSize", 4) # mm
+            study.GetMeshControl().SetValue("AirMeshSize", 1) # mm
             study.GetMeshControl().SetValue("Adaptive", 0)
 
             # This is not neccessary for whole model FEA. In fact, for BPMSM simulation, it causes mesh error "The copy target region is not found".
