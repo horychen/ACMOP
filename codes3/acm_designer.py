@@ -10,6 +10,9 @@ import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design, f
 
 class Swarm_Data_Analyzer(object):
     def __init__(self, fname, desired_x_denorm_dict):
+        print()
+        print('[acm_designer.py] Swarm_Data_Analyzer:', fname)
+        print()
         if not os.path.exists(fname):
             self.number_of_chromosome = 0
             self.swarm_data_xf = None
@@ -290,43 +293,68 @@ class swarm_data_container(object):
                         # x_denorm[9]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
                         # x_denorm[10] = design_parameters_denorm[20] # spmsm_template.mm_d_rs         
 
-                        """ This is consistent with ACMOP """
-                        x_denorm = [None]*11
-                        x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
-                        x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_sto         
-                        x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
-                        x_denorm[3]  = sum([design_parameters_denorm[i] for i in (2,4,5,6)]) # outer_stator_radius mm_r_so
-                        x_denorm[4]  = design_parameters_denorm[7] # spmsm_template.mm_w_st   
-                        x_denorm[5]  = design_parameters_denorm[12] #            mm_d_sleeve
-                        r_si = design_parameters_denorm[2] # 2 spmsm_template.mm_r_si      
-                        try:
-                            x_denorm[6]  = r_si /  x_denorm[3] # split_ratio     r_is_slash_r_os 
-                        except ZeroDivisionError as e:
-                            print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
-                            print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
-                            print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
-                            raise e
-                        x_denorm[7]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm      
-                        x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
-                        # childGP
-                        x_denorm[9]  = design_parameters_denorm[15] # spmsm_template.deg_alpha_rm    
-                        x_denorm[10]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
-                        # x_denorm[11]  = design_parameters_denorm[16] # spmsm_template.deg_alpha_rs    
-                        # x_denorm[12] = design_parameters_denorm[20] # spmsm_template.mm_d_rs         
+                        if False:
+                            """ This is consistent with ACMOP """
+                            x_denorm = [None]*11
+                            x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
+                            x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_sto         
+                            x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
+                            x_denorm[3]  = sum([design_parameters_denorm[i] for i in (2,4,5,6)]) # outer_stator_radius mm_r_so
+                            x_denorm[4]  = design_parameters_denorm[7] # spmsm_template.mm_w_st   
+                            x_denorm[5]  = design_parameters_denorm[12] #            mm_d_sleeve
+                            r_si = design_parameters_denorm[2] # 2 spmsm_template.mm_r_si      
+                            try:
+                                x_denorm[6]  = r_si /  x_denorm[3] # split_ratio     r_is_slash_r_os 
+                            except ZeroDivisionError as e:
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                raise e
+                            x_denorm[7]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm      
+                            x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
+                            # childGP
+                            x_denorm[9]  = design_parameters_denorm[15] # spmsm_template.deg_alpha_rm    
+                            x_denorm[10]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
+                            # x_denorm[11]  = design_parameters_denorm[16] # spmsm_template.deg_alpha_rs    
+                            # x_denorm[12] = design_parameters_denorm[20] # spmsm_template.mm_d_rs         
 
-                        # DEBUG
-                        # odict_keys(['deg_alpha_st', 'mm_d_sto', 'mm_d_st', 'mm_r_so', 'mm_w_st', 'mm_d_sleeve', 'split_ratio', 'mm_d_pm', 'mm_d_ri', 'deg_alpha_rm', 'mm_d_rp'])
-                        # deg_alpha_st 11.1183
-                        # mm_d_sto 1.50079
-                        # mm_d_st 42.9701
-                        # mm_r_so 16.099
-                        # mm_w_st 5.89091
-                        # mm_d_sleeve 5.19948
-                        # split_ratio 44.9638
-                        # mm_d_pm 44.9638
-                        # mm_d_ri 3.67901
-                        # deg_alpha_rm 5.19948
-                        # mm_d_rp 0.0
+                            # DEBUG
+                            # odict_keys(['deg_alpha_st', 'mm_d_sto', 'mm_d_st', 'mm_r_so', 'mm_w_st', 'mm_d_sleeve', 'split_ratio', 'mm_d_pm', 'mm_d_ri', 'deg_alpha_rm', 'mm_d_rp'])
+                            # deg_alpha_st 11.1183
+                            # mm_d_sto 1.50079
+                            # mm_d_st 42.9701
+                            # mm_r_so 16.099
+                            # mm_w_st 5.89091
+                            # mm_d_sleeve 5.19948
+                            # split_ratio 44.9638
+                            # mm_d_pm 44.9638
+                            # mm_d_ri 3.67901
+                            # deg_alpha_rm 5.19948
+                            # mm_d_rp 0.0
+                        else:
+                            """ This is consistent with ACMOP """
+                            x_denorm = [None]*11
+                            x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
+                            x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_sto         
+                            x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
+                            x_denorm[3]  = sum([design_parameters_denorm[i] for i in (2,4,5,6)]) # outer_stator_radius mm_r_so
+                            print(f'{x_denorm[1]=}, {x_denorm[0]/2=}')
+                            x_denorm[4]  = design_parameters_denorm[7] # spmsm_template.mm_w_st   
+                            x_denorm[5]  = design_parameters_denorm[12] #            mm_d_sleeve
+                            r_si = design_parameters_denorm[2] # 2 spmsm_template.mm_r_si      
+                            try:
+                                x_denorm[6]  = r_si /  x_denorm[3] # split_ratio     r_is_slash_r_os 
+                                # print(f'{x_denorm[6]=}, {r_si=}')
+                            except ZeroDivisionError as e:
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                raise e
+                            x_denorm[7]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm      
+                            x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
+                            # childGP
+                            x_denorm[9]  = design_parameters_denorm[15] # spmsm_template.deg_alpha_rm    
+                            x_denorm[10]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
 
                     else:
                         '''感应电机 复古 '''
@@ -1240,18 +1268,21 @@ class acm_designer(object):
             # quit()
             return int(number_of_chromosome)
 
+    # read from .txt (bopt-python style)
     def read_swarm_data(self, select_spec, read_from_here=None):
         if read_from_here is not None:
             self.fea_config_dict['output_dir'] = read_from_here
-        print('[acm_designer.py]', self.fea_config_dict['output_dir'] + 'swarm_data.txt')
-        if not os.path.exists(self.fea_config_dict['output_dir'] + 'swarm_data.txt'):
-            msg = '\tNo file @ ' + self.fea_config_dict['output_dir'] + 'swarm_data.txt'
+        
+        fname_swarm_data_txt = self.fea_config_dict['output_dir'] + select_spec.replace(' ', '_') + '/swarm_data.txt'
+        print('[acm_designer.py]', fname_swarm_data_txt)
+        if not os.path.exists(fname_swarm_data_txt):
+            msg = '\tNo file @ ' + fname_swarm_data_txt
             print(msg)
             # raise Exception(msg)
             return None
 
-        print('[acm_designer.py]', '\tRead in', self.fea_config_dict['output_dir'] + 'swarm_data.txt')
-        with open(self.fea_config_dict['output_dir'] + 'swarm_data.txt', 'r') as f:
+        print('[acm_designer.py]', '\tRead in', fname_swarm_data_txt)
+        with open(fname_swarm_data_txt, 'r') as f:
             buf = f.readlines()
             buf = buf[1:]
             length_buf = len(buf) 
@@ -1288,6 +1319,7 @@ class acm_designer(object):
         # quit()
         return int(number_of_chromosome)
 
+    # read from .json (acmop style)
     def read_swarm_data_json(self, select_spec, desired_x_denorm_dict=None):
         ''' In case of desired_x_denorm_dict being None, your swarm_data_xf must be of the same size.
         '''

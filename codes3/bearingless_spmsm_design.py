@@ -52,8 +52,8 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         self.Bianchi2006(fea_config_dict, SI, GP, EX)
 
         # 定义搜索空间，determine bounds
-        original_template_neighbor_bounds = self.get_template_neighbor_bounds()
-        self.bounds_denorm = self.define_search_space(GP, original_template_neighbor_bounds)
+        self.original_template_neighbor_bounds = self.get_template_neighbor_bounds()
+        self.bounds_denorm = self.define_search_space(GP, self.original_template_neighbor_bounds)
 
         # Template's Other Properties (Shared by the swarm)
         EX = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SI)
