@@ -742,6 +742,9 @@ class SwarmAnalyzer(object):
 '''
 
 def call_selection_criteria(ad, upper_bound_objectives, best_idx=None, proj_name=None):
+    
+    print(ad.analyzer.swarm_data_project_names)
+
     return selection_criteria(ad, 
                             ad.analyzer.swarm_data_xf, 
                             ad.analyzer.swarm_data_project_names, 

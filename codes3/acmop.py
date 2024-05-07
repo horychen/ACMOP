@@ -17,6 +17,8 @@ from matplotlib import projections # for part_initialDesign
 # logger.info(msg)
 
 from dataclasses import dataclass
+from collections import OrderedDict
+
 @dataclass
 class AC_Machine_Optiomization_Wrapper(object):
     ''' Inputs
@@ -154,6 +156,7 @@ class AC_Machine_Optiomization_Wrapper(object):
             function = flux_switching_pm_design.FSPM_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
+
         self.ad = acm_designer.acm_designer(
                     self.select_spec, 
                     self.spec_input_dict, 
@@ -161,6 +164,11 @@ class AC_Machine_Optiomization_Wrapper(object):
                     self.fea_config_dict, 
                     acm_template=acm_template,
                 )
+        
+        # if self.ad.analyzer.swarm_data_xf == None:
+        #     raise Exception('No swarm data is available.')
+        # if self.ad.analyzer.swarm_data_project_names == None:
+        #     raise Exception('No swarm data is available.')
 
         if False:
             if 'Y730' in self.fea_config_dict['pc_name']:
@@ -479,6 +487,54 @@ class AC_Machine_Optiomization_Wrapper(object):
         self.reproduced_design_variant = reproduced_design_variant
         return reproduced_design_variant
 
+    def reproduce_design_from_design_parameters(self, design_parameters=None, bool_evaluate=True):
+        # 从design_parameters重构JMAG模型（x_denorm）
+        pass
+
+        self.acm_template.d['GP']
+        
+        # self.acm_template.d['GP']['mm_r_ro'].value = ????
+
+        design_parameters = [11.145,5.5725,44.948,3.44144,5.16216,40.3993,29.3509,19.2821,0,0,0,12,6,0.75,2.89148,45,45,3.6999,31.6066,2.89148,0,4,1]
+        
+        # for el in self.acm_template.d['GP'].keys() : print(el)
+
+        self.acm_template.d['GP']['deg_alpha_st'].value = design_parameters[ 0] 
+        self.acm_template.d['GP']['deg_alpha_sto'].value = design_parameters[ 1] 
+        self.acm_template.d['GP']['mm_r_si'].value = design_parameters[ 2]      
+        self.acm_template.d['GP']['mm_d_sto'].value = design_parameters[ 3]      
+        self.acm_template.d['GP']['mm_d_stt'].value = design_parameters[ 4]      
+        self.acm_template.d['GP']['mm_d_st'].value = design_parameters[ 5]      
+        self.acm_template.d['GP']['mm_d_sy'].value = design_parameters[ 6]      
+        self.acm_template.d['GP']['mm_w_st'].value = design_parameters[ 7]      
+        # self.acm_template.d['GP']['mm_r_st'].value = design_parameters[ 8]      
+        # self.acm_template.d['GP']['mm_r_sf'].value = design_parameters[ 9]      
+        # self.acm_template.d['GP']['mm_r_sb'].value = design_parameters[10]      
+        # self.acm_template.d['GP']['Q'].value = design_parameters[11]            
+        self.acm_template.d['GP']['mm_d_sleeve'].value = design_parameters[12] # sleeve_length
+        self.acm_template.d['GP']['mm_d_mech_air_gap'].value = design_parameters[13] # fixed_air_gap_length
+        self.acm_template.d['GP']['mm_d_pm'].value = design_parameters[14]      
+        self.acm_template.d['GP']['deg_alpha_rm'].value = design_parameters[15] 
+        self.acm_template.d['GP']['deg_alpha_rs'].value = design_parameters[16] 
+        self.acm_template.d['GP']['mm_d_ri'].value = design_parameters[17]      
+        self.acm_template.d['GP']['mm_r_ri'].value = design_parameters[18]      
+        self.acm_template.d['GP']['mm_d_rp'].value = design_parameters[19]      
+        self.acm_template.d['GP']['mm_d_rs'].value = design_parameters[20]      
+        # self.acm_template.d['GP']['p'].value = design_parameters[21]
+        # self.acm_template.d['GP']['s'].value = design_parameters[22]
+
+        GP = self.acm_template.d['GP']
+
+        if bool_evaluate:
+            x_denorm = self.acm_template.build_x_denorm()
+            print(self.acm_template.get_x_denorm_dict_from_geometric_parameters(GP))
+            print(x_denorm)
+            self.part_evaluation_geometry(specify_x_denorm=x_denorm)
+            self.part_evaluation(specify_counter='DesignParametersReproduced', specify_x_denorm=x_denorm)
+
+        reproduced_design_variant = self.acm_template
+        return reproduced_design_variant
+
     def part_post_optimization_analysis(self, project_name):
         # Status report: Generation, individuals, geometry as input, fea tools, performance as output (based on JSON files)
         # Do not show every step, but only those key steps showing how this population is built 
@@ -595,8 +651,19 @@ def main(number_which_part):
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
         # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
 
+        select_spec = 'PMSM Q12p4y1 PEMD-2020',
+        # select_spec = "CPPM-24s4pp-ps1-Chiba05",
+        # select_spec = "CPPM-24s16pp-ps1-RippleRedunction",
+        # select_spec = "CPPM-24s20pp-ps1-RippleRedunction",
+        # select_spec = "CPPM-24s40pp-ps1-RippleRedunction",
+        # select_spec = "CPPM-24s8pp-ps1-RippleRedunction",
+        # select_spec = "VCPPM-24s4pp-ps1-Chiba05",
+        # select_spec = "VCPPM-6s4pp-ps1-heartbeta",
+        select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
+        # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
+
         project_loc            = fr'../_default/',
-        bool_show_GUI          = False
+        bool_show_GUI          = True
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -618,8 +685,9 @@ def main(number_which_part):
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('__indInitial.json')
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind204-FullCircumPM.json', bool_evaluate=True)
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind704-NoMagnetLoss.json', bool_evaluate=True)
-        motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind703.json', bool_evaluate=True)
+        # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind703.json', bool_evaluate=True)
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind1786.json', bool_evaluate=True)
+        motor_design_variant = mop.reproduce_design_from_design_parameters()
     elif number_which_part == 51:
         # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
         mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5 - visualize swarm data
@@ -630,8 +698,10 @@ def main(number_which_part):
 if __name__ == '__main__':
     # main(31)
     # main(3)
-    main(4)
-    # main(5)
+    # main(4)
+    main(5)
+
+
 
 if __name__ == '__main__':
     ''' Interactive variable checking examples:

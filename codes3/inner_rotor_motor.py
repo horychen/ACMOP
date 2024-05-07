@@ -151,11 +151,15 @@ class template_machine_as_numbers(object):
     '''
     def define_search_space(self, GP, original_template_neighbor_bounds):
         # 定义搜索空间，determine bounds
-        self.bounds_denorm = []
-        for key, parameter in GP.items(): # Make sure the order of the bounds_denorm is consistent with free parameters' order in GP.
-            if parameter.type == 'free':
-                parameter.bounds = original_template_neighbor_bounds[key]
-                self.bounds_denorm.append(parameter.bounds)
+        self.bounds_denorm = []        
+
+        # 自由决策变量的顺序和original_template_neighbor_bounds
+        for key, bounds in original_template_neighbor_bounds.items():
+            for key2, parameter in GP.items(): # Make sure the order of the bounds_denorm is consistent with free parameters' order in GP.
+                if key == key2:
+                    if parameter.type == 'free':
+                        parameter.bounds = bounds
+                        self.bounds_denorm.append(parameter.bounds)
         logging.getLogger().info(f'[inner_rotor_motor.py] template BOUNDS_denorm in R^{len(self.bounds_denorm)}: {self.bounds_denorm}')
         return self.bounds_denorm
     def get_other_properties_after_geometric_parameters_are_initialized(self, GP, SI, specified_mm_stack_length=None):
