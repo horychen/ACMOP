@@ -1,4 +1,4 @@
-
+import rich
 #禁止在cache时打印 
 #also added to  D:\DrH\bopt-python\codes3\pyrhonen_procedure_as_function.py
 #also added to  D:\DrH\bopt-python\codes3\winding_layout.py
@@ -257,6 +257,9 @@ def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dic
     swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(
         prob, _swarm_data, popsize, 
         fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
+#####    
+    # swarm_data_on_pareto_front = swarm_data_on_pareto_front[228:]       # TODO: 有损修改，需要重新调整结构
+####
     print('[utility_postprocess.py]', len(swarm_data_on_pareto_front), len(swarm_data_on_pareto_front[0]))
 
     # list_of_swarm_data_on_pareto_front.append(swarm_data_on_pareto_front)

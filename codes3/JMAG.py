@@ -1268,11 +1268,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             study.GetMaterial(      u"Magnet").SetValue(u"Poles", acm_template.d['EX']['DriveW_poles'])
             study.GetMaterial(      u"Magnet").SetDirectionXYZ(1, 1, 0)
-            study.GetMaterial(      u"Magnet").SetAxisXYZ(0, 0, -1)
-            study.GetMaterial(      u"Magnet").SetOriginXYZ(0, 0, 0)
-            # study.GetMaterial(      u"Magnet").SetPattern(u"Circular")
-            # study.GetMaterial(      u"Magnet").SetPattern(u"RadialCircular")
-            study.GetMaterial(      u"Magnet").SetPattern(u"Radial")
+            study.GetMaterial(      u"Magnet").SetAxisXYZ(0, 0, 1)
+            study.GetMaterial(      u"Magnet").SetOriginXYZ(0, 0, 0)            
+            study.GetMaterial(      u"Magnet").SetPattern(u"RadialCircular")
+            # study.GetMaterial(      u"Magnet").SetPattern(u"Radial")
+            # study.GetMaterial(      u"Magnet").SetOrientation(False) # attention: this is a crucial setting for CPPM， if there were no this setting, the torque produced will be negative (only in CPPM condition), which is not what we want.
+            # study.GetMaterial(      u"Magnet").SetPattern(u"Circular") 
+            
             study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 0.5*360/(2*acm_template.SI['p']) ) # 半个极距
 
             # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Direction")
@@ -1854,9 +1856,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # if 
             study.GetMeshControl().SetValue("MeshType", 1) # make sure this has been exe'd: study.GetCondition(u"RotCon").AddSet(model.GetSetList().GetSet(u"Motion_Region"), 0)
             study.GetMeshControl().SetValue("RadialDivision", 8) # for air region near which motion occurs
-            study.GetMeshControl().SetValue("CircumferentialDivision", 2880) #1440) # for air region near which motion occurs 这个数足够大，sliding mesh才准确。
+            study.GetMeshControl().SetValue("CircumferentialDivision", 720) #1440) # for air region near which motion occurs 这个数足够大，sliding mesh才准确。
             study.GetMeshControl().SetValue("AirRegionScale", 1.05) # [Model Length]: Specify a value within the following area. (1.05 <= value < 1000)
-            study.GetMeshControl().SetValue("MeshSize", 1) # mm
+            study.GetMeshControl().SetValue("MeshSize", 4) # mm
             study.GetMeshControl().SetValue("AutoAirMeshSize", 0)
             study.GetMeshControl().SetValue("AirMeshSize", 1) # mm
             study.GetMeshControl().SetValue("Adaptive", 0)
@@ -2757,6 +2759,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         rated_iron_loss                      = rated_ratio * dm.jmag_loss_list[2]
         rated_windage_loss                   = utility.get_windage_loss(acm_variant, rated_stack_length_mm)
 
+        print(acm_variant.template.d['EX']['mm_template_stack_length'])
+        # print(rated_ratio)
+        # print(torque_average)
+        # print(required_torque)
         # total_loss   = copper_loss + iron_loss + windage_loss
         rated_total_loss =  rated_stator_copper_loss_along_stack \
                         + rated_magnet_Joule_loss \
@@ -2825,10 +2831,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Cost_Fe =    Vol_Fe * price_per_volume_steel 
         Cost_Cu = dm.Vol_Cu * price_per_volume_copper
         Cost_PM =    Vol_PM * price_per_volume_magnet
+        print('[utility.py] Vol_Fe',    Vol_Fe)
+        print('[utility.py] Volume_Cu',    dm.Vol_Cu)
+        print('[utility.py] Volume_PM',    Vol_PM)
+        # print('[utility.py] Volume_PM',    Vol_PM)
+        
         print(f'[utility.py] Cost_Fe: {Cost_Fe}')
         print(f'[utility.py] Cost_Cu: {Cost_Cu}')
         print(f'[utility.py] Cost_PM: {Cost_PM}')
-
+        
         if acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'TorqueDensity':
             f1 = -TRV
         elif acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'Cost':

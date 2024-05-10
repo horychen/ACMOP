@@ -928,18 +928,18 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [                        
-                                (3, 24, 4, 1, 1, 0), # homopolar 
-                                # (3, 24, 12, 1, 1, 0), # homopolar
-                                # (3, 24, 12, 1, 10, 0), # homopolar 
-                                # (3, 24, 12, 1, 9, 0), # homopolar 
-                                # (3, 24, 12, 1, 8, 0), # homopolar 
-                                # (3, 24, 12, 1, 7, 0), # homopolar 
-                                # (3, 24, 12, 1, 6, 0), # homopolar 
-                                # (3, 24, 12, 1, 5, 0), # homopolar 
-                                # (3, 24, 12, 1, 4, 0), # homopolar 
-                                # (3, 24, 12, 1, 3, 0), # homopolar 
-                                # (3, 24, 12, 1, 2, 0), # homopolar 
-                                # (3, 24, 12, 1, 1, 0), # homopolar 
+                                # (3, 6, 4, 1, 1, 0), # homopolar 
+                                # (3, 12, 4, 1, 11, 0), # homopolar
+                                # (3, 12, 4, 1, 10, 0), # homopolar 
+                                # (3, 12, 4, 1, 9, 0), # homopolar 
+                                # (3, 12, 4, 1, 8, 0), # homopolar 
+                                # (3, 12, 4, 1, 7, 0), # homopolar 
+                                # (3, 12, 4, 1, 6, 0), # homopolar 
+                                (3, 12, 4, 1, 5, 0), # homopolar 
+                                # (3, 12, 4, 1, 4, 0), # homopolar 
+                                # (3, 12, 4, 1, 3, 0), # homopolar 
+                                # (3, 12, 4, 1, 2, 0), # homopolar 
+                                # (3, 12, 4, 1, 1, 0), # homopolar 
                                 # (3, 24, 10, 1, 10, 0), # best cppm      
                                 # (3, 6, 4, 1, 1, 0), # heartbeta fitness
                                 # (3, 6, 2, 1, 1, 0), # heartbeta

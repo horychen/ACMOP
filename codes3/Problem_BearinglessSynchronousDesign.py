@@ -215,6 +215,13 @@ class Problem_BearinglessSynchronousDesign(object):
         return "Bearingless PMSM Design"
 
 import pygmo as pg
+# algorithm = pg.algorithm(pg.sade(gen=100))
+# pop = pg.population(prob, size=50)
+# pop = algorithm.evolve(pop)
+# best_fitness = pop.champion_f
+# best_solution = pop.champion_x
+# print("Best Fitness:", best_fitness)
+# print("Best Solution:", best_solution)
 def get_prob():
     udp = Problem_BearinglessSynchronousDesign()
     prob = pg.problem(udp)
