@@ -928,18 +928,39 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [                        
-                                # (3, 6, 4, 1, 1, 0), # homopolar 
-                                # (3, 12, 4, 1, 11, 0), # homopolar
-                                # (3, 12, 4, 1, 10, 0), # homopolar 
-                                # (3, 12, 4, 1, 9, 0), # homopolar 
-                                # (3, 12, 4, 1, 8, 0), # homopolar 
-                                # (3, 12, 4, 1, 7, 0), # homopolar 
-                                # (3, 12, 4, 1, 6, 0), # homopolar 
-                                (3, 12, 4, 1, 5, 0), # homopolar 
-                                # (3, 12, 4, 1, 4, 0), # homopolar 
-                                # (3, 12, 4, 1, 3, 0), # homopolar 
-                                # (3, 12, 4, 1, 2, 0), # homopolar 
-                                # (3, 12, 4, 1, 1, 0), # homopolar 
+                                # (3, 9, 4, 1, 1, 0), # test 
+                                # (3, 9, 4, 1, 2, 0), # test 
+                                # (3, 9, 4, 1, 3, 0), # test 
+                                # (3, 9, 4, 1, 4, 0), # test 
+                                # (3, 9, 4, 1, 5, 0), # test 
+                                # (3, 9, 4, 1, 6, 0), # test 
+                                # (3, 9, 4, 1, 7, 0), # test 
+                                # (3, 9, 4, 1, 8, 0), # test 
+                                (3, 12, 4, 5, 1, 0), # test
+                                (3, 12, 4, 5, 2, 0), # test
+                                (3, 12, 4, 5, 3, 0), # test
+                                (3, 12, 4, 5, 4, 0), # test
+                                (3, 12, 4, 5, 5, 0), # test
+                                (3, 12, 4, 5, 6, 0), # test
+                                (3, 12, 4, 5, 7, 0), # test
+                                (3, 12, 4, 5, 8, 0), # test
+                                (3, 12, 4, 5, 9, 0), # test
+                                (3, 12, 4, 5, 10, 0), # test
+                                (3, 12, 4, 5, 11, 0), # test
+                                # (3, 12, 5, 4, , 0), # test
+                                # (3, 12, 5, 4, , 0), # test
+
+                                # (3, 24, 10, 1, 11, 0), # homopolar
+                                # (3, 24, 10, 1, 10, 0), # homopolar 
+                                # (3, 24, 10, 1, 9, 0), # homopolar 
+                                # (3, 24, 10, 1, 8, 0), # homopolar 
+                                # (3, 24, 10, 1, 7, 0), # homopolar 
+                                # (3, 24, 10, 1, 6, 0), # homopolar 
+                                # (3, 24, 10, 1, 9, 0), # homopolar 
+                                # (3, 24, 10, 1, 4, 0), # homopolar 
+                                # (3, 24, 10, 1, 3, 0), # homopolar 
+                                # (3, 24, 10, 1, 2, 0), # homopolar 
+                                # (3, 24, 10, 1, 1, 0), # homopolar 
                                 # (3, 24, 10, 1, 10, 0), # best cppm      
                                 # (3, 6, 4, 1, 1, 0), # heartbeta fitness
                                 # (3, 6, 2, 1, 1, 0), # heartbeta

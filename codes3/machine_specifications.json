@@ -205,6 +205,45 @@
         }
     },
 
+    "CPPM-12s5pp-ps1-RippleRedunction":
+    {
+        "Inputs":
+        {
+            "machine_type":                        "CPPM",
+            "DPNV_or_SEPA":                        true,
+            "minimum_mechanical_air_gap_length_mm": 5,
+            "m":                                   3,
+            "Qs":                                  12,
+            "ps":                                  1,
+            "p":                                   5,
+            "coil_pitch_y":                        4,
+            "mec_power":                           20000,
+            "ExcitationFreqSimulated":             2500,
+            "Steel":                               "M19Gauge29",
+            "lamination_stacking_factor_kFe":      0.95,
+            "Coil":                                "Cu",
+            "Js":                                  4e6,
+            "Temperature":                         75,
+            "space_factor_kCu":                    0.3882,
+            "WindingFill":                         0.3882,
+            "AWG":                                 25,
+            "VoltageRating":                       480,
+            "guess_efficiency":                    0.9,
+            "guess_power_factor":                  0.8,
+            "guess_air_gap_flux_density_Bg":       0.9,
+            "guess_stator_tooth_flux_density_Bst": 1.5,
+            "guess_stator_yoke_flux_density_Bsy":  1.2,
+            "tip_speed":                           150,
+            "TangentialStress":                    12000,
+            "mm_stack_length":                     20,
+            "mm_radius_shaft":                     50,
+            "no_segmented_magnets":                1, 
+            "safety_factor_to_yield":              null,
+            "safety_factor_to_critical_speed":     1.5,
+            "bool_skew_stator":                    false,
+            "bool_skew_rotor":                     false
+        }
+    },
 
     "CPPM-24s8pp-ps1-RippleRedunction":
     {
@@ -212,18 +251,18 @@
         {
             "machine_type":                        "CPPM",
             "DPNV_or_SEPA":                        true,
-            "minimum_mechanical_air_gap_length_mm": 0.5,
+            "minimum_mechanical_air_gap_length_mm": 2,
             "m":                                   3,
             "Qs":                                  24,
             "ps":                                  1,
             "p":                                   8,
             "coil_pitch_y":                        10,
-            "mec_power":                           700,
+            "mec_power":                           500,
             "ExcitationFreqSimulated":             66.7,
             "Steel":                               "M19Gauge29",
             "lamination_stacking_factor_kFe":      0.95,
             "Coil":                                "Cu",
-            "Js":                                  2e6,
+            "Js":                                  4e5,
             "Temperature":                         75,
             "space_factor_kCu":                    0.3882,
             "WindingFill":                         0.3882,
