@@ -86,9 +86,17 @@ class template_machine_as_numbers(object):
             "mm_r_so"       : acmop_parameter("derived", "stator_outer_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_so(GP,SI)),
             "mm_d_sy"       : acmop_parameter("fixed",   "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy(GP,SI)),
         })
+
+        # assert derived variables
         for k, v in geometric_parameters.items():
             if v.type == 'derived' and v.calc is None:
                 raise Exception('calc method is not defined for the derived acmop_parameter:', v)
+
+        # assert free variables
+        # for k, v in geometric_parameters.items():
+        #     if v.type == 'free' and v.bounds[0] is None and v.bounds[1] is None:
+        #         raise Exception('bounds is not specified for the free acmop_parameter:', v)
+
         # all in one place
         self.d = {
             "which_filter": fea_config_dict['which_filter'],
@@ -150,16 +158,21 @@ class template_machine_as_numbers(object):
     ''' 初始化，定义优化
     '''
     def define_search_space(self, GP, original_template_neighbor_bounds):
-        # 定义搜索空间，determine bounds
-        self.bounds_denorm = []        
 
-        # 自由决策变量的顺序和original_template_neighbor_bounds
-        for key, bounds in original_template_neighbor_bounds.items():
-            for key2, parameter in GP.items(): # Make sure the order of the bounds_denorm is consistent with free parameters' order in GP.
-                if key == key2:
-                    if parameter.type == 'free':
-                        parameter.bounds = bounds
-                        self.bounds_denorm.append(parameter.bounds)
+        # # 自由决策变量的顺序和original_template_neighbor_bounds
+        # for key, bounds in original_template_neighbor_bounds.items():
+        #     for key2, parameter in GP.items(): # Make sure the order of the bounds_denorm is consistent with free parameters' order in GP.
+        #         if key == key2:
+        #             if parameter.type == 'free':
+        #                 parameter.bounds = bounds
+        #                 self.bounds_denorm.append(parameter.bounds)
+
+        # 定义搜索空间，determine bounds
+        self.bounds_denorm = []
+        for key, parameter in GP.items(): # Make sure the order of the bounds_denorm is consistent with free parameters' order in GP.
+            if parameter.type == 'free':
+                parameter.bounds = original_template_neighbor_bounds[key]
+                self.bounds_denorm.append(parameter.bounds)
         logging.getLogger().info(f'[inner_rotor_motor.py] template BOUNDS_denorm in R^{len(self.bounds_denorm)}: {self.bounds_denorm}')
         return self.bounds_denorm
     def get_other_properties_after_geometric_parameters_are_initialized(self, GP, SI, specified_mm_stack_length=None):

@@ -222,8 +222,11 @@ class AC_Machine_Optiomization_Wrapper(object):
 
 
             print('[acmop.py] Listing analyzer.spec_performance_dict:')
-            for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
-                print('\t', k, v)
+            try:
+                for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
+                    print('\t', k, v)
+            except:
+                print('[acmop.py] No spec_performance_dict is available.')
 
         else:
 
@@ -388,9 +391,9 @@ class AC_Machine_Optiomization_Wrapper(object):
             ad.flag_do_not_evaluate_when_init_pop = False
 
         logger.info(f'[acmop.py] Pop is initialized:\n {pop}')
-        hv = pg.hypervolume(pop)
-        quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
-        logger.info('[acmop.py] quality_measure: %g'%(quality_measure))
+        # hv = pg.hypervolume(pop)
+        # quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
+        # logger.info('[acmop.py] quality_measure: %g'%(quality_measure))
         # raise KeyboardInterrupt
 
         # 初始化以后，pop.problem.get_fevals()就是popsize，但是如果大于popsize，说明“pop.set_x(i, pop_array[i]) # evaluate this guy”被调用了，说明还没输出过 survivors 数据，那么就写一下。
@@ -496,7 +499,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         # self.acm_template.d['GP']['mm_r_ro'].value = ????
 
         design_parameters = [11.145,5.5725,44.948,3.44144,5.16216,40.3993,29.3509,19.2821,0,0,0,12,6,0.75,2.89148,45,45,3.6999,31.6066,2.89148,0,4,1]
-        
+
         # for el in self.acm_template.d['GP'].keys() : print(el)
 
         self.acm_template.d['GP']['deg_alpha_st'].value = design_parameters[ 0] 
@@ -651,7 +654,9 @@ def main(number_which_part):
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
         # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
 
-        select_spec = 'PMSM Q12p4y1 PEMD-2020',
+        # select_spec = 'PMSM Q12p4y1 PEMD-2020',
+        select_spec = 'PMSM Q12p5ps4y1 A',
+        # select_spec = 'PMSM Q24p8y1 (with large ripple of suspension force)',
         # select_spec = "CPPM-24s4pp-ps1-Chiba05",
         # select_spec = "CPPM-24s16pp-ps1-RippleRedunction",
         # select_spec = "CPPM-24s20pp-ps1-RippleRedunction",
@@ -663,7 +668,7 @@ def main(number_which_part):
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
 
         project_loc            = fr'../_default/',
-        bool_show_GUI          = True
+        bool_show_GUI          = False
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -698,8 +703,8 @@ def main(number_which_part):
 if __name__ == '__main__':
     # main(31)
     # main(3)
-    # main(4)
-    main(5)
+    main(4)
+    # main(5)
 
 
 

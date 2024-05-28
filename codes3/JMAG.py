@@ -125,7 +125,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         self.fea_config_dict = fea_config_dict
         self.spec_input_dict = spec_input_dict
-
+        # handler set
+        self.logger = logging.getLogger(__name__)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.INFO)
         # self.output_dir = self.fea_config_dict['dir.parent'] + self.fea_config_dict['run_folder']
         # self.dir_csv_output_folder = self.output_dir + 'csv/'
         # if not os.path.isdir(self.output_dir):
@@ -219,8 +225,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         app.NewProject("Untitled")
         app.SaveAs(os.path.abspath(expected_project_file_path)) # must be absolute path!
-        logger = logging.getLogger(__name__)
-        logger.info(r'Create JMAG project file: %s'%(expected_project_file_path))
+        self.logger.info(r'Create JMAG project file: %s'%(expected_project_file_path))
         return app
 
     def close(self):
@@ -374,8 +379,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                 # model.GetGroupList().AddPartToGroup(name, name) #<- this also works
 
         part_ID_list = model.GetPartIDs()
-        # print(part_ID_list)
-        # quit()
 
         # view = app.View()
         # view.ClearSelect()
@@ -383,12 +386,43 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         # sel.SelectPart(123)
         # sel.SetBlockUpdateView(False)
         SI = acm_variant.template.spec_input_dict
+        GP = acm_variant.template.d['GP']
         p = SI['p']
         s = SI['no_segmented_magnets']
         Q = SI['Qs']
                                 #   轴 转子 永磁体  护套 定子 绕组
-        if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
+        if len(part_ID_list) != int(1 + 1 + p*2*s +  1 + 1 + Q*2):  # 暂时不考虑护套
+            print(part_ID_list)
+            print(len(part_ID_list), int(1 + 1 + p*2*s + 1 + 1 + Q*2))
+            
+            print(f"Q:", {Q})
+            print(f"p:", {p})
+            # print(f"deg_alpha_st: {GP['deg_alpha_st'].value}") 
+            # print(f"deg_alpha_sto: {GP['deg_alpha_sto'].value}") 
+            # print(f"mm_d_sto: {GP['mm_d_sto'].value}")      
+            # print(f"mm_d_stt: {GP['mm_d_stt'].value}")      
+            # print(f"mm_d_st: {GP['mm_d_st'].value}")      
+            # print(f"mm_w_st: {GP['mm_w_st'].value}")                              
+            # print(f"mm_d_mech_air_gap: {GP['mm_d_mech_air_gap'].value}")  # fixed_air_gap_length
+            # print(f"mm_d_pm: {GP['mm_d_pm'].value}")       
+            # print(f"deg_alpha_rm: {GP['deg_alpha_rm'].value}")  
+            # print(f"mm_d_ri: {GP['mm_d_ri'].value}")       
+            # print(f"mm_r_ri: {GP['mm_r_ri'].value}")       
+            # print(f"mm_d_rp: {GP['mm_d_rp'].value}")       
+            # print(f"deg_alpha_rs: {GP['deg_alpha_rs'].value:.3f}")
+            # print(f"mm_d_rs: {GP['mm_d_rs'].value}")
+            # print(f"mm_d_sy: {GP['mm_d_sy'].value}")
+            # print(f"mm_r_si: {GP['mm_r_si'].value}")
+            # print(f"mm_d_sleeve: {GP['mm_d_sleeve'].value:.3f}")
+            
+            for key in GP.keys():
+                print(f"{key}: {GP[key].value}")
+            
+            # for value in acm_variant.template.d['GP']:
+                # print(value)
+            raise
+
+            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(acm_variant, toString=True)
             logger = logging.getLogger(__name__)
             logger.error(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
@@ -1700,11 +1734,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
 
         # Sleeve
-        if not bool_pyx:
-            list_regions = acm_variant.sleeve.draw(self)
-            self.bMirror = False
-            self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
-            regionS = self.prepareSection(list_regions)
+        if 1:
+            if not bool_pyx:
+                list_regions = acm_variant.sleeve.draw(self)
+                self.bMirror = False
+                self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
+                regionS = self.prepareSection(list_regions)
 
         # Stator Core
         list_regions = acm_variant.stator_core.draw(self)
