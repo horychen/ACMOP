@@ -71,7 +71,7 @@ def pyplot_width(fig):
 # from emy-c
 def get_user_config():
     history = {}
-    fname_session_state = f'{os.path.dirname(__file__)}/visualize_streamllit_user_session_data.json'
+    fname_session_state = f'{os.path.dirname(__file__)}/visualize_streamlit_user_session_data.json'
     if not os.path.exists(fname_session_state):
         with open(fname_session_state, 'w') as f:
             f.write('{\n}')

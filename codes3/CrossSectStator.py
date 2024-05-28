@@ -64,7 +64,7 @@ class CrossSectInnerRotorStator:
         P3_local_rotate = [   cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
                              -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
         P3 = [  P3_local_rotate[0] + P2[0],
-                P3_local_rotate[1] + P2[1] ]
+                P3_local_rotate[1] + P2[1] ] 
 
         三角形的底 = r_si + d_sp
         三角形的高 = w_st*0.5

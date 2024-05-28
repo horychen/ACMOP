@@ -925,8 +925,8 @@ def main_derivation():
     Slot_Pole_Combinations = [
                                 # (15, 30, 2, 3, 10, 0),
                                 # (3, 24, 8, 7, 1, 0), # 
-                                # (3, 24, 8, 9, 1, 0), # 
-                                (3, 24, 8, 11, 1, 0), # 
+                                (3, 24, 8, 9, 1, 0), # 
+                                # (3, 24, 8, 11, 1, 0), # 
                                 # (3, 6, 5, 4, 1, 0), # concentrated winding with working harmonics
                                 # (3, 6, 5, 4, 2, 0), # concentrated winding with working harmonics
                                 # (3, 6, 10, 11, 3, 0), # concentrated winding with working harmonics
