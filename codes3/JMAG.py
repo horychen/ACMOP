@@ -1270,8 +1270,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(      u"Magnet").SetDirectionXYZ(1, 1, 0)
             study.GetMaterial(      u"Magnet").SetAxisXYZ(0, 0, -1)
             study.GetMaterial(      u"Magnet").SetOriginXYZ(0, 0, 0)            
-            study.GetMaterial(      u"Magnet").SetPattern(u"RadialCircular")
-            # study.GetMaterial(      u"Magnet").SetPattern(u"Radial")
+            # study.GetMaterial(      u"Magnet").SetPattern(u"RadialCircular")
+            study.GetMaterial(      u"Magnet").SetPattern(u"Radial")
             # study.GetMaterial(      u"Magnet").SetOrientation(False) # attention: this is a crucial setting for CPPM， if there were no this setting, the torque produced will be negative (only in CPPM condition), which is not what we want.
             
             study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 0.5*360/(2*acm_template.SI['p']) ) # 半个极距
