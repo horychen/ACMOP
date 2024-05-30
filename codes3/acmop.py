@@ -577,7 +577,7 @@ def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
 
         # select_spec = 'PMSM Q12p4y1 PEMD-2020',
-        select_spec = 'PMSM Q12p5ps4y1 A',
+        select_spec = 'PMSM Q12p7ps8y1 A',
         # select_spec = "CPPM-24s4pp-ps1-Chiba05",
         # select_spec = "CPPM-24s16pp-ps1-RippleRedunction",
         # select_spec = "CPPM-24s20pp-ps1-RippleRedunction",
@@ -591,8 +591,8 @@ def main(number_which_part):
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
 
-        project_loc            = fr'../_PMSM Q12p5ps4y4/',
-        bool_show_GUI          = False
+        project_loc            = fr'../_PMSM Q12p7ps8y1/',
+        bool_show_GUI          = True
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -625,8 +625,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # main(31)
-    # main(3)
-    main(4)
+    main(3)
+    # main(4)
     # main(5)
 
 if __name__ == '__main__':
