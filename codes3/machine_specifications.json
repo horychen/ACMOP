@@ -1,5 +1,5 @@
 {
-    "PMSM Q12p7ps8y1 A": {
+    "PMSM Q12p7ps8y4 A 50e3": {
         "Inputs": {
             "minimum_mechanical_air_gap_length_mm": 0.75,
             "guess_air_gap_flux_density_Bg": 0.9,
@@ -12,7 +12,7 @@
             "p": 7,
             "number_of_rotor_pole_pairs": 7,
             "ps": 8,
-            "coil_pitch_y": 1,
+            "coil_pitch_y": 4,
             "mec_power": 50e3,
             "ExcitationFreqSimulated": 3500,
             "VoltageRating": 480,
