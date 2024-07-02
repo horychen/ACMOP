@@ -216,7 +216,7 @@ if __name__ == '__main__':
 
                         st.write(f'\t### [{ind}] {folder}')
                         user_input_upper_bounds_4filter = st.text_input(label=rf"Input upper bounds of objectives as [$O_C$, $O_B$, $O_A$] for filtering {folder}:", 
-                            value='[200, -0.8, 200]', 
+                            value='[20, -0.8, 200]', 
                             key=f'4.user_input_upper_bounds_4filter:{folder}'
                         )
 
@@ -225,7 +225,7 @@ if __name__ == '__main__':
                         ad = mop.ad
 
                         # 手动选择最优个体
-                        _best_index, _best_individual_data = None, None
+                        _best_index, _best_individual_data, = None, None
                         for ind, el in enumerate(utility_postprocess.call_selection_criteria(ad, eval(user_input_upper_bounds_4filter))):
                             if el is None:
                                 raise Exception(str(el))
