@@ -923,10 +923,13 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
+                                (3, 30, 6, 5, 5, 0), # PMG
+                                # (3, 84, 2, 1,21, 0), # Main Gen
+                                # (3, 18, 3, 2, 3, 0), # BSG_WMR
                                 # (15, 30, 2, 3, 10, 0),
                                 # (3, 24, 8, 7, 1, 0), # 
                                 # (3, 24, 8, 9, 1, 0), # 
-                                (3, 24, 8, 11, 1, 0), # 
+                                # (3, 24, 8, 11, 1, 0), # 
                                 # (3, 6, 5, 4, 1, 0), # concentrated winding with working harmonics
                                 # (3, 6, 5, 4, 2, 0), # concentrated winding with working harmonics
                                 # (3, 6, 10, 11, 3, 0), # concentrated winding with working harmonics
