@@ -179,6 +179,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_rp":      [2.5,   6],
             "deg_alpha_rs": [0.8*360/(2*p)/s,        0.975*360/(2*p)/s],
             "mm_d_rs":      [2.5,   6]
+            # TODO: Magnetic air gap widen: (0, 0.29)
         }
         return original_template_neighbor_bounds
 

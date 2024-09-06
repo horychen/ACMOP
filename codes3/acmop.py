@@ -1,7 +1,7 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
 
-import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design
+import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design
 
 from soupsieve import select
 # from codes3.population import VanGogh_JMAG
@@ -156,6 +156,8 @@ class AC_Machine_Optiomization_Wrapper(object):
             function = bearingless_consequentPole_design.bearingless_consequentPole_template
         elif 'VCPPM' in self.select_spec:
             function = bearingless_VShapeconsequentPole_design.bearingless_VconsequentPole_template
+        elif 'CSPPM' in self.select_spec:
+            function = bearingless_consequentsinglePole_design.bearingless_consequentsinglePole_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
         self.ad = acm_designer.acm_designer(
@@ -277,6 +279,8 @@ class AC_Machine_Optiomization_Wrapper(object):
             toolCairo.draw_cppm(acm_variant, bool_draw_whole_model=True)
         elif 'VCPPM' in acm_variant.template.name:
             toolCairo.draw_Vcppm(acm_variant, bool_draw_whole_model=True)
+        elif 'CSPPM' in acm_variant.template.name:
+            toolCairo.draw_csppm(acm_variant, bool_draw_whole_model=True)
         else:
             raise Exception("Nothing to draw. Are you adding a new machine type?????")
 
@@ -576,7 +580,9 @@ class AC_Machine_Optiomization_Wrapper(object):
 def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
 
-        select_spec = 'PMSM Q12p8ps7y4 A',
+        # select_spec = 'PMSM Q12p8ps7y4 A',
+        # select_spec = 'CSPPM Q12p5ps1y5 A',
+        select_spec = 'CSPPM Q12p4ps1y5 A',
         # select_spec = 'PMSM Q12p4y1 PEMD-2020',
         # select_spec = 'PMSM Q12p7ps8y4 A 50e3',# 注意高级对数的高频对铁耗的影响
         # select_spec = "CPPM-24s4pp-ps1-Chiba05",
