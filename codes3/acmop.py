@@ -627,7 +627,18 @@ def main(number_which_part):
         # select_spec='IM Q24p1y9 Qr32 Round Bar',
         # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
-        # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
+        # select_spec = 'PMSM Q12p4y1 PEMD-2020',
+        # select_spec = 'PMSM Q12p5ps4y1 A',
+        # select_spec = 'PMSM Q24p8y1 (with large ripple of suspension force)',
+        # select_spec = "CPPM-24s4pp-ps1-Chiba05",
+        # select_spec = "CPPM-24s16pp-ps1-RippleRedunction",
+        # select_spec = "CPPM-24s20pp-ps1-RippleRedunction",
+        # select_spec = "CPPM-24s40pp-ps1-RippleRedunction",
+        # select_spec = "CPPM-24s8pp-ps1-RippleRedunction",
+        # select_spec = "VCPPM-24s4pp-ps1-Chiba05",
+        # select_spec = "VCPPM-6s4pp-ps1-heartbeta",
+
+        select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
         # select_spec            = 'PMSM Q24p1y9 PEMD', # 
         # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
@@ -649,26 +660,16 @@ def main(number_which_part):
             # select_spec= "FSPM-12s20pp-50W-400RPM-6000Pa-Test",
             # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
             # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
+
         # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples 2 (free tooth tip depth and fix sleeve length)",
         # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
+        select_fea_config_dict = "#0211 JMAG PMSM Q12p4ps5 Sub-hamonics (FixedSleeveLength)",
         # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
-
-        # select_spec = 'PMSM Q12p4y1 PEMD-2020',
-        select_spec = 'PMSM Q12p5ps4y1 A',
-        # select_spec = 'PMSM Q24p8y1 (with large ripple of suspension force)',
-        # select_spec = "CPPM-24s4pp-ps1-Chiba05",
-        # select_spec = "CPPM-24s16pp-ps1-RippleRedunction",
-        # select_spec = "CPPM-24s20pp-ps1-RippleRedunction",
-        # select_spec = "CPPM-24s40pp-ps1-RippleRedunction",
-        # select_spec = "CPPM-24s8pp-ps1-RippleRedunction",
-        # select_spec = "VCPPM-24s4pp-ps1-Chiba05",
-        # select_spec = "VCPPM-6s4pp-ps1-heartbeta",
-        select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
+        # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
-
         project_loc            = fr'../_default/',
-        bool_show_GUI          = False
+        bool_show_GUI          = True
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -702,8 +703,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # main(31)
-    # main(3)
-    main(4)
+    main(3)
+    # main(4)
     # main(5)
 
 

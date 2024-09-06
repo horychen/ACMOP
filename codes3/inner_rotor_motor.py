@@ -170,6 +170,7 @@ class template_machine_as_numbers(object):
         # 定义搜索空间，determine bounds
         self.bounds_denorm = []
         for key, parameter in GP.items(): # Make sure the order of the bounds_denorm is consistent with free parameters' order in GP.
+            print(key, parameter.type)
             if parameter.type == 'free':
                 parameter.bounds = original_template_neighbor_bounds[key]
                 self.bounds_denorm.append(parameter.bounds)
