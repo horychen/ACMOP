@@ -95,7 +95,12 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1],
             ax.step([coords[0] for coords in tmp], 
                     [coords[1] for coords in tmp], color=cl[ndr], where='post')
 
-        # Now add color according to the value of the z-axis variable usign scatter
+        # Now add color according to the value of the z-axis variable using scatter
+        z_filter = 99999999.0 
+        # if z_filter is None else z_filter
+        
+        print(z_filter, 'z_filter')
+        print(z, 'z')
         if z_filter is not None:
             z = np.array(z)
             z_filtered_swarm_data_xf_at_this_front = [xf for z_value, xf in zip(z, swarm_data_xf_at_this_front) if z_value<z_filter]
@@ -104,6 +109,7 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1],
             z = z[z<z_filter]
             if len(z) != len(z_filtered_swarm_data_xf_at_this_front):
                 raise Exception('[New Regular!] Apply swarm_data_xf to this function!')
+            print(z_filter, 'z_filter')
             print('Cost, -Efficency, Ripple Sum')
             min_a_design = None; min_a_value = 99999999.0
             min_b_design = None; min_b_value = 99999999.0

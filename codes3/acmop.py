@@ -394,9 +394,9 @@ class AC_Machine_Optiomization_Wrapper(object):
             ad.flag_do_not_evaluate_when_init_pop = False
 
         logger.info(f'[acmop.py] Pop is initialized:\n {pop}')
-        hv = pg.hypervolume(pop)
-        quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
-        logger.info('[acmop.py] quality_measure: %g'%(quality_measure))
+        # hv = pg.hypervolume(pop)
+        # quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
+        # logger.info('[acmop.py] quality_measure: %g'%(quality_measure))
         # raise KeyboardInterrupt
 
         # 初始化以后，pop.problem.get_fevals()就是popsize，但是如果大于popsize，说明“pop.set_x(i, pop_array[i]) # evaluate this guy”被调用了，说明还没输出过 survivors 数据，那么就写一下。
@@ -599,7 +599,7 @@ def main(number_which_part):
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
 
         project_loc            = fr'../_default/',
-        bool_show_GUI          = True
+        bool_show_GUI          = False
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -632,8 +632,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # main(31)
-    main(3)
-    # main(4)
+    # main(3)
+    main(4)
     # main(5)
 
 if __name__ == '__main__':

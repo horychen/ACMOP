@@ -945,12 +945,13 @@ def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None, 
         # utility.enablePrint()
 
         # Save to dictionaries
-        df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], 
-                                    [round(el,1) for el in auto_optimal_designs_fitnesses[0]], 
-                                    [round(el,1) for el in auto_optimal_designs_fitnesses[1]], 
-                                    [round(el,1) for el in auto_optimal_designs_fitnesses[2]]] # tier 1 size
-        optimal_fitness_dict[ad.select_spec] = auto_optimal_designs_fitnesses
-        optimal_xf_dict[ad.select_spec] = auto_optimal_designs_xf
+        if auto_optimal_designs_fitnesses is not None:
+            df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], 
+                                [round(el,1) for el in auto_optimal_designs_fitnesses[0]], 
+                                [round(el,1) for el in auto_optimal_designs_fitnesses[1]], 
+                                [round(el,1) for el in auto_optimal_designs_fitnesses[2]]] # tier 1 size
+            optimal_fitness_dict[ad.select_spec] = auto_optimal_designs_fitnesses
+            optimal_xf_dict[ad.select_spec] = auto_optimal_designs_xf
 
         # print(more_info)
         # print(auto_optimal_designs)

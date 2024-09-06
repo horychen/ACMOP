@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "2.selected_specifications": [
         "PMSM_Q12p8ps7y4_A"
     ],
@@ -6,4 +7,30 @@
     "3.user_selected_folder": "PMSM_Q12p8ps7y4_A",
     "4.user_input_upper_bounds_4filter:PMSM_Q12p8ps7y4_A": "[200, -0.8, 200]",
     "1.path2project": "D:\\files\\Motor_Design\\RC\\ACMOP/_default"
+=======
+    "look": [],
+    "4.user_input_upper_bounds_4filter:PMSM_Q12p7ps8y4_A": "[20, -0.8, 200]",
+    "4.user_input_upper_bounds_4filter:PMSM_Q12p7ps8y4_A_50e3": "[20, -0.8, 200]",
+    "4.user_input_upper_bounds_4filter:PMSM_Q12p10ps11y4_A": "[20, -0.8, 200]",
+    "4.user_input_upper_bounds_4filter:PMSM_Q12p8ps7y4_A": "[20, -0.8, 200]",
+    "1.path2project": "C:\\lab\\_yzk\\ACMOP/_default",
+    "4.user_input_upper_bounds_4filter:PMSM_Q12p5ps4y4_A": "[20, -0.8, 200]",
+    "4.user_input_upper_bounds_4filter:PMSM_Q12p11ps10y3_A": "[20, -0.8, 200]",
+    "4.user_input_upper_bounds_4filter:PMSM_Q12p7ps8y1_A": "[20, -0.8, 200]",
+    "4.user_input_upper_bounds_4filter:PMSM_Q12p8ps7y1_A": "[20, -0.8, 200]",
+    "3.user_selected_folder": "PMSM_Q12p10ps11y3_A",
+    "4.user_input_upper_bounds_4filter:PMSM_Q12p10ps11y3_B": "[20, -0.8, 200]",
+    "2.selected_specifications": [
+        "PMSM_Q12p10ps11y3_A",
+        "PMSM_Q12p10ps11y3_B",
+        "PMSM_Q12p10ps11y4_A",
+        "PMSM_Q12p11ps10y3_A",
+        "PMSM_Q12p5ps4y4_A",
+        "PMSM_Q12p7ps8y1_A",
+        "PMSM_Q12p7ps8y4_A",
+        "PMSM_Q12p7ps8y4_A_50e3",
+        "PMSM_Q12p8ps7y1_A"
+    ],
+    "4.user_input_upper_bounds_4filter:PMSM_Q12p10ps11y3_A": "[20, -0.8, 200]"
+>>>>>>> origin/ConsequentPole
 }
