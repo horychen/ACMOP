@@ -96,8 +96,7 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1],
                     [coords[1] for coords in tmp], color=cl[ndr], where='post')
 
         # Now add color according to the value of the z-axis variable using scatter
-        z_filter = 99999999.0 
-        # if z_filter is None else z_filter
+        # if z_filter is None: else z_filter
         
         print(z_filter, 'z_filter')
         print(z, 'z')

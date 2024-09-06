@@ -268,7 +268,7 @@ def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dic
     list_alpha_st = [el[0] for el in swarm_data_on_pareto_front]
     list_ripple_sum = [el[-1] for el in swarm_data_on_pareto_front]
     scatter_handle, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = utility_moo.my_2p5d_plot_non_dominated_fronts(\
-        fits, comp=[1,2], \
+        fits, comp=[0,1], \
         marker=marker, up_to_rank_no=1, ax=ax, fig=fig, no_colorbar=True, \
         z_filter=z_filter, label=label, \
         bool_return_auto_optimal_design=True, swarm_data_on_pareto_front=swarm_data_on_pareto_front)
@@ -468,7 +468,7 @@ class SwarmAnalyzer(object):
 
             # 绘制 Pareto front
             sys.stdout = open(os.devnull, 'w')
-            scatter_handle, more_info, auto_optimal_designs_fitnesses = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+            scatter_handle, more_info, auto_optimal_designs_fitnesses = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=9999999.0, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
             sys.stdout = sys.__stdout__
 
             df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], auto_optimal_designs[0], auto_optimal_designs[1], auto_optimal_designs[2]] # tier 1 size
@@ -941,7 +941,7 @@ def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None, 
 
         # 绘制 Pareto front
         # utility.blockPrint()
-        scatter_handle, more_info, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=140, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+        scatter_handle, more_info, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=30, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
         # utility.enablePrint()
 
         # Save to dictionaries
