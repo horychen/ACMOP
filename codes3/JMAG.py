@@ -986,7 +986,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         #     rotorCoreName = "NotchedRotor"
         # elif 'Flux_Alternator' in acm_variant.template.name:
         #     rotorCoreName = "SalientPoleRotor"
+        # statorCoreName = acm_variant.statorCore.name
         rotorCoreName = acm_variant.rotorCore.name
+        # print(f'{rotorCoreName}')
+        # raise
 
         if 'M19' in acm_template.spec_input_dict['Steel']:
             study.SetMaterialByName("StatorCore", "M-19 Steel Gauge-29")
@@ -1101,15 +1104,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         # 4 pole motor Qs=24 dpnv implemented by two layer winding (6 coils). In this case, drive winding has the same slot turns as bearing winding
         def circuit(Grouping,turns,Rs,ampD,ampB,freq,phase=0, CommutatingSequenceD=0, CommutatingSequenceB=0, x=10,y=10, bool_3PhaseCurrentSource=True):
             study.GetCircuit().CreateSubCircuit("Star Connection", "Star Connection %s"%(Grouping), x, y)
-            study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil1").SetValue("Turn", turns)
-            study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil1").SetValue("Resistance", Rs)
-            study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil2").SetValue("Turn", turns)
-            study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil2").SetValue("Resistance", Rs)
-            study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil3").SetValue("Turn", turns)
-            study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil3").SetValue("Resistance", Rs)
-            study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil1").SetName("CircuitCoil%sU"%(Grouping))
-            study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil2").SetName("CircuitCoil%sV"%(Grouping))
-            study.GetCircuit().GetSubCircuit("Star Connection %s"%(Grouping)).GetComponent("Coil3").SetName("CircuitCoil%sW"%(Grouping))
+            study.GetCircuit().GetSubCircuit("Star Connection_%s"%(Grouping)).GetComponent("Coil1").SetValue("Turn", turns)
+            study.GetCircuit().GetSubCircuit("Star Connection_%s"%(Grouping)).GetComponent("Coil1").SetValue("Resistance", Rs)
+            study.GetCircuit().GetSubCircuit("Star Connection_%s"%(Grouping)).GetComponent("Coil2").SetValue("Turn", turns)
+            study.GetCircuit().GetSubCircuit("Star Connection_%s"%(Grouping)).GetComponent("Coil2").SetValue("Resistance", Rs)
+            study.GetCircuit().GetSubCircuit("Star Connection_%s"%(Grouping)).GetComponent("Coil3").SetValue("Turn", turns)
+            study.GetCircuit().GetSubCircuit("Star Connection_%s"%(Grouping)).GetComponent("Coil3").SetValue("Resistance", Rs)
+            study.GetCircuit().GetSubCircuit("Star Connection_%s"%(Grouping)).GetComponent("Coil1").SetName("CircuitCoil%sU"%(Grouping))
+            study.GetCircuit().GetSubCircuit("Star Connection_%s"%(Grouping)).GetComponent("Coil2").SetName("CircuitCoil%sV"%(Grouping))
+            study.GetCircuit().GetSubCircuit("Star Connection_%s"%(Grouping)).GetComponent("Coil3").SetName("CircuitCoil%sW"%(Grouping))
             # Star Connection_2 is GroupAC
             # Star Connection_4 is GroupBD
 
