@@ -1,9 +1,9 @@
 {
-    "3.user_selected_folder": "CPPM-24s8pp-ps1-RippleRedunction",
-    "1.path2project": "D:\\_yzk\\ACMOP/_default",
-    "4.user_input_upper_bounds_4filter:CPPM-24s8pp-ps1-RippleRedunction": "[20, -0.8, 300]",
+    "4.user_input_upper_bounds_4filter:CPPM-24s4pp-ps1-Chiba05": "[50, -0.9,500]",
     "2.selected_specifications": [
-        "CPPM-24s8pp-ps1-RippleRedunction"
+        "CPPM-24s4pp-ps1-Chiba05"
     ],
-    "look": []
+    "3.user_selected_folder": "CPPM-24s4pp-ps1-Chiba05",
+    "look": [],
+    "1.path2project": "D:\\_yzk\\ACMOP\\CPPM-24s4pp-ps1-Chiba05"
 }

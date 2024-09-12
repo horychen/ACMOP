@@ -582,15 +582,16 @@ def main(number_which_part):
 
         # select_spec = 'PMSM Q12p8ps7y4 A',
         # select_spec = 'CSPPM Q12p5ps1y5 A',
-        select_spec = 'CSPPM Q12p4ps1y5 A',
+        # select_spec = 'CSPPM Q24p8ps1y10 A',
         # select_spec = 'PMSM Q12p4y1 PEMD-2020',
         # select_spec = 'PMSM Q12p7ps8y4 A 50e3',# 注意高级对数的高频对铁耗的影响
-        # select_spec = "CPPM-24s4pp-ps1-Chiba05",
+        select_spec = "CPPM-24s4pp-ps1-Chiba05",
         # select_spec = "CPPM-24s16pp-ps1-RippleRedunction",
         # select_spec = "CPPM-24s20pp-ps1-RippleRedunction",
         # select_spec = "CPPM-24s40pp-ps1-RippleRedunction",
         # select_spec = "CPPM-12s4pp-ps1-Chiba05",
-        select_spec = "CPPM-24s8pp-ps1-RippleRedunction", # 补充sleeve的部分以改变转矩密度过低
+        # select_spec = "CPPM-24s8pp-ps1-RippleRedunction", # 补充sleeve的部分以改变转矩密度过低
+        # select_spec = "CPPM-24s8pp-ps1-higherTRV",
         # select_spec = "CPPM-12s5pp-ps1-RippleRedunction",
         
         # select_spec = "VCPPM-24s4pp-ps1-Chiba05",
@@ -598,8 +599,8 @@ def main(number_which_part):
         select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
 
-        project_loc            = fr'../_default/',
-        bool_show_GUI          = True
+        project_loc            = fr'../_ICEMS/',
+        bool_show_GUI          = False
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -632,8 +633,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # main(31)
-    main(3)
-    # main(4)
+    # main(3)
+    main(4)
     # main(5)
 
 if __name__ == '__main__':

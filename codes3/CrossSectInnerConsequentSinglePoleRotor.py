@@ -88,6 +88,9 @@ class CrossSectConsequentSinglePoleRotor(object):
             else:
                 raise 
 
+        print(self.deg_alpha_rm)
+        print(self.deg_alpha_rm)
+        print(self.deg_alpha_rm)
 
         P1 = [r_ri, 0]
 
@@ -97,7 +100,7 @@ class CrossSectConsequentSinglePoleRotor(object):
 
 
         # For consequent-pole iron span is equal to pole span not in consequent single pole
-        alpha_P3 = alpha_rp
+        alpha_P3 = alpha_rm
         alpha_P3_extra = alpha_rp/3*5
         P3 = [r_P2*cos(alpha_P3), r_P2*sin(alpha_P3)]
         P3_extra = [r_P2*cos(alpha_P3_extra), r_P2*sin(alpha_P3_extra)]
@@ -107,29 +110,29 @@ class CrossSectConsequentSinglePoleRotor(object):
         # print(alpha_rm)
         # print(alpha_rm)
         # quit()        
-        alpha_P4 = alpha_rp
+        alpha_P4 = alpha_rm
         alpha_P4_extra = alpha_rp/3*5
         r_P4 = r_ri + d_ri + d_pm # = (r_P2 - d_rp) 
         # r_P4 = r_ri + d_ri - 10# just for report
         r_P4_extra = r_ri + 0.1 # = (r_P2 - d_rp) 
         P4 = [r_P4*cos(alpha_P4), r_P4*sin(alpha_P4)]
         P4_extra = [r_P4_extra*cos(alpha_P4_extra), r_P4_extra*sin(alpha_P4_extra)]
-        print(alpha_P4)
-        print(P4)
-        print(P4_extra)
-
-        print(alpha_rp)
-        print(alpha_rp)
-        print(alpha_rp)
-        print(alpha_rp)
-        print(alpha_rp)
-
-        alpha_p5 = alpha_rp*2 # alpha_iron
-        print(alpha_p5)
-        print(alpha_p5)
-        print(alpha_p5)
-        print(alpha_p5)
-        print(alpha_p5)
+        # print(alpha_P4)
+        # print(P4)
+        # print(P4_extra)
+# 
+        # print(alpha_rp)
+        # print(alpha_rp)
+        # print(alpha_rp)
+        # print(alpha_rp)
+        # print(alpha_rp)
+        # quit()
+        alpha_p5 = alpha_rp * 3 - alpha_rm # alpha_iron
+        # print(alpha_p5)
+        # print(alpha_p5)
+        # print(alpha_p5)
+        # print(alpha_p5)
+        # print(alpha_p5)
         r_P5 = r_P4
         P5 = [r_P5*cos(alpha_p5), r_P5*sin(alpha_p5)]
         print(P5)
@@ -336,9 +339,9 @@ class CrossSectConsequentSinglePoleMagnet(object):
 
 
         # rotor inter-pole notch being too small
-        if alpha_rm >= alpha_rp*0.9800:
-            print('[CrossSectInnerConsequentSinglePoleRotor.py] FULL POLE PITCH MAGNET IS USED.')
-            alpha_rm = alpha_rp
+        # if alpha_rm >= alpha_rp*0.9800:
+            # print('[CrossSectInnerConsequentSinglePoleRotor.py] FULL POLE PITCH MAGNET IS USED.')
+            # alpha_rm = alpha_rp
 
         # print(alpha_rm/np.pi*180)
         # print(alpha_rm/np.pi*180)
@@ -362,7 +365,8 @@ class CrossSectConsequentSinglePoleMagnet(object):
             raise Exception('[Error] Magnet depth d_pm is too close to inter-pole notch depth d_rp.')
         
 
-
+        print(alpha_rm)
+        print(alpha_rm)
         r_P1 = r_ri + d_ri
         P1 = [r_P1, 0]
 
@@ -372,12 +376,12 @@ class CrossSectConsequentSinglePoleMagnet(object):
         P2_extra = [r_P2*cos(alpha_P2_extra), r_P2*sin(alpha_P2_extra)]
 
         alpha_P3_extra = alpha_rp/3*5
-        alpha_P3 = alpha_rp           # For consequent-pole iron span is equal to pole span
+        alpha_P3 = alpha_rm           # For consequent-pole iron span is equal to pole span
         r_P3 = r_P2
         P3 = [r_P3*cos(alpha_P3), r_P3*sin(alpha_P3)]
         P3_spoketype = [r_P2*cos(alpha_P3_extra), r_P2*sin(alpha_P3_extra)]
 
-        alpha_P4 = alpha_rp  
+        alpha_P4 = alpha_rm  
         alpha_P4_extra = alpha_rp/3*5
         r_P4 = r_ri + d_ri # = (r_P2 - d_rp) 
         r_P4_extra = r_ri + 0.1 # = (r_P2 - d_rp) 
@@ -392,7 +396,7 @@ class CrossSectConsequentSinglePoleMagnet(object):
 
         P3_extra = [(r_P4+d_pm)*cos(alpha_P3), (r_P4+d_pm)*-sin(alpha_P3)]
 
-        alpha_P5 = 2*alpha_rp # alpha_rs means rotor segment (of PM)
+        alpha_P5 = 3 * alpha_rp - alpha_rm # alpha_rs means rotor segment (of PM)
         # P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
         r_P5 = r_P4
         P5 = [r_P5*cos(alpha_P5), r_P5*sin(alpha_P5)]

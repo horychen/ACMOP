@@ -185,7 +185,7 @@ class bearingless_consequentsinglePole_template(inner_rotor_motor.template_machi
             "mm_d_pm":      [2.5, 7],
             "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],
             # SPMSM specific
-            "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],
+            "deg_alpha_rm": [0.67*360/(2*p),          0.95*360/(2*p)],
             "mm_d_rp":      [2.5,   6],
             "deg_alpha_rs": [0.8*360/(2*p)/s,        0.975*360/(2*p)/s],
             "mm_d_rs":      [2.5,   6]

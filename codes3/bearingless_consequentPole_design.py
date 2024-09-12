@@ -32,8 +32,8 @@ class bearingless_consequentPole_template(inner_rotor_motor.template_machine_as_
         super(bearingless_consequentPole_template, self).__init__(fea_config_dict, spec_input_dict)
 
         # 基本信息
-        self.machine_type = 'CSPPM'
-        self.name = '__CSPPM'
+        self.machine_type = 'CPPM'
+        self.name = '__CPPM'
 
        # 初始化搜索空间
         GP = self.d['GP'] # Geometry Parameter

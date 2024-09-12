@@ -2178,6 +2178,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             self.bMirror = False
             self.iRotateCopy = acm_variant.rotorCore.p
             region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
+            # quit()
             
             # list_regions = acm_variant.rotorMagnet.draw2(self, bool_draw_whole_model=bool_draw_whole_model)
             # self.bMirror = False

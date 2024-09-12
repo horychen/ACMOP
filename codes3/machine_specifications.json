@@ -1,7 +1,7 @@
 {
-    "CSPPM Q12p4ps1y5 A": {
+    "CSPPM Q24p8ps1y10 A": {
         "Inputs": {
-            "minimum_mechanical_air_gap_length_mm": 2,
+            "minimum_mechanical_air_gap_length_mm": 0.5,
             "guess_air_gap_flux_density_Bg": 0.9,
             "guess_stator_tooth_flux_density_Bst": 1.5,
             "guess_stator_yoke_flux_density_Bsy": 1.2,
@@ -13,7 +13,7 @@
             "number_of_rotor_pole_pairs": 8,
             "ps": 1,
             "coil_pitch_y": 10,
-            "mec_power": 500,
+            "mec_power": 50000,
             "ExcitationFreqSimulated": 2500,
             "VoltageRating": 480,
             "TangentialStress": 6000,
@@ -28,7 +28,7 @@
             "guess_efficiency": 0.95,
             "guess_power_factor": 0.9,
             "no_segmented_magnets": 1,
-            "tip_speed": 120,
+            "tip_speed": 100,
             "safety_factor_to_yield": "None",
             "safety_factor_to_critical_speed": 1.5,
             "bool_skew_stator": false,
@@ -790,7 +790,7 @@
             "space_factor_kCu":                    0.3882,
             "WindingFill":                         0.3882,
             "AWG":                                 25,
-            "VoltageRating":                       480,
+            "VoltageRating":                       10,
             "guess_efficiency":                    0.9,
             "guess_power_factor":                  0.8,
             "guess_air_gap_flux_density_Bg":       0.9,
@@ -814,7 +814,7 @@
         {
             "machine_type":                        "CPPM",
             "DPNV_or_SEPA":                        true,
-            "minimum_mechanical_air_gap_length_mm": 4,
+            "minimum_mechanical_air_gap_length_mm": 3,
             "m":                                   3,
             "Qs":                                  24,
             "ps":                                  1,
@@ -825,7 +825,7 @@
             "Steel":                               "M19Gauge29",
             "lamination_stacking_factor_kFe":      0.95,
             "Coil":                                "Cu",
-            "Js":                                  4e6,
+            "Js":                                  4e5,
             "Temperature":                         75,
             "space_factor_kCu":                    0.3882,
             "WindingFill":                         0.3882,
@@ -842,7 +842,7 @@
             "mm_radius_shaft":                     50,
             "no_segmented_magnets":                1, 
             "safety_factor_to_yield":              null,
-            "safety_factor_to_critical_speed":     1.5,
+            "safety_factor_to_critical_speed":     5,
             "bool_skew_stator":                    false,
             "bool_skew_rotor":                     false
         }
@@ -908,10 +908,10 @@
             "Coil":                                "Cu",
             "Js":                                  4e6,
             "Temperature":                         75,
-            "space_factor_kCu":                    25,
-            "VoltageRating":                       0.3882,
+            "space_factor_kCu":                    0.3882,
+            "VoltageRating":                       480,
             "WindingFill":                         0.3882,
-            "AWG":                                 480,
+            "AWG":                                 25,
             "guess_efficiency":                    0.9,
             "guess_power_factor":                  0.8,
             "guess_air_gap_flux_density_Bg":       0.9,

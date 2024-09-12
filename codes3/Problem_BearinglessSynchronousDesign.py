@@ -84,8 +84,9 @@ class Problem_BearinglessSynchronousDesign(object):
             except utility.ExceptionBadNumberOfParts as error:
                 print('ExceptionBadNumberOfParts captured:', str(error)) 
                 # print("Detail: {}".format(error.payload))
-                f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
+                # f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
                 # f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
+                f1, f2, f3 = get_bad_fintess_values(machine_type='CSPPM')
                 # utility.send_notification(ad.solver.fea_config_dict['pc_name'] + '\n\nExceptionBadNumberOfParts:' + str(error) + '\n'*3)
                 raise error
 
@@ -188,7 +189,8 @@ class Problem_BearinglessSynchronousDesign(object):
                         if FRW < 0.5:
                             print('\tFRW < 0.5 | (=%f)' % (FRW))
                         # f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
-                        f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
+                        # f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
+                        f1, f2, f3 = get_bad_fintess_values(machine_type='CSPPM')
                     print('[Problem_BearinglessSyn] f1,f2,f3:',f1,f2,f3)
 
                 break
