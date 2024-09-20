@@ -14,7 +14,7 @@
             "number_of_rotor_pole_pairs": 5,
             "ps": 4,
             "coil_pitch_y": 1,
-            "mec_power": 50e2,
+            "mec_power": 50e3,
             "ExcitationFreqSimulated": 2500,
             "VoltageRating": 480,
             "TangentialStress": 12000,
@@ -1038,6 +1038,7 @@
             "tip_speed":                            150,
             "safety_factor_to_yield":               "None",
             "safety_factor_to_critical_speed":      1.5,
+            "mm_radius_shaft":                      12,
             "bool_skew_stator":                     false,
             "bool_skew_rotor":                      false
         }

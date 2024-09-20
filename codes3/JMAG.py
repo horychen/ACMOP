@@ -441,6 +441,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         # print(id_sleeve)
         # print(id_statorCore)
         # print(partIDRange_Coil)
+        # quit()
 
         self.bool_suppressShaft = False
         model.SuppressPart(id_sleeve, 1)
@@ -460,7 +461,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             else:
                 sel.SelectPart(ID)
             model.GetSetList().GetSet(name).AddSelected(sel)
-
         # def edge_set(name,x,y):
         #     model.GetSetList().CreateEdgeSet(name)
         #     model.GetSetList().GetSet(name).SetMatcherType(u"Selection")
@@ -547,7 +547,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                     list_xy_magnets.append([X,Y])
                     THETA -= alpha_notch + alpha_rs
                         # ^---This negative sign means we walk CCW to assign sets.
-
+        # quit()
         # Create Set for Motion Region
         def part_list_set(name, list_xy, list_part_id=None, prefix=None):
             model.GetSetList().CreatePartSet(name)
