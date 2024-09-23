@@ -516,7 +516,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         # Create Set for Magnets
         GP = acm_variant.template.d['GP']
-        R = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value - 0.5*GP['mm_d_pm'].value
+        # R = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value - 0.5*GP['mm_d_pm'].value
+        R = GP['mm_r_ri'].value + GP['mm_d_ri'].value + 0.5*GP['mm_d_pm'].value # new method from shaft to rotor PM center
         alpha_rs = GP['deg_alpha_rs'].value /180*np.pi
         deg_pole_span = 360 / (p*2)
 
@@ -530,13 +531,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
             natural_ind = ind + 1
 
             if s==1:
-                      # v---This negative sign means we walk CCW to assign sets.
+                        # v---This negative sign means we walk CCW to assign sets.
                 THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*np.pi
                 X = R*np.cos(THETA)
                 Y = R*np.sin(THETA)
 
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
+                # quit()
             else:     # v---This negative sign means we walk CCW to assign sets.
                 THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*np.pi # initial position
                 # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*np.pi # initial position
@@ -547,6 +549,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
                     list_xy_magnets.append([X,Y])
                     THETA -= alpha_notch + alpha_rs
                         # ^---This negative sign means we walk CCW to assign sets.
+        # debug
+        # print(f"R:",R)
+        # print(f"THETA:", THETA)
+        # print(f"X:",X)
+        # print(f"Y:",Y)
         # quit()
         # Create Set for Motion Region
         def part_list_set(name, list_xy, list_part_id=None, prefix=None):

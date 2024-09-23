@@ -86,7 +86,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             # stator_yoke_flux_density_Bsy = 1.5
 
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
-        stator_outer_diameter_Dse = 0.200 # this is related to the stator current density and should be determined by Js and power.
+        stator_outer_diameter_Dse = 0.150 # this is related to the stator current density and should be determined by Js and power.
         sleeve_length = 1.25
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
@@ -172,7 +172,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
 # attention: the bounds are determined around the template design, which means any change of the template design will lead to a change of the order the bounds.
         original_template_neighbor_bounds = {
             # Sleeve
-            "mm_d_sleeve":  [3,   6], 
+            "mm_d_sleeve":  [3,   6],
             # ROTOR
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30>)")
@@ -183,7 +183,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_sto":      [  0.5,   5], # this will influence split_ratio
             # "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
             "mm_d_pm":      [2.5, 7],
-            "mm_d_ri":      [1.0*GP['mm_d_ri'].value,  1.0*GP['mm_d_ri'].value],
+            "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.1*GP['mm_d_ri'].value],
             # SPMSM specific
             "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],
             "mm_d_rp":      [2.5,   6],
