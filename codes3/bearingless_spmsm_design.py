@@ -183,7 +183,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_sto":      [  0.5,   5], # this will influence split_ratio
             # "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
             "mm_d_pm":      [2.5, 7],
-            "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.1*GP['mm_d_ri'].value],
+            "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.0*GP['mm_d_ri'].value],
             # SPMSM specific
             "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],
             "mm_d_rp":      [2.5,   6],

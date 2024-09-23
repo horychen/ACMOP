@@ -675,11 +675,12 @@ def main(number_which_part):
         # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples 2 (free tooth tip depth and fix sleeve length)",
         # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
-        select_fea_config_dict = "#0211 JMAG PMSM Q12p4ps5 Sub-hamonics (FixedSleeveLength)",
+        # select_fea_config_dict = "#0211 JMAG PMSM Q12p4ps5 Sub-hamonics (FixedSleeveLength)",
         # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
 
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
-        select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting(Fixed Airgap and Fixed PM Depth)",
+        # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting(Fixed Airgap and Fixed PM Depth)", # fast optimization
+        # select_fea_config_dict = "#0211 JMAG PMSM Q12p4ps5 Sub-hamonics(Fixed Airgap and Fixed PM Depth)" # sub-harmonics
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
         project_loc            = fr'../_default/',
         bool_show_GUI          = False
