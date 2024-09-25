@@ -137,6 +137,14 @@ class template_machine_as_numbers(object):
             self.d['GP']['mm_d_st'].type = "derived"
             bool_matched = True
 
+        if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
+            self.d['GP']['mm_d_sto'].type = "free"
+            self.d['GP']['mm_d_stt'].type = "fixed"
+            self.d['GP']['mm_d_sleeve'].type = "fixed"
+            self.d['GP']['mm_w_st'].type = "free"
+            self.d['GP']['mm_d_st'].type = "derived"
+            bool_matched = True
+
         if bool_matched == False:
             raise Exception(f"Not defined: {self.d['which_filter']}")
 

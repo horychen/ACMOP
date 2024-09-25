@@ -48,8 +48,21 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         })
         GP.update(childGP)
 
+
         # Get Analytical Design
         self.Bianchi2006(fea_config_dict, SI, GP, EX)
+
+
+        # Apply free variable filter 
+        bool_matched = False
+        if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
+            self.d['GP']['mm_d_pm'].type = "fixed"
+            bool_matched = True
+        if bool_matched == False:
+            raise Exception(f"Not defined: {self.d['which_filter']}")
+
+
+
 
         # 定义搜索空间，determine bounds
         self.original_template_neighbor_bounds = self.get_template_neighbor_bounds()
