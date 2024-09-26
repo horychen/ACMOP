@@ -57,6 +57,10 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         bool_matched = False
         if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
             self.d['GP']['mm_d_pm'].type = "fixed"
+            self.d['GP']['mm_d_mech_air_gap'].type = "fixed"
+            self.d['GP']['mm_d_sleeve'].type = "fixed"
+            # self.d['GP']['mm_r_ri'].type = "fixed"
+            
             bool_matched = True
         if bool_matched == False:
             raise Exception(f"Not defined: {self.d['which_filter']}")
@@ -98,7 +102,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
 
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
         stator_outer_diameter_Dse = 0.200 # this is related to the stator current density and should be determined by Js and power.
-        sleeve_length = 3
+        sleeve_length = 1.25
 
         speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
@@ -143,9 +147,11 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP['mm_d_mech_air_gap'].value    = SI['minimum_mechanical_air_gap_length_mm']
         GP['split_ratio'].value          = split_ratio
         GP['mm_d_pm'].value              = 4  # mm
-        GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is epirically specified
+        # GP['mm_d_ri'].value              = 1e3*ROTOR_STATOR_YOKE_HEIGHT_RATIO*stator_yoke_height_h_ys # TODO：This ratio (0.75) is epirically specified
         GP['mm_r_ro'].value              = 1e3*rotor_outer_radius_r_or
-        GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
+        # GP['mm_r_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_d_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
+        GP['mm_r_ri'].value              = SI['mm_radius_shaft']
+        GP['mm_d_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_r_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
         # SPMSM specific
         GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
         GP['mm_d_rp'].value              = 3  # mm
@@ -178,7 +184,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
 # attention: the bounds are determined around the template design, which means any change of the template design will lead to a change of the order the bounds.
         original_template_neighbor_bounds = {
             # Sleeve
-            "mm_d_sleeve":  [3,   6], 
+            # "mm_d_sleeve":  [3,   6], 
             # ROTOR
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30>)")
@@ -188,7 +194,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
             "mm_d_sto":      [  0.5,   5], # this will influence split_ratio
             # "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
-            "mm_d_pm":      [2.5, 7],
+            # "mm_d_pm":      [2.5, 7],
             "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],
             # SPMSM specific
             "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],

@@ -58,6 +58,10 @@ def derive_mm_r_ro(GP,SI):
     GP       ['mm_r_ro'].value = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
     return GP['mm_r_ro'].value
 
+def derive_split_ratio(GP,SI):
+    GP       ['split_ratio'].value          = GP['mm_r_si'].value / GP['mm_r_so'].value
+    return GP['split_ratio'].value
+
 class template_machine_as_numbers(object):
     ''' # template 有点类似analytical的电机（由几何尺寸组成）
     '''
@@ -74,7 +78,7 @@ class template_machine_as_numbers(object):
             "mm_r_ro"           : acmop_parameter("fixed",    "rotor_outer_radius",            None, [None, None], lambda GP,SI:None), #derive_mm_r_ro(GP,SI)),
             "mm_d_mech_air_gap" : acmop_parameter("fixed",    "mechanical_air_gap_length",     None, [None, None], lambda GP,SI:None),
             "mm_d_sleeve"       : acmop_parameter("free",     "sleeve_length",                 None, [None, None], lambda GP,SI:None),
-            "split_ratio"       : acmop_parameter("free",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SI:None),
+            "split_ratio"       : acmop_parameter("free",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SI:None), #derive_split_ratio(GP,SI)),
             # STATOR                           Type       Name                          Value  Bounds       Calc
             "deg_alpha_st"  : acmop_parameter("free",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
             "mm_w_st"       : acmop_parameter("free",    "stator_tooth_width"         , None, [None, None], lambda GP,SI:None),
@@ -143,6 +147,7 @@ class template_machine_as_numbers(object):
             self.d['GP']['mm_d_sleeve'].type = "fixed"
             self.d['GP']['mm_w_st'].type = "free"
             self.d['GP']['mm_d_st'].type = "derived"
+            # self.d['GP']['mm_r_ro'].type = "free"
             bool_matched = True
 
         if bool_matched == False:

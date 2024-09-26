@@ -1034,7 +1034,7 @@
             "guess_efficiency":                     0.95,
             "guess_power_factor":                   0.9,
             "no_segmented_magnets":                 1,
-            "tip_speed":                            150,
+            "tip_speed":                            3,
             "safety_factor_to_yield":               "None",
             "safety_factor_to_critical_speed":      1.5,
             "mm_radius_shaft":                      12,
