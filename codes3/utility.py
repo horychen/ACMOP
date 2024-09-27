@@ -142,7 +142,7 @@ import logging
 def myLogger(dir_log, prefix='default_prefix_'): # This works even when the module is reloaded (which is not the case of the other answers) https://stackoverflow.com/questions/7173033/duplicate-log-output-when-using-python-logging-module
 
     # logging.getLogger("imported_module").setLevel(logging.WARNING) # disable logging from matplotlib and others
-    logging.getLogger('matplotlib').setLevel(logging.WARNING)
+    # logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
     logger=logging.getLogger()
     if not len(logger.handlers):
@@ -164,25 +164,25 @@ def myLogger(dir_log, prefix='default_prefix_'): # This works even when the modu
         logger.addHandler(handler)
     return logger
 
-def logger_init(): # This will lead to duplicated logging output
-    # logger = logging.getLogger(__name__) # this is used in modules 
-    logger = logging.getLogger() # use this (root) in the main executable file
-    logger.setLevel(logging.DEBUG)
+# def logger_init(): # This will lead to duplicated logging output
+#     # logger = logging.getLogger(__name__) # this is used in modules 
+#     logger = logging.getLogger() # use this (root) in the main executable file
+#     logger.setLevel(logging.DEBUG)
 
-    # create a file handler
-    now = datetime.datetime.now()
-    if not os.path.isdir(dir_codes + 'log/'):
-        os.makedir(dir_codes + 'log/')
-    handler = logging.FileHandler(dir_codes + r'opti_script.log')
-    handler.setLevel(logging.DEBUG)
+#     # create a file handler
+#     now = datetime.datetime.now()
+#     if not os.path.isdir(dir_codes + 'log/'):
+#         os.makedir(dir_codes + 'log/')
+#     handler = logging.FileHandler(dir_codes + r'opti_script.log')
+#     handler.setLevel(logging.DEBUG)
 
-    # create a logging format
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
+#     # create a logging format
+#     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#     handler.setFormatter(formatter)
 
-    # add the handlers to the logger
-    logger.addHandler(handler)
-    return logger
+#     # add the handlers to the logger
+#     logger.addHandler(handler)
+#     return logger
 
 
 

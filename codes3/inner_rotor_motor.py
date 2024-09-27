@@ -278,33 +278,39 @@ class template_machine_as_numbers(object):
                 parameter.value = None # 先全部清空，防止编写derive时搞错依赖项关系，更新顺序是有先后的，后面的derived parameter 可以利用前面的derived parameter的值。
         # print()
         count_TypeError = 0
+        list_parameter_to_derive = []
         for key, parameter in self.d['GP'].items():
             if parameter.type == 'derived':
                 try:
                     parameter.value = parameter.calc(self.d['GP'], self.SI)
                 except TypeError as e: # TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType' 用来计算的变量还未被赋值
+                    list_parameter_to_derive.append(key)
                     count_TypeError += 1
                     print(f'[inner_rotor_motor.py] {count_TypeError=} TypeError: None is used for derivation of {parameter=}')
-                    pass
                 else: # no exception
                     if parameter.value<=0:
                         print('[inner_rotor_motor.py] Negative geometric parameter:')
                         for k,v in self.d['GP'].items():
                             print('\t', k, v)
                         raise Exception('Error: Negative derived parameter', str(parameter))
-        # 针对“用来计算的变量还未被赋值”的变量，再次调用它的calc方法。
-        while count_TypeError>0:
-            for key, parameter in self.d['GP'].items():
-                if parameter.type == 'derived' and parameter.value is None:
-                    try:
-                        parameter.value = parameter.calc(self.d['GP'], self.SI)
-                    except TypeError as e: # TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType' 用来计算的变量还未被赋值
-                        count_TypeError += 1
-                        print('[inner_rotor_motor.py] [Re] TypeError: None is used for derivation.')
-                        pass
-                    finally:
-                        count_TypeError -= 1
-                        print(f'[inner_rotor_motor.py] {count_TypeError=} has derived: {parameter=}')
+        for key in list_parameter_to_derive:
+            parameter =  self.d['GP'][key]
+            parameter.value = parameter.calc(self.d['GP'], self.SI)
+            count_TypeError -= 1
+            print(f'{count_TypeError=}')
+        # 【太蠢啦】针对“用来计算的变量还未被赋值”的变量，再次调用它的calc方法。
+        # while count_TypeError>0:
+        #     for key, parameter in self.d['GP'].items():
+        #         if parameter.type == 'derived' and parameter.value is None:
+        #             try:
+        #                 parameter.value = parameter.calc(self.d['GP'], self.SI)
+        #             except TypeError as e: # TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType' 用来计算的变量还未被赋值
+        #                 count_TypeError += 1
+        #                 print('[inner_rotor_motor.py] [Re] TypeError: None is used for derivation.')
+        #                 pass
+        #             finally:
+        #                 count_TypeError -= 1
+        #                 print(f'[inner_rotor_motor.py] {count_TypeError=} has derived: {parameter=}')
         return self.d['GP']
 
 class variant_machine_as_objects(object):

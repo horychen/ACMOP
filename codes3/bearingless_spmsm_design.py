@@ -48,28 +48,18 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         })
         GP.update(childGP)
 
-
         # Get Analytical Design
         self.Bianchi2006(fea_config_dict, SI, GP, EX)
 
-
-        # Apply free variable filter 
-        bool_matched = False
+        # Apply free variable filter to the child class
         if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
-            self.d['GP']['mm_r_ri'].type = "fixed"
-            self.d['GP']['mm_d_ri'].type = "fixed"
             self.d['GP']['mm_d_pm'].type = "fixed"
-            self.d['GP']['mm_r_ro'].type = "fixed"
-            self.d['GP']['mm_d_mech_air_gap'].type = "fixed"
-            self.d['GP']['mm_d_sleeve'].type = "fixed"
-
-            
-            bool_matched = True
-        if bool_matched == False:
-            raise Exception(f"Not defined: {self.d['which_filter']}")
-
-
-
+            self.d['GP']['mm_d_ri'].type = "fixed"
+            self.d['GP']['mm_r_ri'].type = "fixed"
+            # 下面三个去父类那边fix，不要在这里搞
+            # self.d['GP']['mm_r_ro'].type = "fixed"
+            # self.d['GP']['mm_d_mech_air_gap'].type = "fixed"
+            # self.d['GP']['mm_d_sleeve'].type = "fixed"
 
         # 定义搜索空间，determine bounds
         self.original_template_neighbor_bounds = self.get_template_neighbor_bounds()
@@ -156,9 +146,9 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP['mm_r_ri'].value              = SI['mm_radius_shaft']
         GP['mm_d_ri'].value              = 1e3*stator_inner_radius_r_is - GP['mm_d_pm'].value - GP['mm_r_ri'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
         # SPMSM specific
-        GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
+        GP['deg_alpha_rm'].value         = 1.0*360/(2*p) # deg
         GP['mm_d_rp'].value              = 3  # mm
-        GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SI['no_segmented_magnets']
+        GP['deg_alpha_rs'].value         = GP['deg_alpha_rm'].value / SI['no_segmented_magnets']
         GP['mm_d_rs'].value              = 0.20*GP['mm_d_rp'].value # d_pm > d_rp and d_pm > d_rs
 
         # Those are some obsolete variables that are convenient to have.
@@ -182,12 +172,11 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
 
         GP = self.d['GP']
 
-######################    get bounds have a misalignment    ######################
-
-# attention: the bounds are determined around the template design, which means any change of the template design will lead to a change of the order the bounds.
+        ######################    get bounds have a misalignment    ######################
+        # attention: the bounds are determined around the template design, which means any change of the template design will lead to a change of the order the bounds.
         original_template_neighbor_bounds = {
             # Sleeve
-            # "mm_d_sleeve":  [3,   6], 
+            "mm_d_sleeve":  [3,   6], 
             # ROTOR
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30>)")
@@ -195,10 +184,10 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "deg_alpha_st": [ 0.35*360/Q, 0.9*360/Q],
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
             "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
-            "mm_d_sto":      [  0.5,   5], # this will influence split_ratio
-            # "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
-            # "mm_d_pm":      [2.5, 7],
-            # "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],
+            "mm_d_sto":     [  0.5,                                         5], # this will influence split_ratio
+            "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
+            "mm_d_pm":      [2.5, 7],
+            "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],
             # SPMSM specific
             "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],
             "mm_d_rp":      [2.5,   GP['mm_d_pm'].value],
@@ -206,11 +195,9 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "deg_alpha_rs": [0.8*360/(2*p)/s,        GP['deg_alpha_rm'].value/s],
             "mm_d_rs":      [2.5,   6],
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value]
-            
-            
-            
-            
         }
+        print('原始约束空间为：')
+        for k,v in original_template_neighbor_bounds.items(): print('\t', k,v)
         return original_template_neighbor_bounds
 
     """ Obsolete feature """
