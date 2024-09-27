@@ -975,7 +975,7 @@ class acm_designer(object):
 
         # if os.path.exists(output_dir+'swarm_MOO_log.txt'):
         #     os.rename(output_dir+'swarm_MOO_log.txt', output_dir+'swarm_MOO_log_backup.txt')
-        open(output_dir+'swarm_MOO_log.txt', 'a').close()
+        # open(output_dir+'swarm_MOO_log.txt', 'a').close()
 
         self.acm_template.build_x_denorm()
         # print(self.acm_template.x_denorm_dict)
