@@ -127,7 +127,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
         self.spec_input_dict = spec_input_dict
 
         # handler set
-        # self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
         # handler = logging.StreamHandler()
         # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         # handler.setFormatter(formatter)

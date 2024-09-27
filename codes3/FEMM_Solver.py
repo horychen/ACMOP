@@ -2153,7 +2153,7 @@ class FEMM_Solver(object):
         if False:
             dict_circuits = {}
             # i = femm.mo_getprobleminfo()
-            logging.getLogger().info('Sweeping: %g Hz.'%(self.freq))
+            logging.getLogger(__name__).info('Sweeping: %g Hz.'%(self.freq))
             femm.mi_analyze(1) # None for inherited. 1 for a minimized window,
             femm.mi_loadsolution()
 

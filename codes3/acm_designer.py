@@ -1060,7 +1060,7 @@ class acm_designer(object):
                 raise e
 
         EX['wily'] = wily
-        logging.getLogger().info('save to' + self.fea_config_dict['output_dir'] + self.select_spec + '.json')
+        logging.getLogger(__name__).info('save to' + self.fea_config_dict['output_dir'] + self.select_spec + '.json')
 
     def evaluate_design_json_wrapper(self, acm_template, x_denorm=None, counter='Test', counter_loop=1):
         # This is a wrapper for the wrapper, in order to build up a json profile for the design variant

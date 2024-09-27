@@ -143,6 +143,7 @@ def myLogger(dir_log, prefix='default_prefix_'): # This works even when the modu
 
     # logging.getLogger("imported_module").setLevel(logging.WARNING) # disable logging from matplotlib and others
     # logging.getLogger('matplotlib').setLevel(logging.WARNING)
+    # logging.basicConfig(filename="log.log", filemode="w", level=logging.DEBUG, encoding="utf-8")
 
     logging.basicConfig(filename="log.log", filemode="w", level=logging.DEBUG, encoding="utf-8")
 
