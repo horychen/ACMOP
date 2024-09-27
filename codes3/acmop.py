@@ -670,7 +670,7 @@ def main(number_which_part):
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
         project_loc            = fr'../_default/',
-        bool_show_GUI          = True
+        bool_show_GUI          = False
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 

@@ -56,10 +56,13 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # Apply free variable filter 
         bool_matched = False
         if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
+            self.d['GP']['mm_r_ri'].type = "fixed"
+            self.d['GP']['mm_d_ri'].type = "fixed"
             self.d['GP']['mm_d_pm'].type = "fixed"
+            self.d['GP']['mm_r_ro'].type = "fixed"
             self.d['GP']['mm_d_mech_air_gap'].type = "fixed"
             self.d['GP']['mm_d_sleeve'].type = "fixed"
-            # self.d['GP']['mm_r_ri'].type = "fixed"
+
             
             bool_matched = True
         if bool_matched == False:
@@ -195,12 +198,12 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_sto":      [  0.5,   5], # this will influence split_ratio
             # "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
             # "mm_d_pm":      [2.5, 7],
-            "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],
+            # "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],
             # SPMSM specific
             "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],
-            "mm_d_rp":      [2.5,   6],
+            "mm_d_rp":      [2.5,   GP['mm_d_pm'].value],
             # Rest parameters haven't been determined yet (need to be determined by the user defined fixed or free variables)
-            "deg_alpha_rs": [0.8*360/(2*p)/s,        0.975*360/(2*p)/s],
+            "deg_alpha_rs": [0.8*360/(2*p)/s,        GP['deg_alpha_rm'].value/s],
             "mm_d_rs":      [2.5,   6],
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value]
             
