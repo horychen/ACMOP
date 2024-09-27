@@ -1037,7 +1037,7 @@
             "tip_speed":                            3,
             "safety_factor_to_yield":               "None",
             "safety_factor_to_critical_speed":      1.5,
-            "mm_radius_shaft":                      12,
+            "mm_radius_shaft":                      25,
             "bool_skew_stator":                     false,
             "bool_skew_rotor":                      false
         }

@@ -343,6 +343,8 @@ class variant_machine_as_objects(object):
             if verbose:
                 for k,v in x_denorm_dict.items():
                     print('\t [inner_rotor_motor.py]', k,v)
+                # print(self.d['GP']['mm_r_ri'].value)
+                # print(self.d['GP']['mm_r_ri'].value)
             GP = self.template.update_geometric_parameters_using_x_denorm_dict(x_denorm_dict)
 
         #03 Inherit properties

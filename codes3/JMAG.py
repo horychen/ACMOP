@@ -225,7 +225,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         app.NewProject("Untitled")
         app.SaveAs(os.path.abspath(expected_project_file_path)) # must be absolute path!
-        self.logger.info(r'Create JMAG project file: %s'%(expected_project_file_path))
+        # self.logger.info(r'Create JMAG project file: %s'%(expected_project_file_path))
         return app
 
     def close(self):
