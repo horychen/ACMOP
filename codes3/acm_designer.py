@@ -984,8 +984,8 @@ class acm_designer(object):
 
     def init_logger(self, prefix='pygmo_'):
         # self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
-        self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix)
-
+        # self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix)
+        pass
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # Automatic Performance Evaluation (This is just a wraper)
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
@@ -1060,6 +1060,7 @@ class acm_designer(object):
                 raise e
 
         EX['wily'] = wily
+        logging.getLogger().info('save to' + self.fea_config_dict['output_dir'] + self.select_spec + '.json')
 
     def evaluate_design_json_wrapper(self, acm_template, x_denorm=None, counter='Test', counter_loop=1):
         # This is a wrapper for the wrapper, in order to build up a json profile for the design variant
@@ -1206,8 +1207,10 @@ class acm_designer(object):
                                         [ circuit_current_GroupBDW[index], terminal_voltage_GroupBDW[index], coil_fluxLinkage_GroupBDW[index] ] )
                     acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
                 acm_variant.analyzer.get_ss_data()
-            compare_with_FEMM(acm_variant)
-            acm_variant.analyzer.save_time_domain_data(counter) # TODO
+            
+            # compare_with_FEMM(acm_variant)
+            # acm_variant.analyzer.save_time_domain_data(counter) # TODO
+
             return acm_variant
 
 

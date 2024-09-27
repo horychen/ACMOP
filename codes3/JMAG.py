@@ -125,13 +125,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrudeBase & MakerRevolveBa
 
         self.fea_config_dict = fea_config_dict
         self.spec_input_dict = spec_input_dict
+
         # handler set
-        self.logger = logging.getLogger(__name__)
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-        self.logger.setLevel(logging.INFO)
+        # self.logger = logging.getLogger(__name__)
+        # handler = logging.StreamHandler()
+        # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        # handler.setFormatter(formatter)
+        # self.logger.addHandler(handler)
+        # self.logger.setLevel(logging.INFO)
+
         # self.output_dir = self.fea_config_dict['dir.parent'] + self.fea_config_dict['run_folder']
         # self.dir_csv_output_folder = self.output_dir + 'csv/'
         # if not os.path.isdir(self.output_dir):

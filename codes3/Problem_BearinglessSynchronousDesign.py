@@ -1,3 +1,7 @@
+import numpy as np
+from acm_designer import get_bad_fintess_values
+import utility
+import logging, os, shutil
 import pywintypes
 import builtins
 if hasattr(builtins, 'ad'):
@@ -10,10 +14,6 @@ else:
 # print('[Problem_BlessSyn]', ad.counter_fitness_called)
 # print('[Problem_BlessSyn]', ad.counter_fitness_return)
 
-import logging, os, shutil
-import numpy as np
-from acm_designer import get_bad_fintess_values
-import utility
 class Problem_BearinglessSynchronousDesign(object):
 
     # Define objectives

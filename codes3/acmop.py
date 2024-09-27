@@ -1,23 +1,15 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
-
 import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design
-
+from matplotlib import projections # for part_initialDesign
 from soupsieve import select
 # from codes3.population import VanGogh_JMAG
-
 import VanGogh_Cairo
-
-from matplotlib import projections # for part_initialDesign
-
-# pil_logger = logging.getLogger('PIL')
-# pil_logger.setLevel(logging.INFO)
-
-# logger = logging.getLogger(__name__)
-# logger.info(msg)
-
 from dataclasses import dataclass
 from collections import OrderedDict
+from acm_designer import get_bad_fintess_values
+import logging, builtins, utility_moo
+import pygmo as pg
 
 @dataclass
 class AC_Machine_Optiomization_Wrapper(object):
@@ -291,10 +283,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         # [4.1] Get bounds
 
         # [4.3] MOO (need to share global variables to the Problem class)
-        from acm_designer import get_bad_fintess_values
-        import logging, builtins, utility_moo
         logger = logging.getLogger(__name__)
-        import pygmo as pg
         ad.counter_fitness_called = 0
         ad.counter_fitness_return = 0
         builtins.ad = ad # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable

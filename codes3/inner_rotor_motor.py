@@ -297,7 +297,7 @@ class template_machine_as_numbers(object):
             parameter =  self.d['GP'][key]
             parameter.value = parameter.calc(self.d['GP'], self.SI)
             count_TypeError -= 1
-            print(f'{count_TypeError=}')
+            print(f'TypeError fixed: {count_TypeError=}')
         # 【太蠢啦】针对“用来计算的变量还未被赋值”的变量，再次调用它的calc方法。
         # while count_TypeError>0:
         #     for key, parameter in self.d['GP'].items():
