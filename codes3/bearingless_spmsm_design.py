@@ -197,8 +197,8 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value]
         }
         print('原始约束空间为：')
-        for k,v in original_template_neighbor_bounds.items(): print('\t', k,v)
-        return original_template_neighbor_bounds
+        # for k,v in original_template_neighbor_bounds.items(): print('\t', k,v)
+        # return original_template_neighbor_bounds
 
     """ Obsolete feature """
     def build_design_parameters_list(self):
