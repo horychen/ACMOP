@@ -143,21 +143,17 @@ def myLogger(dir_log, prefix='default_prefix_'): # This works even when the modu
 
     # logging.getLogger("imported_module").setLevel(logging.WARNING) # disable logging from matplotlib and others
     # logging.getLogger('matplotlib').setLevel(logging.WARNING)
-    # logging.basicConfig(filename="log.log", filemode="w", level=logging.DEBUG, encoding="utf-8")
-
-    logging.basicConfig(filename="log.log", filemode="w", level=logging.DEBUG, encoding="utf-8")
 
     logger = logging.getLogger()
     if not len(logger.handlers):
         logger.setLevel(logging.DEBUG)
-        logger.setEncoding('utf-8')
         now = datetime.datetime.now()
 
         if not os.path.isdir(dir_log):
             os.makedirs(dir_log)
 
         # create a file handler
-        handler=logging.FileHandler(dir_log + prefix + '-' + now.strftime("%Y-%m-%d") +'.log', 'w', encoding='utf-8')
+        handler=logging.FileHandler(dir_log + prefix + '-' + now.strftime("%Y-%m-%d") +'.log')
         handler.setLevel(logging.DEBUG)
 
         # create a logging format

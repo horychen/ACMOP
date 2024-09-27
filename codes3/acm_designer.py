@@ -984,8 +984,8 @@ class acm_designer(object):
 
     def init_logger(self, prefix='pygmo_'):
         # self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
-        # self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix)
-        pass
+        self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix)
+
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # Automatic Performance Evaluation (This is just a wraper)
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
