@@ -40,7 +40,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             # SPMSM Peculiar
             "mm_d_pm"           : acmop_parameter("free",     "magnet_depth",                  None, [None, None], lambda GP,SI:None),
             "mm_d_ri"           : acmop_parameter("free",     "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SI:None),
-            "deg_alpha_rm"      : acmop_parameter("free",     "magnet_pole_span_angle",        None, [None, None], lambda GP,SI:None),
+            "deg_alpha_rm"      : acmop_parameter("fixed",     "magnet_pole_span_angle",        None, [None, None], lambda GP,SI:None),
             "mm_d_rp"           : acmop_parameter("free",     "inter_polar_iron_thickness",    None, [None, None], lambda GP,SI:None),
             "deg_alpha_rs"      : acmop_parameter("free" if SI['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None], lambda GP,SI:None),
             "mm_d_rs"           : acmop_parameter("free" if SI['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None], lambda GP,SI:None),
@@ -56,10 +56,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             self.d['GP']['mm_d_pm'].type = "fixed"
             self.d['GP']['mm_d_ri'].type = "fixed"
             self.d['GP']['mm_r_ri'].type = "fixed"
-            # 下面三个去父类那边fix，不要在这里搞
-            # self.d['GP']['mm_r_ro'].type = "fixed"
-            # self.d['GP']['mm_d_mech_air_gap'].type = "fixed"
-            # self.d['GP']['mm_d_sleeve'].type = "fixed"
+            self.d['GP']['deg_alpha_rm'].type = "fixed"
 
         # 定义搜索空间，determine bounds
         self.original_template_neighbor_bounds = self.get_template_neighbor_bounds()
@@ -184,7 +181,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "deg_alpha_st": [ 0.35*360/Q, 0.9*360/Q],
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
             "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
-            "mm_d_sto":     [  0.5,                                         5], # this will influence split_ratio
+            "mm_d_sto":     [0.5,                                           5], # this will influence split_ratio
             "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
             "mm_d_pm":      [2.5, 7],
             "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],
@@ -196,9 +193,9 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_rs":      [2.5,   6],
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value]
         }
-        print('原始约束空间为：')
+        # print('原始约束空间为：')
         # for k,v in original_template_neighbor_bounds.items(): print('\t', k,v)
-        # return original_template_neighbor_bounds
+        return original_template_neighbor_bounds
 
     """ Obsolete feature """
     def build_design_parameters_list(self):

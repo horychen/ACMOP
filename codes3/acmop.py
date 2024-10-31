@@ -310,12 +310,14 @@ class AC_Machine_Optiomization_Wrapper(object):
             # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
             logger.info(f'[acmop.py] Check for swarm data from: {self.select_spec}.json ...')
             self.ad.acm_template.build_x_denorm()
+            # quit()
             # swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
             number_of_chromosome = ad.analyzer.number_of_chromosome
-
+            # print(number_of_chromosome)
+            # quit()
             for index, (k, v) in enumerate(self.ad.acm_template.x_denorm_dict.items()):
                 logger.info(f'x_denorm_dict variable no. {index} is {k} = {v} with bounds: {ad.acm_template.bounds_denorm[index]}')
-
+            # quit()
             # case 1: swarm_data.txt exists # Restarting feature related codes
             if number_of_chromosome != 0:
 
@@ -342,14 +344,18 @@ class AC_Machine_Optiomization_Wrapper(object):
 
                 # 初始化population，如果ad.flag_do_not_evaluate_when_init_pop是False，那么就说明是 new run，否则，整代个体的fitness都是[0,0,0]。
                 pop = pg.population(prob, size=popsize)
-
+                # quit()
                 # 如果整代个体的fitness都是[0,0,0]，那就需要调用set_xf，把txt文件中的数据写入pop。如果发现数据的个数不够，那就调用set_x()来产生数据，形成初代个体。
                 if ad.flag_do_not_evaluate_when_init_pop == True:
                     pop_array = pop.get_x()
+                    # print(pop_array)
+                    # quit()
                     if number_of_chromosome <= popsize: # 个体数不够一代的情况
                         for i in range(popsize):
                             if i < number_of_chromosome: #number_of_finished_chromosome_in_current_generation:
                                 pop.set_xf(i, ad.   swarm_data[i][:-3], ad.   swarm_data[i][-3:])
+                                # print(pop.set_xf(i, ad.   swarm_data[i][:-3], ad.   swarm_data[i][-3:]))
+                                # quit()
                             else:
                                 logger.info('[acmop.py] Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
                                 ad.flag_do_not_evaluate_when_init_pop = False
@@ -360,9 +366,10 @@ class AC_Machine_Optiomization_Wrapper(object):
                         # 新办法，直接从swarm_data.txt（相当于archive）中判断出当前最棒的群体
                         swarm_data_on_pareto_front = utility_moo.learn_about_the_archive(prob, ad.   swarm_data, popsize, self.fea_config_dict)
                         # print(swarm_data_on_pareto_front)
+                        # quit()
                         for i in range(popsize):
                             pop.set_xf(i, swarm_data_on_pareto_front[i][:-3], swarm_data_on_pareto_front[i][-3:])
-
+                            # quit()
                     # 必须放到这个if的最后，因为在 learn_about_the_archive 中是有初始化一个 pop_archive 的，会调用fitness方法。
                     ad.flag_do_not_evaluate_when_init_pop = False
 

@@ -3,6 +3,7 @@ import pandas as pd
 import os, json, builtins, datetime
 import streamlit as st
 import utility_postprocess, acmop, utility, base64
+# import acm_designer
 from io import BytesIO
 
 def basic_information_about_optimization():
@@ -338,8 +339,34 @@ if __name__ == '__main__':
 
 
     with tab2:
-        st.subheader('Pick Individual')
-        # st.pyplot(fig)
+        with tab2:
+            st.subheader('Sensitivity Analysis')
+            # st.pyplot(fig)
+            ## 选择项目路径
+            path2acmop = os.path.abspath(os.path.dirname(__file__) + '\\..')
+            if not os.path.exists(path2acmop + '/_default'): os.mkdir(path2acmop + '/_default')
+            value = st.session_state['1.path2project'] if '1.path2project' in st.session_state.keys() else path2acmop + '/_default'
+            path2project = st.text_input(label='[User] Input path2project:', value=value, on_change=None, key='2.path2project')
+            if path2project[-1]!='/' or path2project[-1]!='\\': path2project += '/'
+
+            ## 选择分析变量
+            selected_sensitivity_variables = st.multiselect(
+                label='Select Sensitivity Variables',
+                options=[]
+            )
+            ## 执行灵敏度分析并展示图像
+            if st.button("Run Sensitivity Analysis"):
+                # 获取ad
+                mop = swarm_dict[folder]
+                ad = mop.ad
+
+                _best_index, _best_individual_data = None, None
+                for ind, el in enumerate(utility_postprocess.call_selection_criteria(ad, eval(user_input_upper_bounds_4filter)), best_idx=3076, proj_name='proj1868-PS-variant0-1868_IDBLIM-PS-variant0-1868',):
+                    if el is None:
+                        raise Exception(str(el))
+                    else:
+                        _best_index, _proj_name, _best_individual_data_reversed = el
+                        _best_individual_data = _best_individual_data_reversed[::-1]
 
 
 

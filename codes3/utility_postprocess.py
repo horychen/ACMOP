@@ -41,11 +41,14 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
     OB = upper_bound_objectives[1] # -efficiency
     OA = upper_bound_objectives[2] # -TRV
     # print('888888888888888888', upper_bound_objectives, OC, OB, OA)
+    # quit()
     return_tuples = []
     for idx, chromosome in enumerate(_swarm_data):
         if chromosome[-1] <= OC and chromosome[-2] <= OB and chromosome[-3] <= OA:
             # print('\n', idx, _swarm_project_names[idx], chromosome[::-1])
             return_tuples.append((idx, _swarm_project_names[idx], chromosome[::-1]))
+            # print(return_tuples)
+            # quit()
 
             # Do stuff to the best design specified by proj_name
             if proj_name is not None and proj_name in _swarm_project_names[idx]:
@@ -71,7 +74,7 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
                         force_error_angle = ad.evaluate_design_json_wrapper(ad.spec.acm_template, x_denorm, counter=ad.counter_fitness_called)
 
                 # Sensitivity analysis with respect to alpha_st
-                if False:
+                if True:
                     # debug
                     print('需要转换开口角度转换为alpha_st然后做敏感性分析。')
                     for name, value in zip(ad.spec.acm_template.x_denorm_names, best_chromosome):
@@ -171,8 +174,8 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
                         plt.legend()
                         fname = 'p%dQr%dQs%d.pdf'%(0.5*ad.spec.acm_template.DriveW_poles, ad.spec.acm_template.Qr, ad.spec.acm_template.Qs)
                         fig.savefig(f'{os.path.dirname(__file__)}/{fname}', format='pdf', dpi=600, bbox_inches='tight', pad_inches=0.0, transparent=True)
-                        # plt.show()
-                        # quit()
+                        plt.show()
+                        quit()
 
                     # scatter_handle = pareto_front_plot_script(_swarm_data)
                     # pareto_front_plot_color_bar_etc(scatter_handle, bool_no_limit=True)

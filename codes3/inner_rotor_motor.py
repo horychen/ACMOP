@@ -144,9 +144,11 @@ class template_machine_as_numbers(object):
         if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
             self.d['GP']['mm_d_sto'].type = "free"
             self.d['GP']['mm_d_stt'].type = "fixed"
-            self.d['GP']['mm_d_sleeve'].type = "fixed"
             self.d['GP']['mm_w_st'].type = "free"
             self.d['GP']['mm_d_st'].type = "derived"
+            self.d['GP']['mm_r_ro'].type = "fixed"
+            self.d['GP']['mm_d_mech_air_gap'].type = "fixed"
+            self.d['GP']['mm_d_sleeve'].type = "fixed"
             # self.d['GP']['mm_r_ro'].type = "free"
             bool_matched = True
 
@@ -185,9 +187,13 @@ class template_machine_as_numbers(object):
         for key, parameter in GP.items(): # Make sure the order of the bounds_denorm is consistent with free parameters' order in GP.
             # print(key, parameter.type)
             if parameter.type == 'free':
+                # print(parameter)
+                # print(original_template_neighbor_bounds[key])
+                # quit()
                 parameter.bounds = original_template_neighbor_bounds[key]
                 self.bounds_denorm.append(parameter.bounds)
         logging.getLogger(__name__).info(f'[inner_rotor_motor.py] template BOUNDS_denorm in R^{len(self.bounds_denorm)}: {self.bounds_denorm}')
+        # quit()
         return self.bounds_denorm
     def get_other_properties_after_geometric_parameters_are_initialized(self, GP, SI, specified_mm_stack_length=None):
 
