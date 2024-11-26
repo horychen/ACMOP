@@ -2,7 +2,7 @@ from pylab import np, plt
 import pandas as pd
 import os, json, builtins, datetime
 import streamlit as st
-import utility_postprocess, acmop, utility, base64
+import utility_postprocess, acmop, utility, base64, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design
 from io import BytesIO
 
 def basic_information_about_optimization():
@@ -338,12 +338,219 @@ if __name__ == '__main__':
 
 
     with tab2:
-        st.subheader('Pick Individual')
+        st.subheader('Sensitivity Analysis')
         # st.pyplot(fig)
+        ## 选择项目路径
+        path2acmop = os.path.abspath(os.path.dirname(__file__) + '\\..')
+        if not os.path.exists(path2acmop + '/_default'): os.mkdir(path2acmop + '/_default')
+        value = st.session_state['1.path2project'] if '1.path2project' in st.session_state.keys() else path2acmop + '/_default'
+        path2project = st.text_input(label='[User] Input path2project:', value=value, on_change=None, key='2.path2project')
+        if path2project[-1]!='/' or path2project[-1]!='\\': path2project += '/'
 
+        ## 选择分析变量
+        selected_sensitivity_variables = st.multiselect(
+                label='Select Sensitivity Variables',
+                options=[]
+            )
+        ## 执行灵敏度分析并展示图像
+        if st.button("Run Sensitivity Analysis"):
+            # fig, ax = plt.subplots()
+            from dataclasses import dataclass
+            @dataclass
+            class AC_Machine_Optiomization_Wrapper(object):
+                ''' Inputs
+                '''
+                # A. select FEA setting
+                select_fea_config_dict: str
+                # B. select design specification
+                select_spec: str
+                # C. decide output directory (initialize either one)
+                project_loc: str = None
+                path2SwarmData: str = None
+                # D. this is up to you
+                bool_show_GUI: bool = False
 
+                ''' Derived
+                '''
+                spec_input_dict: dict = None
+                fea_config_dict: dict = None
 
+                def __post_init__(self):
+                    self.Help = r'''[Steps for adding a new slot pole combination for IM]
+                    1. Update machine_specifications.json
+                    2. Run winding_layout_derivation_ismb2020.py to get a new stator winding layout and paste the code into winding_layout.py
+                    3. Run Pole-specific_winding_with_neutral_plate_the_design_table_generator.py to get a new rotor winding layout and paste the code into winding_layout.py
+                    4. Update this file with new "select_spec".
+                    '''
+                    self.spec_input_dict, self.fea_config_dict = self.load_settings( 
+                                                        self.select_spec, 
+                                                        self.select_fea_config_dict, 
+                                                        project_loc=self.project_loc, 
+                                                        path2SwarmData=self.path2SwarmData)
+                    self.fea_config_dict['designer.Show'] = self.bool_show_GUI
 
+                    print('[acmop.py] project_loc (user-input):', self.project_loc)
+                    if self.path2SwarmData is None:
+                        self.path2SwarmData = self.project_loc + self.select_spec.replace(' ', '_') + '/'
+                    if self.project_loc is None:
+                        self.project_loc = os.path.abspath(os.path.join(self.path2SwarmData, '..',))
+
+                    # Convert to abs path (JMAG requires absolute path)
+                    self.project_loc                   = os.path.abspath(self.project_loc) + '/'
+                    self.path2SwarmData                = os.path.abspath(self.path2SwarmData) + '/'
+                    self.fea_config_dict['output_dir'] = os.path.abspath(self.fea_config_dict['output_dir']) + '/'
+                    print('[acmop.py] project_loc (converted) :', self.project_loc)
+                    print('[acmop.py] path2SwarmData          :', self.path2SwarmData)
+                    print('[acmop.py] output_dir              :', self.fea_config_dict['output_dir'])
+
+                    self.acm_template = self.part_initialDesign() # Module 2 (mop.ad is available now)
+                def part_initialDesign(self):
+                    if 'PMSM' in self.select_spec:
+                        function = bearingless_spmsm_design.bearingless_spmsm_template
+                    elif 'PMVM' in self.select_spec:
+                        function = vernier_motor_design.vernier_motor_VShapePM_template
+                    elif 'IM' in self.select_spec:
+                        function = bearingless_induction_design.bearingless_induction_template
+                    elif 'Flux Alternator' in self.select_spec:
+                        function = flux_alternator_design.flux_alternator_template
+                    elif 'FSPM' in self.select_spec:
+                        function = flux_switching_pm_design.FSPM_template
+                    elif 'CPPM' in self.select_spec:
+                        function = bearingless_consequentPole_design.bearingless_consequentPole_template
+                    elif 'VCPPM' in self.select_spec:
+                        function = bearingless_VShapeconsequentPole_design.bearingless_VconsequentPole_template
+                    elif 'CSPPM' in self.select_spec:
+                        function = bearingless_consequentsinglePole_design.bearingless_consequentsinglePole_template
+                    acm_template = function(self.fea_config_dict, self.spec_input_dict)
+
+                    self.ad = acm_designer.acm_designer(
+                                self.select_spec, 
+                                self.spec_input_dict, 
+                                self.select_fea_config_dict,
+                                self.fea_config_dict, 
+                                acm_template=acm_template,
+                            )
+
+                    if False:
+                        if 'Y730' in self.fea_config_dict['pc_name']:
+                            self.ad.build_oneReport() # require LaTeX
+                            # ad.talk_to_mysql_database() # require MySQL
+
+                    return acm_template
+
+                def local_sensitivity_analysis(self, specify_x_denorm=None):
+                            # 敏感性检查：以基本设计为准，检查不同的参数取极值时的电机性能变化！这是最简单有效的办法。七个设计参数，那么就有14种极值设计。
+                    if specify_x_denorm is None:
+                        # build x_denorm for the template design
+                        x_denorm = self.ad.acm_template.build_x_denorm()
+                    else:
+                        x_denorm = specify_x_denorm
+                    print('[acmop.py] x_denorm:',  x_denorm)
+                    print('[acmop.py] x_denorm_dict:', self.ad.acm_template.x_denorm_dict)
+                    # quit()
+                    self.init_pop = []
+                    if False:
+                        diff = np.array(self.fea_config_dict['local_sensitivity_analysis_diff_bounds'])
+                        min_b = np.array(self.fea_config_dict['local_sensitivity_analysis_min_bounds'])
+                        if specify_x_denorm is None:
+                            initial_design_denorm = np.array(utility.Pyrhonen_design(self.im).design_parameters_denorm )
+                        else:
+                            initial_design_denorm = specified_initial_design_denorm
+                        initial_design = (initial_design_denorm - min_b) / diff
+                        print(initial_design_denorm.tolist())
+                        print(initial_design.tolist())
+                        base_design = initial_design.tolist()
+                        print('base_design:', base_design, '\n-------------')
+                        # quit()
+                        number_of_variants = self.fea_config_dict['local_sensitivity_analysis_number_of_variants']
+                        self.init_pop = [initial_design] # include initial design!
+                        for i in range(len(base_design)): # 10 design parameters
+                            for j in range(number_of_variants+1): # 21 variants interval
+                                # copy list
+                                design_variant = base_design[::]
+                                design_variant[i] = j * 1./number_of_variants
+                                self.init_pop.append(design_variant)
+                        for ind, el in enumerate(self.init_pop):
+                            print(ind)
+                            print(el)
+                    return self.init_pop
+                @staticmethod
+                def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2SwarmData=None, bool_post_processing=False):
+                    __file__dirname_as_in_python39 = os.path.dirname(os.path.abspath(__file__))
+            
+                    with open((__file__dirname_as_in_python39)+'/machine_specifications.json', 'r') as f:
+                        raw_specs = json.load(f)
+                    with open((__file__dirname_as_in_python39)+'/machine_simulation.json', 'r') as f:
+                        raw_fea_config_dicts = json.load(f)
+            
+                    spec_input_dict = raw_specs[select_spec]['Inputs']
+                    fea_config_dict = raw_fea_config_dicts[select_fea_config_dict]
+                    fea_config_dict['bool_post_processing'] = bool_post_processing
+            
+                    # import where_am_i
+                    # where_am_i.where_am_i_v2(fea_config_dict, bool_post_processing)
+                    def get_pc_name():
+                        import platform
+                        import socket
+                        n1 = platform.node()
+                        n2 = socket.gethostname()
+                        n3 = os.environ["COMPUTERNAME"]
+                        if n1 == n2 == n3:
+                            return n1
+                        elif n1 == n2:
+                            return n1
+                        elif n1 == n3:
+                            return n1
+                        elif n2 == n3:
+                            return n2
+                        else:
+                            raise Exception("Computer names are not equal to each other.")
+            
+                    dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
+                    dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
+                    pc_name = get_pc_name()
+                    os.chdir(dir_codes)
+                    print('[acmop.py] CD to:', dir_codes)
+                    fea_config_dict['dir.parent'] = dir_parent
+                    fea_config_dict['pc_name']    = pc_name
+            
+                    if path2SwarmData is None:
+                        path2SwarmData = project_loc + select_spec.replace(' ', '_')+'/'
+                    if project_loc is None:
+                        project_loc = os.path.abspath(os.path.join(path2SwarmData, '..',))
+            
+                    output_dir = fea_config_dict['output_dir'] = path2SwarmData
+            
+                    # create output folder only when not post-processing? No, sometimes in post-processing we run FEA simulation.
+                    if not os.path.exists(output_dir):
+                        os.makedirs(output_dir)
+                    with open(output_dir+'acmop-settings.txt', 'w') as f:
+                        f.write(select_spec + ' | ' + select_fea_config_dict)
+                    # print(spec_input_dict)
+                    # quit()
+            
+                    return spec_input_dict, fea_config_dict
+
+            sensitivity_denorm = AC_Machine_Optiomization_Wrapper(
+                select_spec = "CPPM-24s8pp-ps1-RippleRedunction", # 补充sleeve的部分以改变转矩密度过低
+                select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
+                project_loc            = fr'../_ICEMS_new/',
+                bool_show_GUI          = True
+            ).local_sensitivity_analysis()
+            for ind, el in enumerate(sensitivity_denorm):
+                # sensitivity_denorm = local_sensitivity_analysis(specified_initial_design_denorm=specify_x_denorm)
+                acmop.part_evaluation(specify_counter=None, specify_x_denorm=sensitivity_denorm)
+
+                # TODO: plot
+                # TODO: 1 number of x_denorm is 10 while optimization is 5
+                # TODO: 2 The call of JMAG need to be fixed
+
+            # sw = population.swarm(fea_config_dict, de_config_dict=de_config_dict)
+            # sw, spec = utility.load_data(path2project) # TODO: initialize sw and spec
+            # analyzer = utility.SwarmDataAnalyzer(sw, spec, dir_run=path2project, run_integer=1)
+            # analyzer.sensitivity_bar_charts(ax)
+
+            # st.pyplot(fig)
 
 
 # if st.session_state.user_selected_motor in history and 'd_user_input_motor_dict' in history[st.session_state.user_selected_motor]:
