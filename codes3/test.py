@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.append(os.path.abspath('../codes3'))
 
-from codes3 import JMAG
+import JMAG
 
 import matplotlib
 matplotlib.use('TkAgg')  # 设置 Matplotlib 后端
@@ -15,30 +15,40 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def main():
+    dm = 0 
     fig, axeses = plt.subplots(2, 2)
     time_list = np.linspace(0, 10, 100)
     torque = np.sin(time_list)
     force_x = np.cos(time_list)
     force_y = np.sin(time_list)
     force_abs = np.sqrt(force_x**2 + force_y**2)
+    force_err_abs = np.zeros(100),  # 确保 force_err_abs 和 time_list 长度相同
     sfv = type('sfv', (object,), {
         'force_abs': force_abs,
         'force_x': force_x,
         'force_y': force_y,
         'ss_avg_force_magnitude': np.mean(force_abs),
         'normalized_force_error_magnitude': 0.1,
-        'ss_max_force_err_abs': [0.2, -0.2],
+        'force_err_abs': force_err_abs,  # 确保 force_err_abs 和 time_list 长度相同
+        'ss_max_force_err_abs': [np.max(force_err_abs), np.min(force_err_abs)],
         'force_error_angle': 5,
         'ss_max_force_err_ang': [3, -3],
-        'ss_avg_force_vector': [np.mean(force_x), np.mean(force_y)]
-    })()
+        'ss_avg_force_vector': [np.mean(force_x), np.mean(force_y)],
 
-    JMAG.add_plots(axeses, title='Test Plot', label='Test', zorder=1, time_list=time_list, sfv=sfv, torque=torque, range_ss=20)
+        'force_err_ang_old_way': np.random.uniform(-5, 5, len(time_list)),
+        'force_err_ang_new_way': np.random.uniform(-5, 5, len(time_list)),
+        'force_ang': np.random.uniform(-5, 5, len(time_list)),
+        'ss_avg_force_angle': np.mean(np.random.uniform(-5, 5, len(time_list)))
+    })()
+    # print(max(force_err_abs))
+    JMAG.JMAG.add_plots(axeses, dm, title='Test Plot', label='Test', zorder=1, time_list=time_list, sfv=sfv, torque=torque, range_ss=20)
 
     plt.show()
 
 if __name__ == '__main__':
     main()
+    if force_x == 1:
+        print('force_x == 1')
 
 quit()
 

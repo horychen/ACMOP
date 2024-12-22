@@ -1,4 +1,4 @@
-
+import rich
 #禁止在cache时打印 
 #also added to  D:\DrH\bopt-python\codes3\pyrhonen_procedure_as_function.py
 #also added to  D:\DrH\bopt-python\codes3\winding_layout.py
@@ -260,6 +260,9 @@ def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dic
     swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(
         prob, _swarm_data, popsize, 
         fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
+#####    
+    # swarm_data_on_pareto_front = swarm_data_on_pareto_front[228:]       # TODO: 有损修改，需要重新调整结构
+####
     print('[utility_postprocess.py]', len(swarm_data_on_pareto_front), len(swarm_data_on_pareto_front[0]))
 
     # list_of_swarm_data_on_pareto_front.append(swarm_data_on_pareto_front)
@@ -268,7 +271,7 @@ def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dic
     list_alpha_st = [el[0] for el in swarm_data_on_pareto_front]
     list_ripple_sum = [el[-1] for el in swarm_data_on_pareto_front]
     scatter_handle, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = utility_moo.my_2p5d_plot_non_dominated_fronts(\
-        fits, comp=[1,2], \
+        fits, comp=[0,1], \
         marker=marker, up_to_rank_no=1, ax=ax, fig=fig, no_colorbar=True, \
         z_filter=z_filter, label=label, \
         bool_return_auto_optimal_design=True, swarm_data_on_pareto_front=swarm_data_on_pareto_front)
@@ -468,7 +471,7 @@ class SwarmAnalyzer(object):
 
             # 绘制 Pareto front
             sys.stdout = open(os.devnull, 'w')
-            scatter_handle, more_info, auto_optimal_designs_fitnesses = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=16, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+            scatter_handle, more_info, auto_optimal_designs_fitnesses = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=9999999.0, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
             sys.stdout = sys.__stdout__
 
             df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], auto_optimal_designs[0], auto_optimal_designs[1], auto_optimal_designs[2]] # tier 1 size
@@ -712,6 +715,8 @@ class SwarmAnalyzer(object):
             df = pd.DataFrame(data=df_dict, index=['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'Cost', 'disp.PF']).T
         elif 'IM' in selected_specifications[0]:
             df = pd.DataFrame(data=df_dict, index=['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'TRV', 'disp.PF']).T
+        elif 'CPPM' in selected_specifications[0]:
+            df = pd.DataFrame(data=df_dict, index=['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'TRV', 'disp.PF']).T
         elif 'PMVM' in selected_specifications[0]:
             raise Exception('not implemented')
         return df
@@ -942,16 +947,17 @@ def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None, 
 
         # 绘制 Pareto front
         # utility.blockPrint()
-        scatter_handle, more_info, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=40, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+        scatter_handle, more_info, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=30, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
         # utility.enablePrint()
 
         # Save to dictionaries
-        df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], 
-                                    [round(el,1) for el in auto_optimal_designs_fitnesses[0]], 
-                                    [round(el,1) for el in auto_optimal_designs_fitnesses[1]], 
-                                    [round(el,1) for el in auto_optimal_designs_fitnesses[2]]] # tier 1 size
-        optimal_fitness_dict[ad.select_spec] = auto_optimal_designs_fitnesses
-        optimal_xf_dict[ad.select_spec] = auto_optimal_designs_xf
+        if auto_optimal_designs_fitnesses is not None:
+            df_dict[ad.select_spec] = [label, len(ad.analyzer.swarm_data_xf), more_info[0][1], 
+                                [round(el,1) for el in auto_optimal_designs_fitnesses[0]], 
+                                [round(el,1) for el in auto_optimal_designs_fitnesses[1]], 
+                                [round(el,1) for el in auto_optimal_designs_fitnesses[2]]] # tier 1 size
+            optimal_fitness_dict[ad.select_spec] = auto_optimal_designs_fitnesses
+            optimal_xf_dict[ad.select_spec] = auto_optimal_designs_xf
 
         # print(more_info)
         # print(auto_optimal_designs)

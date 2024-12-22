@@ -1,14 +1,19 @@
 ABCDEFGHIJKLMNOPQRSTUVWXYZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 import os
+# import sys
 output_dir = os.path.dirname(__file__) + r'/../_wily/'
+# print(os.path.dirname(__file__))
+# print('hfisdjkfbklrdjfgblkejghbselkfgbsefkljgbsdlkfj',output_dir)
+# print(sys.path)
+
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 print('Output directory is:', output_dir)
 
 # Globals for drawing 
-RADIUS = 8
+RADIUS = 10
 BELT_BIAS = 5 # deg. elec.
-distance_between_label_layers = 1.33 # 1.0, 1.25
+distance_between_label_layers = 1.25 # 1.0, 1.25
 angle_between_arrow_and_label_star_of_slots = 6 # deg
 angle_between_arrow_and_label = 4 # deg
 PLOT_SPACING = 35 # 35
@@ -541,7 +546,7 @@ def winding_short_pitch_factor(h, coil_pitch_y, Q, npp):
     k_ph = np.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)   # if you use this, h/npp = n,         此时h=3，是指极对数为3的谐波。   <- 这是我们要的，
                                                           # 我们要计算气隙中某个极对数的谐波所对应分布绕组和短距绕组，并相乘，所以净极对数(h)要对得上。
                                                           # 换句话说，我们要的是h=3次谐波的短距系数，而不是相对于ps为3次的谐波的短距系数。
-    # coil_pitch_y / (Q/2) * np.pi is the short pitch radian for 1 pole pair field
+    # coil_pitch_y / (Q/2) * np.pi is the short pitch radian for 1 pole pair field 
     # coil_pitch_y / (Q/4) * np.pi is the short pitch radian for 2 pole pair field
     # coil_pitch_y / (Q/(2*npp)) * np.pi is the short pitch radian for npp pole pair field
     # Bb "k_ph = np.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)", you are trying to use the short pitch radian for npp pole pair field to calculate the pitch factor for a h pole pair field.
@@ -927,6 +932,7 @@ def main_derivation():
                                 # (3, 84, 2, 1,21, 0), # Main Gen
                                 # (3, 18, 3, 2, 3, 0), # BSG_WMR
                                 # (15, 30, 2, 3, 10, 0),
+                                # (3, 39, 5, 4, 3, 0), # 丁凯
                                 # (3, 24, 8, 7, 1, 0), # 
                                 # (3, 24, 8, 9, 1, 0), # 
                                 # (3, 24, 8, 11, 1, 0), # 
@@ -1021,7 +1027,7 @@ def main_derivation():
 
         fname = output_dir + 'wily_p%dps%dQ%dy%d'%(wd.p, wd.ps, wd.Q, wd.coil_pitch_y)
 
-        if False:
+        if True:
             ''' ISMB 2021: Produce sub-figure for the paper
             '''
             wd.drawer_T1.cvs.writePDFfile(fname + '_T1')
@@ -1671,10 +1677,13 @@ if __name__ == '__main__':
         phases, signs, grouping_AC, coil_pitch_y = main_derivation()
         quit()
     else:
-        phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
-        signs = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-        grouping_AC = [0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]
-        coil_pitch_y = 5
+        # phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
+        phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
+        # signs = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
+        signs = ['+', '-', '+', '-', '-', '-', '-', '+', '-', '+', '+', '+']
+        # grouping_AC = [0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]
+        grouping_AC = [0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0]
+        coil_pitch_y = 1
 
     diagram = winding_diagram(
         layer_X_phases = phases,

@@ -1,7 +1,8 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
-import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design
-from matplotlib import projections # for part_initialDesign
+
+import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design
+
 from soupsieve import select
 # from codes3.population import VanGogh_JMAG
 import VanGogh_Cairo
@@ -142,10 +143,16 @@ class AC_Machine_Optiomization_Wrapper(object):
             function = vernier_motor_design.vernier_motor_VShapePM_template
         elif 'IM' in self.select_spec:
             function = bearingless_induction_design.bearingless_induction_template
-        elif 'Flux Alternator' in self.select_spec: 
+        elif 'Flux Alternator' in self.select_spec:
             function = flux_alternator_design.flux_alternator_template
-        elif 'FSPM' in self.select_spec: 
+        elif 'FSPM' in self.select_spec:
             function = flux_switching_pm_design.FSPM_template
+        elif 'CPPM' in self.select_spec:
+            function = bearingless_consequentPole_design.bearingless_consequentPole_template
+        elif 'VCPPM' in self.select_spec:
+            function = bearingless_VShapeconsequentPole_design.bearingless_VconsequentPole_template
+        elif 'CSPPM' in self.select_spec:
+            function = bearingless_consequentsinglePole_design.bearingless_consequentsinglePole_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
 
@@ -187,38 +194,37 @@ class AC_Machine_Optiomization_Wrapper(object):
             if specify_counter is None:
                 specify_counter = 'Initial'
             motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm, counter=specify_counter)
+            if False:
+                from pylab import plt, np
+                fig, axes = plt.subplots(4)
+                axes[0].plot(motor_design_variant.analyzer.motor_current_U)
+                axes[0].plot(motor_design_variant.analyzer.motor_current_V)
+                axes[0].plot(motor_design_variant.analyzer.motor_current_W)
+                axes[1].plot(motor_design_variant.analyzer.bearing_current_U)
+                axes[1].plot(motor_design_variant.analyzer.bearing_current_V)
+                axes[1].plot(motor_design_variant.analyzer.bearing_current_W)
+                axes[2].plot(motor_design_variant.analyzer.femm_motor_currents_d)
+                axes[2].plot(motor_design_variant.analyzer.femm_motor_currents_q)
+                axes[3].plot(motor_design_variant.analyzer.femm_motor_fluxLinkage_d)
+                axes[3].plot(motor_design_variant.analyzer.femm_motor_fluxLinkage_q)
 
-            from pylab import plt, np
-            fig, axes = plt.subplots(4)
-            axes[0].plot(motor_design_variant.analyzer.motor_current_U)
-            axes[0].plot(motor_design_variant.analyzer.motor_current_V)
-            axes[0].plot(motor_design_variant.analyzer.motor_current_W)
-            axes[1].plot(motor_design_variant.analyzer.bearing_current_U)
-            axes[1].plot(motor_design_variant.analyzer.bearing_current_V)
-            axes[1].plot(motor_design_variant.analyzer.bearing_current_W)
-            axes[2].plot(motor_design_variant.analyzer.femm_motor_currents_d)
-            axes[2].plot(motor_design_variant.analyzer.femm_motor_currents_q)
-            axes[3].plot(motor_design_variant.analyzer.femm_motor_fluxLinkage_d)
-            axes[3].plot(motor_design_variant.analyzer.femm_motor_fluxLinkage_q)
-
-            fig, axes = plt.subplots(8)
-            axes[0].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.femm_torque)
-            axes[1].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.sfv.force_abs)
-            axes[2].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.sfv.force_x)
-            axes[3].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.sfv.force_y)
-            axes[4].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.femm_energy)
-            axes[5].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_currents)))
-            axes[6].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_voltages)))
-            axes[7].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_fluxLinkages)))
-            plt.show()
-
+                fig, axes = plt.subplots(8)
+                axes[0].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.femm_torque)
+                axes[1].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.sfv.force_abs)
+                axes[2].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.sfv.force_x)
+                axes[3].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.sfv.force_y)
+                axes[4].plot(motor_design_variant.analyzer.femm_time, motor_design_variant.analyzer.femm_energy)
+                axes[5].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_currents)))
+                axes[6].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_voltages)))
+                axes[7].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_fluxLinkages)))
+                plt.show()
 
             print('[acmop.py] Listing analyzer.spec_performance_dict:')
-            try:
-                for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
-                    print('\t', k, v)
-            except:
-                print('[acmop.py] No spec_performance_dict is available.')
+            print (self.ad.acm_template.name)
+            if 'CPPM' in self.ad.acm_template.name:
+                pass
+            # for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
+            #     print('\t', k, v)
 
         else:
 
@@ -270,11 +276,17 @@ class AC_Machine_Optiomization_Wrapper(object):
             toolCairo.draw_doubly_salient(acm_variant)
         elif 'FSPM' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant, bool_draw_whole_model=True, bool_show_pdf=bool_show_pdf)
+        elif 'CPPM' in acm_variant.template.name:
+            toolCairo.draw_cppm(acm_variant, bool_draw_whole_model=True)
+        elif 'VCPPM' in acm_variant.template.name:
+            toolCairo.draw_Vcppm(acm_variant, bool_draw_whole_model=True)
+        elif 'CSPPM' in acm_variant.template.name:
+            toolCairo.draw_csppm(acm_variant, bool_draw_whole_model=True)
         else:
-            raise
+            raise Exception("Nothing to draw. Are you adding a new machine type?????")
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    # '[4] Optimization Part' Multi-Objective Optimization
+    # '[4] Optimization Part' Multi-Objective Optimization0
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def part_optimization(self):
         ad = self.ad
@@ -283,7 +295,10 @@ class AC_Machine_Optiomization_Wrapper(object):
         # [4.1] Get bounds
 
         # [4.3] MOO (need to share global variables to the Problem class)
+        from acm_designer import get_bad_fintess_values
+        import logging, builtins, utility_moo
         logger = logging.getLogger(__name__)
+        import pygmo as pg
         ad.counter_fitness_called = 0
         ad.counter_fitness_return = 0
         builtins.ad = ad # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable
@@ -312,6 +327,7 @@ class AC_Machine_Optiomization_Wrapper(object):
             self.ad.acm_template.build_x_denorm()
             # quit()
             # swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
+            
             number_of_chromosome = ad.analyzer.number_of_chromosome
             # print(number_of_chromosome)
             # quit()
@@ -620,13 +636,13 @@ class AC_Machine_Optiomization_Wrapper(object):
 
 def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
-        # select_spec='IM Q24p1y9 Qr32 Round Bar',
-        # select_fea_config_dict = '#019 JMAG IM Nine Variables',
 
+        # select_spec = 'PMSM Q12p8ps7y4 A',
+        # select_spec = 'CSPPM Q12p5ps1y5 A',
+        # select_spec = 'CSPPM Q24p8ps1y10 A',
         # select_spec = 'PMSM Q12p4y1 PEMD-2020',
-        # select_spec = 'PMSM Q12p5ps4y1 A',
-        # select_spec = 'PMSM Q24p8y1 (with large ripple of suspension force)',
-        # select_spec = "CPPM-24s4pp-ps1-Chiba05",
+        # select_spec = 'PMSM Q12p7ps8y4 A 50e3',# 注意高级对数的高频对铁耗的影响
+        select_spec = "CPPM-24s4pp-ps1-Chiba05",
         # select_spec = "CPPM-24s16pp-ps1-RippleRedunction",
         # select_spec = "CPPM-24s20pp-ps1-RippleRedunction",
         # select_spec = "CPPM-24s40pp-ps1-RippleRedunction",
@@ -634,7 +650,7 @@ def main(number_which_part):
         # select_spec = "VCPPM-24s4pp-ps1-Chiba05",
         # select_spec = "VCPPM-6s4pp-ps1-heartbeta",
 
-        select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
+        # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
         # select_spec            = 'PMSM Q24p1y9 PEMD', # 
         # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
         # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
@@ -666,7 +682,7 @@ def main(number_which_part):
         # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
         # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
         project_loc            = fr'../_default/',
-        bool_show_GUI          = False
+        bool_show_GUI          = True
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -700,8 +716,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # main(31)
-    # main(3)
-    main(4)
+    main(3)
+    # main(4)
     # main(5)
 
 
@@ -813,3 +829,43 @@ def examples_from_the_publications(bool_post_processing=True):
         else:
             # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
             mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5
+
+
+
+if False:
+    # select_spec='IM Q24p1y9 Qr32 Round Bar',
+    # select_fea_config_dict = '#019 JMAG IM Nine Variables',
+
+    # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
+    # select_spec            = 'PMSM Q24p1y9 PEMD', # 
+    # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
+    # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
+
+    # select_spec= 'Flux Alternator 1955',
+
+    # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype", # r_ro ~= 80 mm
+    # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test", # r_ro ~= 80 mm
+    # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-p14ps13pe12", # r_ro ~= 80 mm
+
+    # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test", # small rotor outer diameter
+    # select_spec= "FSPM-24s22pp-50W-400RPM-100Pa-Huge",
+
+    # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
+    # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-24s20pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-24s28pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-12s28pp-50W-400RPM-6000Pa-Test",
+        # select_spec= "FSPM-12s20pp-50W-400RPM-6000Pa-Test",
+        # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
+        # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
+
+    select_spec= "CPPM-24s4pp-ps1-Chiba05",
+
+    select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
+    # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
+
+        # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
+        # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples 2 (free tooth tip depth and fix sleeve length)",
+        # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
+        # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
+

@@ -1811,7 +1811,6 @@ class swarm(object):
         mpl.rcParams['font.family'] = ['serif'] # default is sans-serif
         mpl.rcParams['font.serif'] = ['Times New Roman']
 
-        # color and alpha
         # Freq-FFVRC
         # rotor current
 
@@ -1823,7 +1822,6 @@ class swarm(object):
         basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list = dm.unpack()
         end_time = time_list[-1]
 
-        ax = axes[0]; ax.plot(time_list, TorCon_list, alpha=0.7, label=study_name); ax.set_xlabel('Time [s]'); ax.set_ylabel('Torque [Nm]')
         ax = axes[1]; ax.plot(time_list, ForConX_list, alpha=0.7, label=study_name+'-X'); ax.plot(time_list, ForConY_list, alpha=0.7, label=study_name+'Y'); ax.set_xlabel('Time [s]'); ax.set_ylabel('Force [N]')
         ax.plot(time_list, ForConAbs_list, alpha=0.7, label=study_name+'-Abs')
 
