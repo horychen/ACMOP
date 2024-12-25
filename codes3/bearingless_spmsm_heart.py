@@ -51,6 +51,15 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # Get Analytical Design
         self.Bianchi2006(fea_config_dict, SI, GP, EX)
 
+        if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
+            self.d['GP']['mm_d_pm'].type = "fixed"
+            self.d['GP']['mm_d_ri'].type = "fixed"
+            self.d['GP']['mm_r_ri'].type = "fixed"
+            self.d['GP']['deg_alpha_rm'].type = "fixed"
+            self.d['GP']['mm_r_so'].type = "fixed"
+            self.d['GP']['split_ratio'].type = "fixed"
+            self.d['GP']['mm_d_sleeve'].type = "fixed"
+        
         # 定义搜索空间，determine bounds 
         original_template_neighbor_bounds = self.get_template_neighbor_bounds()
         self.bounds_denorm = self.define_search_space(GP, original_template_neighbor_bounds)
@@ -95,7 +104,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # A = sigma_Tangential/(0.5*air_gap_flux_density_Bg*PF*np.sqrt(2))
 
         sleeve_length = 1.25
-        stator_outer_diameter_Dse = 0.140 # this is related to the stator current density and should be determined by Js and power.
+        stator_outer_diameter_Dse = 0.100 # this is related to the stator current density and should be determined by Js and power.
         delta_0 = SI['minimum_mechanical_air_gap_length_mm']
         B_max = np.pi * air_gap_flux_density_Bg / (4 * np.sin(np.pi * alpha_pm / 2))
 
@@ -124,7 +133,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # rotor
         GP['mm_r_ri'].value              = SI['mm_radius_shaft']
         GP['mm_r_ro'].value              = SI['mm_PM_outer_radius']
-        GP['mm_d_pm'].value              = 4  # mm
+        GP['mm_d_pm'].value              = SI['mm_d_pm']  # mm
         GP['mm_d_ri'].value              = GP['mm_r_ro'].value - GP['mm_d_pm'].value- GP['mm_r_ri'].value
         
         # interpolar specifications
@@ -229,7 +238,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         original_template_neighbor_bounds = {
             # STATOR
             "deg_alpha_st": [ 0.35*360/Q, 0.9*360/Q],
-            "mm_d_sto":      [  0.5,   5],
+            "mm_d_sto":      [  0.5,   2],
             "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
             # "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value],
@@ -238,7 +247,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_sleeve":  [3,   6],
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30>)")
-            # Yusuke说split ratio有一个经验值？是的 他选的是
+            # Yusuke说split ratio有一个经验值？是的 他选的是1:7???
             "mm_d_pm":      [2.5, 7],
             "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],
             # SPMSM specific
@@ -248,6 +257,9 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_rs":      [2.5,   6]
             # TODO: Magnetic air gap widen: (0, 0.29)
         }
+        # for k,v in original_template_neighbor_bounds.items(): print('\t', k,v)
+        # for k,v in GP: print('\t', k,v)
+        # quit()
         return original_template_neighbor_bounds
 
     """ Obsolete feature """
