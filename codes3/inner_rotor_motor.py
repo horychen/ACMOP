@@ -3,7 +3,7 @@ import pyrhonen_procedure_as_function, winding_layout
 import numpy as np
 import logging
 import utility
-from utility import acmop_parameter, EPS
+from utility import acmop_parameter
 from time import time as clock_time
 from collections import OrderedDict, namedtuple
 
@@ -17,9 +17,9 @@ def derive_mm_r_si(GP,SI):
     # GP       ['mm_r_si'].value = GP['mm_r_so'].value * GP['split_ratio'].value
     # return GP['mm_r_si'].value
 
-        # (option 2) depends on d_sy (which is bad, as d_sy is also derived) and r_os
-        # GP['mm_r_si'].value = GP['mm_r_so'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_stt'].value
-        # return GP['mm_r_si'].value
+    # (option 2) depends on d_sy (which is bad, as d_sy is also derived) and r_os
+    # GP['mm_r_si'].value = GP['mm_r_so'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_stt'].value
+    # return GP['mm_r_si'].value
 
     # (option 3) depends on r_or and air gap length
     GP       ['mm_r_si'].value = GP['mm_r_ro'].value + GP['mm_d_sleeve'].value + GP['mm_d_mech_air_gap'].value
@@ -52,7 +52,6 @@ def derive_mm_r_so(GP,SI):
     # (option 2)
     GP['mm_r_so'].value = GP['mm_r_si'].value / GP['split_ratio'].value
     return GP['mm_r_so'].value
-
 
 def derive_mm_r_ro(GP,SI):
     GP       ['mm_r_ro'].value = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value
@@ -216,6 +215,9 @@ class template_machine_as_numbers(object):
             EX['WindingFill']       = SI['WindingFill'] # SI['space_factor_kCu'] is obsolete
             # MOTOR Winding Excitation Properties
             # EX['RotorPoleNumber']   = SI['number_of_rotor_pole_pairs']*2 # this will be overwritten in template
+            # print(GP['mm_r_ro'].value*2*1e-3)
+            # print(GP['mm_r_si'].value*2*1e-3)
+            # quit()
             EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_ro'].value*2*1e-3, specified_mm_stack_length=specified_mm_stack_length) # TODO:
 
             EX['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SI) # TODO:

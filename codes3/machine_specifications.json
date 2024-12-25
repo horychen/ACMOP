@@ -1,4 +1,46 @@
 {
+    "PMSM Q12p4ps5y1 Heart": {
+        "Inputs": {
+            "minimum_mechanical_air_gap_length_mm": 0.75,
+            "guess_air_gap_flux_density_Bg": 0.9,
+            "guess_stator_tooth_flux_density_Bst": 1.5,
+            "guess_stator_yoke_flux_density_Bsy": 1.2,
+            "machine_type": "PMSM",
+            "DPNV_or_SEPA": true,
+            "m": 3,
+            "Qs": 12,
+            "p": 4,
+            "number_of_rotor_pole_pairs": 4,
+            "ps": 5,
+            "coil_pitch_y": 1,
+            "mec_power": 75,
+            "ExcitationFreqSimulated": 113.33,
+            "VoltageRating": 36,
+            "TangentialStress": 6000,
+            "Steel": "M19Gauge29",
+            "lamination_stacking_factor_kFe": 0.95,
+            "Coil": "Cu",
+            "space_factor_kCu": 0.5,
+            "Js": 4e6,
+            "Temperature": 75,
+            "WindingFill": 0.3882,  
+            "AWG": 26,
+            "guess_efficiency": 0.95,
+            "guess_power_factor": 0.8,
+            "no_segmented_magnets": 1,
+            "tip_speed": 20,
+            "mm_radius_shaft": 20,
+            "mm_PM_inner_radius": 33.5,
+            "mm_PM_outer_radius": 37.5,
+            "mm_d_pm": 4,
+            "mm_stack_length": 10,
+            "safety_factor_to_yield": "None",
+            "safety_factor_to_critical_speed": 1.5,
+            "bool_skew_stator": false,
+            "bool_skew_rotor": false
+        }
+    },
+    
     "CSPPM Q24p8ps1y10 A": {
         "Inputs": {
             "minimum_mechanical_air_gap_length_mm": 0.5,

@@ -1,7 +1,7 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 # Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
 
-import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design
+import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design, bearingless_spmsm_heart
 
 from soupsieve import select
 # from codes3.population import VanGogh_JMAG
@@ -139,6 +139,8 @@ class AC_Machine_Optiomization_Wrapper(object):
     def part_initialDesign(self):
         if 'PMSM' in self.select_spec:
             function = bearingless_spmsm_design.bearingless_spmsm_template
+            if 'Heart' in self.select_spec:
+                function = bearingless_spmsm_heart.bearingless_spmsm_template
         elif 'PMVM' in self.select_spec:
             function = vernier_motor_design.vernier_motor_VShapePM_template
         elif 'IM' in self.select_spec:
@@ -148,7 +150,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         elif 'FSPM' in self.select_spec:
             function = flux_switching_pm_design.FSPM_template
         elif 'CPPM' in self.select_spec:
-            function = bearingless_consequentPole_design.bearingless_consequentPole_template
+            function = bearingless_consequentPole_design.bearingless_conszequentPole_template
         elif 'VCPPM' in self.select_spec:
             function = bearingless_VShapeconsequentPole_design.bearingless_VconsequentPole_template
         elif 'CSPPM' in self.select_spec:
@@ -642,7 +644,8 @@ def main(number_which_part):
         # select_spec = 'CSPPM Q24p8ps1y10 A',
         # select_spec = 'PMSM Q12p4y1 PEMD-2020',
         # select_spec = 'PMSM Q12p7ps8y4 A 50e3',# 注意高级对数的高频对铁耗的影响
-        select_spec = "CPPM-24s4pp-ps1-Chiba05",
+        # select_spec = "CPPM-24s4pp-ps1-Chiba05",
+        select_spec = "PMSM Q12p4ps5y1 Heart",
         # select_spec = "CPPM-24s16pp-ps1-RippleRedunction",
         # select_spec = "CPPM-24s20pp-ps1-RippleRedunction",
         # select_spec = "CPPM-24s40pp-ps1-RippleRedunction",

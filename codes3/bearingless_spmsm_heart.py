@@ -3,7 +3,7 @@ import logging
 from collections import OrderedDict
 from utility import acmop_parameter
 from pylab import np
-from pprint import pprintk
+# from pprint import pprintk
 
 import CrossSectInnerNotchedRotor
 import CrossSectStator
@@ -47,7 +47,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_r_ri"           : acmop_parameter("derived",  "rotor_inner_radius",            None, [None, None], lambda GP,SI:derive_mm_r_ri(GP,SI)),
         })
         GP.update(childGP)
-
+        
         # Get Analytical Design
         self.Bianchi2006(fea_config_dict, SI, GP, EX)
 
@@ -73,6 +73,8 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         stator_tooth_flux_density_Bst = SI['guess_stator_tooth_flux_density_Bst'] # 1.5 T
         stator_yoke_flux_density_Bsy = SI['guess_stator_yoke_flux_density_Bsy'] # 1.2 T Table 6.1 Design of Rotating Electrical Machines
         PF = SI['guess_power_factor']
+        # print(SI)
+        # quit()
         lef = SI['mm_stack_length']
         alpha_pm = 0.80
         GP['mm_r_ri'].value              = SI['mm_radius_shaft']
@@ -90,16 +92,20 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         Q = SI['Qs']
         p = SI['p']
         # select the linear current density if needed
-        A = sigma_Tangential/(0.5*air_gap_flux_density_Bg*PF*np.sqrt(2))
+        # A = sigma_Tangential/(0.5*air_gap_flux_density_Bg*PF*np.sqrt(2))
 
-        sleeve_length = 3
+        sleeve_length = 1.25
         stator_outer_diameter_Dse = 0.140 # this is related to the stator current density and should be determined by Js and power.
         delta_0 = SI['minimum_mechanical_air_gap_length_mm']
         B_max = np.pi * air_gap_flux_density_Bg / (4 * np.sin(np.pi * alpha_pm / 2))
 
-        rotor_outer_radius_r_or = SI['mm_radius_shaft'] + SI['selected_PM_inner_radius'] + SI['mm_d_pm']
+        rotor_outer_radius_r_or = SI['mm_PM_inner_radius'] + SI['mm_d_pm']
+        # print(rotor_outer_radius_r_or)
+        # quit()
         rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
-        stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SI['minimum_mechanical_air_gap_length_mm'])*1e-3 # m (sleeve 3 mm, air gap 0.75 mm)
+        stator_inner_radius_r_is  = rotor_outer_radius_r_or*1e-3 + (sleeve_length+SI['minimum_mechanical_air_gap_length_mm'])*1e-3 # m (sleeve 1.25 mm, air gap 0.75 mm)
+        # print(stator_inner_radius_r_is)
+        # quit()
         stator_inner_diameter_Dis = stator_inner_radius_r_is*2
         split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
 
@@ -118,16 +124,20 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # rotor
         GP['mm_r_ri'].value              = SI['mm_radius_shaft']
         GP['mm_r_ro'].value              = SI['mm_PM_outer_radius']
-        GP['mm_d_ri'].value              = GP['mm_r_ro'].value - GP['mm_r_ri'].value
         GP['mm_d_pm'].value              = 4  # mm
+        GP['mm_d_ri'].value              = GP['mm_r_ro'].value - GP['mm_d_pm'].value- GP['mm_r_ri'].value
+        
         # interpolar specifications
         GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
         GP['mm_d_rp'].value              = 3  # mm
         GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SI['no_segmented_magnets']
         GP['mm_d_rs'].value              = 0.20*GP['mm_d_rp'].value # d_pm > d_rp and d_pm > d_rs
+
         # Airgap
         GP['mm_d_sleeve'].value          = sleeve_length
         GP['mm_d_mech_air_gap'].value    = SI['minimum_mechanical_air_gap_length_mm']
+        GP['split_ratio'].value          = split_ratio
+        
         # stator
         GP['deg_alpha_st'].value         = 360/Q - 2 # deg
         GP['deg_alpha_sto'].value         = GP['deg_alpha_st'].value/2

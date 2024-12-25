@@ -1793,10 +1793,11 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
     # print(stator_inner_diameter_Dis, rotor_outer_diameter_Dr, air_gap_length_delta)
     # quit()
     stack_length_eff = mm_stack_length*1e-3 + 2 * air_gap_length_delta
-    # print(stack_length, 2 * air_gap_length_delta)
-
+    # print(mm_stack_length, 2 * air_gap_length_delta)
+    # quit()
     air_gap_flux_Phi_m = alpha_i * guess_air_gap_flux_density_Bg * pole_pitch_tau_p * stack_length_eff
     # print(alpha_i, guess_air_gap_flux_density_Bg,  pole_pitch_tau_p,  stack_length_eff)
+    # quit()
 
     no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi*SI['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
     print(sqrt(2)*desired_emf_Em , SI['ExcitationFreqSimulated'], kw1,  air_gap_flux_Phi_m)
