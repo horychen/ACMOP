@@ -242,7 +242,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
             # "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
             "mm_d_sy":      [1.0*GP['mm_d_sy'].value, 1.2*GP['mm_d_sy'].value],
-            "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
+            "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.4*GP['mm_w_st'].value],
             # ROTOR
             "mm_d_sleeve":  [3,   6],
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
@@ -262,7 +262,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # quit()
         return original_template_neighbor_bounds
 
-    """ Obsolete feature """
+    """ Obsolete feature """ 
     def build_design_parameters_list(self):
         GP = self.d['GP']
         SI = self.SI
