@@ -77,7 +77,7 @@ class bearingless_induction_template(inner_rotor_motor.template_machine_as_numbe
                 GP['mm_d_mech_air_gap'].value    = sgd['Length_AirGap']
                 GP['split_ratio'].value          = split_ratio
                 GP['mm_r_ro'].value              = 1e3*rotor_outer_radius_r_or
-                GP['mm_r_ri'].value              = sgd['Radius_Shaft']
+                # GP['mm_r_ri'].value              = sgd['Radius_Shaft']
                 # BLIM specific
                 GP['mm_d_ro'].value              = sgd['Length_HeadNeckRotorSlot']
                 GP['mm_w_rt'].value              = sgd['rotor_tooth_width_b_dr']

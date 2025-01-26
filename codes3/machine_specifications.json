@@ -2594,6 +2594,45 @@
 
 
 
+    "SliceIM Q12p4ps5y1-Qr10":
+    {
+        "Inputs":
+        {
+            "machine_type":                         "IM",
+            "PS_or_SC":                             true,
+            "DPNV_or_SEPA":                         true,
+            "m":                                    3,
+            "p":                                    4,
+            "ps":                                   5,
+            "coil_pitch_y":                         1,
+            "mec_power":                            1e3,
+            "ExcitationFreqSimulated":              100,
+            "VoltageRating":                        360,
+            "TangentialStress":                     12000,
+            "Qs":                                   12,
+            "Qr":                                   10,
+            "Js":                                   4e6,
+            "Jr":                                   5e6,
+            "Steel":                                "M19Gauge29",
+            "lamination_stacking_factor_kFe":       0.95,
+            "Coil":                                 "Cu",
+            "Conductor":                            "Cu",
+            "space_factor_kAl":                     1.0,
+            "Temperature":                          75,
+            "WindingFill":                          0.3882,
+            "AWG":                                  25,
+            "stator_tooth_flux_density_B_ds":       1.4,
+            "rotor_tooth_flux_density_B_dr":        1.5,
+            "stator_yoke_flux_density_Bys":         1.2,
+            "rotor_yoke_flux_density_Byr":          1.4,
+            "guess_air_gap_flux_density_Bg":        0.8,
+            "guess_efficiency":                     0.95,
+            "guess_power_factor":                   0.7,
+            "use_drop_shape_rotor_bar":             false,
+            "bool_skew_stator":                     false,
+            "bool_skew_rotor":                      false
+        }
+    },
 
     "IM Q24p1y9 Qr30-FSW Round Bar EquivDoubleLayer TEST":
     {
@@ -3174,10 +3213,6 @@
             "bool_skew_rotor":                      false
         }
     },
-
-
-
-
 
 
 

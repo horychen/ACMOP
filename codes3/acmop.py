@@ -1,31 +1,15 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
-# Please use shortcut "ctrl+k,ctrl+2" to fold the code for better navigation
-
-import os, json, acm_designer, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design, bearingless_spmsm_heart
-
-from soupsieve import select
-# from codes3.population import VanGogh_JMAG
-import VanGogh_Cairo
+import os, json, acm_designer, VanGogh_Cairo, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design, bearingless_spmsm_heart
 from dataclasses import dataclass
-from collections import OrderedDict
-from acm_designer import get_bad_fintess_values
-import logging, builtins, utility_moo
-import pygmo as pg
-
 @dataclass
 class AC_Machine_Optiomization_Wrapper(object):
     ''' Inputs
     '''
-    # A. select FEA setting
-    select_fea_config_dict: str
-    # B. select design specification
-    select_spec: str
-    # C. decide output directory (initialize either one)
-    project_loc: str = None
+    select_fea_config_dict: str     # A. select FEA setting
+    select_spec: str    # B. select design specification
+    project_loc: str = None    # C. decide output directory (initialize either one)
     path2SwarmData: str = None
-    # D. this is up to you
-    bool_show_GUI: bool = False
-
+    bool_show_GUI: bool = False    # D. this is up to you
     ''' Derived
     '''
     spec_input_dict: dict = None
@@ -67,10 +51,6 @@ class AC_Machine_Optiomization_Wrapper(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def part_winding(self):
         import winding_layout, PyX_Utility, math # for part_winding
-
-        # wily = winding_layout.winding_layout_v2(DPNV_or_SEPA=False, Qs=24, p=2, ps=1)
-        # wily = winding_layout.winding_layout_v2(DPNV_or_SEPA=True, Qs=24, p=2, ps=1, coil_pitch_y=6)
-        # wily = winding_layout.winding_layout_v2(DPNV_or_SEPA=True, Qs=24, p=1, ps=2, coil_pitch_y=9)
         wily = winding_layout.winding_layout_v2(DPNV_or_SEPA=self.spec_input_dict['DPNV_or_SEPA'], 
                                                 Qs=self.spec_input_dict['Qs'], 
                                                 p=self.spec_input_dict['p'], 
@@ -112,11 +92,11 @@ class AC_Machine_Optiomization_Wrapper(object):
 
             u = PyX_Utility.PyX_Utility()
             draw_winding_in_the_slot(u, wily.Qs, wily.list_layer_motor_phases, wily.list_layer_motor_signs, text=' Motor Mode' )
-            u.cvs.writePDFfile(mop.output_dir + 'pyx_output_M')
+            u.cvs.writePDFfile(self.path2SwarmData + 'part_winding_pyx_output_M')
 
             u = PyX_Utility.PyX_Utility()
             draw_winding_in_the_slot(u, wily.Qs, wily.list_layer_suspension_phases, wily.list_layer_suspension_signs, text=' Suspension Mode' )
-            u.cvs.writePDFfile(mop.output_dir + 'pyx_output_S')
+            u.cvs.writePDFfile(self.path2SwarmData + 'part_winding_pyx_output_S')
             # u.cvs.writeSVGfile(r'C:\Users\horyc\Desktop\pyx_output')
             # u.cvs.writeEPSfile(r'C:\Users\horyc\Desktop\pyx_output')
             # quit()
@@ -128,9 +108,9 @@ class AC_Machine_Optiomization_Wrapper(object):
             turns_per_layer = zQ / wily.number_winding_layer
             U_phase = winding_layout.PhaseWinding(wily.Qs, wily.m, turns_per_layer, wily.ox_distribution_phase_U)
             U_phase.plotFuncObj(U_phase.winding_func)
-            U_phase.fig_plotFuncObj.savefig(mop.output_dir + 'winding_function.png')
+            U_phase.fig_plotFuncObj.savefig(self.path2SwarmData + 'part_winding_winding_function.png')
             U_phase.plot2piFft(U_phase.winding_func, Fs=1/(2*np.pi/3600), L=32000*2**4) # 在2pi的周期内取360个点
-            U_phase.fig_plot2piFft.savefig(mop.output_dir + 'winding_function_·.png')
+            U_phase.fig_plot2piFft.savefig(self.path2SwarmData + 'part_winding_winding_function_·.png')
             plt.show()
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
@@ -157,7 +137,6 @@ class AC_Machine_Optiomization_Wrapper(object):
             function = bearingless_consequentsinglePole_design.bearingless_consequentsinglePole_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
-
         self.ad = acm_designer.acm_designer(
                     self.select_spec, 
                     self.spec_input_dict, 
@@ -165,7 +144,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                     self.fea_config_dict, 
                     acm_template=acm_template,
                 )
-        
+
         # if self.ad.analyzer.swarm_data_xf == None:
         #     raise Exception('No swarm data is available.')
         # if self.ad.analyzer.swarm_data_project_names == None:
@@ -188,7 +167,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         else:
             x_denorm = specify_x_denorm
         print('[acmop.py] x_denorm:',  x_denorm)
-        print('[acmop.py] x_denorm_dict:', self.ad.acm_template.x_denorm_dict)
+        # print('[acmop.py] x_denorm_dict:', self.ad.acm_template.x_denorm_dict)
 
         if True:
             ''' Default transient FEA
@@ -580,7 +559,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         _ = self.ad.evaluate_design_json_wrapper(self.acm_template, x_denorm, counter=self.ad.counter_fitness_called)
 
     @staticmethod
-    def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2SwarmData=None, bool_post_processing=False):
+    def load_settings(select_spec, select_fea_config_dict, project_loc=None, path2SwarmData=None):
         __file__dirname_as_in_python39 = os.path.dirname(os.path.abspath(__file__))
 
         with open((__file__dirname_as_in_python39)+'/machine_specifications.json', 'r') as f:
@@ -590,7 +569,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
         spec_input_dict = raw_specs[select_spec]['Inputs']
         fea_config_dict = raw_fea_config_dicts[select_fea_config_dict]
-        fea_config_dict['bool_post_processing'] = bool_post_processing
+        # fea_config_dict['bool_post_processing'] = bool_post_processing
 
         # import where_am_i
         # where_am_i.where_am_i_v2(fea_config_dict, bool_post_processing)
@@ -638,52 +617,10 @@ class AC_Machine_Optiomization_Wrapper(object):
 
 def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
-
-        # select_spec = 'PMSM Q12p8ps7y4 A',
-        # select_spec = 'CSPPM Q12p5ps1y5 A',
-        # select_spec = 'CSPPM Q24p8ps1y10 A',
-        # select_spec = 'PMSM Q12p4y1 PEMD-2020',
-        # select_spec = 'PMSM Q12p7ps8y4 A 50e3',# 注意高级对数的高频对铁耗的影响
-        # select_spec = "CPPM-24s4pp-ps1-Chiba05",
-        select_spec = "PMSM Q12p4ps5y1 Heart",
-        # select_spec = "CPPM-24s16pp-ps1-RippleRedunction",
-        # select_spec = "CPPM-24s20pp-ps1-RippleRedunction",
-        # select_spec = "CPPM-24s40pp-ps1-RippleRedunction",
-        # select_spec = "CPPM-24s8pp-ps1-RippleRedunction",
-        # select_spec = "VCPPM-24s4pp-ps1-Chiba05",
-        # select_spec = "VCPPM-6s4pp-ps1-heartbeta",
-
-        # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
-        # select_spec            = 'PMSM Q24p1y9 PEMD', # 
-        # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
-        # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-
-        # select_spec= 'Flux Alternator 1955',
-
-        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype", # r_ro ~= 80 mm
-        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test", # r_ro ~= 80 mm
-        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-p14ps13pe12", # r_ro ~= 80 mm
-
-        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test", # small rotor outer diameter
-        # select_spec= "FSPM-24s22pp-50W-400RPM-100Pa-Huge",
-
-        # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
-        # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
-            # select_spec= "FSPM-24s20pp-50W-400RPM-6000Pa-Test",
-            # select_spec= "FSPM-24s28pp-50W-400RPM-6000Pa-Test",
-            # select_spec= "FSPM-12s28pp-50W-400RPM-6000Pa-Test",
-            # select_spec= "FSPM-12s20pp-50W-400RPM-6000Pa-Test",
-            # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
-            # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
-
-        # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples 2 (free tooth tip depth and fix sleeve length)",
-        # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
-        # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
-        # select_fea_config_dict = "#0211 JMAG PMSM Q12p4ps5 Sub-hamonics (FixedSleeveLength)",
-        select_fea_config_dict=    "#0213 JMAG PMSM Q12p4ps5 Sub-hamonics(Fixed Airgap and Fixed PM Depth)",
-        # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
-        # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
-        # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
+        # select_spec = "PMSM Q12p4ps5y1 Heart",
+        # select_fea_config_dict=    "#0213 JMAG PMSM Q12p4ps5 Sub-hamonics(Fixed Airgap and Fixed PM Depth)",
+        select_spec = "SliceIM Q12p4ps5y1-Qr10",
+        select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
         project_loc            = fr'../_default/',
         bool_show_GUI          = True
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
@@ -718,14 +655,12 @@ def main(number_which_part):
     return mop
 
 if __name__ == '__main__':
-    # main(31)
-    # main(3)
-    main(4)
-    # main(5)
+    # mop = main(1)
+    # mop = main(31)
+    mop = main(3)
+    # mop = main(4)
+    # mop = main(5)
 
-
-
-if __name__ == '__main__':
     ''' Interactive variable checking examples:
 
         Example 1:
@@ -756,119 +691,3 @@ if __name__ == '__main__':
             >>> index, _ = utility.get_index_and_min(np.abs(z - z_in_question))
             >>> plt.plot(np.abs(var.analyzer.b[:,index])); plt.show() 
     '''
-
-def examples_from_the_publications(bool_post_processing=True):
-    # Vernier Machine
-    # mop = AC_Machine_Optiomization_Wrapper(
-    #         select_fea_config_dict = "#03 JMAG Non-Bearingless Motor Evaluation Setting",
-    #         select_spec            = "PMVM p2pr10-Q12y3 Wenbo",
-    #         project_loc            = r'D:/DrH/acmop/_WenboVShapeVernier/'
-    #     )
-
-    # TEC-ISMB-2021
-        # select_spec = "IM Q24p1y9 A"
-        # select_spec = "IM Q24p1y9 Qr32"
-        # select_spec = "IM Q24p2y6 Qr32"
-        # select_spec = "IM Q24p2y6 Qr16"
-        # select_spec = "IM Q36p3y5ps2 Qr20-FSW Round Bar"
-        # select_spec = "IM Q36p3y5ps2 Qr24-ISW Round Bar"
-        # select_spec = "IM Q36p3y5ps2 Qr20-FSW Round Bar Separate Winding"
-        # select_spec = "IM Q36p3y5ps2 Qr24-ISW Round Bar Separate Winding"
-        # select_spec = "IM Q24p1y9 Qr14 Round Bar"
-        # select_spec = "IM Q24p1y9 Qr16 Round Bar"
-        # select_spec = "IM p2ps3Qs18y4 Qr30-FSW Round Bar EquivDoubleLayer"
-        # select_spec = "IM p2ps3Qs24y5 Qr18 Round Bar EquivDoubleLayer"
-    # TIA-IEMDC-ECCE-2020
-        # select_spec = "IM Q24p1y9 A"
-        # select_spec = "IM Q24p1y9 Qr32"
-        # select_spec = "IM Q24p2y6 Qr32"
-        # select_spec = "IM Q24p2y6 Qr16"
-        # select_spec = "IM Q24p1y9 Qr32 Round Bar" # RevisionInNov: rev2 reviewer 1
-        # select_spec = "IM Q24p1y9 Qr16 Round Bar" # Prototype
-    mop = AC_Machine_Optiomization_Wrapper(
-            select_fea_config_dict = "#019 JMAG IM Nine Variables",
-            select_spec            = 'IM p2ps3Qs18y4 Qr30-FSW Round Bar EquivDoubleLayer',
-            project_loc            = r'D:/DrH/acmop/_default/'
-        )
-
-    # PEMD 2020 paper 
-        # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting'
-        # select_fea_config_dict = '#021   PMSM Re-evaluation wo/ CSV Setting'
-        # select_fea_config_dict = "#0210 JMAG PMSM Re-evaluation wo/ CSV Setting Q12p4ps5 Sub-hamonics"
-        # select_spec =  "PMSM Q06p1y2 A"            # [ './spec_PEMD_BPMSM_Q6p1.py',
-        # select_spec =  "PMSM Q06p2y1 A"            #   './spec_ECCE_PMSM_Q6p2.py',
-        # select_spec =  "PMSM Q12p1y5 A"            #   './spec_PEMD_BPMSM_Q12p1.py',
-        # select_spec =  "PMSM Q12p2y3 A"            #   './spec_PEMD_BPMSM_Q12p2.py',
-        # select_spec =  "PMSM Q12p4y1 A"            #   './spec_PEMD_BPMSM_Q12p4.py',
-        # select_spec =  "PMSM Q24p1y9 A"            #   './spec_PEMD_BPMSM_Q24p1.py'],
-    # mop = AC_Machine_Optiomization_Wrapper(
-    #         select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-    #         select_spec            = 'PMSM Q12p1y5 A',
-    #         project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p1y5_restart_from_optimal_and_reevaluate_wo_csv/',
-    #         bool_show_GUI         = True
-    #     )
-    # mop = AC_Machine_Optiomization_Wrapper(
-    #         select_fea_config_dict = '#0211 JMAG PMSM Q12p4ps5 Sub-hamonics',
-    #         select_spec            = 'PMSM Q12p4y1 A',
-    #         # project_loc            = fr'{os.path.dirname(__file__)}/_default/',
-    #         project_loc = fr'{os.path.dirname(__file__)}/_PEMD_2020_swarm_data_collected\_Q12p4y1_restart_from_optimal_and_reevaluate_wo_csv_Subharmonics/',
-    #         bool_show_GUI         = True
-    #     )
-
-
-    #########################
-    # Call the five modules
-    #########################
-
-    # mop.part_winding() # Module 1
-    # acm_template = mop.part_initialDesign() # Module 2 (moved to __post_init__)
-
-    if not bool_post_processing:
-        mop.part_evaluation() # Module 3
-        # mop.part_optimization(acm_template) # Module 4
-    else:
-        if False:
-            mop.reproduce_design_from_jsonpickle('p2ps1-Q12y3-0999')
-        else:
-            # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
-            mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5
-
-
-
-if False:
-    # select_spec='IM Q24p1y9 Qr32 Round Bar',
-    # select_fea_config_dict = '#019 JMAG IM Nine Variables',
-
-    # select_spec            = 'PMSM Q12p4y1 PEMD-2020', #
-    # select_spec            = 'PMSM Q24p1y9 PEMD', # 
-    # select_fea_config_dict = '#04 FEMM PMSM Evaluation Setting',
-    # select_fea_config_dict = '#02 JMAG PMSM Evaluation Setting',
-
-    # select_spec= 'Flux Alternator 1955',
-
-    # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Prototype", # r_ro ~= 80 mm
-    # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test", # r_ro ~= 80 mm
-    # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-p14ps13pe12", # r_ro ~= 80 mm
-
-    # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test", # small rotor outer diameter
-    # select_spec= "FSPM-24s22pp-50W-400RPM-100Pa-Huge",
-
-    # select_spec= "FSPM-12s10pp-50W-400RPM-6000Pa-Test",
-    # select_spec= "FSPM-24s22pp-50W-400RPM-6000Pa-Test",
-        # select_spec= "FSPM-24s20pp-50W-400RPM-6000Pa-Test",
-        # select_spec= "FSPM-24s28pp-50W-400RPM-6000Pa-Test",
-        # select_spec= "FSPM-12s28pp-50W-400RPM-6000Pa-Test",
-        # select_spec= "FSPM-12s20pp-50W-400RPM-6000Pa-Test",
-        # select_spec="FSPM-6s14pp-50W-400RPM-6000Pa-Test",
-        # select_spec="FSPM-6s8pp-50W-400RPM-6000Pa-Test",
-
-    select_spec= "CPPM-24s4pp-ps1-Chiba05",
-
-    select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting",
-    # select_fea_config_dict = "#02x JMAG PMSM Evaluation Setting (zero torque)",
-
-        # select_fea_config_dict = "#02 JMAG PMSM Evaluation Setting (free tooth tip depth)",
-        # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples 2 (free tooth tip depth and fix sleeve length)",
-        # select_fea_config_dict = "#02 JMAG PMSM Optimize Ripples (free tooth tip depth and fix sleeve length)",
-        # select_fea_config_dict = "#029 JMAG PMSM No-load EMF",
-

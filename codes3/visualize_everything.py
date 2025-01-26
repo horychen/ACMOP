@@ -131,6 +131,10 @@ if __name__ == '__main__':
         _, list_specifications, _ = next(os.walk(path2project))
         selected_specifications = st.multiselect(label="[User] Select folder(s):", options=list_specifications, default=None, key='2.selected_specifications')
 
+        select_spec = 'PMSM Q12p4ps5y1 Heart'
+        select_fea_config_dict = '#0213 JMAG PMSM Q12p4ps5 Sub-hamonics(Fixed Airgap and Fixed PM Depth)'
+        json
+
         ## 按照所选的电机规格，显示用户输入信息
         swarm_dict = {}
         if selected_specifications == []:
@@ -145,6 +149,18 @@ if __name__ == '__main__':
                 utility.blockPrint()
                 swarm_dict[folder] = mop = acmop.AC_Machine_Optiomization_Wrapper(select_fea_config_dict, select_spec, project_loc=path2project)
                 utility.enablePrint()
+
+            # 1 read in jsons
+            ad_xx = mop.ad.xx
+            ad_yyy = mop.ad.yyy
+            ad_asddsadas = mop.ad.asddsadas
+            ...
+
+            ad_xx = jsons.xx
+            ad_yyy = jsons.yyy
+            ad_asddsadas = jsons.asddsadas
+
+            del mop.ad
 
             ## 侧边栏 Sidebar
             user_selected_folder = st.sidebar.selectbox('Select a folder to show its inputs', selected_specifications, key='3.user_selected_folder')
@@ -184,6 +200,7 @@ if __name__ == '__main__':
             # Show user selected mop's auto optimal designs
             if optimal_xf_dict is not None:
                 # auto_optimal_designs_fitnesses = optimal_fitness_dict[mop.ad.select_spec] # obsolete
+                
                 auto_optimal_designs_xf        = optimal_xf_dict[mop.ad.select_spec]
                 if auto_optimal_designs_xf[0] !=[]: mop.part_evaluation_geometry(auto_optimal_designs_xf[0], counter='CairoOptimal1') # and not os.path.exists(cairo_fname_optimal_1)
                 if auto_optimal_designs_xf[1] !=[]: mop.part_evaluation_geometry(auto_optimal_designs_xf[1], counter='CairoOptimal2') # and not os.path.exists(cairo_fname_optimal_2)

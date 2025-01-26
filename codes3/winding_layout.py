@@ -1178,6 +1178,12 @@ class winding_layout_v2(object):
 class pole_specific_winding_with_neutral():
     def __init__(self, Qr, p, ps, coil_pitch_y=None):
 
+        if Qr == 10 \
+        and p == 4 \
+        and ps == 5 \
+        and coil_pitch_y == 2:
+            self.pairs = [(1, 3, 5, 7, 9), (2, 4, 6, 8, 10)]
+
         # Since p=2, this is a double layer windidng reduced to single layer implementation with neutral plate
         if Qr == 30 \
         and p == 2 \

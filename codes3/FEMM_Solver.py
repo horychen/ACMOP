@@ -203,9 +203,9 @@ class FEMM_Solver(object):
                     os.makedirs(self.dir_run)
         else:
             if self.individual_index is not None:
-                self.dir_run = im.fea_config_dict['run_folder'] +  'ind#%04d/'%(self.individual_index) # im.fea_config_dict['dir.femm_files'] +
+                self.dir_run = im.fea_config_dict['output_dir'] +  'ind#%04d/'%(self.individual_index) # im.fea_config_dict['dir.femm_files'] +
             else:
-                self.dir_run = im.fea_config_dict['run_folder'] # im.fea_config_dict['dir.femm_files'] +
+                self.dir_run = im.fea_config_dict['output_dir'] # im.fea_config_dict['dir.femm_files'] +
 
             print('DEBUG', self.dir_run)
 
@@ -283,12 +283,16 @@ class FEMM_Solver(object):
         # Circuit Configuration
         # Rotor Winding Part
         # Our proposed pole-specific winidng with a neutral plate (this case we ignore fraction and always draw whole model!)
-        if self.im.spec_input_dict['PoleSpecificNeutral'] == True:
+
+        # if self.im.spec_input_dict['PoleSpecificNeutral'] == True: # this option has been removed and it is now the default option
+        if True:
             R = im.Location_RotorBarCenter # Since 5/23/2019
             angle_per_slot = 2*pi/im.Qr
             # THETA_BAR = pi - angle_per_slot
 
-            wily_Qr = winding_layout.pole_specific_winding_with_neutral(self.im.Qr, self.im.DriveW_poles/2, self.im.BeariW_poles/2, self.im.spec_input_dict['coil_pitch_y_Qr'])
+
+            coil_pitch_y_Qr = self.im.spec_input_dict['Qr'] / self.im.spec_input_dict['ps']
+            wily_Qr = winding_layout.pole_specific_winding_with_neutral(self.im.Qr, self.im.DriveW_poles/2, self.im.BeariW_poles/2, coil_pitch_y_Qr)
             for ind, pair in enumerate(wily_Qr.pairs):
 
                 circuit_name = 'r%s'%(self.rotor_phase_name_list[ind])

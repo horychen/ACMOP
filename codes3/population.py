@@ -2830,7 +2830,7 @@ class bearingless_induction_motor_design(object):
         self.BeariW_Freq       = self.DriveW_Freq
 
 
-        self.fill_factor = spec_input_dict['space_factor_kCu']
+        self.fill_factor = spec_input_dict['WindingFill']
         self.Js = spec_input_dict['Js']
         # 临时这么处理吧，好困了
         # self.fill_factor = 0.5
@@ -3122,8 +3122,9 @@ class bearingless_induction_motor_design(object):
             My_Radius_OuterStatorYoke = im.Radius_OuterStatorYoke
 
         # Constranint #3
-        if im.fea_config_dict['ignore_rotor_current_density_constraint'] == True: # 重新绘制生成样机的时候，不要修改转子槽的尺寸！
-            im.spec_geometry_dict['minimum__area_rotor_slot_Sur'] = 0.5*im.spec_geometry_dict['area_rotor_slot_Sur']
+        # if im.fea_config_dict['ignore_rotor_current_density_constraint'] == True: # 重新绘制生成样机的时候，不要修改转子槽的尺寸！
+        #     im.spec_geometry_dict['minimum__area_rotor_slot_Sur'] = 0.5*im.spec_geometry_dict['area_rotor_slot_Sur']
+
         # rotor_tooth_width_b_dr imposes constraint on rotor slot height
         area_rotor_slot_Sur     = im.spec_geometry_dict['area_rotor_slot_Sur']
         rotor_outer_radius_r_or = im.Radius_OuterRotor*1e-3
@@ -4175,7 +4176,9 @@ class bearingless_induction_motor_design(object):
         rotor_phase_name_list = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         X = 40; Y = 60;
         #
-        if self.spec_input_dict['PoleSpecificNeutral'] == True: # Our proposed pole-specific winding with a neutral plate
+
+        # if self.spec_input_dict['PoleSpecificNeutral'] == True: # Our proposed pole-specific winding with a neutral plate
+        if True: # Our proposed pole-specific winding with a neutral plate ( this is now the default option for induction motor)
 
             wily_Qr = winding_layout.pole_specific_winding_with_neutral(self.Qr, self.DriveW_poles/2, self.BeariW_poles/2, self.spec_input_dict['coil_pitch_y_Qr'])
             for ind, pair in enumerate(wily_Qr.pairs):

@@ -7,6 +7,7 @@ import sys
 import os
 import logging
 import bearingless_spmsm_design
+import math
 
 # General Information
 # Steel
@@ -28,6 +29,7 @@ def get_parallel_tooth_height(area_rotor_slot_Sur, rotor_tooth_width_b_dr, Qr, r
     rotor_tooth_height_h_dr_plus  = ( +sqrt(rotor_Delta) + temp ) / (2*pi)
     rotor_tooth_height_h_dr_minus = ( -sqrt(rotor_Delta) + temp ) / (2*pi)
     rotor_tooth_height_h_dr = rotor_tooth_height_h_dr_minus
+    # print('|||', rotor_outer_radius_r_or_eff, Qr, rotor_tooth_width_b_dr, area_rotor_slot_Sur)
     return rotor_tooth_height_h_dr, rotor_tooth_height_h_dr_plus, rotor_Delta
 
 class geometry_data(object):
@@ -57,14 +59,18 @@ class desgin_specification(object):
         self.Steel = kwarg['Steel']
         self.lamination_stacking_factor_kFe = kwarg['lamination_stacking_factor_kFe']
         self.Coil = kwarg['Coil']
-        self.space_factor_kCu = kwarg['space_factor_kCu']
+        self.WindingFill = kwarg['WindingFill']
         self.Js = kwarg['Js']
         self.Temperature = kwarg['Temperature']
 
-        self.tip_speed = kwarg['tip_speed']
-        self.safety_factor_to_yield = kwarg['safety_factor_to_yield']
-        self.safety_factor_to_critical_speed = kwarg['safety_factor_to_critical_speed']
-        self.bool_high_speed_design = self.tip_speed is not None
+        if 'tip_speed' in kwarg:
+            self.tip_speed = kwarg['tip_speed']
+            self.safety_factor_to_yield = kwarg['safety_factor_to_yield']
+            self.safety_factor_to_critical_speed = kwarg['safety_factor_to_critical_speed']
+            self.bool_high_speed_design = True
+        else:
+            print('This is not a high speed machine design!\n'*3)
+            self.bool_high_speed_design = False
 
         self.bool_skew_stator = kwarg['bool_skew_stator']
         self.bool_skew_rotor  = kwarg['bool_skew_rotor']
@@ -127,7 +133,7 @@ class desgin_specification(object):
                 self.Js*1e-6,
                 self.Jr*1e-6,
                 self.Coil,
-                self.space_factor_kCu*100,
+                self.WindingFill*100,
                 self.Conductor,
                 self.space_factor_kAl*100,
                 self.Temperature,
@@ -141,15 +147,18 @@ class desgin_specification(object):
                 self.guess_efficiency,
                 self.guess_power_factor
                 )
-        if self.tip_speed is None:
-            name_part2 = "SFy%gSFcs%g"%(
-                    self.safety_factor_to_yield,
-                    self.safety_factor_to_critical_speed,
-                    )
-        else:
-            name_part2 = "tip%.0f"%(
-                    self.tip_speed
-                    )
+        if self.bool_high_speed_design:
+            self.tip_speed
+            if self.tip_speed is None:
+                name_part2 = "SFy%gSFcs%g"%(
+                        self.safety_factor_to_yield,
+                        self.safety_factor_to_critical_speed,
+                        )
+            else:
+                name_part2 = "tip%.0f"%(
+                        self.tip_speed
+                        )
+            name += name_part2
         name_part3 = "_%s%s%s%s"%(
                     'drop'  if self.use_drop_shape_rotor_bar else 'rod',
                     'Pitch%d'%(self.winding_layout.coil_pitch_y),
@@ -157,7 +166,7 @@ class desgin_specification(object):
                     'Rskew' if self.bool_skew_rotor  is not None else ''
                     )
 
-        name += name_part2 + name_part3
+        name += name_part3
 
         if bLatex:
             return name.replace('_', '\\_')
@@ -219,7 +228,7 @@ class desgin_specification(object):
         print('\nStator current density: $J_s=%g$ Arms/$\\rm m^2$'%(self.Js), file=fname)
         print('\nRotor current density: $J_r=%g$ Arms/$\\rm m^2$'%(self.Jr), file=fname)
         print('\nMagnetic material: %s with a stack factor of %g\\%%'  %(self.Steel, 100*self.lamination_stacking_factor_kFe), file=fname)
-        print('\nCoil material: %s with a fill/packing factor %g\\%%'      %(self.Coil, 100*self.space_factor_kCu), file=fname)
+        print('\nCoil material: %s with a fill/packing factor %g\\%%'      %(self.Coil, 100*self.WindingFill), file=fname)
         print('\nConductor material: %s with a fill factor %g\\%%' %(self.Conductor, 100*self.space_factor_kAl), file=fname)
         print('\nCoil/conductor temperature: %g deg Celcius' %(self.Temperature), file=fname)
         print('\nStator tooth flux density: $B_{ds}=%g$ T'    % (self.stator_tooth_flux_density_B_ds), file=fname)
@@ -280,22 +289,31 @@ class desgin_specification(object):
             rotor_outer_diameter_Dr = (4/pi*rotor_volume_Vr*length_ratio_chi)**(1/3.)
             rotor_outer_radius_r_or = 0.5 * rotor_outer_diameter_Dr
             stack_length = rotor_outer_diameter_Dr * length_ratio_chi
-            print('rotor_outer_radius_r_or is', rotor_outer_radius_r_or)
+            # print(f'''{rotor_outer_diameter_Dr=}
+            #         {rotor_volume_Vr=}
+            #         {length_ratio_chi=}
+            #         {rotor_outer_radius_r_or=}
+            #         {rotor_outer_diameter_Dr=} 
+            #         {length_ratio_chi=}''')
+            # print('rotor_outer_radius_r_or is', rotor_outer_radius_r_or)
+            # quit()
 
             # Considering machanical loading
-            rotor_radius_max = get_outer_rotor_radius_yield(speed_rpm, safety_factor_to_yield=self.safety_factor_to_yield)
-            if rotor_outer_radius_r_or>rotor_radius_max:
-                rotor_outer_radius_r_or = rotor_radius_max
-                rotor_outer_diameter_Dr = 2 * rotor_outer_radius_r_or
-                stack_length = rotor_volume_Vr / (pi * rotor_outer_radius_r_or**2)
-                bool_mechanical_dominate = True
+            if self.bool_high_speed_design:
+                rotor_radius_max = get_outer_rotor_radius_yield(speed_rpm, safety_factor_to_yield=self.safety_factor_to_yield)
+                if rotor_outer_radius_r_or>rotor_radius_max:
+                    rotor_outer_radius_r_or = rotor_radius_max
+                    rotor_outer_diameter_Dr = 2 * rotor_outer_radius_r_or
+                    stack_length = rotor_volume_Vr / (pi * rotor_outer_radius_r_or**2)
+                    bool_mechanical_dominate = True
             print('rotor_outer_radius_r_or is', rotor_outer_radius_r_or, 'under mechanical limit')
 
-        stack_length_max = get_stack_length_critical_speed(speed_rpm, rotor_outer_radius_r_or, safety_factor_to_critical_speed=self.safety_factor_to_critical_speed)
-        self.Stack_Length_Max = stack_length_max*1e3
-        if stack_length>stack_length_max:
-            raise Exception('For current safety factor and power rating, no design can be sought under first critical speed.')
-        
+        if self.bool_high_speed_design:
+            stack_length_max = get_stack_length_critical_speed(speed_rpm, rotor_outer_radius_r_or, safety_factor_to_critical_speed=self.safety_factor_to_critical_speed)
+            self.Stack_Length_Max = stack_length_max*1e3
+            if stack_length>stack_length_max:
+                raise Exception('For current safety factor and power rating, no design can be sought under first critical speed.')
+
         # rotor_volume_Vr = pi * rotor_outer_radius_r_or**2 * stack_length, so
         # rotor_outer_radius_r_or = 28.8e-3 # based on the mechanical check with a safety factor of 1.5 according to the ECCE paper of Yegu Kang
         # rotor_outer_diameter_Dr = 2*rotor_outer_radius_r_or
@@ -325,10 +343,8 @@ class desgin_specification(object):
 
         if self.bool_high_speed_design == True:
             print('\nTip speed: %g m/s (specified)' % (self.tip_speed), file=fname)
-        else:
             tip_speed = get_tip_speed(speed_rpm, rotor_outer_radius_r_or)
             print('\nTip speed: %g m/s with a safety factor to yield of %g' %(tip_speed, self.safety_factor_to_yield), file=fname)
-
             self.tip_speed = tip_speed
 
             # print 'Yegu Kang: rotor_outer_diameter_Dr, 95 mm'
@@ -343,7 +359,8 @@ class desgin_specification(object):
         print('\nRotor outer radius $r_{or}=%g$ mm'% (rotor_outer_radius_r_or*1e3), file=fname)
 
         print('\nStack length: $L_{st}=%g$ mm'% (stack_length*1e3), file=fname)
-        print('\nStack length (max): $L_{st,\\max}=%g$ mm ($k=%g$)'% (stack_length_max*1e3, self.safety_factor_to_critical_speed), file=fname)
+        if self.bool_high_speed_design:
+            print('\nStack length (max): $L_{st,\\max}=%g$ mm ($k=%g$)'% (stack_length_max*1e3, self.safety_factor_to_critical_speed), file=fname)
 
 
 
@@ -365,9 +382,10 @@ class desgin_specification(object):
             else:
                 air_gap_length_delta *= 1.25
 
-        if self.tip_speed>100:
-            air_gap_length_delta_high_speed = 0.001 + (rotor_outer_diameter_Dr / 0.07 + self.tip_speed/400) * 1e-3 # 第二版(6.25)
-            print('High-Speed motor detected. The air_gap_length_delta_high_speed =', air_gap_length_delta_high_speed)
+        if self.bool_high_speed_design:
+            if self.tip_speed>100:
+                air_gap_length_delta_high_speed = 0.001 + (rotor_outer_diameter_Dr / 0.07 + self.tip_speed/400) * 1e-3 # 第二版(6.25)
+                print('High-Speed motor detected. The air_gap_length_delta_high_speed =', air_gap_length_delta_high_speed)
 
         stack_length_eff = stack_length + 2 * air_gap_length_delta
 
@@ -383,8 +401,9 @@ class desgin_specification(object):
                 We double $\delta$ for high speed machines, as suggested by Pyrhonen---increase air gap length by 50\%--100\%.
                 % (看integrated box 硕士论文 'Kevin S. Campbell: this is too small. 3.5 mm is good! 3.1.3，Pyrhonen09给的只适用50Hz电机，其实pyrhonen自己也有提到气隙要加大100%哦) ''', file=fname)
         print('\nAir gap length: $\\delta=%g$ mm' % (air_gap_length_delta*1e3), file=fname)
-        if self.tip_speed>100:
-            print('\nAir gap length (high speed): $\\delta_{hs} = %g$ mm' % (air_gap_length_delta_high_speed*1e3), file=fname)
+        if self.bool_high_speed_design:
+            if self.tip_speed>100:
+                print('\nAir gap length (high speed): $\\delta_{hs} = %g$ mm' % (air_gap_length_delta_high_speed*1e3), file=fname)
         print('\nEffective stack length: $L_{st,{\\rm eff}}=%g$ mm'% (stack_length_eff*1e3), file=fname)
 
 
@@ -587,14 +606,19 @@ class desgin_specification(object):
     # 9. (Loop ON) Recalculate Air Gap Flux Density
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         #
-            self.guess_air_gap_flux_density = (sqrt(2)*desired_emf_Em) / (2*pi*self.ExcitationFreqSimulated * kw1 *  alpha_i * no_series_coil_turns_N * pole_pitch_tau_p * stack_length_eff) # p306
+            self.guess_air_gap_flux_density_byEMF = (sqrt(2)*desired_emf_Em) / (2*pi*self.ExcitationFreqSimulated * kw1 *  alpha_i * no_series_coil_turns_N * pole_pitch_tau_p * stack_length_eff) # p306
             fname = open(one_report_dir_prefix+file_name+'_s09'+file_suffix, 'w', encoding='utf-8')
             print(r'''\subsubsection{Re-calculate Air Gap Flux Density and Beginning of Loop for $\alpha_i$}
                     \[{{\hat \Phi }_m} = {\alpha _i}{{\hat B}_\delta }{\tau _p}l'\]
                     \[{{\hat B}_\delta } = \frac{{\sqrt 2 {E_m}}}{{\omega {k_{w1}}{\alpha _i}N{\tau _p}l'}}\]
                         ''', file=fname) # 反电势 sqrt(2)*desired_emf_Em 用幅值哦！
             print('\nField sinusoidal coefficient (converged): $\\alpha_i=%g>\\frac{2}{\\pi}=0.6366$'%(alpha_i), file=fname)
-            print('\nNew air gap flux density: $\\hat B_\\delta=%g$ T' % self.guess_air_gap_flux_density, file=fname) # '变得比0.8T大了，是因为你减少了匝数取整，反之亦然。'
+            print('\nNew air gap flux density: $\\hat B_\\delta=%g$ T' % self.guess_air_gap_flux_density_byEMF, file=fname) # '变得比0.8T大了，是因为你减少了匝数取整，反之亦然。'
+
+            if self.guess_air_gap_flux_density_byEMF > 1.0: #TODO
+                print(f'BUG {self.guess_air_gap_flux_density_byEMF=}')
+                print(f'BUG {self.guess_air_gap_flux_density=}')
+                
 
             # re-compute other B_delta related values
             if True:
@@ -644,6 +668,16 @@ class desgin_specification(object):
             rotor_slot_pitch_tau_ur = pi * air_gap_diameter_D / self.Qr
             rotor_tooth_apparent_flux_over_slot_pitch_Phi_dr = stack_length_eff*rotor_slot_pitch_tau_ur*self.guess_air_gap_flux_density
             rotor_tooth_width_b_dr = stack_length_eff*rotor_slot_pitch_tau_ur*self.guess_air_gap_flux_density / (self.lamination_stacking_factor_kFe*stack_length*self.rotor_tooth_flux_density_B_dr) + 0.1e-4
+            # print(f'{rotor_tooth_width_b_dr=}')
+            # print(f'''
+            #       {  stack_length_eff=}
+            #       {rotor_slot_pitch_tau_ur=}
+            #       {self.guess_air_gap_flux_density =}
+            #       { self.lamination_stacking_factor_kFe=}
+            #       {stack_length=}
+            #       {self.rotor_tooth_flux_density_B_dr=}
+            #       ''')
+            # quit()
 
             fname = open(one_report_dir_prefix+file_name+'_s10'+file_suffix, 'w', encoding='utf-8')
             print(r'''\subsubsection{Tooth Flux Density}
@@ -690,8 +724,8 @@ class desgin_specification(object):
             area_one_conductor_stator_Scs = stator_phase_current_rms / (number_parallel_branch * self.Js) # (7.13)
 
             # space factor or slot packing factor
-            # space_factor_kCu = 0.50 # 不计绝缘的导体填充率：也就是说，一般来说槽满率能达到60%-66%，但是，这里用于下式计算的，要求考虑导体，而槽满率已经考虑了细导线的绝缘了，所以space factor会比槽满率更小，一般在0.5-0.6，低压电机则取下限0.5。
-            area_stator_slot_Sus = no_conductors_per_slot_zQ * area_one_conductor_stator_Scs / self.space_factor_kCu 
+            # WindingFill = 0.50 # 不计绝缘的导体填充率：也就是说，一般来说槽满率能达到60%-66%，但是，这里用于下式计算的，要求考虑导体，而槽满率已经考虑了细导线的绝缘了，所以space factor会比槽满率更小，一般在0.5-0.6，低压电机则取下限0.5。
+            area_stator_slot_Sus = no_conductors_per_slot_zQ * area_one_conductor_stator_Scs / self.WindingFill 
             print('area_stator_slot_Sus:', area_stator_slot_Sus)
 
             # guess these local design values or adapt from other designs
@@ -767,7 +801,7 @@ class desgin_specification(object):
                 print('\n[Warning] The liear current density or slot current density is bad.', file=fname)
                 # raise Exception('The liear current density or slot current density is bad.')
             print('\nStator one conductor area: $S_{cs}=%g$ ${\\rm mm^2}$'% (area_one_conductor_stator_Scs * 1e6), file=fname)
-            print('\nStator space factor: $k_{Cu}=%g$'% self.space_factor_kCu, file=fname)
+            print('\nStator space factor: $k_{Cu}=%g$'% self.WindingFill, file=fname)
             print('\nStator slot area: $S_{us}=%g$ ${\\rm mm^2}$ (required)'%( area_stator_slot_Sus*1e6), file=fname)
             print('\nStator tooth height: $h_{ds}=%g$ mm'%(stator_tooth_height_h_ds*1e3), file=fname)
             print('\nStator slot height: $h_{ss}=%g$ mm'% (stator_slot_height_h_ss*1e3), file=fname)
@@ -805,6 +839,9 @@ class desgin_specification(object):
 
                 rotor_outer_radius_r_or_eff = rotor_outer_radius_r_or - length_headNeckRotorSlot
                 rotor_tooth_height_h_dr, rotor_tooth_height_h_dr_plus, rotor_Delta = get_parallel_tooth_height(area_rotor_slot_Sur, rotor_tooth_width_b_dr, self.Qr, rotor_outer_radius_r_or_eff)
+                # print(area_rotor_slot_Sur, rotor_tooth_width_b_dr, self.Qr, rotor_outer_radius_r_or_eff)
+                # print(rotor_tooth_height_h_dr, rotor_tooth_height_h_dr_plus, rotor_Delta)
+                # quit()
 
                 if isnan(rotor_tooth_height_h_dr) == True:
                     bool_enough_rotor_slot_space = False
@@ -816,6 +853,8 @@ class desgin_specification(object):
                         return
                     # You can also increase your magnetic load at rotor tooth to create larger rotor slot area.
                     # raise Exception('There are no space on the rotor to fulfill the required rotor slot to reach your J_r and self.space_factor_kAl. Reduce your self.TangentialStress and run the script again.')
+                elif(rotor_tooth_height_h_dr<0.0):
+                    raise Exception('Rotor tooth height is negative.')
                 else:
                     bool_enough_rotor_slot_space = True
                     print('[%d]'%count_Jr_search, 'The working self.Jr is', self.Jr)
@@ -849,16 +888,16 @@ class desgin_specification(object):
             if 'M19' in self.Steel:
                 # M19-Gauge29 (from FEMM@spmloss example)
                 hdata, bdata = np.loadtxt('../BH/M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1))
-                print('The magnetic material is M19-Gauge29.', file=fname)
+                print('The magnetic material is M19-Gauge29.')
             elif 'Arnon' in self.Steel and '7' in self.Steel:
                 # Arnon-7 (from ELS)
                 hdata, bdata = np.loadtxt('../Arnon5/Arnon-7-from-ELS.txt', unpack=True, usecols=(0,1))
-                print('The magnetic material is Arnon7.', file=fname)
+                print('The magnetic material is Arnon7.')
             else:
                 # Arnon-5 (from Ye gu Kang)
                 hdata = [0, 9.51030700000000, 11.2124700000000, 13.2194140000000, 15.5852530000000, 18.3712620000000, 21.6562210000000, 25.5213000000000, 30.0619920000000, 35.3642410000000, 41.4304340000000, 48.3863030000000, 56.5103700000000, 66.0660360000000, 77.3405760000000, 90.5910260000000, 106.212089000000, 124.594492000000, 146.311191000000, 172.062470000000, 202.524737000000, 238.525598000000, 281.012026000000, 331.058315000000, 390.144609000000, 459.695344000000, 541.731789000000, 638.410494000000, 752.333643000000, 886.572927000000, 1044.77299700000, 1231.22308000000, 1450.53867000000, 1709.16554500000, 2013.86779200000, 2372.52358500000, 2795.15968800000, 3292.99652700000, 3878.92566000000, 4569.10131700000, 5382.06505800000, 6339.70069300000, 7465.56316200000, 8791.72220000000, 10352.2369750000, 12188.8856750000, 14347.8232500000, 16887.9370500000, 19872.0933000000, 23380.6652750000, 27504.3713250000, 32364.9650250000, 38095.3408000000, 44847.4916750000, 52819.5656250000, 62227.2176750000, 73321.1169500000]
                 bdata = [0, 0.0654248125493027, 0.0748613131259592, 0.0852200097732390, 0.0964406675582732, 0.108404414030963, 0.120978202862830, 0.133981410558774, 0.147324354453074, 0.161128351463696, 0.175902377184132, 0.193526821151857, 0.285794748353625, 0.411139883513949, 0.532912618951425, 0.658948953940289, 0.787463844307836, 0.911019620277348, 1.01134216103736, 1.09097860155578, 1.15946725009315, 1.21577636425715, 1.26636706123955, 1.29966244236095, 1.32941739086224, 1.35630922421149, 1.37375630182574, 1.39003487040401, 1.41548927346395, 1.43257623013269, 1.44423937756642, 1.45969672805890, 1.47405771023894, 1.48651531058339, 1.49890498452922, 1.51343941451204, 1.52867783835158, 1.54216506561365, 1.55323686869400, 1.56223503150867, 1.56963683394210, 1.57600636116484, 1.58332795425880, 1.59306861236599, 1.60529276088440, 1.61939615147952, 1.63357053682375, 1.64622605475232, 1.65658227422276, 1.66426678010510, 1.66992280459884, 1.67585542605930, 1.68316554465867, 1.69199548893857, 1.70235212334602, 1.71387033561736, 1.72578827760282]
-                print('The magnetic material is Arnon5.', file=fname)
+                print('The magnetic material is Arnon5.')
             # for B, H in zip(bdata, hdata):
             #     print B, H, file=fname
 
@@ -875,9 +914,8 @@ class desgin_specification(object):
                     if ind == len(B_list)-1:
                         slope = (H_list[ind]-H_list[ind-1]) / (B-B_list[ind-1]) 
                         return (your_B - B) * slope + H_list[ind]
-
             stator_tooth_field_strength_H = BH_lookup(bdata, hdata, self.stator_tooth_flux_density_B_ds)
-            rotor_tooth_field_strength_H = BH_lookup(bdata, hdata, self.rotor_tooth_flux_density_B_dr)
+            rotor_tooth_field_strength_H = BH_lookup(bdata, hdata,  self.rotor_tooth_flux_density_B_dr)
             mu0 = 4*pi*1e-7
             air_gap_field_strength_H = self.guess_air_gap_flux_density / mu0
 
@@ -949,7 +987,7 @@ class desgin_specification(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # 13. (End Loop) Saturation Factor
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-        #
+        # #
             saturation_factor_k_sat = (stator_tooth_magnetic_voltage_Um_ds + rotor_tooth_magnetic_voltage_Um_dr) / air_gap_magnetic_voltage_Um_delta
 
             tick = 1/60. # Figure 7.2
@@ -958,7 +996,7 @@ class desgin_specification(object):
 
             def alpha_i_lookup(k_sat_list, alpha_i_list, your_k_sat):
                 if your_k_sat<=0:
-                    print('positive k_sat only', file=fname)
+                    print('[alpha_i_lookup] positive k_sat only')
                     return None 
                 for ind, k_sat in enumerate(k_sat_list):
                     if your_k_sat > k_sat:
@@ -971,8 +1009,8 @@ class desgin_specification(object):
                         return (your_k_sat - k_sat_list[ind-1]) / (k_sat-k_sat_list[ind-1]) * (alpha_i_list[ind] - alpha_i_list[ind-1]) + alpha_i_list[ind-1]
 
                 # these will not be reached
-                print('Reach the end of the curve of k_sat.', file=fname)
-                print('End of Loop Error.\n'*3, file=fname)
+                print('[alpha_i_lookup] Reach the end of the curve of k_sat.')
+                print('[alpha_i_lookup] End of Loop Error.\n'*3)
                 return None
             alpha_i_next = alpha_i_lookup(k_sat_list, alpha_i_list, saturation_factor_k_sat)
 
@@ -1216,7 +1254,7 @@ class desgin_specification(object):
             rho_Copper = (3.76*self.Temperature+873)*1e-9/55.
             # 参考FEMM_Solver.py 或 按照书上的公式算一下
             stator_slot_area = area_stator_slot_Sus # FEMM是对槽积分得到的，更准哦
-            SLOT_FILL_FACTOR = self.space_factor_kCu
+            SLOT_FILL_FACTOR = self.WindingFill
             coil_pitch_slot_count = self.winding_layout.coil_pitch_y # 短距 # self.Qs / DriveW_poles # 整距！
             length_endArcConductor = coil_pitch_slot_count/self.Qs * (0.5*(Radius_OuterRotor + Length_AirGap + Radius_InnerStatorYoke)) * 2*pi # [mm] arc length = pi * diameter  
             length_conductor = (stack_length*1e3 + length_endArcConductor) * 1e-3 # mm to m  ## imagine: two conductors + two end conducotors = one loop (in and out)

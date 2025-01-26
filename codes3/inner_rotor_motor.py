@@ -151,6 +151,12 @@ class template_machine_as_numbers(object):
             # self.d['GP']['mm_r_ro'].type = "free"
             bool_matched = True
 
+        if 'VariableStatorSlotDepth' in self.d['which_filter']:
+            # IM
+            self.d['GP']['mm_d_st'].type = "free"
+            self.d['GP']['mm_d_mech_air_gap'].type = "free"
+            bool_matched = True
+
         if bool_matched == False:
             raise Exception(f"Not defined: {self.d['which_filter']}")
 

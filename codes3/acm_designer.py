@@ -979,7 +979,7 @@ class acm_designer(object):
 
         self.acm_template.build_x_denorm()
         # print(self.acm_template.x_denorm_dict)
-        swarm_data_file = self.read_swarm_data_json(self.select_spec, self.acm_template.x_denorm_dict)
+        # swarm_data_file = self.read_swarm_data_json(self.select_spec, self.acm_template.x_denorm_dict)
 
 
     def init_logger(self, prefix='pygmo_'):
@@ -1159,7 +1159,7 @@ class acm_designer(object):
             self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
 
             # save object (acm_variant) to disk
-            utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
+            # utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
 
             # this is for optimization
             acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
@@ -1545,7 +1545,7 @@ class acm_designer(object):
     '''
     def fea_bearingless_induction(self, im_template, x_denorm, counter, counter_loop):
         logger = logging.getLogger(__name__)
-        print('Run FEA for individual #%d'%(counter))
+        print(f'Run FEA for individual #{counter}')
 
         # get local design variant
         im_variant = population.bearingless_induction_motor_design.local_design_variant(im_template, 0, counter, x_denorm)
@@ -1567,9 +1567,9 @@ class acm_designer(object):
 
 
         if counter_loop == 1:
-            self.project_name          = 'proj%d'%(counter)
+            self.project_name          = f'proj{counter}'
         else:
-            self.project_name          = 'proj%d-redo%d'%(counter, counter_loop)
+            self.project_name          = f'proj{counter}-redo{counter_loop}'
         self.expected_project_file = self.fea_config_dict['output_dir'] + "%s.jproj"%(self.project_name)
 
         original_study_name = im_variant.name + "Freq"
@@ -1584,7 +1584,7 @@ class acm_designer(object):
         def open_jmag(expected_project_file_path):
             if self.app is None:
                 # app = win32com.client.Dispatch('designer.Application.181')
-                app = win32com.client.Dispatch('designer.Application.171')
+                app = win32com.client.Dispatch('designer.Application')
                 # app = win32com.client.gencache.EnsureDispatch('designer.Application.171') # https://stackoverflow.com/questions/50127959/win32-dispatch-vs-win32-gencache-in-python-what-are-the-pros-and-cons
 
                 if self.fea_config_dict['designer.Show'] == True:
@@ -2074,17 +2074,23 @@ class acm_designer(object):
 
     def draw_jmag_induction(self, app, individual_index, im_variant, model_name, bool_trimDrawer_or_vanGogh=True, doNotRotateCopy=False):
 
-        if individual_index == -1: # 后处理是-1
-            print('Draw model for post-processing')
-            if individual_index+1 + 1 <= app.NumModels():
+        if type(individual_index) == type(1):
+
+            if individual_index == -1: # 后处理是-1
+                print('Draw model for post-processing')
+                if individual_index+1 + 1 <= app.NumModels():
+                    logger = logging.getLogger(__name__)
+                    logger.debug('The model already exists for individual with index=%d. Skip it.' % individual_index)
+                    return -1 # the model is already drawn
+
+            elif individual_index+1 <= app.NumModels(): # 一般是从零起步
                 logger = logging.getLogger(__name__)
                 logger.debug('The model already exists for individual with index=%d. Skip it.' % individual_index)
                 return -1 # the model is already drawn
-
-        elif individual_index+1 <= app.NumModels(): # 一般是从零起步
+        else:
             logger = logging.getLogger(__name__)
-            logger.debug('The model already exists for individual with index=%d. Skip it.' % individual_index)
-            return -1 # the model is already drawn
+            logger.debug('This is the initial induction motor design %s.' % individual_index)
+
 
         # open JMAG Geometry Editor
         app.LaunchGeometryEditor()

@@ -928,7 +928,10 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
-                                (3, 36, 6, 5, 2, 0), # PMG
+                                (3, 6, 4, 1, 1, 0), # homopolar consqeuent pole
+                                # (3, 12, 4, 5, 1, 0), # Slice BLESSIM for Qr=10
+                                # (3, 24, 13, 14, 1, 0), # Slice BLESSIM
+                                # (3, 36, 6, 5, 2, 0), # PMG
                                 # (3, 84, 2, 1,21, 0), # Main Gen
                                 # (3, 18, 3, 2, 3, 0), # BSG_WMR
                                 # (15, 30, 2, 3, 10, 0),
@@ -1040,7 +1043,7 @@ def main_derivation():
             wd.drawer_T4b.cvs.writePDFfile(fname + '_T4b')
             wd.drawer_T4c.cvs.writePDFfile(fname + '_T4c')
             print(f'Write pdf to {fname}')
-            quit()
+            # quit()
 
         # Collage
         wd.drawer_T1.cvs.insert(wd.drawer_T2.cvs,  [pyx.trafo.translate(PLOT_SPACING*1,  0)])

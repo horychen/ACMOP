@@ -158,7 +158,7 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
                 self.pairs.append( (i+1, i+y+1) )
             for ind, _ in enumerate(range(y, Qr)):
                 sU += ' | ' + chr(char_bias+ind)
-        elif y*3 == Qr and layers==2:
+        elif layers==2 and (y*3 == Qr or y*5 == Qr):
             for i in range(Qr-y):
                 sU += ' | ' + chr(char_bias+i)
                 # sL += ' | ' + chr(char_bias+Qr+i-y)
@@ -223,13 +223,13 @@ if __name__ == '__main__':
     layers = 1; QS = 36
     layers = 1; QS = 24
     layers = 2; QS = 24
-    # layers = 2; QS = 18
+    # layers = 2; QS = 12
 
     print(f'For Qs={QS:d}, find valid set of pole specific winding with neutral plate.')
     from fractions import Fraction
     import math
     MAX_K = 20+1
-    MAX_PS = 4+1
+    MAX_PS = 5+1
 
 
 
@@ -247,7 +247,9 @@ if __name__ == '__main__':
     # print('\n'+'~*'*40)
     # design.get_design(layers=2, ps=3, p=2, k1=1, k=10)
 
-    print('\n'+'~*'*40)
-    design.get_design(layers=2, ps=3, p=2, k1=1, k=6)
+    # print('\n'+'~*'*40)
+    # design.get_design(layers=2, ps=3, p=2, k1=1, k=6)
 
+    print('\n'+'~*'*40)
+    design.get_design(layers=2, ps=5, p=4, k1=1, k=2)
 
