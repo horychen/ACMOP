@@ -4180,7 +4180,9 @@ class bearingless_induction_motor_design(object):
         # if self.spec_input_dict['PoleSpecificNeutral'] == True: # Our proposed pole-specific winding with a neutral plate
         if True: # Our proposed pole-specific winding with a neutral plate ( this is now the default option for induction motor)
 
-            wily_Qr = winding_layout.pole_specific_winding_with_neutral(self.Qr, self.DriveW_poles/2, self.BeariW_poles/2, self.spec_input_dict['coil_pitch_y_Qr'])
+            coil_pitch_y_Qr = self.spec_input_dict['Qr'] / self.spec_input_dict['ps']
+
+            wily_Qr = winding_layout.pole_specific_winding_with_neutral(self.Qr, self.DriveW_poles/2, self.BeariW_poles/2, coil_pitch_y_Qr)
             for ind, pair in enumerate(wily_Qr.pairs):
                 X += -12
                 # Y += -12

@@ -2174,62 +2174,62 @@ class acm_designer(object):
         model.CloseCadLink() # this is essential if you want to create a series of models
         return True
 
-    # def run_study(self, im_variant, app, study, toc):
-    #     logger = logging.getLogger(__name__)
-    #     if self.fea_config_dict['designer.JMAG_Scheduler'] == False:
-    #         print('[acm_designer.py] Run jam.exe...')
-    #         # if run_list[1] == True:
-    #         try:
-    #             study.RunAllCases()
-    #         except Exception as error:
-    #             raise error
-    #         msg = '[acm_designer.py] Time spent on %s is %g s.'%(study.GetName() , clock_time() - toc)
-    #         logger.debug(msg)
-    #         print(msg)
-    #     else:
-    #         print('[acm_designer.py] Submit to JMAG_Scheduler...')
-    #         job = study.CreateJob()
-    #         job.SetValue("Title", study.GetName())
-    #         job.SetValue("Queued", True)
-    #         job.Submit(False) # Fallse:CurrentCase, True:AllCases
-    #         logger.debug('Submit %s to queue (Tran2TSS).'%(im_variant.individual_name))
-    #         # wait and check
-    #         # study.CheckForCaseResults()
-    #     app.Save()
+    def run_study(self, im_variant, app, study, toc):
+        logger = logging.getLogger(__name__)
+        if self.fea_config_dict['designer.JMAG_Scheduler'] == False:
+            print('[acm_designer.py] Run jam.exe...')
+            # if run_list[1] == True:
+            try:
+                study.RunAllCases()
+            except Exception as error:
+                raise error
+            msg = '[acm_designer.py] Time spent on %s is %g s.'%(study.GetName() , clock_time() - toc)
+            logger.debug(msg)
+            print(msg)
+        else:
+            print('[acm_designer.py] Submit to JMAG_Scheduler...')
+            job = study.CreateJob()
+            job.SetValue("Title", study.GetName())
+            job.SetValue("Queued", True)
+            job.Submit(False) # Fallse:CurrentCase, True:AllCases
+            logger.debug('Submit %s to queue (Tran2TSS).'%(im_variant.individual_name))
+            # wait and check
+            # study.CheckForCaseResults()
+        app.Save()
 
-    #         # if the jcf file already exists, it pops a msg window
-    #         # study.WriteAllSolidJcf(self.dir_jcf, im_variant.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
-    #         # study.WriteAllMeshJcf(self.dir_jcf, im_variant.model_name+study.GetName()+'Mesh', True)
+            # if the jcf file already exists, it pops a msg window
+            # study.WriteAllSolidJcf(self.dir_jcf, im_variant.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
+            # study.WriteAllMeshJcf(self.dir_jcf, im_variant.model_name+study.GetName()+'Mesh', True)
 
-    #         # # run
-    #         # if self.fea_config_dict['JMAG_Scheduler'] == False:
-    #         #     study.RunAllCases()
-    #         #     app.Save()
-    #         # else:
-    #         #     job = study.CreateJob()
-    #         #     job.SetValue(u"Title", study.GetName())
-    #         #     job.SetValue(u"Queued", True)
-    #         #     job.Submit(True)
-    #         #     logger.debug('Submit %s to queue (Freq).'%(im_variant.individual_name))
-    #         #     # wait and check
-    #         #     # study.CheckForCaseResults()
+            # # run
+            # if self.fea_config_dict['JMAG_Scheduler'] == False:
+            #     study.RunAllCases()
+            #     app.Save()
+            # else:
+            #     job = study.CreateJob()
+            #     job.SetValue(u"Title", study.GetName())
+            #     job.SetValue(u"Queued", True)
+            #     job.Submit(True)
+            #     logger.debug('Submit %s to queue (Freq).'%(im_variant.individual_name))
+            #     # wait and check
+            #     # study.CheckForCaseResults()
 
-    # def mesh_study(self, im_variant, app, model, study):
+    def mesh_study(self, im_variant, app, model, study):
 
-    #     # this `if' judgment is effective only if JMAG-DeleteResultFiles is False 
-    #     # if not study.AnyCaseHasResult(): 
-    #     # mesh
-    #     im_variant.add_mesh(study, model)
+        # this `if' judgment is effective only if JMAG-DeleteResultFiles is False 
+        # if not study.AnyCaseHasResult(): 
+        # mesh
+        im_variant.add_mesh(study, model)
 
-    #     # Export Image
-    #     app.View().ShowAllAirRegions()
-    #     # app.View().ShowMeshGeometry() # 2nd btn
-    #     app.View().ShowMesh() # 3rn btn
-    #     app.View().Zoom(3)
-    #     app.View().Pan(-im_variant.Radius_OuterRotor, 0)
-    #     app.ExportImageWithSize(self.fea_config_dict['output_dir'] + model.GetName() + '.png', 2000, 2000)
-    #     app.View().ShowModel() # 1st btn. close mesh view, and note that mesh data will be deleted if only ouput table results are selected.
-  
+        # Export Image
+        app.View().ShowAllAirRegions()
+        # app.View().ShowMeshGeometry() # 2nd btn
+        app.View().ShowMesh() # 3rn btn
+        app.View().Zoom(3)
+        app.View().Pan(-im_variant.Radius_OuterRotor, 0)
+        app.ExportImageWithSize(self.fea_config_dict['output_dir'] + model.GetName() + '.png', 2000, 2000)
+        app.View().ShowModel() # 1st btn. close mesh view, and note that mesh data will be deleted if only ouput table results are selected.
+
 
 
     ''' BELOW IS OBSOLETE

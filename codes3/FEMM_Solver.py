@@ -2913,7 +2913,7 @@ class FEMM_Solver(object):
                 # print clock_time() - tic, 's'
         toc = clock_time()
         logger = logging.getLogger(__name__)
-        logger.debug('Time spent on femm frequency search is %g s.' % toc-tic)
+        logger.debug(f'Time spent on femm frequency search is {toc-tic} s.')
         return freq, torque, None
 
 
