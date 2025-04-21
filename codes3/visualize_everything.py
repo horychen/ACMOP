@@ -1,10 +1,12 @@
 from pylab import np, plt
 import pandas as pd
-import os, json, builtins, datetime
+import os, json, builtins, datetime, re
 import streamlit as st
 import utility_postprocess, acmop, utility, base64
 # import acm_designer
 from io import BytesIO
+import pygmo as pg
+# import Problem_BearinglessSynchronousDesign
 
 def basic_information_about_optimization():
     # dimension of x and f? 
@@ -341,6 +343,52 @@ if __name__ == '__main__':
     with tab2:
         st.subheader('Sensitivity Analysis')
         # st.pyplot(fig)
+
+        def local_sensitivity_analysis(specify_x_denorm=None, x_denorm_bounds = None, number_of_steps = 10):
+                    # 敏感性检查：以基本设计为准，检查不同的参数取极值时的电机性能变化！这是最简单有效的办法。七个设计参数，那么就有14种极值设计。
+            if specify_x_denorm is None:
+                # build x_denorm for the template design
+                raise Exception('specify_x_denorm is None')
+            else:
+                x_denorm = specify_x_denorm
+                x_denorm_bounds = x_denorm_bounds
+            print('[acmop.py] x_denorm:',  x_denorm)
+            print('[acmop.py] x_denorm_bounds:',  x_denorm_bounds)
+            # print('[acmop.py] x_denorm_dict:', x_denorm_dict)
+            # quit()
+            pop_x_values = []
+            bounds_min = []
+            bounds_max = []
+            diff = []
+            if True:
+                for i, bounds in enumerate(x_denorm_bounds):
+                    bounds_min.append(bounds[0])
+                    bounds_max.append(bounds[1])
+                    diff.append(bounds[1] - bounds[0])
+
+                print(f'[acmop.py] bounds_min: {bounds_min}, bounds_max: {bounds_max}') 
+                print(f'[acmop.py] diff: {diff}')
+                # quit()
+                # if specify_x_denorm is None:
+                    # initial_design_denorm = np.array(utility.Pyrhonen_design(pmsm).design_parameters_denorm)
+                # else:
+                    # initial_design_denorm = specified_initial_design_denorm
+                initial_design = x_denorm
+                number_of_steps = number_of_steps
+                pop_x_values = [initial_design] # include initial design!
+                # print(len(initial_design))
+                # quit()
+                for i in range(len(initial_design)): # 10 design parameters
+                    for j in range(number_of_steps+1): # 21 variants interval
+                        # copy list
+                        design_variant = initial_design[::]
+                        design_variant[i] = j * diff[i] / number_of_steps + bounds_min[i]
+                        pop_x_values.append(design_variant)
+                # for ind, el in enumerate(pop_x_values):
+                    # print(ind)
+                    # print(el)
+            return pop_x_values
+            
         ## 选择项目路径
         path2acmop = os.path.abspath(os.path.dirname(__file__) + '\\..')
         if not os.path.exists(path2acmop + '/_default'): os.mkdir(path2acmop + '/_default')
@@ -350,6 +398,8 @@ if __name__ == '__main__':
 
         ## 选择电机规格
         _, list_specifications, _ = next(os.walk(path2project))
+        # print(list_specifications)
+        # quit()
         selected_specifications_2 = st.multiselect(label="[User] Select folder(s):", options=list_specifications, default=None, key='2.selected_specifications_2')
 
         ## create swarm_dict
@@ -358,115 +408,107 @@ if __name__ == '__main__':
             st.error("Please select at least one specification.")
         else:
             for folder in selected_specifications_2:
+                # print(folder)
+                # quit()
                 with open(path2project+folder+'/acmop-settings.txt', 'r') as f:
                     buf = f.read()
                     lst = buf.split('|')
                     select_spec = lst[0].strip()
                     select_fea_config_dict = lst[1].strip()
+                # quit()
+                json_file_name = folder.replace('_', ' ') + '.json'
+                json_file_path = path2project + folder + '/' + json_file_name
+                # print(json_file_path)
+                # quit()
+                try:
+                    # 读取 JSON 文件
+                    with open(json_file_path, 'r') as jf:
+                        json_content = jf.read()  # 加载 JSON 数据
+                        start_index = json_content.find('{')
+                        if start_index != -1:
+                            pseudo_json_data = json_content[start_index:]
+                        # print(pseudo_json_data)
+                        # quit()
+                except FileNotFoundError:
+                    st.error(f"JSON file '{json_file_name}' not found in folder '{folder}'.")
+                    continue
+                except json.JSONDecodeError:
+                    st.error(f"Error decoding JSON file '{json_file_name}' in folder '{folder}'.")
+                    continue
                 utility.blockPrint()
                 swarm_dict[folder] = mop = acmop.AC_Machine_Optiomization_Wrapper(select_fea_config_dict, select_spec, project_loc=path2project)
                 utility.enablePrint()
-        
-        ## 之前选择的电机规格中 选择一个较优的设计 然后进行灵敏度分析（还需要一个选择）
 
-        ## 选择分析变量
+                json_data = json.loads(pseudo_json_data)
+                for key in json_data:
+                    if isinstance(json_data[key], dict) and 'Geometric parameters' in json_data[key]: # 直接找最顶级的键值
+                        geometric_parameters = json_data[key]['Geometric parameters']
+                        break
+
+                # print(geometric_parameters)
+                # print(GP)
+                # quit()
+
+                design_variable_name = []
+                param_type = []
+                param_name = []
+                param_value = []
+                param_bounds = []
+                param_calc = []
+
+                for param in geometric_parameters:
+                    for key, value in param.items():
+                        if value.get("type") == "free":
+                            bounds = value.get("bounds")
+                            if bounds != [None, None]:
+                                design_variable_name.append(key)
+                                param_type.append(value.get("type", "N/A"))
+                                param_name.append(value.get("name", "N/A"))
+                                param_value.append(value.get("value", "N/A"))
+                                param_bounds.append(value.get("bounds", "N/A"))
+                                param_calc.append(value.get("calc", "N/A"))
+                number_of_variants = len(design_variable_name)
+                print(f"There are {number_of_variants} free parameters:")
+                print(f"Name: {param_name}, Type: {param_type}, Value: {param_value}, Bounds: {param_bounds}, Calc: {param_calc}")
+                # quit()
+                
+            
+            # print(f'mop')
+            # quit()
+        
+        ## 之前选择的电机规格中 选择一个较优的设计 然后进行灵敏度分析（还需要一个选择
+        ## 读json 拿到 x f 准备re-evaluation            done
+        ## re-evaluation 准备一个新的文件夹吧要不
+        ## 一个参数一个文件夹 然后跑20个变化
+        ## 画图
+        
+
+        # ## 选择分析变量
         selected_sensitivity_variables = st.multiselect(
                 label='Select Sensitivity Variables',
-                options=[] # TODO: 需要读swarm_dict 找到free的变量 拉出来表格选择 目前可以先不管
+                options = design_variable_name # TODO: 需要读swarm_dict 找到free的变量 拉出来表格选择 目前可以先不管
             )
-
-        ## 执行灵敏度分析并展示图像
-        if st.button("Run Sensitivity Analysis"):
-            # fig, ax = plt.subplots()
-            pmsm = sw.pmsm # 在读swarm_dict之后得到和im结构类似的pmsm 事实上应该就是变化的几个参数
-            class InitialDesign(object):
-                def __init__(self, pmsm, bounds=None):
-                    # unit: mm 
-                    self.air_gap_length_delta           = pmsm.template.d['GP']['mm_d_sleeve'].value
-                    self.stator_tooth_width_b_ds        = pmsm.template.d['GP']['mm_mm_w_st'].value*1e3
-                    # self.rotor_tooth_width_b_dr         = ( 2*np.pi*(pmsm.template.d['GP']['mm_r_ro'].value - pmsm.Length_HeadNeckRotorSlot)  - pmsm.Radius_of_RotorSlot * (2*Qr+2*pi) ) / Qr
-                    self.Angle_StatorSlotOpen           = pmsm.Angle_StatorSlotOpen # deg
-                    # self.b1                             = pmsm.Width_RotorSlotOpen
-                    self.Width_StatorTeethHeadThickness = pmsm.Width_StatorTeethHeadThickness
-                    self.Length_HeadNeckRotorSlot       = pmsm.Length_HeadNeckRotorSlot
-
-                    self.design_parameters_denorm = [   self.air_gap_length_delta,
-                                                        self.stator_tooth_width_b_ds,
-                                                        # self.rotor_tooth_width_b_dr,
-                                                        self.Angle_StatorSlotOpen,
-                                                        # self.b1,
-                                                        self.Width_StatorTeethHeadThickness,
-                                                        self.Length_HeadNeckRotorSlot ]
-
-                    if bounds is None:
-                        self.design_parameters_denorm
-                    else:
-                        self.show_norm(bounds, self.design_parameters_denorm)
+        
+        pop_x_values = local_sensitivity_analysis(param_value, param_bounds, number_of_steps = 20)
+        print(pop_x_values)
+        # quit()
+        
+        # pop.set_x(pop_x_values)
 
 
-                def show_denorm(self, bounds, design_parameters_norm):
-                    pop = design_parameters_norm
-                    min_b, max_b = np.asarray(bounds).T 
-                    diff = np.fabs(min_b - max_b)
-                    pop_denorm = min_b + pop * diff
-                    print('[De-normalized]:', end=' ')
-                    print(pop_denorm.tolist())
-                    
-                def show_norm(self, bounds, design_parameters_denorm):
-                    min_b, max_b = np.asarray(bounds).T 
-                    diff = np.fabs(min_b - max_b)
-                    print(design_parameters_denorm)
-                    print(min_b)
-                    print(bounds)
-                    self.design_parameters_norm = (design_parameters_denorm - min_b)/diff #= pop
-                    # print type(self.design_parameters_norm)
-                    print('[Normalized]:', end=' ')
-                    print(self.design_parameters_norm.tolist())
+        # ## 执行灵敏度分析并展示图像
+        # if st.button("Run Sensitivity Analysis"):
+        #     # fig, ax = plt.subplots()
                         
-            def local_sensitivity_analysis(self, specify_x_denorm=None):
-                        # 敏感性检查：以基本设计为准，检查不同的参数取极值时的电机性能变化！这是最简单有效的办法。七个设计参数，那么就有14种极值设计。
-                if specify_x_denorm is None:
-                    # build x_denorm for the template design
-                    x_denorm = self.ad.acm_template.build_x_denorm()
-                else:
-                    x_denorm = specify_x_denorm
-                print('[acmop.py] x_denorm:',  x_denorm)
-                print('[acmop.py] x_denorm_dict:', self.ad.acm_template.x_denorm_dict)
-                # quit()
-                self.init_pop = []
-                if True:
-                    diff = np.array(self.fea_config_dict['local_sensitivity_analysis_diff_bounds'])
-                    min_b = np.array(self.fea_config_dict['local_sensitivity_analysis_min_bounds'])
-                    if specify_x_denorm is None:
-                        initial_design_denorm = np.array(utility.Pyrhonen_design(self.pmsm).design_parameters_denorm)
-                    else:
-                        initial_design_denorm = specified_initial_design_denorm
-                    initial_design = (initial_design_denorm - min_b) / diff
-                    print(initial_design_denorm.tolist())
-                    print(initial_design.tolist())
-                    base_design = initial_design.tolist()
-                    print('base_design:', base_design, '\n-------------')
-                    # quit()
-                    number_of_variants = self.fea_config_dict['local_sensitivity_analysis_number_of_variants']
-                    self.init_pop = [initial_design] # include initial design!
-                    for i in range(len(base_design)): # 10 design parameters
-                        for j in range(number_of_variants+1): # 21 variants interval
-                            # copy list
-                            design_variant = base_design[::]
-                            design_variant[i] = j * 1./number_of_variants
-                            self.init_pop.append(design_variant)
-                    for ind, el in enumerate(self.init_pop):
-                        print(ind)
-                        print(el)
-                return self.init_pop
             
-            for ind, el in enumerate(sensitivity_denorm):
-                # sensitivity_denorm = local_sensitivity_analysis(specified_initial_design_denorm=specify_x_denorm)
-                acmop.part_evaluation(specify_counter=None, specify_x_denorm=sensitivity_denorm)
+            
+        #     for ind, el in enumerate(sensitivity_denorm):
+        #         # sensitivity_denorm = local_sensitivity_analysis(specified_initial_design_denorm=specify_x_denorm)
+        #         acmop.part_evaluation(specify_counter=None, specify_x_denorm=sensitivity_denorm)
 
-                # TODO: plot
-                # TODO: 1 number of x_denorm is 10 while optimization is 5
-                # TODO: 2 The call of JMAG need to be fixed # done
+        #         # TODO: plot
+        #         # TODO: 1 number of x_denorm is 10 while optimization is 5
+        #         # TODO: 2 The call of JMAG need to be fixed # done
 
             # sw = population.swarm(fea_config_dict, de_config_dict=de_config_dict)
             # sw, spec = utility.load_data(path2project) # TODO: initialize sw and spec

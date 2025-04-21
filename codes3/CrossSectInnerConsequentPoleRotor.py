@@ -114,25 +114,25 @@ class CrossSectConsequentPoleRotor(object):
         r_P4_extra = r_ri + 0.1 # = (r_P2 - d_rp) 
         P4 = [r_P4*cos(alpha_P4), r_P4*sin(alpha_P4)]
         P4_extra = [r_P4_extra*cos(alpha_P4_extra), r_P4_extra*sin(alpha_P4_extra)]
-        print(alpha_P4)
-        print(P4)
-        print(P4_extra)
+        # print(alpha_P4)
+        # print(P4)
+        # print(P4_extra)
 
-        print(alpha_rp)
-        print(alpha_rp)
-        print(alpha_rp)
-        print(alpha_rp)
-        print(alpha_rp)
+        # print(alpha_rp)
+        # print(alpha_rp)
+        # print(alpha_rp)
+        # print(alpha_rp)
+        # print(alpha_rp)
 
         alpha_p5 = 2*alpha_rp
-        print(alpha_p5)
-        print(alpha_p5)
-        print(alpha_p5)
-        print(alpha_p5)
-        print(alpha_p5)
+        # print(alpha_p5)
+        # print(alpha_p5)
+        # print(alpha_p5)
+        # print(alpha_p5)
+        # print(alpha_p5)
         r_P5 = r_P4
         P5 = [r_P5*cos(alpha_p5), r_P5*sin(alpha_p5)]
-        print(P5)
+        # print(P5)
 
         # alpha_P5 = alpha_P3 + alpha_rs # alpha_rs means rotor segment (of PM)
         # if abs(alpha_rs*s - alpha_rm)<EPS: # This means the inter-segment notch should span 0 deg, which mans the segmented design is reduced to a non-segmented design such that alpha_rm == alpha_rs*s
@@ -286,6 +286,12 @@ class CrossSectConsequentPoleRotor(object):
 ######################### 非常有用！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！############################
 
         innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))
+        print(P1, 
+              P2, 
+              P3, 
+              P4, 
+              P5, 
+              P6)
         # return [list_segments] # csToken # cross section token
         return {'innerCoord': innerCoord, 'list_regions':[list_segments], 'mirrorAxis': None,}
                 # 'list_regions_to_remove': }

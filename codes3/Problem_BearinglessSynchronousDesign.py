@@ -67,6 +67,7 @@ class Problem_BearinglessSynchronousDesign(object):
                         except PermissionError as error:
                             print(error)
                             print('Skip deleting this folder...')
+
                     # update to be deleted when JMAG releases the use
                     ad.   folder_to_be_deleted = ad.   expected_project_file[:-5]+'jfiles'
 
@@ -84,9 +85,9 @@ class Problem_BearinglessSynchronousDesign(object):
             except utility.ExceptionBadNumberOfParts as error:
                 print('ExceptionBadNumberOfParts captured:', str(error)) 
                 # print("Detail: {}".format(error.payload))
-                # f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
+                f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
                 # f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
-                f1, f2, f3 = get_bad_fintess_values(machine_type='CSPPM')
+                # f1, f2, f3 = get_bad_fintess_values(machine_type='CSPPM')
                 # utility.send_notification(ad.solver.fea_config_dict['pc_name'] + '\n\nExceptionBadNumberOfParts:' + str(error) + '\n'*3)
                 raise error
 

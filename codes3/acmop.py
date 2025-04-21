@@ -150,7 +150,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         elif 'FSPM' in self.select_spec:
             function = flux_switching_pm_design.FSPM_template
         elif 'CPPM' in self.select_spec:
-            function = bearingless_consequentPole_design.bearingless_conszequentPole_template
+            function = bearingless_consequentPole_design.bearingless_consequentPole_template
         elif 'VCPPM' in self.select_spec:
             function = bearingless_VShapeconsequentPole_design.bearingless_VconsequentPole_template
         elif 'CSPPM' in self.select_spec:
@@ -719,8 +719,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # main(31)
-    # main(3)
-    main(4)
+    main(3)
+    # main(4)
     # main(5)
 
 

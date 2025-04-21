@@ -1,4 +1,5 @@
 from pylab import np, cos, sin, arctan
+import pandas as pd
 class CrossSectInnerRotorStator:
     # CrossSectInnerRotorStator Describes the inner rotor motor stator.
     #    Properties are set upon class creation and cannot be modified.
@@ -90,6 +91,7 @@ class CrossSectInnerRotorStator:
         P8 = [  r_si+d_sp+d_st+d_sy, 0]
 
         list_segments = []
+        all_stator_points = []
         if bool_draw_whole_model:
             P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
             P3_Mirror = [P3[0], -P3[1]]
@@ -108,6 +110,16 @@ class CrossSectInnerRotorStator:
                 list_segments += drawer.drawLine(P4, P5)
                 list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
                 list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+                # print(P2, P3, P5, P5_Rotate)
+                current_points = {
+                                    "Stator Point": ["P2", "P3", "P4", "P5", 
+                                                    "P2_Mirror", "P3_Mirror", "P4_Mirror", "P5_Mirror", "P5_Rotate"],
+                                    "X": [P2[0], P3[0], P4[0], P5[0], 
+                                         P2_Mirror[0], P3_Mirror[0], P4_Mirror[0], P5_Mirror[0], P5_Rotate[0]],
+                                    "Y": [P2[1], P3[1], P4[1], P5[1],
+                                         P2_Mirror[1], P3_Mirror[1], P4_Mirror[1], P5_Mirror[1], P5_Rotate[1]]
+                                }
+                all_stator_points.append(current_points)
             for i in range(Q):
                 draw_fraction(list_segments, iPark(P2, i*alpha_slot_span), 
                                              iPark(P3, i*alpha_slot_span), 
@@ -121,6 +133,14 @@ class CrossSectInnerRotorStator:
             # draw a circle (this is officially suggested)
             list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
             list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+            df_list = []
+            for cycle_idx, points_dict in enumerate(all_stator_points):
+                df = pd.DataFrame(points_dict)
+                df["Cycle"] = cycle_idx + 1  # 标记当前循环序号
+                df_list.append(df)
+            
+            final_df = pd.concat(df_list, ignore_index=True)
+            final_df.to_excel("Stator_Points_All_Cycles_CPPM.xlsx", index=False)
         else:
             list_segments += drawer.drawArc([0,0], P2, P1)
             list_segments += drawer.drawLine(P2, P3)

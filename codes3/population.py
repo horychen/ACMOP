@@ -212,7 +212,7 @@ class swarm(object):
             # generate the initial random swarm from the initial design
             self.init_pop = np.random.rand(popsize, dimensions) # normalized design parameters between 0 and 1
 
-            def local_sensitivity_analysis(self, specified_initial_design_denorm):
+            def local_sensitivity_analysis(self, specified_init2ial_design_denorm):
                 # 敏感性检查：以基本设计为准，检查不同的参数取极值时的电机性能变化！这是最简单有效的办法。七个设计参数，那么就有14种极值设计。
                 if specified_initial_design_denorm is None:
                     initial_design_denorm = np.array( utility.Pyrhonen_design(self.im).design_parameters_denorm )

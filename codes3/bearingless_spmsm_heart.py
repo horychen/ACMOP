@@ -137,7 +137,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP['mm_d_ri'].value              = GP['mm_r_ro'].value - GP['mm_d_pm'].value- GP['mm_r_ri'].value
         
         # interpolar specifications
-        GP['deg_alpha_rm'].value         = 0.95*360/(2*p) # deg
+        GP['deg_alpha_rm'].value         = 1.0*360/(2*p) # deg
         GP['mm_d_rp'].value              = 3  # mm
         GP['deg_alpha_rs'].value         = 0.975*GP['deg_alpha_rm'].value / SI['no_segmented_magnets']
         GP['mm_d_rs'].value              = 0.20*GP['mm_d_rp'].value # d_pm > d_rp and d_pm > d_rs
@@ -148,7 +148,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP['split_ratio'].value          = split_ratio
         
         # stator
-        GP['deg_alpha_st'].value         = 360/Q - 2 # deg
+        GP['deg_alpha_st'].value         = 360/Q - 10 # deg
         GP['deg_alpha_sto'].value         = GP['deg_alpha_st'].value/2
         GP['mm_r_si'].value              = 1e3*stator_inner_radius_r_is # mm
         GP['mm_r_so'].value              = 1e3*stator_outer_diameter_Dse/2 # mm
@@ -156,8 +156,8 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP['mm_d_stt'].value              = 1.5*GP['mm_d_sto'].value
         GP['mm_d_st'].value              = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - GP['mm_r_si'].value - GP['mm_d_stt'].value  # mm
         GP['mm_d_sy'].value              = 1e3*stator_yoke_height_h_ys # mm
-        GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
-
+        # GP['mm_w_st'].value              = 1e3*stator_tooth_width_b_ds # mm
+        GP['mm_w_st'].value              = 9 # mm 临时
         # ureg = pint.UnitRegistry()  # 0.225* ureg.meter
         # stator_outer_diameter_Dse = 0.140 # this is related to the stator current density and should be determined by Js and power.
         # sleeve_length = 3

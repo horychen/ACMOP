@@ -1,6 +1,7 @@
 # importing pycairo
 import cairo
 from pylab import np
+from pathlib import Path 
 EPS=1e-4
 
 class VanGogh_Cairo:
@@ -18,7 +19,8 @@ class VanGogh_Cairo:
         # Set a background color
         if True:
             self.ctx.save()
-            self.ctx.set_source_rgb(0.95, 0.95, 0.95)
+            # self.ctx.set_source_rgb(0.95, 0.95, 0.95) # grey
+            self.ctx.set_source_rgb(1, 1, 1)  # white
             self.ctx.paint()
             self.ctx.restore()
         else:
@@ -74,7 +76,7 @@ class VanGogh_Cairo:
         # region1 = self.prepareSection(list_regions_1)
 
         # Shaft
-        # list_regions = acm_variant.shaft.draw(self)
+        # list_regions = acm_variant.shaft.draw(sel+f)
         # self.bMirror = False
         # self.iRotateCopy = 1
         # region0 = self.prepareSection(list_regions)
@@ -82,9 +84,7 @@ class VanGogh_Cairo:
         list_regions = acm_variant.statorMagnet.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
-        # Stator Core
-        list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
-        # self.bMirror = True
+        # Stssssdror = True
         # self.iRotateCopy = acm_variant.stator_core.Q
         # region3 = self.prepareSection(list_regions)
 
@@ -98,7 +98,7 @@ class VanGogh_Cairo:
         self.save(bool_open_pdf=bool_show_pdf)
 
         if False:
-            # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
+            # 根据绕组的形状去计    算可以放铜导线的面积，然后根据电流密度计算定子电流
             EX = acm_variant.template.d['EX']
             CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
             CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
@@ -106,7 +106,7 @@ class VanGogh_Cairo:
 
             # Maybe there is a bug here... regarding the excitation for suspension winding...
             variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
-            variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
+            variant_BeariW_CurrentAmp =  CurrentAmp*_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
             EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
             EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
             EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
@@ -152,7 +152,7 @@ class VanGogh_Cairo:
         # region3 = self.prepareSection(list_regions)
 
         # Stator Winding
-        if 1:
+        if 0:
             list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.coils.stator_core.Q
@@ -181,14 +181,14 @@ class VanGogh_Cairo:
         return True
     def draw_cppm(self, acm_variant, bool_draw_whole_model=True):
         # Rotor Core
-        if 1:
+        if 0:
             list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.rotorCore.p*2
         # region1 = self.prepareSection(list_regions_1)
 
         # Shaft
-        if 1:
+        if 0:
             list_regions = acm_variant.shaft.draw(self)
         # self.bMirror = False
         # self.iRotateCopy = 1
@@ -208,7 +208,7 @@ class VanGogh_Cairo:
         # regionS = self.prepareSection(list_regions)
 
         # Stator Core
-        if 0:
+        if 1:
             list_regions = acm_variant.stator_core.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = True
         # self.iRotateCopy = acm_variant.stator_core.Q
@@ -298,7 +298,7 @@ if __name__ == '__main__':
         # context.scale(700, 700)
 
         # setting line width of the context
-        context.set_line_width(2)
+        context.set_line_width(2)  
 
         # move the context to x,y position
         context.move_to(x, y)
@@ -313,7 +313,8 @@ if __name__ == '__main__':
         context.arc_negative(500, 100, 50, 0, 0.667*np.pi)
 
         # setting color of the context
-        context.set_source_rgba(0.4, 1, 0.4, 1)
+        context.set_source_rgba(0.4, 1, 0.4, 1) # grey
+        # context.set_source_rgb(1, 1, 1)   # white
 
         # stroke out the color and width property
         context.stroke()

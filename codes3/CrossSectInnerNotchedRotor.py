@@ -1,4 +1,5 @@
 from pylab import np, cos, sin
+import pandas as pd
 EPS = 1e-3 # [mm]
 
 class ExceptionBadDesign(Exception):
@@ -14,7 +15,7 @@ class CrossSectInnerNotchedRotor(object):
     #    Properties are set upon class creation and cannot be modified.
     #    The anchor point for this is the center of the rotor,
     #    with the x-axis directed along the center of one of the rotor poles
-    def __init__(self, 
+    def __init__(self,
                     name = 'Notched Rotor',
                     color = '#FE840E',
                     mm_d_pm = 6,
@@ -40,7 +41,8 @@ class CrossSectInnerNotchedRotor(object):
         self.p = p                       # number of pole pairs
         self.s = s                       # number of segments  
         self.location = location         # move this part to another location other than origin (not supported yet)
-
+        # self.acm_variant = acm_variant
+        # self.output_fname_no_suffix = acm_variant.template.fea_config_dict['output_dir'] + acm_variant.name
         # Validate that magnet spans only one pole pitch  
         if self.deg_alpha_rm>(180/self.p):
             raise Exception('Invalid alpha_rm. Check that it is less than 180/p')
@@ -130,6 +132,7 @@ class CrossSectInnerNotchedRotor(object):
             quit()
 
         list_segments = []
+        all_rotor_points = []
         if s == 1:
             # No magnet sement!
             # Then P6 is an extra point for a full rotor
@@ -165,8 +168,26 @@ class CrossSectInnerNotchedRotor(object):
                         list_segments += drawer.drawArc([0,0], P5, P4)
                         P5_CCW = iPark(P5, alpha_rp)
                         list_segments += drawer.drawLine(P5_CCW, P2)
+                        print(P1, P2, P3, P4, P5, P5_CCW)
+                        current_points = {
+                                            "Rotor Point": ["P1", "P2", "P3", "P4", "P5", "P6"],
+                                            "X": [P1[0], P2[0], P3[0], P4[0], P5[0], P6[0]],
+                                            "Y": [P1[1], P2[1], P3[1], P4[1], P5[1], P6[1]]
+                                        }
+                        all_rotor_points.append(current_points)
                     for i in range(2*p):
                         draw_fraction(list_segments, iPark(P2, i*alpha_rp), iPark(P3, i*alpha_rp), iPark(P4, i*alpha_rp), iPark(P5, i*alpha_rp))
+                    df_list = []
+                    for idx, points in enumerate(all_rotor_points):
+                        df = pd.DataFrame(points)
+                        df["Cycle"] = idx + 1  # 记录循环次数
+                        df_list.append(df)
+
+                    final_df = pd.concat(df_list, ignore_index=True)
+                    final_df.to_excel("Rotor_Points_All_Cycles.xlsx", index=False)
+                    # cairosvg.svg2pdf(url=self.output_fname_no_suffix+'.svg', write_to=self.output_fname_no_suffix+'.pdf')
+                    # print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+'.pdf (and .svg)'}")
+                    
                     # draw a circle (this is officially suggested by FEMM)
                     list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
                     list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
