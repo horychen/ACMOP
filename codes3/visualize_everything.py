@@ -2,9 +2,13 @@ from pylab import np, plt
 import pandas as pd
 import os, json, builtins, datetime
 import streamlit as st
-import utility_postprocess, acmop, utility, base64
+import utility_postprocess, acmop, utility, base64, acm_designer, population
 # import acm_designer
 from io import BytesIO
+
+# ad = acmop.AC_Machine_Optiomization_Wrapper()
+# print(ad.acm_template)
+# quit()
 
 def basic_information_about_optimization():
     # dimension of x and f? 
@@ -151,14 +155,13 @@ if __name__ == '__main__':
                 utility.enablePrint()
 
             # 1 read in jsons
-            ad_xx = mop.ad.xx
-            ad_yyy = mop.ad.yyy
-            ad_asddsadas = mop.ad.asddsadas
-            ...
+            # ad_yyy = mop.ad.yyy
+            # ad_asddsadas = mop.ad.asddsadas
+            # ...
 
-            ad_xx = jsons.xx
-            ad_yyy = jsons.yyy
-            ad_asddsadas = jsons.asddsadas
+            # ad_xx = jsons.xx
+            # ad_yyy = jsons.yyy
+            # ad_asddsadas = jsons.asddsadas
 
             del mop.ad
 
@@ -240,8 +243,12 @@ if __name__ == '__main__':
 
                         # 获取ad
                         mop = swarm_dict[folder]
+                        # print(dir(acmop.AC_Machine_Optiomization_Wrapper.part_initialDesign))
+                        # quit()
+                        mop.part_initialDesign()
                         ad = mop.ad
-
+                        # print(ad.acm_template)
+                        # quit()
                         # 手动选择最优个体
                         _best_index, _best_individual_data, = None, None
                         for ind, el in enumerate(utility_postprocess.call_selection_criteria(ad, eval(user_input_upper_bounds_4filter))):
@@ -351,6 +358,7 @@ if __name__ == '__main__':
                 with open(f'{os.path.dirname(__file__)}/streamlit_user_session_data.json', 'w') as f:
                     json.dump(dict(st.session_state), f, ensure_ascii=False, indent=4)
 
+                
         ## 结束 (Streamlit widgets automatically run the script from top to bottom. Since this button is not connected to any other logic, it just causes a plain rerun.)
         # st.button("Re-run")
 
@@ -386,101 +394,110 @@ if __name__ == '__main__':
         
         ## 之前选择的电机规格中 选择一个较优的设计 然后进行灵敏度分析（还需要一个选择）
 
+        # ad = mop.ad
+
         ## 选择分析变量
         selected_sensitivity_variables = st.multiselect(
                 label='Select Sensitivity Variables',
                 options=[] # TODO: 需要读swarm_dict 找到free的变量 拉出来表格选择 目前可以先不管
+                # 暂时不用了 我们直接读GP里面的变量
             )
 
         ## 执行灵敏度分析并展示图像
         if st.button("Run Sensitivity Analysis"):
             # fig, ax = plt.subplots()
-            pmsm = sw.pmsm # 在读swarm_dict之后得到和im结构类似的pmsm 事实上应该就是变化的几个参数
-            class InitialDesign(object):
-                def __init__(self, pmsm, bounds=None):
+            # pmsm = sw.pmsm # 在读swarm_dict之后得到和im结构类似的pmsm 事实上应该就是变化的几个参数
+            # class InitialDesign(object):
+                # def __init__(self, pmsm, bounds=None):
                     # unit: mm 
-                    self.air_gap_length_delta           = pmsm.template.d['GP']['mm_d_sleeve'].value
-                    self.stator_tooth_width_b_ds        = pmsm.template.d['GP']['mm_mm_w_st'].value*1e3
+                    # self.air_gap_length_delta           = pmsm.template.d['GP']['mm_d_sleeve'].value
+                    # self.stator_tooth_width_b_ds        = pmsm.template.d['GP']['mm_mm_w_st'].value*1e3
                     # self.rotor_tooth_width_b_dr         = ( 2*np.pi*(pmsm.template.d['GP']['mm_r_ro'].value - pmsm.Length_HeadNeckRotorSlot)  - pmsm.Radius_of_RotorSlot * (2*Qr+2*pi) ) / Qr
-                    self.Angle_StatorSlotOpen           = pmsm.Angle_StatorSlotOpen # deg
+                    # self.Angle_StatorSlotOpen           = pmsm.Angle_StatorSlotOpen # deg
                     # self.b1                             = pmsm.Width_RotorSlotOpen
-                    self.Width_StatorTeethHeadThickness = pmsm.Width_StatorTeethHeadThickness
-                    self.Length_HeadNeckRotorSlot       = pmsm.Length_HeadNeckRotorSlot
+                    # self.Width_StatorTeethHeadThickness = pmsm.Width_StatorTeethHeadThickness
+                    # self.Length_HeadNeckRotorSlot       = pmsm.Length_HeadNeckRotorSlot
 
-                    self.design_parameters_denorm = [   self.air_gap_length_delta,
-                                                        self.stator_tooth_width_b_ds,
+                    # self.design_parameters_denorm = [   self.air_gap_length_delta,
+                                                        # self.stator_tooth_width_b_ds,
                                                         # self.rotor_tooth_width_b_dr,
-                                                        self.Angle_StatorSlotOpen,
+                                                        # self.Angle_StatorSlotOpen,
                                                         # self.b1,
-                                                        self.Width_StatorTeethHeadThickness,
-                                                        self.Length_HeadNeckRotorSlot ]
+                                                        # self.Width_StatorTeethHeadThickness,
+                                                        # self.Length_HeadNeckRotorSlot ]
 
-                    if bounds is None:
-                        self.design_parameters_denorm
-                    else:
-                        self.show_norm(bounds, self.design_parameters_denorm)
+                    # if bounds is None:
+                        # self.design_parameters_denorm
+                    # else:
+                        # self.show_norm(bounds, self.design_parameters_denorm)
 
 
-                def show_denorm(self, bounds, design_parameters_norm):
-                    pop = design_parameters_norm
-                    min_b, max_b = np.asarray(bounds).T 
-                    diff = np.fabs(min_b - max_b)
-                    pop_denorm = min_b + pop * diff
-                    print('[De-normalized]:', end=' ')
-                    print(pop_denorm.tolist())
+                # def show_denorm(self, bounds, design_parameters_norm):
+                #     pop = design_parameters_norm
+                #     min_b, max_b = np.asarray(bounds).T 
+                #     diff = np.fabs(min_b - max_b)
+                #     pop_denorm = min_b + pop * diff
+                #     print('[De-normalized]:', end=' ')
+                #     print(pop_denorm.tolist())
                     
-                def show_norm(self, bounds, design_parameters_denorm):
-                    min_b, max_b = np.asarray(bounds).T 
-                    diff = np.fabs(min_b - max_b)
-                    print(design_parameters_denorm)
-                    print(min_b)
-                    print(bounds)
-                    self.design_parameters_norm = (design_parameters_denorm - min_b)/diff #= pop
-                    # print type(self.design_parameters_norm)
-                    print('[Normalized]:', end=' ')
-                    print(self.design_parameters_norm.tolist())
+                # def show_norm(self, bounds, design_parameters_denorm):
+                #     min_b, max_b = np.asarray(bounds).T 
+                #     diff = np.fabs(min_b - max_b)
+                #     print(design_parameters_denorm)
+                #     print(min_b)
+                #     print(bounds)
+                #     self.design_parameters_norm = (design_parameters_denorm - min_b)/diff #= pop
+                #     # print type(self.design_parameters_norm)
+                #     print('[Normalized]:', end=' ')
+                #     print(self.design_parameters_norm.tolist())
                         
-            def local_sensitivity_analysis(self, specify_x_denorm=None):
+            # def local_sensitivity_analysis(self, specify_x_denorm=None):
                         # 敏感性检查：以基本设计为准，检查不同的参数取极值时的电机性能变化！这是最简单有效的办法。七个设计参数，那么就有14种极值设计。
-                if specify_x_denorm is None:
+                # if specify_x_denorm is None:
                     # build x_denorm for the template design
-                    x_denorm = self.ad.acm_template.build_x_denorm()
-                else:
-                    x_denorm = specify_x_denorm
-                print('[acmop.py] x_denorm:',  x_denorm)
-                print('[acmop.py] x_denorm_dict:', self.ad.acm_template.x_denorm_dict)
+                    # x_denorm = self.ad.acm_template.build_x_denorm()
+                # else:
+                    # x_denorm = specify_x_denorm
+                # print('[acmop.py] x_denorm:',  x_denorm)
+                # print('[acmop.py] x_denorm_dict:', self.ad.acm_template.x_denorm_dict)
                 # quit()
-                self.init_pop = []
-                if True:
-                    diff = np.array(self.fea_config_dict['local_sensitivity_analysis_diff_bounds'])
-                    min_b = np.array(self.fea_config_dict['local_sensitivity_analysis_min_bounds'])
-                    if specify_x_denorm is None:
-                        initial_design_denorm = np.array(utility.Pyrhonen_design(self.pmsm).design_parameters_denorm)
-                    else:
-                        initial_design_denorm = specified_initial_design_denorm
-                    initial_design = (initial_design_denorm - min_b) / diff
-                    print(initial_design_denorm.tolist())
-                    print(initial_design.tolist())
-                    base_design = initial_design.tolist()
-                    print('base_design:', base_design, '\n-------------')
+                # self.init_pop = []
+                # if True:
+                    # diff = np.array(self.fea_config_dict['local_sensitivity_analysis_diff_bounds'])
+                    # min_b = np.array(self.fea_config_dict['local_sensitivity_analysis_min_bounds'])
+                    # if specify_x_denorm is None:
+                        # initial_design_denorm = np.array(utility.Pyrhonen_design(self.pmsm).design_parameters_denorm)
+                    # else:
+                        # initial_design_denorm = specified_initial_design_denorm
+                    # initial_design = (initial_design_denorm - min_b) / diff
+                    # print(initial_design_denorm.tolist())
+                    # print(initial_design.tolist())
+                    # base_design = initial_design.tolist()
+                    # print('base_design:', base_design, '\n-------------')
                     # quit()
-                    number_of_variants = self.fea_config_dict['local_sensitivity_analysis_number_of_variants']
-                    self.init_pop = [initial_design] # include initial design!
-                    for i in range(len(base_design)): # 10 design parameters
-                        for j in range(number_of_variants+1): # 21 variants interval
+                    # number_of_variants = self.fea_config_dict['local_sensitivity_analysis_number_of_variants']
+                    # self.init_pop = [initial_design] # include initial design!
+                    # for i in range(len(base_design)): # 10 design parameters
+                        # for j in range(number_of_variants+1): # 21 variants interval
                             # copy list
-                            design_variant = base_design[::]
-                            design_variant[i] = j * 1./number_of_variants
-                            self.init_pop.append(design_variant)
-                    for ind, el in enumerate(self.init_pop):
-                        print(ind)
-                        print(el)
-                return self.init_pop
+                            # design_variant = base_design[::]
+                            # design_variant[i] = j * 1./number_of_variants
+                            # self.init_pop.append(design_variant)
+                    # for ind, el in enumerate(self.init_pop):
+                        # print(ind)
+                        # print(el)
+                # return self.init_pop
+            mop = swarm_dict[folder]
+            ad = mop.acm_template.d['GP']
+            print(ad)
+            # acmop.reproduce_design_from_design_parameters(ad.design_parameters_denorm)
             
-            for ind, el in enumerate(sensitivity_denorm):
+            # for ind, el in enumerate(sensitivity_denorm):
                 # sensitivity_denorm = local_sensitivity_analysis(specified_initial_design_denorm=specify_x_denorm)
-                acmop.part_evaluation(specify_counter=None, specify_x_denorm=sensitivity_denorm)
+                # acmop.reproduce_design_from_design_parameters(el)
 
+            for ind,el in enumerate():
+                pass
                 # TODO: plot
                 # TODO: 1 number of x_denorm is 10 while optimization is 5
                 # TODO: 2 The call of JMAG need to be fixed # done

@@ -646,7 +646,7 @@ def main(number_which_part):
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind704-NoMagnetLoss.json', bool_evaluate=True)
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind703.json', bool_evaluate=True)
         # motor_design_variant = mop.reproduce_design_from_jsonpickle('__ind1786.json', bool_evaluate=True)
-        motor_design_variant = mop.reproduce_design_from_design_parameters()
+        motor_design_variant = mop.reproduce_design_from_design_parameters() # 需要提供design参数
     elif number_which_part == 51:
         # mop.part_post_optimization_analysis(project_name='proj212-SPMSM_IDQ12p1s1') # Module 5
         mop.part_post_optimization_analysis(project_name='proj12-SPMSM_IDQ12p4s1') # Module 5 - visualize swarm data
@@ -657,9 +657,9 @@ def main(number_which_part):
 if __name__ == '__main__':
     # mop = main(1)
     # mop = main(31)
-    mop = main(3)
+    # mop = main(3)
     # mop = main(4)
-    # mop = main(5)
+    mop = main(5)
 
     ''' Interactive variable checking examples:
 
