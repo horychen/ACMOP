@@ -137,7 +137,8 @@ if __name__ == '__main__':
 
         select_spec = 'PMSM Q12p4ps5y1 Heart'
         select_fea_config_dict = '#0213 JMAG PMSM Q12p4ps5 Sub-hamonics(Fixed Airgap and Fixed PM Depth)'
-        json
+
+        # json
 
         ## 按照所选的电机规格，显示用户输入信息
         swarm_dict = {}

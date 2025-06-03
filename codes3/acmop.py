@@ -307,7 +307,7 @@ class AC_Machine_Optiomization_Wrapper(object):
             logger.info(f'[acmop.py] Check for swarm data from: {self.select_spec}.json ...')
             self.ad.acm_template.build_x_denorm()
             # quit()
-            # swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
+            swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
             
             number_of_chromosome = ad.analyzer.number_of_chromosome
             # print(number_of_chromosome)
@@ -622,7 +622,7 @@ def main(number_which_part):
         # select_spec = "SliceIM Q12p4ps5y1-Qr10",
         # select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
         project_loc            = fr'../_default/',
-        bool_show_GUI          = True
+        bool_show_GUI          = False
         # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
@@ -658,8 +658,8 @@ if __name__ == '__main__':
     # mop = main(1)
     # mop = main(31)
     # mop = main(3)
-    # mop = main(4)
-    mop = main(5)
+    mop = main(4)
+    # mop = main(5)
 
     ''' Interactive variable checking examples:
 
