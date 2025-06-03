@@ -904,7 +904,7 @@ def performance_table_plus_donut_chart(ad, folder_as_select_spec, _best_index, _
 #     # ripple_ax.set_ylabel('ripple sum')
 
 
-def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None, bool_return_auto_optimal_designs_xf=True):
+def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, z_filter=20, output_dir=None, bool_return_auto_optimal_designs_xf=True):
     def get_plot():
         # mpl.style.use('classic')
         mpl.rcParams['mathtext.fontset'] = 'stix'
@@ -947,7 +947,7 @@ def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=None, 
 
         # 绘制 Pareto front
         # utility.blockPrint()
-        scatter_handle, more_info, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=30, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
+        scatter_handle, more_info, auto_optimal_designs_fitnesses, auto_optimal_designs_xf = pareto_front_plot_script(ad.analyzer.swarm_data_xf, fig, ax, marker, label, fea_config_dict=ad.fea_config_dict, z_filter=z_filter, bool_return_more_details=True) # z_filter=20 filtered individual that has OC larger than 20
         # utility.enablePrint()
 
         # Save to dictionaries

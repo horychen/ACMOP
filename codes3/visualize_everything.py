@@ -178,9 +178,10 @@ if __name__ == '__main__':
         ## 是否显示自动最优个体表格和帕累托前沿？
         optimal_xf_dict = None
         if st.checkbox("Show Swarm Table and Pareto Front?"):
-            df_swarm, fig_Pareto, optimal_fitness_dict, optimal_xf_dict = utility_postprocess.inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, output_dir=path2project)
-            st.table(df_swarm)
+            z_filter = float(st.text_input(label='Input z-filter for Pareto front:', value='20')) #, key='Input z_filter for Pareto front'))
+            df_swarm, fig_Pareto, optimal_fitness_dict, optimal_xf_dict = utility_postprocess.inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, z_filter, output_dir=path2project)
             st.pyplot(fig_Pareto)
+            st.table(df_swarm)
 
         st.write('# 2. Template/Initial Design Information')
         wily_fname = 'wily_p%dps%dQ%dy%d'%(mop.spec_input_dict['p'], mop.spec_input_dict['ps'], mop.spec_input_dict['Qs'], mop.spec_input_dict['coil_pitch_y'])
