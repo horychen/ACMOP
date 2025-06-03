@@ -96,8 +96,8 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1],
                     [coords[1] for coords in tmp], color=cl[ndr], where='post')
 
         # Now add color according to the value of the z-axis variable usign scatter
-        z_filter = 999999999.0
-        print(z_filter, 'z_filter')
+        # z_filter = 999999999.0
+        # print(z_filter, 'z_filter')
         if z_filter is not None:
             z = np.array(z)
             z_filtered_swarm_data_xf_at_this_front = [xf for z_value, xf in zip(z, swarm_data_xf_at_this_front) if z_value<z_filter]

@@ -978,9 +978,8 @@ class acm_designer(object):
         # open(output_dir+'swarm_MOO_log.txt', 'a').close()
 
         self.acm_template.build_x_denorm()
-        # print(self.acm_template.x_denorm_dict)
-        # swarm_data_file = self.read_swarm_data_json(self.select_spec, self.acm_template.x_denorm_dict)
-
+        swarm_data_file = self.read_swarm_data_json(self.select_spec, self.acm_template.x_denorm_dict)
+        print('[acm_designer.py]', self.acm_template.x_denorm_dict, swarm_data_file)
 
     def init_logger(self, prefix='pygmo_'):
         # self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
