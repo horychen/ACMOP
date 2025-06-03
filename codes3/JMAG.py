@@ -263,7 +263,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if len(part_ID_list) != int(1 + 1 + 2*pm*1*s + 1 + 1 + Q*2):
         # if len(part_ID_list) != int(1 + 1 + p*1*s +      1 + Q*2):
         # if len(part_ID_list) != int(1 + Q*2 + 1):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
+            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=False)
             logger = logging.getLogger(__name__)
             logger.error(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
@@ -466,7 +466,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if len(part_ID_list) != int(1 + 1 + p*1*s + 1 + Q*2):
         # if len(part_ID_list) != int(1 + 1 + p*1*s +      1 + Q*2):
         # if len(part_ID_list) != int(1 + Q*2 + 1):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
+            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=False)
             logger = logging.getLogger(__name__)
             logger.error(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
@@ -657,7 +657,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Q  = SI['Qs']
                                 #   转子 轴 永磁体 定子 绕组
         if len(part_ID_list) != int(1 + 1 + pe*2 + 1 + Q*4):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + pe*2 + 1 + Q*4), len(part_ID_list)) + self.show(toString=True)
+            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + pe*2 + 1 + Q*4), len(part_ID_list)) + self.show(toString=False)
             logger = logging.getLogger(__name__)
             logger.error(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
@@ -793,7 +793,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Q = SI['Qs']
                                 #   轴 转子 永磁体  护套 定子 绕组
         if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=True)
+            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(acm_variant,toString=False)
             logger = logging.getLogger(__name__)
             logger.error(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
@@ -954,7 +954,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         if len(part_ID_list) != self.number_of_parts_in_JMAG:
             msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(self.number_of_parts_in_JMAG), len(part_ID_list))
-            #  + self.show(toString=True)
+            #  + self.show(toString=False)
             logger = logging.getLogger(__name__)
             logger.error(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
@@ -1894,20 +1894,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     self.doc.GetSelection().Delete()
 
         for idx, region_object in enumerate(list_region_objects):
-            
-            # print('——————————————————————————————\n')
-            # print(idx)
-            # print('\n')
-            # print(region_object)
-            # print('\n')
-            # print('\n')
             # Mirror
             if self.bMirror == True:
                 if self.edge4Ref is None:
                     self.regionMirrorCopy(region_object, edge4Ref=None, symmetryType=2, bMerge=bMirrorMerge) # symmetryType=2 means x-axis as ref
                 else:
                     self.regionMirrorCopy(region_object, edge4Ref=self.edge4ref, symmetryType=None, bMerge=bMirrorMerge) # symmetryType=2 means x-axis as ref
-            # quit()
             # RotateCopy
             if self.iRotateCopy >= 2:
                 # print('Copy', self.iRotateCopy)
@@ -2043,7 +2035,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         doc.SaveModel(True) # True=on : Project is also saved. 
         model = app.GetCurrentModel() # model = app.GetModel(u"IM_DEMO_1")
         model.SetName(model_name)
-        model.SetDescription(im_variant.model_name_prefix + '\n' + im_variant.show(toString=True))
+        model.SetDescription(im_variant.model_name_prefix + '\n' + im_variant.show(toString=False))
 
         if doNotRotateCopy:
             im_variant.pre_process_structural(app, d.listKeyPoints)
@@ -2252,7 +2244,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # # print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
 
             # Import Model into Designer
-            self.save(acm_variant.name, self.show(acm_variant, toString=True))
+            self.save(acm_variant.name, self.show(acm_variant, toString=False))
 
         return True
     def draw_CPPM(self, acm_variant, bool_pyx=False, bool_draw_whole_model=False):
@@ -2351,7 +2343,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # # print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
 
             # Import Model into Designer
-            self.save(acm_variant.name, self.show(acm_variant, toString=True))
+            self.save(acm_variant.name, self.show(acm_variant, toString=False))
 
         return True
 
@@ -2373,6 +2365,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         list_regions_1 = acm_variant.rotorCore.draw(self)
         self.bMirror = False
         self.iRotateCopy = acm_variant.rotorCore.p*2
+
         region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
 
         # Shaft
@@ -2452,7 +2445,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 # # print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
 
             # Import Model into Designer
-            self.save(acm_variant.name, self.show(acm_variant, toString=True))
+            self.save(acm_variant.name, self.show(acm_variant, toString=False))
 
         return True
     
@@ -2490,7 +2483,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         self.calculate_excitation_current(acm_variant)
 
         # Import Model into Designer
-        self.save(acm_variant.name, self.show(acm_variant, toString=True))
+        self.save(acm_variant.name, self.show(acm_variant, toString=False))
         return True
     def draw_FSPM(self, acm_variant, bool_draw_whole_model=True):
         if bool_draw_whole_model:
@@ -2537,7 +2530,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         self.calculate_excitation_current(acm_variant)
 
         # Import Model into Designer
-        self.save(acm_variant.name, self.show(acm_variant, toString=True))
+        self.save(acm_variant.name, self.show(acm_variant, toString=False))
         return True
 
     @staticmethod
@@ -2579,7 +2572,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if toString==False:
             print('- Bearingless PMSM Individual #%s\n\t' % (acm_variant.name), end=' ')
             print(', \n\t'.join("%s = %s" % item for item in variant_tuple_list))
-            print(', \n\t'.join("%s = %s" % item for item in template_tuple_list))
+            # print(', \n\t'.join("%s = %s" % item for item in template_tuple_list))
             return ''
         else:
             return '\n- Bearingless PMSM Individual #%s\n\t' % (acm_variant.name) \

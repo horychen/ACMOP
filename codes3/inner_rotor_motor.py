@@ -81,13 +81,13 @@ class template_machine_as_numbers(object):
             # STATOR                           Type       Name                          Value  Bounds       Calc
             "deg_alpha_st"  : acmop_parameter("free",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
             "mm_w_st"       : acmop_parameter("free",    "stator_tooth_width"         , None, [None, None], lambda GP,SI:None),
-            "mm_d_st"       : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:derive_mm_d_st(GP,SI)),
             "mm_d_sto"      : acmop_parameter("fixed",   "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
             "deg_alpha_sto" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_sto(GP,SI)),
             "mm_d_stt"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_stt(GP,SI)),
             "mm_r_si"       : acmop_parameter("derived", "stator_inner_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si(GP,SI)),
             "mm_r_so"       : acmop_parameter("derived", "stator_outer_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_so(GP,SI)),
             "mm_d_sy"       : acmop_parameter("fixed",   "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy(GP,SI)),
+            "mm_d_st"       : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:derive_mm_d_st(GP,SI)),
         })
 
         # assert derived variables
