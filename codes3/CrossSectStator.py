@@ -140,7 +140,7 @@ class CrossSectInnerRotorStator:
                 df_list.append(df)
             
             final_df = pd.concat(df_list, ignore_index=True)
-            final_df.to_excel("Stator_Points_All_Cycles_CPPM.xlsx", index=False)
+            final_df.to_excel("Stator_Points_All_Cycles_ISMB1.xlsx", index=False)
         else:
             list_segments += drawer.drawArc([0,0], P2, P1)
             list_segments += drawer.drawLine(P2, P3)

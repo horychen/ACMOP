@@ -152,7 +152,7 @@ class VanGogh_Cairo:
         # region3 = self.prepareSection(list_regions)
 
         # Stator Winding
-        if 0:
+        if 1:
             list_regions = acm_variant.coils.draw(self, bool_draw_whole_model=bool_draw_whole_model)
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.coils.stator_core.Q

@@ -928,7 +928,7 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
-                                (3, 36, 6, 5, 2, 0), # PMG
+                                (3, 24, 2, 1, 4, 0), # PMG
                                 # (3, 84, 2, 1,21, 0), # Main Gen
                                 # (3, 18, 3, 2, 3, 0), # BSG_WMR
                                 # (15, 30, 2, 3, 10, 0),
@@ -1027,7 +1027,7 @@ def main_derivation():
 
         fname = output_dir + 'wily_p%dps%dQ%dy%d'%(wd.p, wd.ps, wd.Q, wd.coil_pitch_y)
 
-        if True:
+        if False:
             ''' ISMB 2021: Produce sub-figure for the paper
             '''
             wd.drawer_T1.cvs.writePDFfile(fname + '_T1')
@@ -1678,12 +1678,12 @@ if __name__ == '__main__':
         quit()
     else:
         # phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
-        phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
+        phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
         # signs = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-        signs = ['+', '-', '+', '-', '-', '-', '-', '+', '-', '+', '+', '+']
+        signs = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
         # grouping_AC = [0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]
-        grouping_AC = [0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0]
-        coil_pitch_y = 1
+        grouping_AC = [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0]
+        coil_pitch_y = 4
 
     diagram = winding_diagram(
         layer_X_phases = phases,

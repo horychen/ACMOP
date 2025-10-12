@@ -96,7 +96,8 @@ class CrossSectInnerNotchedRotor(object):
         P1 = [r_ri, 0]
 
         r_P2 = r_ri + d_ri + d_rp
-        # print('[CrossSectInnerNotchedRotor.py] DEBUG: ', r_P2, mm_r_ro)
+        # print('[CrossSectInnerNotchedRotor.py] DEBUG: ', r_P2, d_rp, d_ri)
+
         P2 = [r_P2, 0]
 
         alpha_P3 = alpha_rp - alpha_rm
@@ -184,7 +185,7 @@ class CrossSectInnerNotchedRotor(object):
                         df_list.append(df)
 
                     final_df = pd.concat(df_list, ignore_index=True)
-                    final_df.to_excel("Rotor_Points_All_Cycles.xlsx", index=False)
+                    final_df.to_excel("Rotor_Points_All_Cycles_ISMB1.xlsx", index=False)
                     # cairosvg.svg2pdf(url=self.output_fname_no_suffix+'.svg', write_to=self.output_fname_no_suffix+'.pdf')
                     # print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+'.pdf (and .svg)'}")
                     

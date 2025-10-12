@@ -2777,13 +2777,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             for row in utility.csv_row_reader(f):
                 count +=1
                 if 'IM' in machine_type:
-                    if count>8:
-                        rotor_iron_loss = float(row[2]) # Rotor Core
+                    if count>8:                          # The mode 3 transient study has the different csv file. check it!
+                        rotor_iron_loss = float(row[2])  # Rotor Core
                         stator_iron_loss = float(row[3]) # Stator Core
                         print('[utility.py] Iron loss:', stator_iron_loss, rotor_iron_loss)
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
-                    if count>7:
+                    if count>8:
                         print('[JMAG.py] This should be 0:', float(row[0]))
                         rotor_iron_loss = float(row[1]) # Rotor Core
                         stator_iron_loss = float(row[4]) # Stator Core
@@ -2800,7 +2800,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                         print('[utility.py] Eddy current loss:', stator_eddycurrent_loss, rotor_eddycurrent_loss)
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
-                    if count>7:
+                    if count>8:
                         rotor_eddycurrent_loss  = float(row[1]) # Rotor Core
                         stator_eddycurrent_loss = float(row[4]) # Stator Core
                         print('[utility.py] Eddy current loss:', stator_eddycurrent_loss, rotor_eddycurrent_loss)
@@ -2816,7 +2816,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                         print('[utility.py] Hysteresis loss:', stator_hysteresis_loss, rotor_hysteresis_loss)
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
-                    if count>7:
+                    if count>8:                                # The mode 3 transient study has the different csv file. check it!
                         rotor_hysteresis_loss  = float(row[1]) # Rotor Core
                         stator_hysteresis_loss = float(row[4]) # Stator Core
                         print('[utility.py] Hysteresis loss:', stator_hysteresis_loss, rotor_hysteresis_loss)
