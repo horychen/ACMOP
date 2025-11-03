@@ -25,8 +25,11 @@ class Swarm_Data_Analyzer(object):
                 del buf
                 if 'Test' in swarm_data_as_dict.keys():
                     del swarm_data_as_dict['Test']
+            
+            swarm_data_as_dict = self.filter_data(swarm_data_as_dict, 'Geometric parameters', 'split_ratio', 'bigger', 0.45)
             self.number_of_chromosome = len(swarm_data_as_dict)
             self.swarm_data_as_dict = swarm_data_as_dict
+
 
             ''' 2. Get swarm_data_xf
             '''
@@ -71,6 +74,25 @@ class Swarm_Data_Analyzer(object):
                 # self.swarm_data_project_names = [ self.decode(v)['Performance']['project_name'] for v in swarm_data_as_dict.values() ]
                 # self.prepare_data_for_post_processing(swarm_data_as_dict)
             self.swarm_data_project_names = self.get_metric_of_the_whole_swarm('project_name')
+    
+    def filter_data(self, data, param_type, filter_key, direction, filter_value):
+        filtered_data = {}
+        for key in data.keys():
+            for motor_type in data[key].keys():
+                flag = False
+                for item in data[key][motor_type][param_type]:
+                    if filter_key in item.keys():
+                        if direction == "bigger" and item[filter_key]['value'] > filter_value:
+                            filtered_data[key] = data[key]
+                            flag = True
+                        if direction == "smaller" and item[filter_key]['value'] <= filter_value:
+                            filtered_data[key] = data[key]
+                            flag = True
+                        break
+                if flag:
+                    break
+        return filtered_data
+
 
     @staticmethod
     def decode(d):
