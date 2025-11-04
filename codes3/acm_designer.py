@@ -1001,7 +1001,7 @@ class acm_designer(object):
 
         self.acm_template.build_x_denorm()
         swarm_data_file = self.read_swarm_data_json(self.select_spec, self.acm_template.x_denorm_dict)
-        print('[acm_designer.py]', self.acm_template.x_denorm_dict, swarm_data_file)
+        # print('[acm_designer.py]', self.acm_template.x_denorm_dict, swarm_data_file)
 
     def init_logger(self, prefix='pygmo_'):
         # self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
@@ -1298,7 +1298,7 @@ class acm_designer(object):
             self.fea_config_dict['output_dir'] = read_from_here
         
         fname_swarm_data_txt = self.fea_config_dict['output_dir'] + select_spec.replace(' ', '_') + '/swarm_data.txt'
-        print('[acm_designer.py]', fname_swarm_data_txt)
+        # print('[acm_designer.py]', fname_swarm_data_txt)
         if not os.path.exists(fname_swarm_data_txt):
             msg = '\tNo file @ ' + fname_swarm_data_txt
             print(msg)

@@ -1,0 +1,213 @@
+# ACMOP - Alternating Current Machine Optimization Project
+
+## 项目概述
+ACMOP 是一个用于交流电机（特别是无轴承电机）优化设计的 Python 项目。项目支持多种电机类型的初始设计、有限元分析（FEA）和多目标优化（MOO）。
+
+## 项目结构
+
+### 核心模块
+项目分为 5 个主要模块（在 `acmop.py` 中定义）：
+1. **Module 1 - 绕组设计** (`part_winding()`): 生成绕组布局和绕组函数
+2. **Module 2 - 初始设计** (`part_initialDesign()`): 创建电机模板设计
+3. **Module 3 - 性能评估** (`part_evaluation()`): 使用 FEA 工具评估设计性能
+4. **Module 4 - 多目标优化** (`part_optimization()`): 使用 pygmo 进行多目标优化
+5. **Module 5 - 后处理分析** (`part_post_optimization_analysis()`): 结果分析和可视化
+
+### 主要文件结构
+```
+codes3/
+├── acmop.py                    # 主入口文件，包含 AC_Machine_Optiomization_Wrapper 类
+├── acm_designer.py             # 设计器类，负责 FEA 求解和评估
+├── machine_specifications.json # 电机规格配置文件
+├── machine_simulation.json     # FEA 仿真配置文件
+├── JMAG.py                     # JMAG Designer 封装类
+├── FEMM_Solver.py              # FEMM 求解器
+├── FEMM_SlidingMesh.py         # FEMM 滑动网格求解器
+├── Problem_BearinglessSynchronousDesign.py  # 多目标优化问题定义
+├── bearingless_*.py            # 各种无轴承电机设计模板
+├── winding_layout.py           # 绕组布局类
+├── utility.py                  # 工具函数
+├── utility_json.py             # JSON 序列化工具
+├── utility_moo.py              # 多目标优化工具
+├── visualize_everything.py    # Streamlit 可视化界面
+└── ...
+```
+
+## 支持的电机类型
+
+### 永磁同步电机 (PMSM)
+- `bearingless_spmsm_design.py`: 表面贴装永磁同步电机
+- `bearingless_spmsm_heart.py`: Heart 型 PMSM
+
+### 感应电机 (IM)
+- `bearingless_induction_design.py`: 无轴承感应电机
+
+### 其他类型
+- `vernier_motor_design.py`: 磁齿轮电机
+- `flux_alternator_design.py`: 磁通发电机
+- `flux_switching_pm_design.py`: 磁通切换永磁电机
+- `bearingless_consequentPole_design.py`: 连续极无轴承电机
+- `bearingless_VShapeconsequentPole_design.py`: V 型连续极
+- `bearingless_consequentsinglePole_design.py`: 单极连续极
+
+## 技术栈
+
+### 核心依赖
+- **Python**: 3.7.6+ (推荐 3.8.8)
+- **pygmo**: 多目标优化库（通过 conda 安装）
+- **JMAG Designer**: 17.1.05i（有限元分析软件）
+- **FEMM**: 免费有限元分析软件
+
+### Python 包
+- `jsonpickle`: 对象序列化
+- `pyfemm`: FEMM Python 接口
+- `pyx`: 图形绘制
+- `pycairo`, `cairosvg`: 图形渲染
+- `streamlit`: Web 可视化界面
+- `recordtype`: 记录类型
+- `scipy`, `numpy`: 科学计算
+
+## 配置文件
+
+### machine_specifications.json
+包含各种电机类型的规格参数：
+- 槽数 (Qs)、极对数 (p)、悬挂极对数 (ps)
+- 机械功率、电压等级、频率
+- 材料属性（铁芯、线圈）
+- 几何约束
+
+### machine_simulation.json
+包含 FEA 仿真配置：
+- JMAG/FEMM 求解器设置
+- 网格大小、时间步长
+- 优化算法参数（种群大小、迭代次数等）
+- 目标函数定义（成本、效率、转矩脉动等）
+
+## 核心类
+
+### AC_Machine_Optiomization_Wrapper
+主包装类，位于 `acmop.py`：
+- 管理整个优化流程
+- 加载配置文件和设计规范
+- 协调各个模块的执行
+
+### acm_designer
+设计器类，位于 `acm_designer.py`：
+- 评估设计变体
+- 调用 FEA 求解器（JMAG/FEMM）
+- 计算性能指标
+- 管理优化种群数据
+
+### Swarm_Data_Analyzer
+种群数据分析器：
+- 读取和解析优化历史数据
+- 支持从归档数据恢复优化过程
+
+## 优化流程
+
+### 多目标优化
+使用 pygmo 的 MOEA/D 算法：
+- **目标函数**: 通常为 3 个目标（成本、效率、转矩/力脉动）
+- **设计变量**: 几何参数（归一化后的 x_denorm）
+- **约束条件**: 支持约束，但当前实现中约束可能未正确应用
+
+### 重启功能
+- 支持从 `swarm_data.txt` 或 JSON 归档文件恢复优化
+- 可以从任意中断点继续优化
+
+## 关键功能
+
+### 绕组设计
+- 支持 DPNV（双并联中性点电压）和 SEPARATE 绕组
+- 生成绕组函数和电流连接图
+- 支持特定极绕组（Pole-specific winding）
+
+### FEA 分析
+- **JMAG**: 支持瞬态和非线性分析
+- **FEMM**: 支持滑动网格和静态分析
+- 自动提取转矩、力、磁通、电流等结果
+
+### 性能计算
+- 效率、功率因数
+- 转矩脉动、力脉动
+- 铁损、铜损
+- 磁力误差角度和幅值
+
+### 可视化
+- Streamlit Web 界面：`streamlit run visualize_everything.py`
+- 使用 PyX/Cairo 生成 PDF/SVG 图形
+- Pareto 前沿重叠图
+
+## 数据格式
+
+### 设计变体存储
+- JSON 格式存储设计参数和性能结果
+- 使用 jsonpickle 序列化完整的设计对象
+- CSV 文件存储时间域分析结果
+
+### 几何参数
+使用 `recordtype` 定义 `acmop_parameter`：
+- `type`: 参数类型（输入/输出/派生）
+- `name`: 参数名称
+- `value`: 参数值
+- `bounds`: 参数边界
+- `calc`: 计算函数（对于派生参数）
+
+## 使用示例
+
+### 基本使用流程
+```python
+import acmop
+mop = acmop.main(4)  # 运行优化
+```
+
+### 评估单个设计
+```python
+mop = acmop.main(3)  # 评估初始设计
+```
+
+### 从 JSON 恢复设计
+```python
+mop = acmop.main(5)
+motor_design_variant = mop.reproduce_design_from_jsonpickle('design_name')
+```
+
+## 注意事项
+
+### 局限性
+1. DPNV 绕组要求并联支路数 a=2，因此不支持 3 槽电机
+2. JMAG 版本要求：17.1.05i（更高版本可能不兼容）
+3. 约束条件在重启优化时可能未正确应用
+
+### 已知问题
+1. 位移功率因数计算存在 bug
+2. 重启时约束未应用到归档数据
+3. 铁损数据仅适用于 50-600 Hz
+4. 磁体涡流损耗估算存在累积误差限制
+
+## 开发指南
+
+### 添加新的槽极组合（IM）
+1. 更新 `machine_specifications.json`
+2. 运行 `winding_layout_derivation_ismb2020.py` 生成定子绕组布局
+3. 运行 `Pole-specific_winding_with_neutral_plate_the_design_table_generator.py` 生成转子绕组布局
+4. 将生成的代码粘贴到 `winding_layout.py`
+5. 在 `acmop.py` 中添加新的 `select_spec`
+
+### 代码风格
+- 使用中文注释和变量名（部分代码）
+- 模块化设计，每个功能独立文件
+- 使用 logging 记录关键信息
+- 支持多线程/并行计算（部分功能）
+
+## 输出目录结构
+```
+output_dir/
+├── csv/                    # CSV 结果文件
+├── jsonpickle/            # JSON 序列化的设计对象
+├── swarm_data.txt         # 优化种群数据（旧格式）
+├── swarm_data.json        # 优化种群数据（JSON 格式）
+├── acmop-settings.txt     # 当前运行配置记录
+└── *.pdf, *.svg          # 图形输出
+```
+
