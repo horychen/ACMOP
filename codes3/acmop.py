@@ -618,7 +618,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
         select_spec = "PMSM Q12p4ps5y1 Heart",
-        select_fea_config_dict=    "#0213 JMAG PMSM Q12p4ps5 Sub-hamonics(Fixed Airgap and Fixed PM Depth)",
+        select_fea_config_dict=    "#0213 Bearingless Sub-hamonics",
         # select_spec = "SliceIM Q12p4ps5y1-Qr10",
         # select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
         project_loc            = fr'../_default/',

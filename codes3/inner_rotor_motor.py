@@ -102,63 +102,75 @@ class template_machine_as_numbers(object):
 
         # all in one place
         self.d = {
-            "which_filter": fea_config_dict['which_filter'],
+            # "which_filter": fea_config_dict['which_filter'],
             "GP": geometric_parameters,
             "EX": OrderedDict(), # "Other Properties" is now renamed to "EXcitations"
             "x_denorm_dict": OrderedDict(),
             "bounds_denorm": [],
         }
 
-        bool_matched = False
-        if 'FixedSleeveLength' in self.d['which_filter']:
-            self.d['GP']['mm_d_sto'].type = "free"
-            self.d['GP']['mm_d_sleeve'].type = "fixed"
-            bool_matched = True
+        # 依据fea_config_dict来设置GP的value和type
+        for key in fea_config_dict.keys():
+            if key.startswith('machine.GP') and key.endswith('value'):
+                param_name = key.split('.')[-2]
+                if param_name in self.d['GP'].keys():
+                    self.d['GP'][param_name].value = fea_config_dict[key]
+            if key.startswith('machine.GP') and key.endswith('type'):
+                param_name = key.split('.')[-2]
+                if param_name in self.d['GP'].keys():
+                    self.d['GP'][param_name].type = fea_config_dict[key]
 
-        if 'VariableSleeveLength' in self.d['which_filter']:
-            self.d['GP']['mm_d_sto'].type = "free"
-            self.d['GP']['mm_d_sleeve'].type = "free"
-            bool_matched = True
 
-        if 'VariableStatorSlotDepth_VariableStatorYokeDepth' in self.d['which_filter']:
-            # IM
-            self.d['GP']['mm_d_sto'].type = "free"
-            self.d['GP']['mm_d_mech_air_gap'].type = "free"
-            bool_matched = True
+        # bool_matched = False
+        # if 'FixedSleeveLength' in self.d['which_filter']:
+        #     self.d['GP']['mm_d_sto'].type = "free"
+        #     self.d['GP']['mm_d_sleeve'].type = "fixed"
+        #     bool_matched = True
 
-        if 'VariableSleeveLength_VariableToothTipDepth' == self.d['which_filter']:
-            self.d['GP']['mm_d_sto'].type = "fixed"
-            self.d['GP']['mm_d_stt'].type = "free"
-            self.d['GP']['mm_d_sleeve'].type = "free"
-            bool_matched = True
+        # if 'VariableSleeveLength' in self.d['which_filter']:
+        #     self.d['GP']['mm_d_sto'].type = "free"
+        #     self.d['GP']['mm_d_sleeve'].type = "free"
+        #     bool_matched = True
 
-        if 'VariableToothTipDepth_FSPM' == self.d['which_filter']:
-            self.d['GP']['mm_d_sto'].type = "fixed"
-            self.d['GP']['mm_d_stt'].type = "free"
-            self.d['GP']['mm_d_sleeve'].type = "fixed"
-            self.d['GP']['mm_w_st'].type = "fixed"
-            self.d['GP']['mm_d_st'].type = "derived"
-            bool_matched = True
+        # if 'VariableStatorSlotDepth_VariableStatorYokeDepth' in self.d['which_filter']:
+        #     # IM
+        #     self.d['GP']['mm_d_sto'].type = "free"
+        #     self.d['GP']['mm_d_mech_air_gap'].type = "free"
+        #     bool_matched = True
 
-        if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
-            self.d['GP']['mm_d_sto'].type = "free"
-            self.d['GP']['mm_d_stt'].type = "fixed"
-            self.d['GP']['mm_w_st'].type = "free"
-            self.d['GP']['mm_d_st'].type = "derived"
-            self.d['GP']['mm_r_ro'].type = "fixed"
-            self.d['GP']['mm_d_mech_air_gap'].type = "fixed"
-            self.d['GP']['mm_d_sleeve'].type = "fixed"
-            # self.d['GP']['mm_r_ro'].type = "free"
-            bool_matched = True
+        # if 'VariableSleeveLength_VariableToothTipDepth' == self.d['which_filter']:
+        #     self.d['GP']['mm_d_sto'].type = "fixed"
+        #     self.d['GP']['mm_d_stt'].type = "free"
+        #     self.d['GP']['mm_d_sleeve'].type = "free"
+        #     bool_matched = True
 
-        if 'VariableStatorSlotDepth' in self.d['which_filter']:
-            # IM
-            self.d['GP']['mm_d_st'].type = "free"
-            self.d['GP']['mm_d_mech_air_gap'].type = "free"
-            bool_matched = True
+        # if 'VariableToothTipDepth_FSPM' == self.d['which_filter']:
+        #     self.d['GP']['mm_d_sto'].type = "fixed"
+        #     self.d['GP']['mm_d_stt'].type = "free"
+        #     self.d['GP']['mm_d_sleeve'].type = "fixed"
+        #     self.d['GP']['mm_w_st'].type = "fixed"
+        #     self.d['GP']['mm_d_st'].type = "derived"
+        #     bool_matched = True
 
-        if bool_matched == False:
-            raise Exception(f"Not defined: {self.d['which_filter']}")
+        # if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
+        #     self.d['GP']['mm_d_sto'].type = "free"
+        #     self.d['GP']['mm_d_stt'].type = "fixed"
+        #     self.d['GP']['mm_w_st'].type = "free"
+        #     self.d['GP']['mm_d_st'].type = "derived"
+        #     self.d['GP']['mm_r_ro'].type = "fixed"
+        #     self.d['GP']['mm_d_mech_air_gap'].type = "fixed"
+        #     self.d['GP']['mm_d_sleeve'].type = "fixed"
+        #     # self.d['GP']['mm_r_ro'].type = "free"
+        #     bool_matched = True
+
+        # if 'VariableStatorSlotDepth' in self.d['which_filter']:
+        #     # IM
+        #     self.d['GP']['mm_d_st'].type = "free"
+        #     self.d['GP']['mm_d_mech_air_gap'].type = "free"
+        #     bool_matched = True
+
+        # if bool_matched == False:
+        #     raise Exception(f"Not defined: {self.d['which_filter']}")
 
         # Get Analytical Design
         # self.ModifiedBianchi2006(fea_config_dict, SI)
