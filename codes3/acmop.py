@@ -237,7 +237,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
         print('[acmop.py] Check several things: 1. the winding initial excitation angle; 2. the rotor d-axis initial position should be orthoganal to winding excitation field.')
 
-    def part_evaluation_geometry(self, xf=[], counter='Cairo', specify_x_denorm=None, bool_show_pdf=False):
+    def part_evaluation_geometry(self, xf=[], counter='Cairo', specify_x_denorm=None, bool_show_pdf=False, filename=None):
         print('\n ------- part_evaluation_geometry -------')
         if specify_x_denorm is None:
             # build x_denorm for the template design
@@ -252,7 +252,8 @@ class AC_Machine_Optiomization_Wrapper(object):
         toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1, 
                                                             height_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1 )
         if 'PMSM' in acm_variant.template.name:
-            toolCairo.draw_spmsm(acm_variant, bool_draw_whole_model=True)
+            saved_filename = toolCairo.draw_spmsm(acm_variant, bool_draw_whole_model=True, filename=filename)
+            return saved_filename
         elif 'Alternator' in acm_variant.template.name:
             toolCairo.draw_doubly_salient(acm_variant)
         elif 'FSPM' in acm_variant.template.name:

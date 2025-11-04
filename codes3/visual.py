@@ -15,6 +15,7 @@ import population
 from io import BytesIO
 from itertools import product
 
+import copy
 
 def displayPDF(file, width=1800, height=500):
     with open(file, "rb") as f:
@@ -126,7 +127,35 @@ def OptimizationSetupContent(user_selected_folder):
     # 右栏内容
     with col2:
         st.header("右栏")
-        
+
+        # for k,v in mop.ad.acm_template.d['GP'].items():
+        #     st.write(f'{k}: {v.type}, {v.value}, bounds: {v.bounds}')
+
+        # print(mop.ad.acm_template.x_denorm_dict)
+
+        for param_name, param_val in mop.ad.acm_template.x_denorm_dict.items():
+            if mop.ad.acm_template.d['GP'][param_name].type == 'free':
+                copied_x_denorm_dict = copy.deepcopy(mop.ad.acm_template.x_denorm_dict)
+
+                lb = mop.ad.acm_template.d['GP'][param_name].bounds[0]
+                copied_x_denorm_dict['param_name'] = lb
+                specify_x_denorm = list(copied_x_denorm_dict.values())
+                saved_filename1 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-lb')
+
+                st.write(f'{specify_x_denorm=}', '\n', saved_filename1)
+
+
+                ub = mop.ad.acm_template.d['GP'][param_name].bounds[1]
+                copied_x_denorm_dict['param_name'] = ub
+                specify_x_denorm = list(copied_x_denorm_dict.values())
+                saved_filename2 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-ub')
+
+                st.write(f'{specify_x_denorm=}', '\n', saved_filename2)
+
+                displayPDF_side_by_side([saved_filename1, saved_filename2], width=300, height=300)
+
+
+
         # 获取所有 Decision Variables
         gp_items = mop.ad.acm_template.d['GP'].items()
         decision_vars = [(key, val) for key, val in gp_items if 'free' in val.type]
