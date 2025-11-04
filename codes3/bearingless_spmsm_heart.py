@@ -69,11 +69,11 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # BEARING Winding Excitation Properties
         if True:
             EX['BeariW_zQ']         = EX['DriveW_zQ']
-            EX['BeariW_CurrentAmp'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (EX['DriveW_CurrentAmp'] / fea_config_dict['TORQUE_CURRENT_RATIO'])
+            EX['BeariW_CurrentAmp'] = fea_config_dict['circuit.SUSPENSION_CURRENT_RATIO'] * (EX['DriveW_CurrentAmp'] / fea_config_dict['circuit.TORQUE_CURRENT_RATIO'])
             EX['BeariW_Freq']       = EX['DriveW_Freq']
             EX['BeariW_Rs']         = EX['DriveW_Rs'] * EX['BeariW_zQ'] / EX['DriveW_zQ']
             EX['BeariW_poles']      = SI['ps']*2
-            EX['slot_current_utilizing_ratio'] = fea_config_dict['SUSPENSION_CURRENT_RATIO'] + fea_config_dict['TORQUE_CURRENT_RATIO'] # will be less than 1 for separate winding
+            EX['slot_current_utilizing_ratio'] = fea_config_dict['circuit.SUSPENSION_CURRENT_RATIO'] + fea_config_dict['circuit.TORQUE_CURRENT_RATIO'] # will be less than 1 for separate winding
 
     def Bianchi2006(self, fea_config_dict, SI, GP, EX):
 
