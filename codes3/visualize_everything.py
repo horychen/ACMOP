@@ -126,21 +126,23 @@ if __name__ == '__main__':
             utility.blockPrint()
             swarm_dict[folder] = mop = acmop.AC_Machine_Optiomization_Wrapper(select_fea_config_dict, select_spec, project_loc=path2project)
             utility.enablePrint()
-    
-    st.info(swarm_dict["PMSM_Q12p4y1_PEMD-2020"])
-    st.info(swarm_dict["PMSM_Q12p4y1_PEMD-2020"].ad.swarm_data_file)
-    with open(swarm_dict["PMSM_Q12p4y1_PEMD-2020"].ad.swarm_data_file, 'r', encoding='utf-8') as f:
-        buf = f.read()
-        data = json.loads('{'+buf[1:]+'}')
-        del buf
-    # st.info(data.keys() )
-    key = 'split_ratio'
-    for item in data['2']['PMSM Q12p4y1 PEMD-2020-gen0-ind2']['Geometric parameters']:
-        if key in item.keys():
-            st.info(item)
-            st.info(item[key]['value'])
-    st.info(data['2']['PMSM Q12p4y1 PEMD-2020-gen0-ind2']['Geometric parameters'])
-    
+
+    bool_filter_pareto_front = False
+    if bool_filter_pareto_front == True:
+        st.info(swarm_dict["PMSM_Q12p4y1_PEMD-2020"])
+        st.info(swarm_dict["PMSM_Q12p4y1_PEMD-2020"].ad.swarm_data_file)
+        with open(swarm_dict["PMSM_Q12p4y1_PEMD-2020"].ad.swarm_data_file, 'r', encoding='utf-8') as f:
+            buf = f.read()
+            data = json.loads('{'+buf[1:]+'}')
+            del buf
+        st.info(data.keys() )
+        key = 'split_ratio'
+        for item in data['2']['PMSM Q12p4y1 PEMD-2020-gen0-ind2']['Geometric parameters']:
+            if key in item.keys():
+                st.info(item)
+                st.info(item[key]['value'])
+        st.info(data['2']['PMSM Q12p4y1 PEMD-2020-gen0-ind2']['Geometric parameters'])
+
 
     ## 侧边栏 Sidebar
     # Show user selected mop's inputs
