@@ -13,6 +13,7 @@ import acm_designer
 import population
 # import acm_designer
 from io import BytesIO
+from itertools import product
 
 
 def displayPDF(file, width=1800, height=500):
@@ -60,27 +61,58 @@ def OptimizationSetupContent(user_selected_folder):
     mop = swarm_dict[user_selected_folder]
     # mop
 
-
     col1, col2 = st.columns(2)
 
     # 左栏内容
     with col1:
         st.header("左栏")
         st.subheader(f'Optimization Setup of {user_selected_folder}')
-        mop.ad.acm_template.d['GP']
 
         st.write('#### Decision Variables:')
-        convert_to_dict = {key: (val.type, val.value, val.bounds[0], val.bounds[1]) for key, val in mop.ad.acm_template.d['GP'].items() if 'free' in val.type}
-        convert_to_df = pd.DataFrame(convert_to_dict)
-        st.table(convert_to_df.T)
+        gp_items = mop.ad.acm_template.d['GP'].items()
+        data = [
+            {
+                'Variable': key,
+                'Type': val.type,
+                'Value': val.value,
+                'Lower Bound': val.bounds[0] if hasattr(val, 'bounds') and val.bounds else None,
+                'Upper Bound': val.bounds[1] if hasattr(val, 'bounds') and val.bounds else None
+            }
+            for key, val in gp_items if 'free' in val.type
+        ]
+        if data:
+            st.table(pd.DataFrame(data))
+        else:
+            st.write("No decision variables.")
+        
+        
         st.write('#### Derived Variables:')
-        convert_to_dict = {key: (val.type, val.value) for key, val in mop.ad.acm_template.d['GP'].items() if 'derived' in val.type}
-        convert_to_df = pd.DataFrame(convert_to_dict)
-        st.table(convert_to_df.T)
+        derived_vars = [
+            {
+                'Variable': key,
+                'Type': val.type,
+                'Value': val.value,
+            }
+            for key, val in mop.ad.acm_template.d['GP'].items() if 'derived' in val.type
+        ]
+        if derived_vars:
+            st.table(pd.DataFrame(derived_vars))
+        else:
+            st.write("No derived variables.")
+
         st.write('#### Fixed Variables:')
-        convert_to_dict = {key: (val.type, val.value) for key, val in mop.ad.acm_template.d['GP'].items() if 'fixed' in val.type}
-        convert_to_df = pd.DataFrame(convert_to_dict)
-        st.table(convert_to_df.T)
+        fixed_vars = [
+            {
+                'Variable': key,
+                'Type': val.type,
+                'Value': val.value,
+            }
+            for key, val in mop.ad.acm_template.d['GP'].items() if 'fixed' in val.type
+        ]
+        if fixed_vars:
+            st.table(pd.DataFrame(fixed_vars))
+        else:
+            st.write("No fixed variables.")
 
         st.write('#### Objectives (Non-dominated Sorting)')
         st.write(f'''
@@ -88,14 +120,88 @@ def OptimizationSetupContent(user_selected_folder):
                     {mop.fea_config_dict['moo.fitness_OB']=}
                     {mop.fea_config_dict['moo.fitness_OC']=}
         ''')
+        
+        mop.ad.acm_template.d['GP']
 
     # 右栏内容
     with col2:
         st.header("右栏")
-        mop.part_evaluation_geometry()
-        displayPDF_side_by_side(
-            [mop.fea_config_dict['output_dir'] + 'indCairo.pdf', mop.fea_config_dict['output_dir'] + 'indCairoOptimal1.pdf', mop.fea_config_dict['output_dir'] + 'indCairoOptimal2.pdf', mop.fea_config_dict['output_dir'] + 'indCairoOptimal3.pdf'],
-            width=300,  height=300)
+        
+        # 获取所有 Decision Variables
+        gp_items = mop.ad.acm_template.d['GP'].items()
+        decision_vars = [(key, val) for key, val in gp_items if 'free' in val.type]
+        
+        if len(decision_vars) == 0:
+            st.warning("没有找到 Decision Variables")
+        else:
+            # 为每个变量计算大中小三个值
+            var_values = []
+            var_names = []
+            for var_name, var_param in decision_vars:
+                if hasattr(var_param, 'bounds') and var_param.bounds:
+                    lower = var_param.bounds[0]
+                    upper = var_param.bounds[1]
+                    middle = (lower + upper) / 2
+                    var_values.append([lower, middle, upper])
+                    var_names.append(var_name)
+                else:
+                    st.error(f"变量 {var_name} 没有 bounds")
+                    return
+            
+            # 生成所有组合（3^n 种，n 是 Decision Variables 的数量）
+            combinations = list(product(*var_values))
+            num_vars = len(var_names)
+            total_combinations = 3 ** num_vars
+            
+            st.write(f"#### 扫描参数空间: {len(combinations)} 种组合 (3^{num_vars} = {total_combinations})")
+            st.write(f"变量数量: {num_vars}")
+            st.write(f"变量: {', '.join(var_names)}")
+            
+            # 添加按钮，只有点击后才开始扫描和画图
+            if st.button("开始扫描和画图", type="primary"):
+                # 进度条
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                # 生成所有 PDF
+                pdf_files = []
+                pdf_params = []  # 保存每个PDF对应的参数信息
+                
+                for idx, combo in enumerate(combinations):
+                    status_text.text(f"处理中: {idx+1}/{len(combinations)}")
+                    progress_bar.progress((idx + 1) / len(combinations))
+                    
+                    # 构建 x_denorm：使用所有变量的组合值
+                    # combo 的长度应该等于 decision_vars 的数量
+                    x_denorm = list(combo)
+                    
+                    # 生成唯一的 counter 名称
+                    counter_name = f'Scan_{idx:03d}'
+                    
+                    # 运行 part_evaluation_geometry
+                    try:
+                        mop.part_evaluation_geometry(specify_x_denorm=x_denorm, counter=counter_name)
+                        pdf_path = mop.fea_config_dict['output_dir'] + f'ind{counter_name}.pdf'
+                        if os.path.exists(pdf_path):
+                            pdf_files.append(pdf_path)
+                            # 保存参数信息：变量名和对应的值
+                            param_info = {var_names[j]: combo[j] for j in range(num_vars)}
+                            pdf_params.append(param_info)
+                    except Exception as e:
+                        st.warning(f"组合 {idx+1} 处理失败: {str(e)}")
+                
+                status_text.text(f"完成！共生成 {len(pdf_files)} 个 PDF 文件")
+                
+                # 显示所有 PDF，每个PDF前面显示参数信息
+                if pdf_files:
+                    st.write("#### 生成的 PDF 文件:")
+                    # 每行显示一个PDF
+                    for idx, (pdf_path, param_info) in enumerate(zip(pdf_files, pdf_params)):
+                        # 显示参数信息
+                        param_text = " | ".join([f"{name}={val:.3f}" for name, val in param_info.items()])
+                        st.write(f"**[{idx+1}]** {param_text}")
+                        # 显示PDF
+                        displayPDF_side_by_side([pdf_path], width=300, height=300)
 
 
 def PopulationContent():
@@ -355,6 +461,7 @@ if __name__ == '__main__':
     # """ DO NOT MODIFY BEGINS """
     # """ DO NOT MODIFY BEGINS """
     print(f"======================{datetime.date.today()}======================")
+    st.set_page_config(layout="wide")
     with st.sidebar:
         st.markdown(
             """
