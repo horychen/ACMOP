@@ -76,18 +76,18 @@ class template_machine_as_numbers(object):
             # ROTOR                                  Type       Name                          Value  Bounds       Calc
             "mm_r_ro"           : acmop_parameter("fixed",    "rotor_outer_radius",            None, [None, None], lambda GP,SI:None), #derive_mm_r_ro(GP,SI)),
             "mm_d_mech_air_gap" : acmop_parameter("fixed",    "mechanical_air_gap_length",     None, [None, None], lambda GP,SI:None),
-            "mm_d_sleeve"       : acmop_parameter("free",     "sleeve_length",                 None, [None, None], lambda GP,SI:None),
-            "split_ratio"       : acmop_parameter("free",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SI:None), #derive_split_ratio(GP,SI)),
+            "mm_d_sleeve"       : acmop_parameter("fixed",     "sleeve_length",                 None, [None, None], lambda GP,SI:None),
+            "split_ratio"       : acmop_parameter("fixed",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SI:None), #derive_split_ratio(GP,SI)),
             # STATOR                           Type       Name                          Value  Bounds       Calc
-            "deg_alpha_st"  : acmop_parameter("free",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
-            "mm_w_st"       : acmop_parameter("free",    "stator_tooth_width"         , None, [None, None], lambda GP,SI:None),
+            "deg_alpha_st"  : acmop_parameter("fixed",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
+            "mm_w_st"       : acmop_parameter("fixed",    "stator_tooth_width"         , None, [None, None], lambda GP,SI:None),
             "mm_d_sto"      : acmop_parameter("fixed",   "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
             "deg_alpha_sto" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_sto(GP,SI)),
             "mm_d_stt"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_stt(GP,SI)),
             "mm_r_si"       : acmop_parameter("derived", "stator_inner_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si(GP,SI)),
             "mm_r_so"       : acmop_parameter("derived", "stator_outer_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_so(GP,SI)),
             "mm_d_sy"       : acmop_parameter("fixed",   "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy(GP,SI)),
-            "mm_d_st"       : acmop_parameter("free",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:derive_mm_d_st(GP,SI)),
+            "mm_d_st"       : acmop_parameter("fixed",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:derive_mm_d_st(GP,SI)),
         })
 
         # assert derived variables
@@ -109,83 +109,7 @@ class template_machine_as_numbers(object):
             "bounds_denorm": [],
         }
 
-        # 依据fea_config_dict来设置GP的value和type
-        for key in fea_config_dict.keys():
-            if key.startswith('machine.GP') and key.endswith('value'):
-                param_name = key.split('.')[-2]
-                if param_name in self.d['GP'].keys():
-                    self.d['GP'][param_name].value = fea_config_dict[key]
-            if key.startswith('machine.GP') and key.endswith('type'):
-                param_name = key.split('.')[-2]
-                if param_name in self.d['GP'].keys():
-                    self.d['GP'][param_name].type = fea_config_dict[key]
-
-
-        # bool_matched = False
-        # if 'FixedSleeveLength' in self.d['which_filter']:
-        #     self.d['GP']['mm_d_sto'].type = "free"
-        #     self.d['GP']['mm_d_sleeve'].type = "fixed"
-        #     bool_matched = True
-
-        # if 'VariableSleeveLength' in self.d['which_filter']:
-        #     self.d['GP']['mm_d_sto'].type = "free"
-        #     self.d['GP']['mm_d_sleeve'].type = "free"
-        #     bool_matched = True
-
-        # if 'VariableStatorSlotDepth_VariableStatorYokeDepth' in self.d['which_filter']:
-        #     # IM
-        #     self.d['GP']['mm_d_sto'].type = "free"
-        #     self.d['GP']['mm_d_mech_air_gap'].type = "free"
-        #     bool_matched = True
-
-        # if 'VariableSleeveLength_VariableToothTipDepth' == self.d['which_filter']:
-        #     self.d['GP']['mm_d_sto'].type = "fixed"
-        #     self.d['GP']['mm_d_stt'].type = "free"
-        #     self.d['GP']['mm_d_sleeve'].type = "free"
-        #     bool_matched = True
-
-        # if 'VariableToothTipDepth_FSPM' == self.d['which_filter']:
-        #     self.d['GP']['mm_d_sto'].type = "fixed"
-        #     self.d['GP']['mm_d_stt'].type = "free"
-        #     self.d['GP']['mm_d_sleeve'].type = "fixed"
-        #     self.d['GP']['mm_w_st'].type = "fixed"
-        #     self.d['GP']['mm_d_st'].type = "derived"
-        #     bool_matched = True
-
-        # if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
-        #     self.d['GP']['mm_d_sto'].type = "free"
-        #     self.d['GP']['mm_d_stt'].type = "fixed"
-        #     self.d['GP']['mm_w_st'].type = "free"
-        #     self.d['GP']['mm_d_st'].type = "derived"
-        #     self.d['GP']['mm_r_ro'].type = "fixed"
-        #     self.d['GP']['mm_d_mech_air_gap'].type = "fixed"
-        #     self.d['GP']['mm_d_sleeve'].type = "fixed"
-        #     # self.d['GP']['mm_r_ro'].type = "free"
-        #     bool_matched = True
-
-        # if 'VariableStatorSlotDepth' in self.d['which_filter']:
-        #     # IM
-        #     self.d['GP']['mm_d_st'].type = "free"
-        #     self.d['GP']['mm_d_mech_air_gap'].type = "free"
-        #     bool_matched = True
-
-        # if bool_matched == False:
-        #     raise Exception(f"Not defined: {self.d['which_filter']}")
-
-        # Get Analytical Design
-        # self.ModifiedBianchi2006(fea_config_dict, SI)
-
-
-        # debug
-        # from pprint import pprint
-        # for key, val in self.d['GP'].items():
-        #     if val.type=='free':
-        #         print(key, '\t', val)
-        # print('--------------------')
-        # for key, val in self.d['GP'].items():
-        #     if val.type!='free':
-        #         print(key, '\t', val)
-        # quit()
+        self.set_gp_values_and_types_based_on_fea_config(fea_config_dict)
 
     ''' 初始化，定义优化
     '''
@@ -261,6 +185,17 @@ class template_machine_as_numbers(object):
         else:
             return gravity * self.get_rotor_volume(stack_length=stack_length) * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
 
+    # 依据fea_config_dict来设置GP的value和type
+    def set_gp_values_and_types_based_on_fea_config(self, fea_config_dict):
+        for key in fea_config_dict.keys():
+            # if key.startswith('machine.GP') and key.endswith('value'):
+            #     param_name = key.split('.')[-2]
+            #     if param_name in self.d['GP'].keys():
+            #         self.d['GP'][param_name].value = fea_config_dict[key]
+            if key.startswith('machine.GP') and key.endswith('type'):
+                param_name = key.split('.')[-2]
+                if param_name in self.d['GP'].keys():
+                    self.d['GP'][param_name].type = fea_config_dict[key]
     ''' 玩弄几何变量
     '''
     def build_x_denorm(self):

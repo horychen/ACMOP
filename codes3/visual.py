@@ -58,32 +58,44 @@ def pyplot_width(fig):
 
 def OptimizationSetupContent(user_selected_folder):
     mop = swarm_dict[user_selected_folder]
-    mop
-    st.subheader(f'Optimization Setup of {user_selected_folder}')
-    mop.ad.acm_template.d['GP']
+    # mop
 
-    st.write('#### Decision Variables:')
-    convert_to_dict = {key: (val.type, val.value) for key,
-                       val in mop.ad.acm_template.d['GP'].items() if 'free' in val.type}
-    convert_to_df = pd.DataFrame(convert_to_dict)
-    st.table(convert_to_df.T)
-    st.write('#### Derived Variables:')
-    convert_to_dict = {key: (val.type, val.value) for key,
-                       val in mop.ad.acm_template.d['GP'].items() if 'derived' in val.type}
-    convert_to_df = pd.DataFrame(convert_to_dict)
-    st.table(convert_to_df.T)
-    st.write('#### Fixed Variables:')
-    convert_to_dict = {key: (val.type, val.value) for key,
-                       val in mop.ad.acm_template.d['GP'].items() if 'fixed' in val.type}
-    convert_to_df = pd.DataFrame(convert_to_dict)
-    st.table(convert_to_df.T)
 
-    st.write('#### Objectives (Non-dominated Sorting)')
-    st.write(f'''
-                {mop.fea_config_dict['moo.fitness_OA']=}
-                {mop.fea_config_dict['moo.fitness_OB']=}
-                {mop.fea_config_dict['moo.fitness_OC']=}
-    ''')
+    col1, col2 = st.columns(2)
+
+    # 左栏内容
+    with col1:
+        st.header("左栏")
+        st.subheader(f'Optimization Setup of {user_selected_folder}')
+        mop.ad.acm_template.d['GP']
+
+        st.write('#### Decision Variables:')
+        convert_to_dict = {key: (val.type, val.value, val.bounds[0], val.bounds[1]) for key, val in mop.ad.acm_template.d['GP'].items() if 'free' in val.type}
+        convert_to_df = pd.DataFrame(convert_to_dict)
+        st.table(convert_to_df.T)
+        st.write('#### Derived Variables:')
+        convert_to_dict = {key: (val.type, val.value) for key, val in mop.ad.acm_template.d['GP'].items() if 'derived' in val.type}
+        convert_to_df = pd.DataFrame(convert_to_dict)
+        st.table(convert_to_df.T)
+        st.write('#### Fixed Variables:')
+        convert_to_dict = {key: (val.type, val.value) for key, val in mop.ad.acm_template.d['GP'].items() if 'fixed' in val.type}
+        convert_to_df = pd.DataFrame(convert_to_dict)
+        st.table(convert_to_df.T)
+
+        st.write('#### Objectives (Non-dominated Sorting)')
+        st.write(f'''
+                    {mop.fea_config_dict['moo.fitness_OA']=}
+                    {mop.fea_config_dict['moo.fitness_OB']=}
+                    {mop.fea_config_dict['moo.fitness_OC']=}
+        ''')
+
+    # 右栏内容
+    with col2:
+        st.header("右栏")
+        mop.part_evaluation_geometry()
+        displayPDF_side_by_side(
+            [mop.fea_config_dict['output_dir'] + 'indCairo.pdf', mop.fea_config_dict['output_dir'] + 'indCairoOptimal1.pdf', mop.fea_config_dict['output_dir'] + 'indCairoOptimal2.pdf', mop.fea_config_dict['output_dir'] + 'indCairoOptimal3.pdf'],
+            width=300,  height=300)
 
 
 def PopulationContent():
@@ -389,9 +401,9 @@ if __name__ == '__main__':
                 select_spec = lst[0].strip()
                 select_fea_config_dict = lst[1].strip()
 
+            print('Blocking the print statements from AC_Machine_Optiomization_Wrapper...')
             utility.blockPrint()
-            swarm_dict[folder] = mop = acmop.AC_Machine_Optiomization_Wrapper(
-                select_fea_config_dict, select_spec, project_loc=path2project)
+            swarm_dict[folder] = mop = acmop.AC_Machine_Optiomization_Wrapper(select_fea_config_dict, select_spec, project_loc=path2project)
             utility.enablePrint()
             # 侧边栏 Sidebar
         # Show user selected mop's inputs
