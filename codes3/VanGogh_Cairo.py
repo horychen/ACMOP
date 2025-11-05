@@ -4,9 +4,9 @@ from pylab import np
 EPS=1e-4
 
 class VanGogh_Cairo:
-    def __init__(self, acm_variant, width_in_points=500, height_in_points=500):
+    def __init__(self, acm_variant, width_in_points=500, height_in_points=500, filename=None):
         self.acm_variant = acm_variant
-        self.output_fname_no_suffix = acm_variant.template.fea_config_dict['output_dir'] + acm_variant.name
+        self.output_fname_no_suffix = acm_variant.template.fea_config_dict['output_dir'] + acm_variant.name + filename if filename is not None else ''
         self.surface = cairo.SVGSurface(self.output_fname_no_suffix+'.svg', width_in_points, height_in_points)
         self.ctx = cairo.Context(self.surface)
         # self.ctx.scale(width_in_points, height_in_points)
@@ -116,7 +116,7 @@ class VanGogh_Cairo:
 
         return True
 
-    def draw_spmsm(self, acm_variant, bool_draw_whole_model=True, filename=None):
+    def draw_spmsm(self, acm_variant, bool_draw_whole_model=True):
         # Rotor Core
         if 1:
             list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
@@ -159,7 +159,7 @@ class VanGogh_Cairo:
         # region4 = self.prepareSection(list_regions)
 
         self.apply_stroke()
-        saved_filename = self.save(filename)
+        self.convert_to_pdf()
 
         if False:
             # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
@@ -178,7 +178,7 @@ class VanGogh_Cairo:
             slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
             # print('[FEMM_SlidingMesh.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
 
-        return saved_filename
+        return self.output_fname_no_suffix+f'.pdf'
     def draw_cppm(self, acm_variant, bool_draw_whole_model=True):
         # Rotor Core
         if 1:
@@ -254,22 +254,19 @@ class VanGogh_Cairo:
         # stroke out the color and width property
         self.ctx.stroke()
 
-    def save(self, bool_open_pdf=False, filename=None):
-        print(filename)
-        filename = '' if filename is None else '-'+filename
-        print(filename)
+    def convert_to_pdf(self, bool_open_pdf=False, filename=None): # 这个代码只是把SVG转换为PDF而已
         # self.surface.write_to_svg()
         self.surface.finish()
         import cairosvg
-        cairosvg.svg2pdf(url=self.output_fname_no_suffix+f'{filename}.svg', write_to=self.output_fname_no_suffix+f'{filename}.pdf')
-        print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+f'{filename}.pdf (and .svg)'}")
+        cairosvg.svg2pdf(url=self.output_fname_no_suffix+f'.svg', write_to=self.output_fname_no_suffix+f'.pdf')
+        print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+f'.pdf (and .svg)'}")
         if bool_open_pdf:
             import os
             try:
                 os.system('sumatraPDF2.exe ' + self.output_fname_no_suffix+'.pdf')
             except:
                 print('Viewer sumatraPDF2.exe is not found in this PC. Please manually open the pdf at', self.output_fname_no_suffix+'.pdf')
-        return self.output_fname_no_suffix+f'{filename}.pdf'
+        return self.output_fname_no_suffix+f'.pdf'
 
     def getSketch(self, name, color):
         self.name = name

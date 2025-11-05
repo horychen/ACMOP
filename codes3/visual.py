@@ -133,27 +133,30 @@ def OptimizationSetupContent(user_selected_folder):
 
         # print(mop.ad.acm_template.x_denorm_dict)
 
+        count = 0
         for param_name, param_val in mop.ad.acm_template.x_denorm_dict.items():
+            count+=1
+            print(f'\n\n\n{count=}, {param_name=}, {param_val=}')
+
             if mop.ad.acm_template.d['GP'][param_name].type == 'free':
+
                 copied_x_denorm_dict = copy.deepcopy(mop.ad.acm_template.x_denorm_dict)
 
                 lb = mop.ad.acm_template.d['GP'][param_name].bounds[0]
-                copied_x_denorm_dict['param_name'] = lb
+                copied_x_denorm_dict[param_name] = lb
                 specify_x_denorm = list(copied_x_denorm_dict.values())
+                st.write(specify_x_denorm)
                 saved_filename1 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-lb')
-
-                st.write(f'{specify_x_denorm=}', '\n', saved_filename1)
-
+                st.write('Lower bound design', '\n', f'{specify_x_denorm=}', '\n', saved_filename1)
 
                 ub = mop.ad.acm_template.d['GP'][param_name].bounds[1]
-                copied_x_denorm_dict['param_name'] = ub
+                copied_x_denorm_dict[param_name] = ub
                 specify_x_denorm = list(copied_x_denorm_dict.values())
                 saved_filename2 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-ub')
-
-                st.write(f'{specify_x_denorm=}', '\n', saved_filename2)
+                st.write(specify_x_denorm)
+                st.write('Upper bound design', '\n', f'{specify_x_denorm=}', '\n', saved_filename2)
 
                 displayPDF_side_by_side([saved_filename1, saved_filename2], width=300, height=300)
-
 
 
         # 获取所有 Decision Variables
@@ -308,7 +311,7 @@ def SelectIndividualContent():
 
     # 根据用户在 text_input 的输入来筛选符合条件的最优个体
     if True:
-        print(f'{selected_specifications=}')
+        print(f'\n\n\n--------------------------{selected_specifications=}')
 
         def select_optimal_designs_manually(selected_specifications):
             # 再遍历selected_specifications一次，做别的事
