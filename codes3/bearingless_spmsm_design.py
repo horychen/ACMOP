@@ -237,6 +237,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
 
         # 初始化父类
         super(bearingless_spmsm_design_variant, self).__init__(template, x_denorm, counter, counter_loop)
+        self.x_denorm = x_denorm # for visualization only
 
         # Give it a name
         self.name = f'ind{counter}'
