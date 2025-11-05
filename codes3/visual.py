@@ -63,16 +63,19 @@ def BasicInformationContent():
     st.write('## 2.1. Winding Information of', wily_fname)
     try:
         f'{path2acmop}/_wily/{wily_fname}.pdf'
-        displayPDF(f'{path2acmop}/_wily/{wily_fname}.pdf')
+        # displayPDF(f'{path2acmop}/_wily/{wily_fname}.pdf')
         displayPDF_side_by_side([
                 f'{path2acmop}/_wily/{wily_fname}_T1.pdf',
                 f'{path2acmop}/_wily/{wily_fname}_T2.pdf',
                 f'{path2acmop}/_wily/{wily_fname}_T3abc.pdf',
-                f'{path2acmop}/_wily/{wily_fname}_T4.pdf',
+            ], width=600, height=400
+        )
+        displayPDF(f'{path2acmop}/_wily/{wily_fname}_T4.pdf', width=600, height=230)
+        displayPDF_side_by_side([
                 f'{path2acmop}/_wily/{wily_fname}_T4a.pdf',
                 f'{path2acmop}/_wily/{wily_fname}_T4b.pdf',
                 f'{path2acmop}/_wily/{wily_fname}_T4c.pdf',
-            ], width=300, height=300
+            ], width=600, height=300
         )
     except FileNotFoundError:
         st.write('The winding derivation file is absent', f'{path2acmop}/_wily/{wily_fname}.pdf')
@@ -146,8 +149,8 @@ def SearchSpaceSetupContent(user_selected_folder):
                     {mop.fea_config_dict['moo.fitness_OB']=}
                     {mop.fea_config_dict['moo.fitness_OC']=}
         ''')
-        
-        mop.ad.acm_template.d['GP']
+
+        # mop.ad.acm_template.d['GP']
 
     # 右栏内容
     with col2:
@@ -304,23 +307,31 @@ def PopulationContent():
         if auto_optimal_designs_xf[2] != []:
             # and not os.path.exists(cairo_fname_optimal_3)
             mop.part_evaluation_geometry(auto_optimal_designs_xf[2], counter='CairoOptimal3')
-        st.write('### 2.2.1 Initial Design:')
-        # displayPDF(cairo_fname, width=500, height=500)
 
-        st.write('### 2.2.2 Auto Optimal Design minimum OA:')
-        st.write(str(auto_optimal_designs_xf[0]))
-        # displayPDF(cairo_fname_optimal_1, width=500, height=500)
+        pop_col1, pop_col2 = st.columns(2)
 
-        st.write('### 2.2.3 Auto Optimal Design minimum OB:')
-        st.write(str(auto_optimal_designs_xf[1]))
-        # displayPDF(cairo_fname_optimal_2, width=500, height=500)
+        # 左栏内容
+        with pop_col1:
 
-        st.write('### 2.2.4 Auto Optimal Design minimum OC:')
-        st.write(str(auto_optimal_designs_xf[2]))
-        # displayPDF(cairo_fname_optimal_3, width=500, height=500)
+            st.write('### 2.2.1 Initial Design:')
+            # displayPDF(cairo_fname, width=500, height=500)
+            st.write(mop.acm_variant.x_denorm)
 
-        displayPDF_side_by_side(
-            [cairo_fname, cairo_fname_optimal_1, cairo_fname_optimal_2, cairo_fname_optimal_3])
+            st.write('### 2.2.2 Minimum OA Design xf')
+            auto_optimal_designs_xf[0]
+            # displayPDF(cairo_fname_optimal_1, width=500, height=500)
+
+            st.write('### 2.2.3 Minimum OB Design xf')
+            auto_optimal_designs_xf[1]
+            # displayPDF(cairo_fname_optimal_2, width=500, height=500)
+
+            st.write('### 2.2.4 Minimum OC Design xf')
+            auto_optimal_designs_xf[2]
+            # displayPDF(cairo_fname_optimal_3, width=500, height=500)
+
+        with pop_col2:
+            displayPDF_side_by_side(
+                [cairo_fname, cairo_fname_optimal_1, cairo_fname_optimal_2, cairo_fname_optimal_3])
 
 
 def SelectIndividualContent():
@@ -575,7 +586,7 @@ if __name__ == '__main__':
             mop = swarm_dict[user_selected_folder]
 
             print(f'{user_selected_folder=}')
-            show_user_configurations = st.checkbox('Show User Configurations')
+            show_user_configurations = st.checkbox('Show User Configurations', value=True)
             if show_user_configurations:
                 st.sidebar.header('Specifications')
                 st.sidebar.table(pd.DataFrame(data=list(mop.spec_input_dict.values()), index=list(

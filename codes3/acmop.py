@@ -241,17 +241,18 @@ class AC_Machine_Optiomization_Wrapper(object):
 
         print('\n ------- part_evaluation_geometry -------')
 
-        if xf != []:
-            x_denorm = xf[:len(x_denorm)]
-            print('AA--------xf is ', xf)
-
         if specify_x_denorm is None:
             # build x_denorm for the template design
             x_denorm = self.ad.acm_template.build_x_denorm()
         else:
             x_denorm = specify_x_denorm
 
+        if xf != []:
+            x_denorm = xf[:len(x_denorm)]
+            print('AA--------xf is ', xf, 'used to replace x_denorm', x_denorm)
+
         acm_variant = self.ad.build_acm_variant(self.ad.acm_template, x_denorm, counter=counter) # counter has the same function as filename
+        self.acm_variant = acm_variant # for visualizaiton only
 
         toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1, 
                                                             height_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1,
