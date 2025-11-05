@@ -56,9 +56,29 @@ def pyplot_width(fig):
     use_column_width = st.checkbox("Use column width?")
     st.image(buf, width=int(image_width), use_column_width=use_column_width)
 
+def BasicInformationContent():
+
+    wily_fname = 'wily_p%dps%dQ%dy%d' % (
+        mop.spec_input_dict['p'], mop.spec_input_dict['ps'], mop.spec_input_dict['Qs'], mop.spec_input_dict['coil_pitch_y'])
+    st.write('## 2.1. Winding Information of', wily_fname)
+    try:
+        f'{path2acmop}/_wily/{wily_fname}.pdf'
+        displayPDF(f'{path2acmop}/_wily/{wily_fname}.pdf')
+        displayPDF_side_by_side([
+                f'{path2acmop}/_wily/{wily_fname}_T1.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T2.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T3abc.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T4.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T4a.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T4b.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T4c.pdf',
+            ], width=300, height=300
+        )
+    except FileNotFoundError:
+        st.write('The winding derivation file is absent', f'{path2acmop}/_wily/{wily_fname}.pdf')
 
 
-def OptimizationSetupContent(user_selected_folder):
+def InitialDesignContent(user_selected_folder):
     mop = swarm_dict[user_selected_folder]
     # mop
 
@@ -261,7 +281,8 @@ def OptimizationSetupContent(user_selected_folder):
 
     # 右栏内容
     with col2:
-        
+
+
         # 获取所有 Decision Variables
         gp_items = mop.ad.acm_template.d['GP'].items()
         decision_vars = [(key, val) for key, val in gp_items if 'free' in val.type]
@@ -361,7 +382,7 @@ def OptimizationSetupContent(user_selected_folder):
                     
                     if pdf_found:
                         st.write("#### 生成的图形:")
-                        displayPDF_side_by_side([pdf_found], width=300, height=300)
+                        displayPDF_side_by_side([pdf_found], width='100%', height=600)
                     else:
                         st.warning(f"PDF 文件未找到。尝试的路径: {pdf_paths_to_try}")
                 except Exception as e:
@@ -370,84 +391,100 @@ def OptimizationSetupContent(user_selected_folder):
                     st.code(traceback.format_exc())
         else:
             st.info("请先在左栏修改 Decision Variables 的值")
+
+
+def SearchSpaceContent(user_selected_folder):
+    mop = swarm_dict[user_selected_folder]
+    
+    st.header("参数扫描功能")
+    
+    # 获取所有 Decision Variables
+    gp_items = mop.ad.acm_template.d['GP'].items()
+    decision_vars = [(key, val) for key, val in gp_items if 'free' in val.type]
+    
+    if len(decision_vars) == 0:
+        st.warning("没有找到 Decision Variables")
+    else:
+        # 为每个变量计算大中小三个值
+        var_values = []
+        var_names = []
+        for var_name, var_param in decision_vars:
+            if hasattr(var_param, 'bounds') and var_param.bounds:
+                lower = var_param.bounds[0]
+                upper = var_param.bounds[1]
+                middle = (lower + upper) / 2
+                var_values.append([lower, middle, upper])
+                var_names.append(var_name)
+            else:
+                st.error(f"变量 {var_name} 没有 bounds")
+                return
         
-        # 参数扫描功能（保留原有功能）
-        st.write("---")
-        st.write("#### 参数扫描功能:")
-        gp_items = mop.ad.acm_template.d['GP'].items()
-        decision_vars = [(key, val) for key, val in gp_items if 'free' in val.type]
+        # 生成所有组合（3^n 种，n 是 Decision Variables 的数量）
+        combinations = list(product(*var_values))
+        num_vars = len(var_names)
+        total_combinations = 3 ** num_vars
         
-        if len(decision_vars) == 0:
-            st.warning("没有找到 Decision Variables")
-        else:
-            # 为每个变量计算大中小三个值
-            var_values = []
-            var_names = []
-            for var_name, var_param in decision_vars:
-                if hasattr(var_param, 'bounds') and var_param.bounds:
-                    lower = var_param.bounds[0]
-                    upper = var_param.bounds[1]
-                    middle = (lower + upper) / 2
-                    var_values.append([lower, middle, upper])
-                    var_names.append(var_name)
-                else:
-                    st.error(f"变量 {var_name} 没有 bounds")
-                    return
+        st.write(f"#### 扫描参数空间: {len(combinations)} 种组合 (3^{num_vars} = {total_combinations})")
+        st.write(f"变量数量: {num_vars}")
+        st.write(f"变量: {', '.join(var_names)}")
+        
+        # 添加按钮，只有点击后才开始扫描和画图
+        if st.button("开始扫描和画图", type="primary"):
+            # 进度条
+            progress_bar = st.progress(0)
+            status_text = st.empty()
             
-            # 生成所有组合（3^n 种，n 是 Decision Variables 的数量）
-            combinations = list(product(*var_values))
-            num_vars = len(var_names)
-            total_combinations = 3 ** num_vars
+            # 生成所有 PDF
+            pdf_files = []
+            pdf_params = []  # 保存每个PDF对应的参数信息
             
-            st.write(f"#### 扫描参数空间: {len(combinations)} 种组合 (3^{num_vars} = {total_combinations})")
-            st.write(f"变量数量: {num_vars}")
-            st.write(f"变量: {', '.join(var_names)}")
+            for idx, combo in enumerate(combinations):
+                status_text.text(f"处理中: {idx+1}/{len(combinations)}")
+                progress_bar.progress((idx + 1) / len(combinations))
+                
+                # 构建 x_denorm：使用所有变量的组合值
+                # combo 的长度应该等于 decision_vars 的数量
+                x_denorm = list(combo)
+                
+                # 生成唯一的 counter 名称
+                counter_name = f'Scan_{idx:03d}'
+                
+                # 运行 part_evaluation_geometry
+                try:
+                    mop.part_evaluation_geometry(specify_x_denorm=x_denorm, counter=counter_name)
+                    pdf_path = mop.fea_config_dict['output_dir'] + f'ind{counter_name}.pdf'
+                    if os.path.exists(pdf_path):
+                        pdf_files.append(pdf_path)
+                        # 保存参数信息：变量名和对应的值
+                        param_info = {var_names[j]: combo[j] for j in range(num_vars)}
+                        pdf_params.append(param_info)
+                except Exception as e:
+                    st.warning(f"组合 {idx+1} 处理失败: {str(e)}")
             
-            # 添加按钮，只有点击后才开始扫描和画图
-            if st.button("开始扫描和画图", type="primary"):
-                # 进度条
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                # 生成所有 PDF
-                pdf_files = []
-                pdf_params = []  # 保存每个PDF对应的参数信息
-                
-                for idx, combo in enumerate(combinations):
-                    status_text.text(f"处理中: {idx+1}/{len(combinations)}")
-                    progress_bar.progress((idx + 1) / len(combinations))
+            status_text.text(f"完成！共生成 {len(pdf_files)} 个 PDF 文件")
+            
+            # 显示所有 PDF，每行显示三个
+            if pdf_files:
+                st.write("#### 生成的 PDF 文件:")
+                # 每行显示三个PDF
+                for i in range(0, len(pdf_files), 3):
+                    # 创建三列
+                    cols = st.columns(3)
                     
-                    # 构建 x_denorm：使用所有变量的组合值
-                    # combo 的长度应该等于 decision_vars 的数量
-                    x_denorm = list(combo)
-                    
-                    # 生成唯一的 counter 名称
-                    counter_name = f'Scan_{idx:03d}'
-                    
-                    # 运行 part_evaluation_geometry
-                    try:
-                        mop.part_evaluation_geometry(specify_x_denorm=x_denorm, counter=counter_name)
-                        pdf_path = mop.fea_config_dict['output_dir'] + f'ind{counter_name}.pdf'
-                        if os.path.exists(pdf_path):
-                            pdf_files.append(pdf_path)
-                            # 保存参数信息：变量名和对应的值
-                            param_info = {var_names[j]: combo[j] for j in range(num_vars)}
-                            pdf_params.append(param_info)
-                    except Exception as e:
-                        st.warning(f"组合 {idx+1} 处理失败: {str(e)}")
-                
-                status_text.text(f"完成！共生成 {len(pdf_files)} 个 PDF 文件")
-                
-                # 显示所有 PDF，每个PDF前面显示参数信息
-                if pdf_files:
-                    st.write("#### 生成的 PDF 文件:")
-                    # 每行显示一个PDF
-                    for idx, (pdf_path, param_info) in enumerate(zip(pdf_files, pdf_params)):
-                        # 显示参数信息
-                        param_text = " | ".join([f"{name}={val:.3f}" for name, val in param_info.items()])
-                        st.write(f"**[{idx+1}]** {param_text}")
-                        # 显示PDF
-                        displayPDF_side_by_side([pdf_path], width=300, height=300)
+                    # 在每列中显示 PDF 和参数信息
+                    for col_idx in range(3):
+                        idx = i + col_idx
+                        if idx < len(pdf_files):
+                            pdf_path = pdf_files[idx]
+                            param_info = pdf_params[idx]
+                            
+                            with cols[col_idx]:
+                                # 显示参数信息
+                                param_text = " | ".join([f"{name}={val:.3f}" for name, val in param_info.items()])
+                                st.write(f"**[{idx+1}]** {param_text}")
+                                
+                                # 单独显示每个PDF
+                                displayPDF_side_by_side([pdf_path], width=300, height=300)
 
 
 def PopulationContent():
@@ -465,22 +502,19 @@ def PopulationContent():
         st.table(df_swarm)
 
     st.write('# 2. Template/Initial Design Information')
-    wily_fname = 'wily_p%dps%dQ%dy%d' % (
-        mop.spec_input_dict['p'], mop.spec_input_dict['ps'], mop.spec_input_dict['Qs'], mop.spec_input_dict['coil_pitch_y'])
-    st.write('## 2.1. Winding Information of', wily_fname)
-    try:
-        displayPDF(f'{path2acmop}_wily/{wily_fname}.pdf')
-    except FileNotFoundError:
-        st.write('The winding derivation file is absent')
+    # wily_fname = 'wily_p%dps%dQ%dy%d' % (
+    #     mop.spec_input_dict['p'], mop.spec_input_dict['ps'], mop.spec_input_dict['Qs'], mop.spec_input_dict['coil_pitch_y'])
+    # st.write('## 2.1. Winding Information of', wily_fname)
+    # try:
+    #     displayPDF(f'{path2acmop}_wily/{wily_fname}.pdf')
+    # except FileNotFoundError:
+    #     st.write('The winding derivation file is absent')
 
     st.write('## 2.2. Cross Section (Initial and Optimal Designs)')
     cairo_fname = mop.fea_config_dict['output_dir'] + 'indCairo.pdf'
-    cairo_fname_optimal_1 = mop.fea_config_dict['output_dir'] + \
-        'indCairoOptimal1.pdf'
-    cairo_fname_optimal_2 = mop.fea_config_dict['output_dir'] + \
-        'indCairoOptimal2.pdf'
-    cairo_fname_optimal_3 = mop.fea_config_dict['output_dir'] + \
-        'indCairoOptimal3.pdf'
+    cairo_fname_optimal_1 = mop.fea_config_dict['output_dir'] + 'indCairoOptimal1.pdf'
+    cairo_fname_optimal_2 = mop.fea_config_dict['output_dir'] + 'indCairoOptimal2.pdf'
+    cairo_fname_optimal_3 = mop.fea_config_dict['output_dir'] + 'indCairoOptimal3.pdf'
     if not os.path.exists(cairo_fname):
         mop.part_evaluation_geometry()
 
@@ -491,16 +525,13 @@ def PopulationContent():
         auto_optimal_designs_xf = optimal_xf_dict[mop.ad.select_spec]
         if auto_optimal_designs_xf[0] != []:
             # and not os.path.exists(cairo_fname_optimal_1)
-            mop.part_evaluation_geometry(
-                auto_optimal_designs_xf[0], counter='CairoOptimal1')
+            mop.part_evaluation_geometry(auto_optimal_designs_xf[0], counter='CairoOptimal1')
         if auto_optimal_designs_xf[1] != []:
             # and not os.path.exists(cairo_fname_optimal_2)
-            mop.part_evaluation_geometry(
-                auto_optimal_designs_xf[1], counter='CairoOptimal2')
+            mop.part_evaluation_geometry(auto_optimal_designs_xf[1], counter='CairoOptimal2')
         if auto_optimal_designs_xf[2] != []:
             # and not os.path.exists(cairo_fname_optimal_3)
-            mop.part_evaluation_geometry(
-                auto_optimal_designs_xf[2], counter='CairoOptimal3')
+            mop.part_evaluation_geometry(auto_optimal_designs_xf[2], counter='CairoOptimal3')
         st.write('### 2.2.1 Initial Design:')
         # displayPDF(cairo_fname, width=500, height=500)
 
@@ -678,18 +709,24 @@ def SensitivityAnalysisContent():
     # 执行灵敏度分析并展示图像
     if st.button("Run Sensitivity Analysis"):
         mop = swarm_dict[folder]
-        ad = mop.acm_template.d['GP']
-        print(ad)
+        mop
+        mop.acm_template.d['GP']
 
 
 def main():
 
     # 标签页
-    OptimizationSetupTab, PopulationTab, SelectIndividualTab, SensitivityAnalysisTab = st.tabs(
-        ["Optimization Setup", "Population", "Select Individual", "Sensitivity Analysis"])
+    BasicInformationTab, InitialDesignTab, SearchSpaceTab, PopulationTab, SelectIndividualTab, SensitivityAnalysisTab = st.tabs(
+        ["BasicInformation", "Initial Design", "Search Space", "Population", "Select Individual", "Sensitivity Analysis"])
 
-    with OptimizationSetupTab:  # Optimization Setup
-        OptimizationSetupContent(user_selected_folder)
+    with BasicInformationTab:
+        BasicInformationContent()
+
+    with InitialDesignTab:  # Initial Design
+        InitialDesignContent(user_selected_folder)
+
+    with SearchSpaceTab:  # Search Space
+        SearchSpaceContent(user_selected_folder)
 
     with PopulationTab:  # Population
         PopulationContent()

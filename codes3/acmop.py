@@ -251,11 +251,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         else:
             x_denorm = specify_x_denorm
 
-        acm_variant = self.ad.build_acm_variant(self.ad.acm_template, x_denorm, counter=counter)
-        print('AAAAAAAAAA')
-        print(x_denorm)
-        print(acm_variant.template.d['GP']['mm_w_st'])
-        print(acm_variant.template.d['GP']['deg_alpha_st'])
+        acm_variant = self.ad.build_acm_variant(self.ad.acm_template, x_denorm, counter=counter) # counter has the same function as filename
 
         toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1, 
                                                             height_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1,
