@@ -130,7 +130,7 @@ def InitialDesignContent(user_selected_folder):
                 
                 with cols[1]:
                     new_value = st.number_input(
-                        "",
+                        f"Value for {var_name}",
                         value=float(current_value),
                         step=0.001,
                         format="%.6f",
@@ -194,7 +194,7 @@ def InitialDesignContent(user_selected_folder):
                 
                 with cols[1]:
                     new_value = st.number_input(
-                        "",
+                        f"Value for {var_name}",
                         value=float(current_value),
                         step=0.001,
                         format="%.6f",
@@ -250,7 +250,7 @@ def InitialDesignContent(user_selected_folder):
                 
                 with cols[1]:
                     new_value = st.number_input(
-                        "",
+                        f"Value for {var_name}",
                         value=float(current_value),
                         step=0.001,
                         format="%.6f",

@@ -6,7 +6,7 @@ EPS=1e-4
 class VanGogh_Cairo:
     def __init__(self, acm_variant, width_in_points=500, height_in_points=500, filename=None):
         self.acm_variant = acm_variant
-        self.output_fname_no_suffix = acm_variant.template.fea_config_dict['output_dir'] + acm_variant.name + filename if filename is not None else ''
+        self.output_fname_no_suffix = filename if filename is not None else acm_variant.template.fea_config_dict['output_dir'] + acm_variant.name 
         self.surface = cairo.SVGSurface(self.output_fname_no_suffix+'.svg', width_in_points, height_in_points)
         self.ctx = cairo.Context(self.surface)
         # self.ctx.scale(width_in_points, height_in_points)
