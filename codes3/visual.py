@@ -66,52 +66,187 @@ def OptimizationSetupContent(user_selected_folder):
 
     # 左栏内容
     with col1:
-        st.header("左栏")
-        st.subheader(f'Optimization Setup of {user_selected_folder}')
+        st.header(f'Optimization Setup of {user_selected_folder}')
 
         st.write('#### Decision Variables:')
         gp_items = mop.ad.acm_template.d['GP'].items()
-        data = [
-            {
-                'Variable': key,
-                'Type': val.type,
-                'Value': val.value,
-                'Lower Bound': val.bounds[0] if hasattr(val, 'bounds') and val.bounds else None,
-                'Upper Bound': val.bounds[1] if hasattr(val, 'bounds') and val.bounds else None
-            }
-            for key, val in gp_items if 'free' in val.type
-        ]
-        if data:
-            st.table(pd.DataFrame(data))
+        decision_vars = [(key, val) for key, val in gp_items if 'free' in val.type]
+        
+        if decision_vars:
+            # 初始化 session_state 存储用户修改的值
+            if 'decision_var_values' not in st.session_state:
+                st.session_state.decision_var_values = {
+                    var_name: var_param.value for var_name, var_param in decision_vars
+                }
+            
+            # 初始化原始值（用于检测修改）
+            if 'decision_var_original_values' not in st.session_state:
+                st.session_state.decision_var_original_values = {
+                    var_name: var_param.value for var_name, var_param in decision_vars
+                }
+            
+            # 使用列布局创建可编辑表格
+            # 显示表格标题
+            cols_header = st.columns([2, 2, 2, 3])
+            with cols_header[0]:
+                st.write("**Variable**")
+            with cols_header[1]:
+                st.write("**Value**")
+            with cols_header[2]:
+                st.write("**Original**")
+            with cols_header[3]:
+                st.write("**Bounds**")
+            
+            # 为每行创建可编辑的输入
+            edited_values = {}
+            for idx, (var_name, var_param) in enumerate(decision_vars):
+                original_value = st.session_state.decision_var_original_values.get(var_name, var_param.value)
+                current_value = st.session_state.decision_var_values.get(var_name, var_param.value)
+                
+                cols = st.columns([2, 2, 2, 3])
+                
+                with cols[1]:
+                    new_value = st.number_input(
+                        "",
+                        value=float(current_value),
+                        step=0.001,
+                        format="%.6f",
+                        key=f"decision_var_{var_name}",
+                        label_visibility="collapsed"
+                    )
+                    edited_values[var_name] = new_value
+                    st.session_state.decision_var_values[var_name] = new_value
+                
+                # 在更新值后重新检查是否被修改
+                is_modified = abs(new_value - original_value) > 1e-10
+                
+                with cols[0]:
+                    if is_modified:
+                        st.markdown(f'<div style="background-color: #ffeb3b; padding: 5px; border-radius: 3px;">{var_name}</div>', unsafe_allow_html=True)
+                    else:
+                        st.write(var_name)
+                
+                with cols[2]:
+                    st.write(f"{original_value:.6f}")
+                
+                with cols[3]:
+                    if hasattr(var_param, 'bounds') and var_param.bounds:
+                        st.write(f"[{var_param.bounds[0]:.6f}, {var_param.bounds[1]:.6f}]")
+                    else:
+                        st.write("无 bounds")
         else:
             st.write("No decision variables.")
         
         
         st.write('#### Derived Variables:')
-        derived_vars = [
-            {
-                'Variable': key,
-                'Type': val.type,
-                'Value': val.value,
-            }
-            for key, val in mop.ad.acm_template.d['GP'].items() if 'derived' in val.type
-        ]
+        gp_items = mop.ad.acm_template.d['GP'].items()
+        derived_vars = [(key, val) for key, val in gp_items if 'derived' in val.type]
+        
         if derived_vars:
-            st.table(pd.DataFrame(derived_vars))
+            # 初始化 session_state 存储 Derived Variables 的原始值和修改后的值
+            if 'derived_var_original_values' not in st.session_state:
+                st.session_state.derived_var_original_values = {
+                    var_name: var_param.value for var_name, var_param in derived_vars
+                }
+            if 'derived_var_values' not in st.session_state:
+                st.session_state.derived_var_values = {
+                    var_name: var_param.value for var_name, var_param in derived_vars
+                }
+            
+            # 显示表格标题
+            cols_header = st.columns([2, 2, 2])
+            with cols_header[0]:
+                st.write("**Variable**")
+            with cols_header[1]:
+                st.write("**Value**")
+            with cols_header[2]:
+                st.write("**Original**")
+            
+            # 为每行创建可编辑的输入
+            for var_name, var_param in derived_vars:
+                original_value = st.session_state.derived_var_original_values.get(var_name, var_param.value)
+                current_value = st.session_state.derived_var_values.get(var_name, var_param.value)
+                
+                cols = st.columns([2, 2, 2])
+                
+                with cols[1]:
+                    new_value = st.number_input(
+                        "",
+                        value=float(current_value),
+                        step=0.001,
+                        format="%.6f",
+                        key=f"derived_var_{var_name}",
+                        label_visibility="collapsed"
+                    )
+                    st.session_state.derived_var_values[var_name] = new_value
+                
+                # 在更新值后重新检查是否被修改
+                is_modified = abs(new_value - original_value) > 1e-10
+                
+                with cols[0]:
+                    if is_modified:
+                        st.markdown(f'<div style="background-color: #ffeb3b; padding: 5px; border-radius: 3px;">{var_name}</div>', unsafe_allow_html=True)
+                    else:
+                        st.write(var_name)
+                
+                with cols[2]:
+                    st.write(f"{original_value:.6f}")
         else:
             st.write("No derived variables.")
 
         st.write('#### Fixed Variables:')
-        fixed_vars = [
-            {
-                'Variable': key,
-                'Type': val.type,
-                'Value': val.value,
-            }
-            for key, val in mop.ad.acm_template.d['GP'].items() if 'fixed' in val.type
-        ]
+        gp_items = mop.ad.acm_template.d['GP'].items()
+        fixed_vars = [(key, val) for key, val in gp_items if 'fixed' in val.type]
+        
         if fixed_vars:
-            st.table(pd.DataFrame(fixed_vars))
+            # 初始化 session_state 存储 Fixed Variables 的原始值和修改后的值
+            if 'fixed_var_original_values' not in st.session_state:
+                st.session_state.fixed_var_original_values = {
+                    var_name: var_param.value for var_name, var_param in fixed_vars
+                }
+            if 'fixed_var_values' not in st.session_state:
+                st.session_state.fixed_var_values = {
+                    var_name: var_param.value for var_name, var_param in fixed_vars
+                }
+            
+            # 显示表格标题
+            cols_header = st.columns([2, 2, 2])
+            with cols_header[0]:
+                st.write("**Variable**")
+            with cols_header[1]:
+                st.write("**Value**")
+            with cols_header[2]:
+                st.write("**Original**")
+            
+            # 为每行创建可编辑的输入
+            for var_name, var_param in fixed_vars:
+                original_value = st.session_state.fixed_var_original_values.get(var_name, var_param.value)
+                current_value = st.session_state.fixed_var_values.get(var_name, var_param.value)
+                
+                cols = st.columns([2, 2, 2])
+                
+                with cols[1]:
+                    new_value = st.number_input(
+                        "",
+                        value=float(current_value),
+                        step=0.001,
+                        format="%.6f",
+                        key=f"fixed_var_{var_name}",
+                        label_visibility="collapsed"
+                    )
+                    st.session_state.fixed_var_values[var_name] = new_value
+                
+                # 在更新值后重新检查是否被修改
+                is_modified = abs(new_value - original_value) > 1e-10
+                
+                with cols[0]:
+                    if is_modified:
+                        st.markdown(f'<div style="background-color: #ffeb3b; padding: 5px; border-radius: 3px;">{var_name}</div>', unsafe_allow_html=True)
+                    else:
+                        st.write(var_name)
+                
+                with cols[2]:
+                    st.write(f"{original_value:.6f}")
         else:
             st.write("No fixed variables.")
 
@@ -126,40 +261,119 @@ def OptimizationSetupContent(user_selected_folder):
 
     # 右栏内容
     with col2:
-        st.header("右栏")
-
-        # for k,v in mop.ad.acm_template.d['GP'].items():
-        #     st.write(f'{k}: {v.type}, {v.value}, bounds: {v.bounds}')
-
-        # print(mop.ad.acm_template.x_denorm_dict)
-
-        count = 0
-        for param_name, param_val in mop.ad.acm_template.x_denorm_dict.items():
-            count+=1
-            print(f'\n\n\n{count=}, {param_name=}, {param_val=}')
-
-            if mop.ad.acm_template.d['GP'][param_name].type == 'free':
-
-                copied_x_denorm_dict = copy.deepcopy(mop.ad.acm_template.x_denorm_dict)
-
-                lb = mop.ad.acm_template.d['GP'][param_name].bounds[0]
-                copied_x_denorm_dict[param_name] = lb
-                specify_x_denorm = list(copied_x_denorm_dict.values())
-                st.write(specify_x_denorm)
-                saved_filename1 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-lb')
-                st.write('Lower bound design', '\n', f'{specify_x_denorm=}', '\n', saved_filename1)
-
-                ub = mop.ad.acm_template.d['GP'][param_name].bounds[1]
-                copied_x_denorm_dict[param_name] = ub
-                specify_x_denorm = list(copied_x_denorm_dict.values())
-                saved_filename2 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-ub')
-                st.write(specify_x_denorm)
-                st.write('Upper bound design', '\n', f'{specify_x_denorm=}', '\n', saved_filename2)
-
-                displayPDF_side_by_side([saved_filename1, saved_filename2], width=300, height=300)
-
-
+        
         # 获取所有 Decision Variables
+        gp_items = mop.ad.acm_template.d['GP'].items()
+        decision_vars = [(key, val) for key, val in gp_items if 'free' in val.type]
+        
+        if decision_vars and 'decision_var_values' in st.session_state:
+            # 根据用户修改的值构建 x_denorm
+            # 需要按照 x_denorm_dict 的顺序来构建
+            edited_values = st.session_state.decision_var_values
+            x_denorm_dict = copy.deepcopy(mop.ad.acm_template.x_denorm_dict)
+            
+            # 更新 x_denorm_dict 中用户修改的值
+            for var_name in x_denorm_dict.keys():
+                if var_name in edited_values:
+                    x_denorm_dict[var_name] = edited_values[var_name]
+            
+            # 更新 GP 中的 Fixed Variables（如果用户修改了）
+            if 'fixed_var_values' in st.session_state:
+                for var_name, new_value in st.session_state.fixed_var_values.items():
+                    if var_name in mop.ad.acm_template.d['GP']:
+                        mop.ad.acm_template.d['GP'][var_name].value = new_value
+            
+            # 更新 GP 中的 Derived Variables（如果用户修改了）
+            if 'derived_var_values' in st.session_state:
+                for var_name, new_value in st.session_state.derived_var_values.items():
+                    if var_name in mop.ad.acm_template.d['GP']:
+                        mop.ad.acm_template.d['GP'][var_name].value = new_value
+            
+            # 按照 x_denorm_dict 的顺序构建 x_denorm 列表
+            specify_x_denorm = list(x_denorm_dict.values())
+            
+            st.write("#### 当前参数值:")
+            # 显示修改的变量（高亮）
+            modified_vars = []
+            if 'decision_var_original_values' in st.session_state:
+                for var_name in x_denorm_dict.keys():
+                    if var_name in st.session_state.decision_var_original_values:
+                        orig_val = st.session_state.decision_var_original_values[var_name]
+                        curr_val = x_denorm_dict[var_name]
+                        if abs(curr_val - orig_val) > 1e-10:
+                            modified_vars.append(var_name)
+            
+            param_display_parts = []
+            for name, val in x_denorm_dict.items():
+                if name in modified_vars:
+                    param_display_parts.append(f"**{name}={val:.6f}**")
+                else:
+                    param_display_parts.append(f"{name}={val:.6f}")
+            st.write(" | ".join(param_display_parts))
+            
+            # 显示修改的 Fixed Variables
+            if 'fixed_var_values' in st.session_state and 'fixed_var_original_values' in st.session_state:
+                modified_fixed = []
+                for var_name, curr_val in st.session_state.fixed_var_values.items():
+                    orig_val = st.session_state.fixed_var_original_values.get(var_name, curr_val)
+                    if abs(curr_val - orig_val) > 1e-10:
+                        modified_fixed.append((var_name, orig_val, curr_val))
+                
+                if modified_fixed:
+                    st.write("#### 修改的 Fixed Variables:")
+                    fixed_display = " | ".join([f"**{name}**: {orig:.6f} → {curr:.6f}" for name, orig, curr in modified_fixed])
+                    st.write(fixed_display)
+            
+            # 显示修改的 Derived Variables
+            if 'derived_var_values' in st.session_state and 'derived_var_original_values' in st.session_state:
+                modified_derived = []
+                for var_name, curr_val in st.session_state.derived_var_values.items():
+                    orig_val = st.session_state.derived_var_original_values.get(var_name, curr_val)
+                    if abs(curr_val - orig_val) > 1e-10:
+                        modified_derived.append((var_name, orig_val, curr_val))
+                
+                if modified_derived:
+                    st.write("#### 修改的 Derived Variables:")
+                    derived_display = " | ".join([f"**{name}**: {orig:.6f} → {curr:.6f}" for name, orig, curr in modified_derived])
+                    st.write(derived_display)
+            
+            # 自动生成图形（不需要按钮）
+            with st.spinner("正在生成图形..."):
+                try:
+                    # 生成 PDF
+                    saved_filename = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, counter='CurrentDesign')
+                    
+                    # 尝试多个可能的路径
+                    pdf_paths_to_try = []
+                    if saved_filename:
+                        pdf_paths_to_try.append(saved_filename)
+                    pdf_paths_to_try.append(mop.fea_config_dict['output_dir'] + 'indCurrentDesign.pdf')
+                    if saved_filename and isinstance(saved_filename, str):
+                        # 如果返回的是相对路径，尝试构建完整路径
+                        if not os.path.isabs(saved_filename):
+                            pdf_paths_to_try.append(os.path.join(mop.fea_config_dict['output_dir'], saved_filename))
+                    
+                    pdf_found = None
+                    for pdf_path in pdf_paths_to_try:
+                        if pdf_path and os.path.exists(pdf_path):
+                            pdf_found = pdf_path
+                            break
+                    
+                    if pdf_found:
+                        st.write("#### 生成的图形:")
+                        displayPDF_side_by_side([pdf_found], width=300, height=300)
+                    else:
+                        st.warning(f"PDF 文件未找到。尝试的路径: {pdf_paths_to_try}")
+                except Exception as e:
+                    st.error(f"生成图形时出错: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
+        else:
+            st.info("请先在左栏修改 Decision Variables 的值")
+        
+        # 参数扫描功能（保留原有功能）
+        st.write("---")
+        st.write("#### 参数扫描功能:")
         gp_items = mop.ad.acm_template.d['GP'].items()
         decision_vars = [(key, val) for key, val in gp_items if 'free' in val.type]
         
