@@ -56,9 +56,29 @@ def pyplot_width(fig):
     use_column_width = st.checkbox("Use column width?")
     st.image(buf, width=int(image_width), use_column_width=use_column_width)
 
+def BasicInformationContent():
+
+    wily_fname = 'wily_p%dps%dQ%dy%d' % (
+        mop.spec_input_dict['p'], mop.spec_input_dict['ps'], mop.spec_input_dict['Qs'], mop.spec_input_dict['coil_pitch_y'])
+    st.write('## 2.1. Winding Information of', wily_fname)
+    try:
+        f'{path2acmop}/_wily/{wily_fname}.pdf'
+        displayPDF(f'{path2acmop}/_wily/{wily_fname}.pdf')
+        displayPDF_side_by_side([
+                f'{path2acmop}/_wily/{wily_fname}_T1.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T2.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T3abc.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T4.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T4a.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T4b.pdf',
+                f'{path2acmop}/_wily/{wily_fname}_T4c.pdf',
+            ], width=300, height=300
+        )
+    except FileNotFoundError:
+        st.write('The winding derivation file is absent', f'{path2acmop}/_wily/{wily_fname}.pdf')
 
 
-def OptimizationSetupContent(user_selected_folder):
+def SearchSpaceSetupContent(user_selected_folder):
     mop = swarm_dict[user_selected_folder]
     # mop
 
@@ -66,8 +86,13 @@ def OptimizationSetupContent(user_selected_folder):
 
     # 左栏内容
     with col1:
-        st.header("左栏")
-        st.subheader(f'Optimization Setup of {user_selected_folder}')
+        st.header("几何尺寸变量")
+
+        st.subheader(f'当前设计长这样：')
+        # mop.ad.acm_template.d['GP']
+        saved_filename0 = mop.part_evaluation_geometry(filename='CurrentDesign')
+        displayPDF_side_by_side([saved_filename0], width=600, height=600)
+
 
         st.write('#### Decision Variables:')
         gp_items = mop.ad.acm_template.d['GP'].items()
@@ -126,7 +151,7 @@ def OptimizationSetupContent(user_selected_folder):
 
     # 右栏内容
     with col2:
-        st.header("右栏")
+        st.header("自由变量取极限值时的设计")
 
         # for k,v in mop.ad.acm_template.d['GP'].items():
         #     st.write(f'{k}: {v.type}, {v.value}, bounds: {v.bounds}')
@@ -135,8 +160,6 @@ def OptimizationSetupContent(user_selected_folder):
 
         count = 0
         for param_name, param_val in mop.ad.acm_template.x_denorm_dict.items():
-            count+=1
-            print(f'\n\n\n{count=}, {param_name=}, {param_val=}')
 
             if mop.ad.acm_template.d['GP'][param_name].type == 'free':
 
@@ -251,22 +274,19 @@ def PopulationContent():
         st.table(df_swarm)
 
     st.write('# 2. Template/Initial Design Information')
-    wily_fname = 'wily_p%dps%dQ%dy%d' % (
-        mop.spec_input_dict['p'], mop.spec_input_dict['ps'], mop.spec_input_dict['Qs'], mop.spec_input_dict['coil_pitch_y'])
-    st.write('## 2.1. Winding Information of', wily_fname)
-    try:
-        displayPDF(f'{path2acmop}_wily/{wily_fname}.pdf')
-    except FileNotFoundError:
-        st.write('The winding derivation file is absent')
+    # wily_fname = 'wily_p%dps%dQ%dy%d' % (
+    #     mop.spec_input_dict['p'], mop.spec_input_dict['ps'], mop.spec_input_dict['Qs'], mop.spec_input_dict['coil_pitch_y'])
+    # st.write('## 2.1. Winding Information of', wily_fname)
+    # try:
+    #     displayPDF(f'{path2acmop}_wily/{wily_fname}.pdf')
+    # except FileNotFoundError:
+    #     st.write('The winding derivation file is absent')
 
     st.write('## 2.2. Cross Section (Initial and Optimal Designs)')
     cairo_fname = mop.fea_config_dict['output_dir'] + 'indCairo.pdf'
-    cairo_fname_optimal_1 = mop.fea_config_dict['output_dir'] + \
-        'indCairoOptimal1.pdf'
-    cairo_fname_optimal_2 = mop.fea_config_dict['output_dir'] + \
-        'indCairoOptimal2.pdf'
-    cairo_fname_optimal_3 = mop.fea_config_dict['output_dir'] + \
-        'indCairoOptimal3.pdf'
+    cairo_fname_optimal_1 = mop.fea_config_dict['output_dir'] + 'indCairoOptimal1.pdf'
+    cairo_fname_optimal_2 = mop.fea_config_dict['output_dir'] + 'indCairoOptimal2.pdf'
+    cairo_fname_optimal_3 = mop.fea_config_dict['output_dir'] + 'indCairoOptimal3.pdf'
     if not os.path.exists(cairo_fname):
         mop.part_evaluation_geometry()
 
@@ -277,16 +297,13 @@ def PopulationContent():
         auto_optimal_designs_xf = optimal_xf_dict[mop.ad.select_spec]
         if auto_optimal_designs_xf[0] != []:
             # and not os.path.exists(cairo_fname_optimal_1)
-            mop.part_evaluation_geometry(
-                auto_optimal_designs_xf[0], counter='CairoOptimal1')
+            mop.part_evaluation_geometry(auto_optimal_designs_xf[0], counter='CairoOptimal1')
         if auto_optimal_designs_xf[1] != []:
             # and not os.path.exists(cairo_fname_optimal_2)
-            mop.part_evaluation_geometry(
-                auto_optimal_designs_xf[1], counter='CairoOptimal2')
+            mop.part_evaluation_geometry(auto_optimal_designs_xf[1], counter='CairoOptimal2')
         if auto_optimal_designs_xf[2] != []:
             # and not os.path.exists(cairo_fname_optimal_3)
-            mop.part_evaluation_geometry(
-                auto_optimal_designs_xf[2], counter='CairoOptimal3')
+            mop.part_evaluation_geometry(auto_optimal_designs_xf[2], counter='CairoOptimal3')
         st.write('### 2.2.1 Initial Design:')
         # displayPDF(cairo_fname, width=500, height=500)
 
@@ -464,18 +481,21 @@ def SensitivityAnalysisContent():
     # 执行灵敏度分析并展示图像
     if st.button("Run Sensitivity Analysis"):
         mop = swarm_dict[folder]
-        ad = mop.acm_template.d['GP']
-        print(ad)
+        mop
+        mop.acm_template.d['GP']
 
 
 def main():
 
     # 标签页
-    OptimizationSetupTab, PopulationTab, SelectIndividualTab, SensitivityAnalysisTab = st.tabs(
-        ["Optimization Setup", "Population", "Select Individual", "Sensitivity Analysis"])
+    BasicInformationTab, SearchSpaceSetupTab, PopulationTab, SelectIndividualTab, SensitivityAnalysisTab = st.tabs(
+        ["BasicInformation", "SearchSpace Setup", "Population", "Select Individual", "Sensitivity Analysis"])
 
-    with OptimizationSetupTab:  # Optimization Setup
-        OptimizationSetupContent(user_selected_folder)
+    with BasicInformationTab:
+        BasicInformationContent()
+
+    with SearchSpaceSetupTab:  # SearchSpace Setup
+        SearchSpaceSetupContent(user_selected_folder)
 
     with PopulationTab:  # Population
         PopulationContent()
