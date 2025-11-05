@@ -391,9 +391,169 @@ def InitialDesignContent(user_selected_folder):
                     st.error(f"生成图形时出错: {str(e)}")
                     import traceback
                     st.code(traceback.format_exc())
-
-                # call mop.part_evaluation(specify_x_denorm=specify_x_denorm, counter='CurrentDesign')
-                # motor_design_variant = mop.ad.evaluate_design_json_wrapper(mop.ad.acm_template, specify_x_denorm, counter='CurrentDesign')
+                
+            if st.button("Evaluate Current Design"):
+                with st.spinner("正在评估当前设计，请不要关闭或刷新页面"):
+                    # call mop.part_evaluation(specify_x_denorm=specify_x_denorm, counter='CurrentDesign')
+                    motor_design_variant = mop.ad.evaluate_design_json_wrapper(mop.ad.acm_template, specify_x_denorm, counter='CurrentDesign')
+                
+                st.header("Current Design Evaluation Results")
+                
+                # 展示设计信息
+                if motor_design_variant is not None:
+                    # 基本信息
+                    col_info1, col_info2 = st.columns(2)
+                    
+                    with col_info1:
+                        st.subheader("设计基本信息")
+                        st.write(f"**设计名称**: {motor_design_variant.name}")
+                        if hasattr(motor_design_variant, 'x_denorm'):
+                            st.write(f"**设计变量 (x_denorm)**: {motor_design_variant.x_denorm}")
+                        if hasattr(motor_design_variant, 'InitialRotationAngle'):
+                            st.write(f"**初始旋转角度**: {motor_design_variant.InitialRotationAngle:.3f}°")
+                        
+                        # 几何参数
+                        if hasattr(motor_design_variant, 'template') and hasattr(motor_design_variant.template, 'd'):
+                            GP = motor_design_variant.template.d.get('GP', {})
+                            if GP:
+                                st.subheader("关键几何参数")
+                                key_params = ['deg_alpha_st', 'mm_w_st', 'mm_d_sto', 'mm_d_rp', 
+                                            'deg_alpha_rm', 'mm_d_pm', 'mm_d_ri']
+                                for param in key_params:
+                                    if param in GP and hasattr(GP[param], 'value'):
+                                        st.write(f"**{param}**: {GP[param].value:.4f}")
+                    
+                    with col_info2:
+                        st.subheader("规格参数")
+                        if hasattr(motor_design_variant, 'template') and hasattr(motor_design_variant.template, 'SI'):
+                            SI = motor_design_variant.template.SI
+                            st.write(f"**槽数 (Qs)**: {SI.get('Qs', 'N/A')}")
+                            st.write(f"**极对数 (p)**: {SI.get('p', 'N/A')}")
+                            st.write(f"**悬浮极对数 (ps)**: {SI.get('ps', 'N/A')}")
+                            st.write(f"**线圈节距 (coil_pitch_y)**: {SI.get('coil_pitch_y', 'N/A')}")
+                    
+                    # 性能指标
+                    st.subheader("性能指标")
+                    
+                    # 从 results_to_be_unpacked 提取性能数据
+                    if hasattr(motor_design_variant, 'results_to_be_unpacked'):
+                        try:
+                            cost_function, f1, f2, f3, FRW, \
+                            normalized_torque_ripple, \
+                            normalized_force_error_magnitude, \
+                            force_error_angle, \
+                            project_name, individual_name, \
+                            number_current_generation, individual_index,\
+                            power_factor, \
+                            rated_ratio, \
+                            rated_stack_length_mm, \
+                            rated_total_loss, \
+                            rated_stator_copper_loss_along_stack, \
+                            rated_magnet_Joule_loss, \
+                            rated_rotor_copper_loss_along_stack, \
+                            stator_copper_loss_in_end_turn, \
+                            rotor_copper_loss_in_end_turn, \
+                            rated_iron_loss, \
+                            rated_windage_loss, \
+                            str_results, \
+                            mm2_slot_area, \
+                            coil_flux_linkage_peak2peak_value, \
+                            TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
+                            ss_avg_force_magnitude, rotor_weight, torque_average = motor_design_variant.results_to_be_unpacked
+                            
+                            # 计算效率
+                            if hasattr(motor_design_variant, 'template') and hasattr(motor_design_variant.template, 'd'):
+                                EX = motor_design_variant.template.d.get('EX', {})
+                                if 'Omega' in EX and torque_average is not None:
+                                    shaft_power = EX['Omega'] * torque_average
+                                    rated_efficiency = shaft_power / (rated_total_loss + shaft_power) if (rated_total_loss + shaft_power) > 0 else 0
+                                else:
+                                    rated_efficiency = None
+                            else:
+                                rated_efficiency = None
+                            
+                            col_perf1, col_perf2, col_perf3 = st.columns(3)
+                            
+                            with col_perf1:
+                                st.write("**转矩与力**")
+                                if torque_average is not None:
+                                    st.metric("平均转矩", f"{torque_average:.4f} Nm")
+                                if ss_avg_force_magnitude is not None:
+                                    st.metric("平均悬浮力", f"{ss_avg_force_magnitude:.4f} N")
+                                if rotor_weight is not None:
+                                    st.metric("转子重量", f"{rotor_weight:.4f} kg")
+                                if FRW is not None:
+                                    st.metric("力重比 (FRW)", f"{FRW:.4f} N/kg")
+                                if TRV is not None:
+                                    st.metric("转矩密度 (TRV)", f"{TRV:.4f} Nm/m³")
+                            
+                            with col_perf2:
+                                st.write("**损耗与效率**")
+                                if rated_efficiency is not None:
+                                    st.metric("效率", f"{rated_efficiency*100:.2f}%")
+                                if rated_total_loss is not None:
+                                    st.metric("总损耗", f"{rated_total_loss:.4f} W")
+                                if rated_iron_loss is not None:
+                                    st.metric("铁损", f"{rated_iron_loss:.4f} W")
+                                if rated_stator_copper_loss_along_stack is not None:
+                                    st.metric("定子铜损", f"{rated_stator_copper_loss_along_stack:.4f} W")
+                                if rated_magnet_Joule_loss is not None:
+                                    st.metric("永磁体焦耳损耗", f"{rated_magnet_Joule_loss:.4f} W")
+                                if rated_windage_loss is not None:
+                                    st.metric("风损", f"{rated_windage_loss:.4f} W")
+                            
+                            with col_perf3:
+                                st.write("**脉动与误差**")
+                                if normalized_torque_ripple is not None:
+                                    st.metric("归一化转矩脉动", f"{normalized_torque_ripple:.4f}")
+                                if normalized_force_error_magnitude is not None:
+                                    st.metric("归一化力误差幅值", f"{normalized_force_error_magnitude:.4f}")
+                                if force_error_angle is not None:
+                                    st.metric("力误差角度", f"{force_error_angle:.4f}°")
+                                if power_factor is not None:
+                                    st.metric("功率因数", f"{power_factor:.4f}")
+                                if rated_stack_length_mm is not None:
+                                    st.metric("额定叠长", f"{rated_stack_length_mm:.4f} mm")
+                            
+                            # 成本信息
+                            st.subheader("成本信息")
+                            col_cost1, col_cost2 = st.columns(2)
+                            
+                            with col_cost1:
+                                if Cost is not None:
+                                    st.metric("总成本", f"{Cost:.4f} ¥")
+                                if Cost_Fe is not None:
+                                    st.write(f"**铁成本**: {Cost_Fe:.4f} ¥")
+                                if Cost_Cu is not None:
+                                    st.write(f"**铜成本**: {Cost_Cu:.4f} ¥")
+                                if Cost_PM is not None:
+                                    st.write(f"**永磁体成本**: {Cost_PM:.4f} ¥")
+                            
+                            with col_cost2:
+                                st.write("**优化目标函数值**")
+                                if f1 is not None:
+                                    st.write(f"**f1 ({mop.ad.fea_config_dict.get('moo.fitness_OA', 'N/A')})**: {f1:.6f}")
+                                if f2 is not None:
+                                    st.write(f"**f2 ({mop.ad.fea_config_dict.get('moo.fitness_OB', 'N/A')})**: {f2:.6f}")
+                                if f3 is not None:
+                                    st.write(f"**f3 ({mop.ad.fea_config_dict.get('moo.fitness_OC', 'N/A')})**: {f3:.6f}")
+                            
+                            # 其他信息
+                            if str_results:
+                                with st.expander("详细结果字符串"):
+                                    st.text(str_results)
+                                    
+                        except Exception as e:
+                            st.warning(f"无法完全解析性能数据: {str(e)}")
+                            st.write(f"**设计名称**: {motor_design_variant.name}")
+                            if hasattr(motor_design_variant, 'x_denorm'):
+                                st.write(f"**设计变量**: {motor_design_variant.x_denorm}")
+                    else:
+                        st.info("设计评估完成，但性能数据未完全解析。")
+                        st.write(f"**设计名称**: {motor_design_variant.name}")
+                else:
+                    st.error("设计评估失败，未返回有效结果。")
+                    
 
 
         else:
@@ -797,7 +957,7 @@ if __name__ == '__main__':
     # """ DO NOT MODIFY BEGINS """
     # """ DO NOT MODIFY BEGINS """
     # """ DO NOT MODIFY BEGINS """
-    print(f"======================{datetime.date.today()}======================")
+    print(f"\n\n======================{datetime.datetime.now()}======================")
     st.set_page_config(layout="wide")
     with st.sidebar:
         st.markdown(
