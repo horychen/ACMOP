@@ -285,7 +285,6 @@ def InitialDesignContent(user_selected_folder):
     # 右栏内容
     with col2:
 
-
         # 获取所有 Decision Variables
         gp_items = mop.ad.acm_template.d['GP'].items()
         decision_vars = [(key, val) for key, val in gp_items if 'free' in val.type]
@@ -392,13 +391,57 @@ def InitialDesignContent(user_selected_folder):
                     st.error(f"生成图形时出错: {str(e)}")
                     import traceback
                     st.code(traceback.format_exc())
+
+                # call mop.part_evaluation(specify_x_denorm=specify_x_denorm, counter='CurrentDesign')
+                # motor_design_variant = mop.ad.evaluate_design_json_wrapper(mop.ad.acm_template, specify_x_denorm, counter='CurrentDesign')
+
+
         else:
             st.info("请先在左栏修改 Decision Variables 的值")
 
 
 def SearchSpaceContent(user_selected_folder):
     mop = swarm_dict[user_selected_folder]
-    
+
+    col1, col2 = st.columns(2)
+
+    # 左栏内容
+    with col1:
+        st.header("设计空间探索：自由变量取极限值时的设计")
+
+    # 右栏内容
+    with col2:
+        st.header("自由变量取极限值时的设计")
+
+        # for k,v in mop.ad.acm_template.d['GP'].items():
+        #     st.write(f'{k}: {v.type}, {v.value}, bounds: {v.bounds}')
+
+        # print(mop.ad.acm_template.x_denorm_dict)
+
+        count = 0
+        for param_name, param_val in mop.ad.acm_template.x_denorm_dict.items():
+
+            if mop.ad.acm_template.d['GP'][param_name].type == 'free':
+
+                copied_x_denorm_dict = copy.deepcopy(mop.ad.acm_template.x_denorm_dict)
+
+                lb = mop.ad.acm_template.d['GP'][param_name].bounds[0]
+                copied_x_denorm_dict[param_name] = lb
+                specify_x_denorm = list(copied_x_denorm_dict.values())
+                st.write(specify_x_denorm)
+                saved_filename1 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-lb')
+                st.write('Lower bound design', '\n', f'{specify_x_denorm=}', '\n', saved_filename1)
+
+                ub = mop.ad.acm_template.d['GP'][param_name].bounds[1]
+                copied_x_denorm_dict[param_name] = ub
+                specify_x_denorm = list(copied_x_denorm_dict.values())
+                saved_filename2 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-ub')
+                st.write(specify_x_denorm)
+                st.write('Upper bound design', '\n', f'{specify_x_denorm=}', '\n', saved_filename2)
+
+                displayPDF_side_by_side([saved_filename1, saved_filename2], width=300, height=300)
+
+
     st.header("参数扫描功能")
     
     # 获取所有 Decision Variables

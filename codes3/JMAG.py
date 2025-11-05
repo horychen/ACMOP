@@ -153,9 +153,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     def open(self, expected_project_file_path):
         if self.app is None:
             try:
-                # app = win32com.client.Dispatch('designer.Application.200')
-                app = win32com.client.Dispatch('designer.Application.171')
-                print('JMAG 17.1 is not found. Will use any other JMAG version avaiilable.')
+                app = win32com.client.Dispatch('designer.Application.200')
+                # app = win32com.client.Dispatch('designer.Application.171')
+                # print('JMAG 20.0 is not found. Will use any other JMAG version avaiilable.')
                 # app = win32com.client.gencache.EnsureDispatch('designer.Application.171') # https://stackoverflow.com/questions/50127959/win32-dispatch-vs-win32-gencache-in-python-what-are-the-pros-and-cons
             except:
                 try:
@@ -163,7 +163,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     # app = win32com.client.Dispatch('designer.Application.181')
                     # app = win32com.client.gencache.EnsureDispatch('designer.Application.171')
                 except:
-                    raise Exception('No JMAG Designer 17 is found in this PC.')
+                    raise Exception('No JMAG Designer 20 is found in this PC.')
 
             self.JMAG_version_string = app.VersionString(0)
             self.JMAG_version_number = float(app.VersionString(0)[:2])
@@ -2545,8 +2545,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
         variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
         EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
-        EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
-        EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+        EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['circuit.TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+        EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['circuit.SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
         # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
                                                                                                     # EX['CurrentAmp_per_phase'],
                                                                                                     # EX['DriveW_CurrentAmp'],
