@@ -1,4 +1,5 @@
 import win32com.client, os, logging, utility, numpy
+import pythoncom  # 用于 COM 初始化
 from pylab import np, plt, mpl
 print('The mpl backend is', mpl.rcParams['backend'])
 print('The mpl backend is', mpl.rcParams['backend'])
@@ -152,6 +153,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
     def open(self, expected_project_file_path):
         if self.app is None:
+            # 在 Streamlit 等多线程环境中，需要显式初始化 COM
+            # 使用 COINIT_APARTMENTTHREADED 模式（适合单线程单元模型）
+            try:
+                pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
+            except Exception:
+                # COM 已经初始化或初始化失败，继续执行（可能已在主线程初始化）
+                # 捕获所有异常，因为 CoInitializeEx 可能在不同情况下抛出不同的异常
+                pass
+            
             try:
                 app = win32com.client.Dispatch('designer.Application.200')
                 # app = win32com.client.Dispatch('designer.Application.171')
