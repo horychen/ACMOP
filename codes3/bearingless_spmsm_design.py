@@ -163,7 +163,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         stator_outer_diameter_Dse = SI['mm_stator_outer_diameter'] * 1e-3 # this is related to the stator current density and should be determined by Js and power.
         sleeve_length = SI['mm_sleeve_length'] * 1e-3 # mm
 
-        rotor_outer_radius_r_or = SI['mm_radius_shaft']*1e-3 + sleeve_length + SI['minimum_mechanical_air_gap_length_mm']*1e-3 + SI['mm_d_pm']*1e-3 + SI['mm_d_ri']*1e-3
+        rotor_outer_radius_r_or = SI['mm_radius_shaft']*1e-3 + SI['mm_d_pm']*1e-3 + SI['mm_d_ri']*1e-3
         stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SI['minimum_mechanical_air_gap_length_mm'])*1e-3 # [m]
         stator_inner_diameter_Dis = stator_inner_radius_r_is*2
         split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse

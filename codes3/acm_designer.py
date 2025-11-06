@@ -1384,13 +1384,13 @@ class acm_designer(object):
         if 'JMAG' in self.select_fea_config_dict:
             # project name
             self.project_name = acm_variant.name
-            self.expected_project_file = self.fea_config_dict['output_dir'] + "%s.jproj"%(self.project_name)
+            self.expected_project_file = self.fea_config_dict['output_dir'] + "temp/%s.jproj"%(self.project_name)
 
             # study name
             study_name = acm_variant.name + "-Transient" # Change here and there 
 
             # project meta data
-            project_meta_data = {
+            self.project_meta_data = {
                 "expected_project_file": self.expected_project_file,
                 "project_name": self.project_name,
                 "study_name": study_name,
@@ -1399,7 +1399,9 @@ class acm_designer(object):
             }
 
             # Leave the solving task to JMAG
-            self.toolJd = self.build_jmag_project(acm_variant, project_meta_data, bool_re_evaluate=bool_re_evaluate)
+            self.toolJd = self.build_jmag_project(acm_variant, self.project_meta_data, bool_re_evaluate=bool_re_evaluate)
+            import rich
+            rich.print(self.project_meta_data)
 
             ################################################################
             # Load data for cost function evaluation
@@ -1591,7 +1593,7 @@ class acm_designer(object):
             self.project_name          = f'proj{counter}'
         else:
             self.project_name          = f'proj{counter}-redo{counter_loop}'
-        self.expected_project_file = self.fea_config_dict['output_dir'] + "%s.jproj"%(self.project_name)
+        self.expected_project_file = self.fea_config_dict['output_dir'] + "temp/%s.jproj"%(self.project_name)
 
         original_study_name = im_variant.name + "Freq"
         tran2tss_study_name = im_variant.name + 'Tran2TSS'
@@ -1646,10 +1648,10 @@ class acm_designer(object):
                 print('[acm_designer.py] JMAG project exists already. I learned my lessions. I will NOT delete it but create a new one with a different name instead.')
                 # os.remove(expected_project_file_path)
                 attempts = 2
-                temp_path = expected_project_file_path[:-len('.jproj')] + 'attempts%d.jproj'%(attempts)
+                temp_path = expected_project_file_path[:-len('.jproj')] + 'temp/attempts%d.jproj'%(attempts)
                 while os.path.exists(temp_path):
                     attempts += 1
-                    temp_path = expected_project_file_path[:-len('.jproj')] + 'attempts%d.jproj'%(attempts)
+                    temp_path = expected_project_file_path[:-len('.jproj')] + 'temp/attempts%d.jproj'%(attempts)
 
                 expected_project_file_path = temp_path
 
@@ -2571,7 +2573,7 @@ class acm_designer(object):
         sw.designer_init()
         sw.app.Show()
         project_name = fea_config_dict['run_folder'][:-1]+'_Best' # spec.build_name() is too long...
-        expected_project_file = sw.dir_project_files + "%s.jproj"%(project_name)
+        expected_project_file = sw.dir_project_files + "temp/%s.jproj"%(project_name)
         print(expected_project_file)
         if not os.path.exists(expected_project_file):
             sw.app.NewProject("Untitled")

@@ -165,15 +165,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             try:
                 app = win32com.client.Dispatch('designer.Application.200')
                 # app = win32com.client.Dispatch('designer.Application.171')
-                # print('JMAG 20.0 is not found. Will use any other JMAG version avaiilable.')
                 # app = win32com.client.gencache.EnsureDispatch('designer.Application.171') # https://stackoverflow.com/questions/50127959/win32-dispatch-vs-win32-gencache-in-python-what-are-the-pros-and-cons
             except:
+                # print('JMAG 20.0 is not found. Will use any other JMAG version avaiilable.')
                 try:
                     app = win32com.client.Dispatch('designer.Application')
                     # app = win32com.client.Dispatch('designer.Application.181')
                     # app = win32com.client.gencache.EnsureDispatch('designer.Application.171')
                 except:
-                    raise Exception('No JMAG Designer 20 is found in this PC.')
+                    raise Exception('COM call to JMAG Designer is not successful.')
 
             self.JMAG_version_string = app.VersionString(0)
             self.JMAG_version_number = float(app.VersionString(0)[:2])
@@ -2094,18 +2094,20 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             refarray[0][1] = 1
             study.GetMeshControl().GetTable("SlideTable2D").SetTable(refarray) 
 
-            # if 
+            user_specified_mesh_size = acm_variant.template.fea_config_dict['designer.meshSize_Magnet']
+
             study.GetMeshControl().SetValue("MeshType", 1) # make sure this has been exe'd: study.GetCondition(u"RotCon").AddSet(model.GetSetList().GetSet(u"Motion_Region"), 0)
             study.GetMeshControl().SetValue("RadialDivision", 8) # for air region near which motion occurs
             study.GetMeshControl().SetValue("CircumferentialDivision", 720) #1440) # for air region near which motion occurs 这个数足够大，sliding mesh才准确。
             study.GetMeshControl().SetValue("AirRegionScale", 1.05) # [Model Length]: Specify a value within the following area. (1.05 <= value < 1000)
-            study.GetMeshControl().SetValue("MeshSize", 4) # mm
+            study.GetMeshControl().SetValue("MeshSize", user_specified_mesh_size*2) # mm
             study.GetMeshControl().SetValue("AutoAirMeshSize", 0)
-            study.GetMeshControl().SetValue("AirMeshSize", 1) # mm
+            study.GetMeshControl().SetValue("AirMeshSize", user_specified_mesh_size*1.0) # mm
             study.GetMeshControl().SetValue("Adaptive", 0)
 
             # This is not neccessary for whole model FEA. In fact, for BPMSM simulation, it causes mesh error "The copy target region is not found".
             # study.GetMeshControl().CreateCondition("RotationPeriodicMeshAutomatic", "autoRotMesh") # with this you can choose to set CircumferentialDivision automatically
+
 
             study.GetMeshControl().CreateCondition("Part", "MagnetMeshCtrl")
             study.GetMeshControl().GetCondition("MagnetMeshCtrl").SetValue("Size", acm_variant.template.fea_config_dict['designer.meshSize_Magnet'])
@@ -2114,7 +2116,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             if self.bool_suppressShaft == False:
                 study.GetMeshControl().CreateCondition("Part", "ShaftMeshCtrl")
-                study.GetMeshControl().GetCondition("ShaftMeshCtrl").SetValue("Size", 10) # 10 mm
+                study.GetMeshControl().GetCondition("ShaftMeshCtrl").SetValue("Size", user_specified_mesh_size*0.5) 
                 study.GetMeshControl().GetCondition("ShaftMeshCtrl").ClearParts()
                 study.GetMeshControl().GetCondition("ShaftMeshCtrl").AddSet(model.GetSetList().GetSet("ShaftSet"), 0)
 

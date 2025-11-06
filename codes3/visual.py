@@ -132,7 +132,7 @@ def InitialDesignContent(user_selected_folder):
                     new_value = st.number_input(
                         f"Value for {var_name}",
                         value=float(current_value),
-                        step=0.001,
+                        step=0.1,
                         format="%g",
                         key=f"decision_var_{var_name}",
                         label_visibility="collapsed"
@@ -196,7 +196,7 @@ def InitialDesignContent(user_selected_folder):
                     new_value = st.number_input(
                         f"Value for {var_name}",
                         value=float(current_value),
-                        step=0.001,
+                        step=0.1,
                         format="%g",
                         key=f"derived_var_{var_name}",
                         label_visibility="collapsed"
@@ -252,7 +252,7 @@ def InitialDesignContent(user_selected_folder):
                     new_value = st.number_input(
                         f"Value for {var_name}",
                         value=float(current_value),
-                        step=0.001,
+                        step=0.1,
                         format="%g",
                         key=f"fixed_var_{var_name}",
                         label_visibility="collapsed"
@@ -571,7 +571,7 @@ def SearchSpaceContent(user_selected_folder):
 
     # 左栏内容
     with col1:
-        st.header("设计空间探索：自由变量取极限值时的设计")
+        st.header("设计空间探索")
 
     # 右栏内容
     with col2:
@@ -582,28 +582,32 @@ def SearchSpaceContent(user_selected_folder):
 
         # print(mop.ad.acm_template.x_denorm_dict)
 
-        count = 0
-        for param_name, param_val in mop.ad.acm_template.x_denorm_dict.items():
+        if st.button("画出取极限值的设计图形"):
+            with st.spinner("正在画，请不要关闭或刷新页面"):
+                count = 0
+                for param_name, param_val in mop.ad.acm_template.x_denorm_dict.items():
 
-            if mop.ad.acm_template.d['GP'][param_name].type == 'free':
+                    if mop.ad.acm_template.d['GP'][param_name].type == 'free':
 
-                copied_x_denorm_dict = copy.deepcopy(mop.ad.acm_template.x_denorm_dict)
+                        copied_x_denorm_dict = copy.deepcopy(mop.ad.acm_template.x_denorm_dict)
 
-                lb = mop.ad.acm_template.d['GP'][param_name].bounds[0]
-                copied_x_denorm_dict[param_name] = lb
-                specify_x_denorm = list(copied_x_denorm_dict.values())
-                st.write(specify_x_denorm)
-                saved_filename1 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-lb')
-                st.write('Lower bound design', '\n', f'{specify_x_denorm=}', '\n', saved_filename1)
+                        lb = mop.ad.acm_template.d['GP'][param_name].bounds[0]
+                        copied_x_denorm_dict[param_name] = lb
+                        specify_x_denorm = list(copied_x_denorm_dict.values())
+                        st.write(specify_x_denorm)
+                        saved_filename1 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-lb')
+                        st.write('Lower bound design', '\n', f'{specify_x_denorm=}', '\n', saved_filename1)
 
-                ub = mop.ad.acm_template.d['GP'][param_name].bounds[1]
-                copied_x_denorm_dict[param_name] = ub
-                specify_x_denorm = list(copied_x_denorm_dict.values())
-                saved_filename2 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-ub')
-                st.write(specify_x_denorm)
-                st.write('Upper bound design', '\n', f'{specify_x_denorm=}', '\n', saved_filename2)
+                        ub = mop.ad.acm_template.d['GP'][param_name].bounds[1]
+                        copied_x_denorm_dict[param_name] = ub
+                        specify_x_denorm = list(copied_x_denorm_dict.values())
+                        saved_filename2 = mop.part_evaluation_geometry(specify_x_denorm=specify_x_denorm, filename=param_name+'-ub')
+                        st.write(specify_x_denorm)
+                        st.write('Upper bound design', '\n', f'{specify_x_denorm=}', '\n', saved_filename2)
 
-                displayPDF_side_by_side([saved_filename1, saved_filename2], width=300, height=300)
+            st.header("来看看：")
+            displayPDF_side_by_side([saved_filename1, saved_filename2], width=300, height=300)
+
 
 
     st.header("参数扫描功能")
