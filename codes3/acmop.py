@@ -1,5 +1,7 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
 import os, json, acm_designer, VanGogh_Cairo, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design, bearingless_spmsm_heart
+import utility
+import logging
 from dataclasses import dataclass
 @dataclass
 class AC_Machine_Optiomization_Wrapper(object):
@@ -29,7 +31,10 @@ class AC_Machine_Optiomization_Wrapper(object):
                                             path2SwarmData=self.path2SwarmData)
         self.fea_config_dict['designer.Show'] = self.bool_show_GUI
 
-        print('[acmop.py] project_loc (user-input):', self.project_loc)
+        # Initialize logger
+        self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix='acmop_')
+
+        self.logger.info('project_loc (user-input): %s', self.project_loc)
         if self.path2SwarmData is None:
             self.path2SwarmData = self.project_loc + self.select_spec.replace(' ', '_') + '/'
         if self.project_loc is None:
@@ -39,9 +44,9 @@ class AC_Machine_Optiomization_Wrapper(object):
         self.project_loc                   = os.path.abspath(self.project_loc) + '/'
         self.path2SwarmData                = os.path.abspath(self.path2SwarmData) + '/'
         self.fea_config_dict['output_dir'] = os.path.abspath(self.fea_config_dict['output_dir']) + '/'
-        print('[acmop.py] project_loc (converted) :', self.project_loc)
-        print('[acmop.py] path2SwarmData          :', self.path2SwarmData)
-        print('[acmop.py] output_dir              :', self.fea_config_dict['output_dir'])
+        self.logger.info('project_loc (converted) : %s', self.project_loc)
+        self.logger.info('path2SwarmData          : %s', self.path2SwarmData)
+        self.logger.info('output_dir              : %s', self.fea_config_dict['output_dir'])
 
         self.acm_template = self.part_initialDesign() # Module 2 (mop.ad is available now)
 
@@ -166,8 +171,8 @@ class AC_Machine_Optiomization_Wrapper(object):
             x_denorm = self.ad.acm_template.build_x_denorm()
         else:
             x_denorm = specify_x_denorm
-        print('[acmop.py] x_denorm:',  x_denorm)
-        # print('[acmop.py] x_denorm_dict:', self.ad.acm_template.x_denorm_dict)
+        self.logger.info('x_denorm: %s', x_denorm)
+        # self.logger.debug('[acmop.py] x_denorm_dict: %s', self.ad.acm_template.x_denorm_dict)
 
         if True:
             ''' Default transient FEA
@@ -200,8 +205,8 @@ class AC_Machine_Optiomization_Wrapper(object):
                 axes[7].plot(motor_design_variant.analyzer.femm_time, list(map(lambda el: el[0], motor_design_variant.analyzer.femm_circuit_fluxLinkages)))
                 plt.show()
 
-            print('[acmop.py] Listing analyzer.spec_performance_dict:')
-            print (self.ad.acm_template.name)
+            self.logger.info('Listing analyzer.spec_performance_dict:')
+            self.logger.info('Template name: %s', self.ad.acm_template.name)
             if 'CPPM' in self.ad.acm_template.name:
                 pass
             # for k,v in motor_design_variant.analyzer.spec_performance_dict.items():
@@ -219,7 +224,7 @@ class AC_Machine_Optiomization_Wrapper(object):
             fig, axes = plt.subplots(5)
             for angle in np.arange(-15, 15.1, 5):
                 self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'] = angle
-                print('User shifts the initial rotor position angle by', self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'], 'deg')
+                self.logger.info('User shifts the initial rotor position angle by %s deg', self.ad.acm_template.fea_config_dict['femm.MechDeg_IdEqualToNonZeroAngle'])
                 motor_design_variant = self.ad.evaluate_design_json_wrapper(self.ad.acm_template, x_denorm)
 
                 force_x = list(map(lambda el: el[0], motor_design_variant.analyzer.femm_forces))
@@ -235,11 +240,11 @@ class AC_Machine_Optiomization_Wrapper(object):
                 ax.legend()
             plt.show()
 
-        print('[acmop.py] Check several things: 1. the winding initial excitation angle; 2. the rotor d-axis initial position should be orthoganal to winding excitation field.')
+        self.logger.info('Check several things: 1. the winding initial excitation angle; 2. the rotor d-axis initial position should be orthoganal to winding excitation field.')
 
     def part_evaluation_geometry(self, xf=[], counter='Cairo', specify_x_denorm=None, bool_show_pdf=False, filename=None):
 
-        print('\n ------- part_evaluation_geometry -------')
+        self.logger.info('\n ------- part_evaluation_geometry -------')
 
         if specify_x_denorm is None:
             # build x_denorm for the template design
@@ -249,7 +254,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
         if xf != []:
             x_denorm = xf[:len(x_denorm)]
-            print('AA--------xf is ', xf, 'used to replace x_denorm', x_denorm)
+            self.logger.info('AA--------xf is %s used to replace x_denorm %s', xf, x_denorm)
 
         acm_variant = self.ad.build_acm_variant(self.ad.acm_template, x_denorm, counter=counter) # counter has the same function as filename
         self.acm_variant = acm_variant # for visualizaiton only
@@ -311,7 +316,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         else:
 
             # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
-            logger.info(f'[acmop.py] Check for swarm data from: {self.select_spec}.json ...')
+            logger.info(f'Check for swarm data from: {self.select_spec}.json ...')
             self.ad.acm_template.build_x_denorm()
             # quit()
             swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
@@ -335,13 +340,13 @@ class AC_Machine_Optiomization_Wrapper(object):
                     logger.info('\tWhat is the odds! The script just stopped when the evaluation of the whole pop is finished.')
                     logger.info('\tSet number_of_finished_chromosome_in_current_generation to popsize %d'%(number_of_finished_chromosome_in_current_generation))
 
-                logger.info('[acmop.py] This is a restart of '+ self.path2SwarmData)
+                logger.info('This is a restart of '+ self.path2SwarmData)
                 logger.info('\tNumber of finished iterations is %d'%(number_of_finished_iterations))
                 # print('This means the initialization of the population class is interrupted. So the pop in swarm_data.txt is used as the survivor.')
 
                 # 这些计数器的值永远都是评估过的chromosome的个数。
                 ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome
-                logger.info('[acmop.py] ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome = %d'%(number_of_chromosome))
+                logger.info('ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome = %d', number_of_chromosome)
 
                 # 禁止在初始化pop时运行有限元
                 ad.flag_do_not_evaluate_when_init_pop = True
@@ -361,10 +366,10 @@ class AC_Machine_Optiomization_Wrapper(object):
                                 # print(pop.set_xf(i, ad.   swarm_data[i][:-3], ad.   swarm_data[i][-3:]))
                                 # quit()
                             else:
-                                logger.info('[acmop.py] Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
+                                logger.info('Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
                                 ad.flag_do_not_evaluate_when_init_pop = False
-                                logger.info('[acmop.py] Calling pop.set_x()---this is a restart for individual#%d during pop initialization.'%(i))
-                                logger.info(f'[acmop.py] i={i}: call get_fevals: {prob.get_fevals()}') # https://esa.github.io/pygmo2/problem.html?highlight=get_fevals#pygmo.problem.get_fevals
+                                logger.info('Calling pop.set_x()---this is a restart for individual#%d during pop initialization.', i)
+                                logger.info('i=%d: call get_fevals: %s', i, prob.get_fevals()) # https://esa.github.io/pygmo2/problem.html?highlight=get_fevals#pygmo.problem.get_fevals
                                 pop.set_x(i, pop_array[i]) # evaluate this guy
                     else:
                         # 新办法，直接从swarm_data.txt（相当于archive）中判断出当前最棒的群体
@@ -383,14 +388,14 @@ class AC_Machine_Optiomization_Wrapper(object):
                 number_of_finished_iterations = 0 # 实际上跑起来它不是零，而是一，因为我们认为初始化的一代也是一代。或者，我们定义number_of_finished_iterations = number_of_chromosome // popsize
 
                 # case 2-A: swarm_data.txt does not exist and this is a whole new run.
-                logger.info('[acmop.py] Nothing exists in the archival json file. This is a whole new run.')
+                logger.info('Nothing exists in the archival json file. This is a whole new run.')
                 ad.flag_do_not_evaluate_when_init_pop = False
                 pop = pg.population(prob, size=popsize)
 
             # this flag must be false before moving on
             ad.flag_do_not_evaluate_when_init_pop = False
 
-        logger.info(f'[acmop.py] Pop is initialized:\n {pop}')
+        logger.info(f'Pop is initialized:\n {pop}')
         # hv = pg.hypervolume(pop)
         # quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
         # logger.info('[acmop.py] quality_measure: %g'%(quality_measure))
@@ -398,7 +403,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
         # 初始化以后，pop.problem.get_fevals()就是popsize，但是如果大于popsize，说明“pop.set_x(i, pop_array[i]) # evaluate this guy”被调用了，说明还没输出过 survivors 数据，那么就写一下。
         if pop.problem.get_fevals() > popsize:
-            logger.info('[acmop.py] Write survivors.')
+            logger.info('Write survivors.')
             ad.   write_swarm_survivor(pop, ad.counter_fitness_return)
 
 
@@ -413,7 +418,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                                      CR=1, F=0.5, eta_m=20, 
                                      realb=0.9, 
                                      limit=2, preserve_diversity=True)) # https://esa.github.io/pagmo2/docs/python/algorithms/py_algorithms.html#pygmo.moead
-        logger.info(f'[acmop.py] {algo}')
+        logger.info(f'{algo}')
         logger.info(f'\t MOEA/D neighbourhood size is set to 1/4 of the popsize as {int(popsize/4)}')
         # quit()
 

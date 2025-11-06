@@ -163,7 +163,8 @@ class template_machine_as_numbers(object):
             EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_ro'].value*2*1e-3, specified_mm_stack_length=specified_mm_stack_length) # TODO:
 
             EX['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SI) # TODO:
-            print('[inner_rotor_motor.py] DriveW_CurrentAmp is initialized as:', EX['DriveW_CurrentAmp'], 'A (considering the specified voltage). This will be overwritten by Js-constraint later.')
+            logger = logging.getLogger(__name__)
+            logger.info('DriveW_CurrentAmp is initialized as: %s A (considering the specified voltage). This will be overwritten by Js-constraint later.', EX['DriveW_CurrentAmp'])
 
             EX['DriveW_Freq']       = SI['ExcitationFreqSimulated']
             EX['DriveW_Rs']         = 1.0 # TODO: Must be greater than zero to let JMAG work
@@ -247,18 +248,21 @@ class template_machine_as_numbers(object):
                 except TypeError as e: # TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType' 用来计算的变量还未被赋值
                     list_parameter_to_derive.append(key)
                     count_TypeError += 1
-                    print(f'[inner_rotor_motor.py] {count_TypeError=} TypeError: None is used for derivation of {parameter=}')
+                    logger = logging.getLogger(__name__)
+                    logger.warning('%s TypeError: None is used for derivation of %s', f'{count_TypeError=}', f'{parameter=}')
                 else: # no exception
                     if parameter.value<=0:
-                        print('[inner_rotor_motor.py] Negative geometric parameter:')
+                        logger = logging.getLogger(__name__)
+                        logger.error('Negative geometric parameter:')
                         for k,v in self.d['GP'].items():
-                            print('\t', k, v)
+                            logger.error('\t %s: %s', k, v)
                         raise Exception('Error: Negative derived parameter', str(parameter))
         for key in list_parameter_to_derive:
             parameter =  self.d['GP'][key]
             parameter.value = parameter.calc(self.d['GP'], self.SI)
             count_TypeError -= 1
-            print(f'TypeError fixed: {count_TypeError=}')
+            logger = logging.getLogger(__name__)
+            logger.info('TypeError fixed: %s', f'{count_TypeError=}')
         # 【太蠢啦】针对“用来计算的变量还未被赋值”的变量，再次调用它的calc方法。
         # while count_TypeError>0:
         #     for key, parameter in self.d['GP'].items():
@@ -310,7 +314,8 @@ class variant_machine_as_objects(object):
             x_denorm_dict = self.template.get_x_denorm_dict_from_x_denorm_list(x_denorm)
             if verbose:
                 for k,v in x_denorm_dict.items():
-                    print('\t [inner_rotor_motor.py]', k,v)
+                    logger = logging.getLogger(__name__)
+                    logger.debug('\t %s: %s', k, v)
                 # print(self.d['GP']['mm_r_ri'].value)
                 # print(self.d['GP']['mm_r_ri'].value)
             GP = self.template.update_geometric_parameters_using_x_denorm_dict(x_denorm_dict)

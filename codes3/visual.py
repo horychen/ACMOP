@@ -778,7 +778,6 @@ def SelectIndividualContent():
 
     # 根据用户在 text_input 的输入来筛选符合条件的最优个体
     if True:
-        print(f'\n\n\n--------------------------{selected_specifications=}')
 
         def select_optimal_designs_manually(selected_specifications):
             # 再遍历selected_specifications一次，做别的事
@@ -965,7 +964,7 @@ if __name__ == '__main__':
     # """ DO NOT MODIFY BEGINS """
     # """ DO NOT MODIFY BEGINS """
     # """ DO NOT MODIFY BEGINS """
-    print(f"\n\n======================{datetime.datetime.now()}======================")
+    print(f"\n\n====================== Begin {datetime.datetime.now()} ======================")
     st.set_page_config(layout="wide")
     with st.sidebar:
         st.markdown(
@@ -1013,7 +1012,6 @@ if __name__ == '__main__':
                 select_spec = lst[0].strip()
                 select_fea_config_dict = lst[1].strip()
 
-            print('Blocking the print statements from AC_Machine_Optiomization_Wrapper...')
             utility.blockPrint()
             swarm_dict[folder] = mop = acmop.AC_Machine_Optiomization_Wrapper(select_fea_config_dict, select_spec, project_loc=path2project)
             utility.enablePrint()
@@ -1027,7 +1025,6 @@ if __name__ == '__main__':
                 'Select a folder to show its user configurations', selected_specifications, key='3.user_selected_folder')
             mop = swarm_dict[user_selected_folder]
 
-            print(f'{user_selected_folder=}')
             show_user_configurations = st.checkbox('Show User Configurations', value=True)
             if show_user_configurations:
                 st.sidebar.header('Specifications')
@@ -1036,7 +1033,23 @@ if __name__ == '__main__':
                 st.sidebar.header('Simulation Settings')
                 st.sidebar.table(pd.DataFrame(data=list(mop.fea_config_dict.values()), index=list(
                     mop.fea_config_dict.keys()), dtype="string", columns=['Value',]))
+            
+            # 清空日志按钮
+            st.sidebar.markdown('---')  # 添加分隔线
+            log_file_path = os.path.join(path2project, f'acmop_-{datetime.date.today()}.log')
+            if st.sidebar.button('清空日志', type="secondary", use_container_width=True):
+                try:
+                    if os.path.exists(log_file_path):
+                        # 清空日志文件
+                        with open(log_file_path, 'w', encoding='utf-8') as f:
+                            f.write('')
+                        st.sidebar.success(f'日志已清空: {os.path.basename(log_file_path)}')
+                    else:
+                        st.sidebar.warning(f'日志文件不存在: {os.path.basename(log_file_path)}')
+                except Exception as e:
+                    st.sidebar.error(f'清空日志失败: {str(e)}')
         main()
     # """ DO NOT MODIFY ENDS """
     # """ DO NOT MODIFY ENDS """
     # """ DO NOT MODIFY ENDS """
+    print(f"====================== End   {datetime.datetime.now()} ======================")

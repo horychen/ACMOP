@@ -10,9 +10,8 @@ import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design, f
 
 class Swarm_Data_Analyzer(object):
     def __init__(self, fname, desired_x_denorm_dict):
-        print()
-        print('[acm_designer.py] Swarm_Data_Analyzer:', fname)
-        print()
+        logger = logging.getLogger(__name__)
+        logger.info('Swarm_Data_Analyzer: %s', fname)
         if not os.path.exists(fname):
             self.number_of_chromosome = 0
             self.swarm_data_xf = None
@@ -247,7 +246,8 @@ class swarm_data_container(object):
             if swarm_data_json is not None:
                 for key in swarm_data_json.keys():
                     # print(swarm_data_json[key])
-                    print('[acm_designer.py] DEBUG (swarm_data_json)', list(swarm_data_json[key].keys()))
+                    logger = logging.getLogger(__name__)
+                    logger.debug('DEBUG (swarm_data_json) %s', list(swarm_data_json[key].keys()))
                     # print('DEBUG', list(swarm_data_json[key].values()))
 
                     the_variant_dict = list(swarm_data_json[key].values())
@@ -1001,7 +1001,11 @@ class acm_designer(object):
 
         self.acm_template.build_x_denorm()
         swarm_data_file = self.read_swarm_data_json(self.select_spec, self.acm_template.x_denorm_dict)
-        print('[acm_designer.py]', self.acm_template.x_denorm_dict, swarm_data_file)
+        # Initialize logger if not already initialized
+        if not hasattr(self, 'logger'):
+            import utility
+            self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix='acm_designer_')
+        self.logger.info('x_denorm_dict: %s, swarm_data_file: %s', self.acm_template.x_denorm_dict, swarm_data_file)
 
     def init_logger(self, prefix='pygmo_'):
         # self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
@@ -1077,7 +1081,10 @@ class acm_designer(object):
             try:
                 json.dump(big_dict, f, indent=4)
             except Exception as e:
-                print(f'[acm_designer.py] [Warning] You might need to clean up .json data file yourself at {self.fea_config_dict["output_dir"]}\n'*3)
+                if not hasattr(self, 'logger'):
+                    import utility
+                    self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix='acm_designer_')
+                self.logger.warning('[Warning] You might need to clean up .json data file yourself at %s', self.fea_config_dict["output_dir"])
                 raise e
 
         EX['wily'] = wily
@@ -1413,8 +1420,9 @@ class acm_designer(object):
                         if False:
                             self.toolJd.fig_main.savefig(self.fea_config_dict['output_dir'] + acm_variant.name + 'results.png', dpi=150)
                     except Exception as e:
-                        print(e)
-                        print('\n\n\nIgnore error and continue.')
+                        logger = logging.getLogger(__name__)
+                        logger.error('Exception in saving figure: %s', e)
+                        logger.info('Ignore error and continue.')
                     finally:
                         utility.pyplot_clear(self.toolJd.axeses)
                 # show()
@@ -1520,14 +1528,15 @@ class acm_designer(object):
             acm_variant.BeariW_CurrentAmp = acm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
 
             slot_area_utilizing_ratio = (acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp) / acm_variant.CurrentAmp_per_phase
-            print('[acm_designer.py]---Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio)
+            logger = logging.getLogger(__name__)
+            logger.info('---Heads up! slot_area_utilizing_ratio is %s', slot_area_utilizing_ratio)
 
-            print('[acm_designer.py]---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
-            print('[acm_designer.py]---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
-            print('[acm_designer.py]---acm_variant.DriveW_CurrentAmp =', acm_variant.DriveW_CurrentAmp)
-            print('[acm_designer.py]---acm_variant.BeariW_CurrentAmp =', acm_variant.BeariW_CurrentAmp)
-            print('[acm_designer.py]---TORQUE_CURRENT_RATIO:', acm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'])
-            print('[acm_designer.py]---SUSPENSION_CURRENT_RATIO:', acm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
+            logger.info('---Variant CurrentAmp_in_the_slot = %s', CurrentAmp_in_the_slot)
+            logger.info('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase = %s', variant_DriveW_CurrentAmp)
+            logger.info('---acm_variant.DriveW_CurrentAmp = %s', acm_variant.DriveW_CurrentAmp)
+            logger.info('---acm_variant.BeariW_CurrentAmp = %s', acm_variant.BeariW_CurrentAmp)
+            logger.info('---TORQUE_CURRENT_RATIO: %s', acm_variant.fea_config_dict['TORQUE_CURRENT_RATIO'])
+            logger.info('---SUSPENSION_CURRENT_RATIO: %s', acm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
 
         return toolJd
 
@@ -2200,7 +2209,7 @@ class acm_designer(object):
     def run_study(self, im_variant, app, study, toc):
         logger = logging.getLogger(__name__)
         if self.fea_config_dict['designer.JMAG_Scheduler'] == False:
-            print('[acm_designer.py] Run jam.exe...')
+            logger.info('Run jam.exe...')
             # if run_list[1] == True:
             try:
                 study.RunAllCases()

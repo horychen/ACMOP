@@ -14,10 +14,9 @@ import Location2D
 def derive_mm_r_ri(GP,SI):
     GP       ['mm_r_ri'].value = GP['mm_r_ro'].value - GP['mm_d_pm'].value - GP['mm_d_ri'].value
     if GP    ['mm_r_ri'].value<=0:
-        print()
-        print(GP       ['mm_r_ri'].value, GP['mm_r_ro'].value , GP['mm_d_pm'].value , GP['mm_d_ri'].value)
-        print('背铁太厚了 或 split_ration太小了！建议增大split_ratio是下限')
-        print()
+        logger = logging.getLogger(__name__)
+        logger.warning('mm_r_ri: %s, mm_r_ro: %s, mm_d_pm: %s, mm_d_ri: %s', GP['mm_r_ri'].value, GP['mm_r_ro'].value, GP['mm_d_pm'].value, GP['mm_d_ri'].value)
+        logger.warning('背铁太厚了 或 split_ration太小了！建议增大split_ratio是下限')
     return GP['mm_r_ri'].value 
 
 class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
@@ -374,8 +373,9 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
             deg_pole_span = 180/SI['p']
             wily = self.template.d['EX']['wily']
             #                                                              inter-pole notch (0.5 for half)         rotate to x-axis    winding placing bias (half adjacent slot angle)      reverse north and south pole to make torque positive.
-            print('[bearingless_spmsm_design.py] [PMSM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,  + deg_pole_span)
-            print('[bearingless_spmsm_design.py] [PMSM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5  - deg_pole_span*0.5  + wily.deg_winding_U_phase_phase_axis_angle   + deg_pole_span, 'deg')
+            logger = logging.getLogger(__name__)
+            logger.info('[PMSM JMAG] InitialRotationAngle : %s %s %s %s', (deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,  + deg_pole_span)
+            logger.info('[PMSM JMAG] InitialRotationAngle = %s deg', (deg_pole_span-GP['deg_alpha_rm'].value)*0.5  - deg_pole_span*0.5  + wily.deg_winding_U_phase_phase_axis_angle   + deg_pole_span)
             self.InitialRotationAngle = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span
 
         self.boolCustomizedCircuit = False
@@ -388,8 +388,8 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
             # free_variables[11] = free_variables[6]
 
             msg = '[Warning from bearingless_spmsm_design.py]: Inter-pole notch depth mm_d_rp cannot be larger than mm_d_pm or else the sleeve cannot really hold or even touch the PM. So mm_d_rp is set to mm_d_pm.'
-            print(msg)
-            logger = logging.getLogger(__name__).warn(msg)
+            logger = logging.getLogger(__name__)
+            logger.warning(msg)
 
         # 不合理的变量选择（mm_d_rs）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
         if GP['mm_d_rs'].value > GP['mm_d_pm'].value:
@@ -397,15 +397,15 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
             # free_variables[12] = free_variables[6]
 
             msg = '[Warning from bearingless_spmsm_design.py]: Inter-segment notch depth mm_d_rs cannot be larger than mm_d_pm or else the sleeve cannot really hold or even touch the PM. So mm_d_rs is set to mm_d_pm.'
-            print(msg)
-            logger = logging.getLogger(__name__).warn(msg)
+            logger = logging.getLogger(__name__)
+            logger.warning(msg)
 
         # 不合理的变量选择（deg_alpha_rs）会导致：一个变量的取值范围是受到另一个变量的取值影响的。
         if not (GP['deg_alpha_rs'].value > GP['deg_alpha_rm'].value/SI['no_segmented_magnets']):
             GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value/SI['no_segmented_magnets']
             msg = '[Warning from bearingless_spmsm_design.py]: deg_alpha_rs cannot be larger than deg_alpha_rm/s. Note deg_alpha_rs is set to deg_alpha_rm/s.'
-            print(msg)
-            logger = logging.getLogger(__name__).warn(msg)
+            logger = logging.getLogger(__name__)
+            logger.warning(msg)
 
         # 如果没有永磁体分段，那么alpha_rs应该等于alpha_rm。
         if SI['no_segmented_magnets'] == 1:

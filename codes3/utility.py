@@ -431,9 +431,10 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     R     = Shaft[1]*1e-3 # radius of air gap
     delta = Shaft[3]*1e-3 # length of air gap
     
-    print('[utility.py] DEBUG windage: L, R, delta =', L, R, delta)
-    print('\tRadius version old:', im_variant.template.d['GP']['mm_r_ro'].value+im_variant.template.d['EX']['mm_mechanical_air_gap_length'])
-    print('\tRadius version new:', im_variant.template.d['GP']['mm_r_ro'].value+im_variant.template.d['GP']['mm_d_sleeve'].value)
+    logger = logging.getLogger(__name__)
+    logger.debug('DEBUG windage: L, R, delta = %s, %s, %s', L, R, delta)
+    logger.debug('\tRadius version old: %s', im_variant.template.d['GP']['mm_r_ro'].value+im_variant.template.d['EX']['mm_mechanical_air_gap_length'])
+    logger.debug('\tRadius version new: %s', im_variant.template.d['GP']['mm_r_ro'].value+im_variant.template.d['GP']['mm_d_sleeve'].value)
 
     Omega = 2*np.pi*im_variant.template.d['EX']['the_speed']/60.
     if abs(Omega - im_variant.template.d['EX']['Omega']) < 0.1:
@@ -826,7 +827,8 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
     Vol_Cu_along_stack = area_copper_S_Cu * (stack_length_m) * Q
     stator_copper_loss_along_stack = rho_Copper * Vol_Cu_along_stack * Js**2
 
-    print('[utility.py] current_rms_value [Arms]:', current_rms_value, 'Js:', Js)
+    logger = logging.getLogger(__name__)
+    logger.info('current_rms_value [Arms]: %s, Js: %s', current_rms_value, Js)
 
     if rotor_slot_area is not None:
         raise Exception('Not supported')
@@ -863,7 +865,8 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
         Vol_Cu_along_stack = area_copper_S_Cu * (end_winding_length_Lew) * Q # wrong?
         Vol_Cu_along_stack = area_copper_S_Cu * (stack_length_m) * Q
         rotor_copper_loss_along_stack = rho_Copper * Vol_Cu_along_stack * Jr**2
-        print('[utility.py] Rotor current [Arms]:', current_rms_value, 'Jr:', Jr)
+        logger = logging.getLogger(__name__)
+        logger.info('Rotor current [Arms]: %s, Jr: %s', current_rms_value, Jr)
     else:
         rotor_copper_loss, rotor_copper_loss_along_stack, Jr = 0, 0, 0
 
@@ -1063,8 +1066,9 @@ def compute_power_factor_from_half_period(voltage, current, mytime, targetFreq=1
     gs_i.ampl = math.sqrt(gs_i.real*gs_i.real + gs_i.imag*gs_i.imag) 
     gs_i.phase = math.atan2(gs_i.imag, gs_i.real)
 
-    print('[utility.py] DEBUG PF, gs_u.ampl:', gs_u.ampl)
-    print('[utility.py] DEBUG PF, gs_i.ampl:', gs_i.ampl)
+    logger = logging.getLogger(__name__)
+    logger.debug('DEBUG PF, gs_u.ampl: %s', gs_u.ampl)
+    logger.debug('DEBUG PF, gs_i.ampl: %s', gs_i.ampl)
 
     phase_difference_in_deg = ((gs_i.phase-gs_u.phase)/math.pi*180)
     power_factor = math.cos(gs_i.phase-gs_u.phase)
@@ -1090,8 +1094,9 @@ def compute_power_factor_from_full_period(voltage, current, mytime, targetFreq=1
     gs_i.ampl = math.sqrt(gs_i.real*gs_i.real + gs_i.imag*gs_i.imag) 
     gs_i.phase = math.atan2(gs_i.imag, gs_i.real)
 
-    print('[utility.py] DEBUG PF, gs_u.ampl:', gs_u.ampl)
-    print('[utility.py] DEBUG PF, gs_i.ampl:', gs_i.ampl)
+    logger = logging.getLogger(__name__)
+    logger.debug('DEBUG PF, gs_u.ampl: %s', gs_u.ampl)
+    logger.debug('DEBUG PF, gs_i.ampl: %s', gs_i.ampl)
 
     phase_difference_in_deg = ((gs_i.phase-gs_u.phase)/math.pi*180)
     power_factor = math.cos(gs_i.phase-gs_u.phase)

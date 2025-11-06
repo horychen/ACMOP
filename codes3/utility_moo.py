@@ -1,7 +1,9 @@
 import pygmo as pg
+import logging
 from pylab import plt, np
 plt.rc('text', usetex=True) # https://github.com/matplotlib/matplotlib/issues/4495/
 plt.rc('pgf', texsystem='pdflatex')
+logger = logging.getLogger(__name__)
 def my_plot_non_dominated_fronts(points, marker='o', comp=[0, 1], up_to_rank_no=None):
     # We plot
     fronts, _, _, _ = pg.fast_non_dominated_sorting(points)
@@ -106,8 +108,8 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1],
             z = z[z<z_filter]
             if len(z) != len(z_filtered_swarm_data_xf_at_this_front):
                 raise Exception('[New Regular!] Apply swarm_data_xf to this function!')
-            print(z_filter, 'z_filter')
-            print('Cost, -Efficency, Ripple Sum')
+            logger.info('z_filter: %s', z_filter)
+            logger.info('Cost, -Efficency, Ripple Sum')
             min_a_design = None; min_a_value = 99999999.0
             min_b_design = None; min_b_value = 99999999.0
             min_c_design = None; min_c_value = 99999999.0
@@ -130,9 +132,9 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1],
                     min_c_design_xf = design_xf
             auto_optimal_design_fitnesses = (min_a_design, min_b_design, min_c_design)
             auto_optimal_design_xf        = (min_a_design_xf, min_b_design_xf, min_c_design_xf)
-            print('A', auto_optimal_design_fitnesses)
-            print('B', auto_optimal_design_xf[-5:])
-            print('C', len(x), len(z_filtered_swarm_data_xf_at_this_front))
+            logger.info('A %s', auto_optimal_design_fitnesses)
+            logger.info('B %s', auto_optimal_design_xf[-5:])
+            logger.info('C %d %d', len(x), len(z_filtered_swarm_data_xf_at_this_front))
             # scatter_handle = ax.scatter(x, y, c=z,  edgecolor=None, alpha=0.5, cmap='Spectral', marker=marker, zorder=99, vmin=0, vmax=z_filter, label=label) #'viridis'    Spectral
             scatter_handle = ax.scatter(x, y, c=z,  edgecolor=None, alpha=0.5, cmap='plasma', marker=marker, zorder=99, vmin=0, vmax=z_filter, label=label)
                 # ValueError: Colormap Option A is not recognized. Possible values are: Accent, Accent_r, Blues, Blues_r, BrBG, BrBG_r, BuGn, BuGn_r, BuPu, BuPu_r, CMRmap, CMRmap_r, Dark2, Dark2_r, GnBu, GnBu_r, Greens, Greens_r, Greys, Greys_r, OrRd, OrRd_r, Oranges, Oranges_r, PRGn, PRGn_r, Paired, Paired_r, Pastel1, Pastel1_r, Pastel2, Pastel2_r, PiYG, PiYG_r, PuBu, PuBuGn, PuBuGn_r, PuBu_r, PuOr, PuOr_r, PuRd, PuRd_r, Purples, Purples_r, RdBu, RdBu_r, RdGy, RdGy_r, RdPu, RdPu_r, RdYlBu, RdYlBu_r, RdYlGn, RdYlGn_r, Reds, Reds_r, Set1, Set1_r, Set2, Set2_r, Set3, Set3_r, Spectral, Spectral_r, Wistia, Wistia_r, YlGn, YlGnBu, YlGnBu_r, YlGn_r, YlOrBr, YlOrBr_r, YlOrRd, YlOrRd_r, afmhot, afmhot_r, autumn, autumn_r, binary, binary_r, bone, bone_r, brg, brg_r, bwr, bwr_r, cividis, cividis_r, cool, cool_r, coolwarm, coolwarm_r, copper, copper_r, cubehelix, cubehelix_r, flag, flag_r, gist_earth, gist_earth_r, gist_gray, gist_gray_r, gist_heat, gist_heat_r, gist_ncar, gist_ncar_r, gist_rainbow, gist_rainbow_r, gist_stern, gist_stern_r, gist_yarg, gist_yarg_r, gnuplot, gnuplot2, gnuplot2_r, gnuplot_r, gray, gray_r, hot, hot_r, hsv, hsv_r, inferno, inferno_r, jet, jet_r, magma, magma_r, nipy_spectral, nipy_spectral_r, ocean, ocean_r, pink, pink_r, plasma, plasma_r, prism, prism_r, rainbow, rainbow_r, seismic, seismic_r, spring, spring_r, summer, summer_r, tab10, tab10_r, tab20, tab20_r, tab20b, tab20b_r, tab20c, tab20c_r, terrain, terrain_r, twilight, twilight_r, twilight_shifted, twilight_shifted_r, viridis, viridis_r, winter, winter_r
@@ -186,9 +188,9 @@ def my_2p5d_plot_non_dominated_fronts(points, marker='o', comp=[0, 1],
 
 
         if z_comp == 2: # when OC as z-axis
-            print('-----------------------------------------------------')
-            print('-----------------------------------------------------')
-            print('-----------------------------------------------------')
+            logger.info('-'*50)
+            logger.info('-'*50)
+            logger.info('-'*50)
             # Add index next to the points
             for x_coord, y_coord, z_coord, idx in zip(x, y, z, front):
                 if no_text:
@@ -272,7 +274,7 @@ def my_3d_plot_non_dominated_fronts(pop, paretoPoints, fea_config_dict, az=180, 
         pass
         # ax.plot(fits[comp[0]], fits[comp[1]], fits[comp[2]], 'ro')
     except IndexError:
-        print('Error. Please choose correct fitness dimensions for printing!')
+        logger.error('Error. Please choose correct fitness dimensions for printing!')
 
     if False:
         # Plot pareto front for dtlz 1
@@ -366,7 +368,7 @@ def my_3d_plot_non_dominated_fronts(pop, paretoPoints, fea_config_dict, az=180, 
     else:
         import pandas as pd
         from pylab import cm
-        print(dir(cm))
+        # print(dir(cm))
         df = pd.DataFrame({'x': x, 'y': y, 'z': z})
 
         # 只有plot_trisurf这一个函数，输入是三个以为序列的，其他都要meshgrid得到二维数组的(即ndim=2的数组) 
@@ -438,7 +440,7 @@ def my_plot(fits, vectors, ndf):
 
     else:
         # Obselete. Use ax.step instead to plot
-        print('Valid for 2D objective function space only for now.')
+        logger.warning('Valid for 2D objective function space only for now.')
         fig, axes = plt.subplots(ncols=2, nrows=1, dpi=150, facecolor='w', edgecolor='k');
         ax = axes[0]
 
@@ -450,7 +452,7 @@ def my_plot(fits, vectors, ndf):
         ax = axes[1]
 
         for index, front in enumerate(ndf):
-            print('Rank/Tier', index, front)
+            logger.debug('Rank/Tier %d %s', index, front)
             the_color = '%g'%(index/len(ndf))
             for individual in front: # individual is integer here
                 ax.plot(*fits[individual], 'o',                 color=the_color)
@@ -486,12 +488,12 @@ def my_print(ad, pop, _):
             index += 1
 
         # print(fits, vectors, ndf)
-        print(pop, file=fname)
+        # print(pop, file=fname)
 
 
 def learn_about_the_archive(prob, swarm_data, popsize, fea_config_dict=None, len_s01=None, len_s02=None, bool_plot_and_show=False, bool_more_info=False):
     number_of_chromosome = len(swarm_data)
-    print('[utility_moo.py] Archive size:', number_of_chromosome)
+    logger.info('Archive size: %d', number_of_chromosome)
     # for el in swarm_data:
     #     print('\t', el)
 
@@ -500,8 +502,8 @@ def learn_about_the_archive(prob, swarm_data, popsize, fea_config_dict=None, len
         pop_archive.set_xf(i, swarm_data[i][:-3], swarm_data[i][-3:])
 
     sorted_index = pg.sort_population_mo(points=pop_archive.get_f())
-    print('[utility_moo.py] Sorted by domination rank and crowding distance:', len(sorted_index))
-    print('\t', sorted_index)
+    logger.info('Sorted by domination rank and crowding distance: %d', len(sorted_index))
+    logger.debug('\t %s', sorted_index)
 
     # 这段代码对于重建种群来说不是必须的，单单sort_population_mo（包含fast_non_dominated_sorting和crowding_distance）就够了，
     # 只是我想看看，具体的crowding_distance是多少，然后我想知道排在前面的多少个是属于domination rank 1的。
@@ -521,26 +523,27 @@ def learn_about_the_archive(prob, swarm_data, popsize, fea_config_dict=None, len
             if ind1 == 0:
                 rank1_ParetoPoints = fits_at_this_front
                 if len(front) < popsize:
-                    print('[utility_moo.py] There are not enough chromosomes (%d) belonging to domination rank 1 (the best Pareto front).\nWill use rank 2 or lower to reach popsize of %d.'%(len(front), popsize))
+                    logger.warning('There are not enough chromosomes (%d) belonging to domination rank 1 (the best Pareto front). Will use rank 2 or lower to reach popsize of %d.', len(front), popsize)
 
             # this crwdsit should be already sorted as well
             if len(fits_at_this_front) >= 2: # or else error:  A non dominated front must contain at least two points: 1 detected.
                 crwdst = pg.crowding_distance(fits_at_this_front)
             else:
-                print('[utility_moo.py] A non dominated front must contain at least two points: 1 detected.')
+                logger.warning('A non dominated front must contain at least two points: 1 detected.')
                 crwdst = [999999]
 
 
             more_info.append((rank_minus_1+1, len(front), len(sorted_index_at_this_front)))
-            if rank_minus_1 <= 2:
-                print('\n\tRank/Tier', rank_minus_1+1, 'chromosome count:', len(front), len(sorted_index_at_this_front))
-                # print('\t', sorted_index_at_this_front.tolist())
-                # print('\t', crwdst)
-                print('\tindex in pop\t|\tcrowding distance')
-                for index, cd in zip(sorted_index_at_this_front, crwdst):
-                    print('\t', index, '\t\t\t|', cd)
-            else:
-                print('\n\tRank/Tier', rank_minus_1+1, 'chromosome count:', len(front), len(sorted_index_at_this_front), '(details are omitted)')
+            #! rubbish is here
+            # if rank_minus_1 <= 2:
+            #     print('\n\tRank/Tier', rank_minus_1+1, 'chromosome count:', len(front), len(sorted_index_at_this_front))
+            #     # print('\t', sorted_index_at_this_front.tolist())
+            #     # print('\t', crwdst)
+            #     print('\tindex in pop\t|\tcrowding distance')
+            #     for index, cd in zip(sorted_index_at_this_front, crwdst):
+            #         print('\t', index, '\t\t\t|', cd)
+            # else:
+            #     print('\n\tRank/Tier', rank_minus_1+1, 'chromosome count:', len(front), len(sorted_index_at_this_front), '(details are omitted)')
             ind1 = ind2
 
     sorted_vectors = [vectors[index].tolist() for index in sorted_index]
@@ -663,5 +666,5 @@ def pyx_draw_model(im):
     vg.tikz.c.writePDFfile("selected_otimal_design%s"%(im.name)) # im.ID
     # vg.tikz.c.writeEPSfile("selected_otimal_design%s"%(im.name))
     # vg.tikz.c.writeSVGfile("selected_otimal_design%s"%(im.name))
-    print('Write to pdf file: selected_otimal_design%s.pdf.'%(im.name))  # im.ID
+    logger.info('Write to pdf file: selected_otimal_design%s.pdf.', im.name)  # im.ID
 
