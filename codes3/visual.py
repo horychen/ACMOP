@@ -63,7 +63,6 @@ def BasicInformationContent():
     st.write('## 2.1. Winding Information of', wily_fname)
     try:
         f'{path2acmop}/_wily/{wily_fname}.pdf'
-        # displayPDF(f'{path2acmop}/_wily/{wily_fname}.pdf')
         displayPDF_side_by_side([
                 f'{path2acmop}/_wily/{wily_fname}_T1.pdf',
                 f'{path2acmop}/_wily/{wily_fname}_T2.pdf',
@@ -77,6 +76,7 @@ def BasicInformationContent():
                 f'{path2acmop}/_wily/{wily_fname}_T4c.pdf',
             ], width=600, height=300
         )
+        displayPDF(f'{path2acmop}/_wily/{wily_fname}.pdf')
     except FileNotFoundError:
         st.write('The winding derivation file is absent', f'{path2acmop}/_wily/{wily_fname}.pdf')
 
@@ -133,7 +133,7 @@ def InitialDesignContent(user_selected_folder):
                         f"Value for {var_name}",
                         value=float(current_value),
                         step=0.001,
-                        format="%.6f",
+                        format="%g",
                         key=f"decision_var_{var_name}",
                         label_visibility="collapsed"
                     )
@@ -150,11 +150,11 @@ def InitialDesignContent(user_selected_folder):
                         st.write(var_name)
                 
                 with cols[2]:
-                    st.write(f"{original_value:.6f}")
+                    st.write(f"{original_value:g}")
                 
                 with cols[3]:
                     if hasattr(var_param, 'bounds') and var_param.bounds:
-                        st.write(f"[{var_param.bounds[0]:.6f}, {var_param.bounds[1]:.6f}]")
+                        st.write(f"[{var_param.bounds[0]:g},  {var_param.bounds[1]:g}]")
                     else:
                         st.write("无 bounds")
         else:
@@ -197,7 +197,7 @@ def InitialDesignContent(user_selected_folder):
                         f"Value for {var_name}",
                         value=float(current_value),
                         step=0.001,
-                        format="%.6f",
+                        format="%g",
                         key=f"derived_var_{var_name}",
                         label_visibility="collapsed"
                     )
@@ -253,7 +253,7 @@ def InitialDesignContent(user_selected_folder):
                         f"Value for {var_name}",
                         value=float(current_value),
                         step=0.001,
-                        format="%.6f",
+                        format="%g",
                         key=f"fixed_var_{var_name}",
                         label_visibility="collapsed"
                     )
@@ -316,6 +316,10 @@ def InitialDesignContent(user_selected_folder):
             specify_x_denorm = list(x_denorm_dict.values())
             
             st.write("#### 当前参数值:")
+
+            mop.ad.acm_template.d['GP']['split_ratio']
+            mop.ad.acm_template.d['GP']['split_ratio'].value
+
             # 显示修改的变量（高亮）
             modified_vars = []
             if 'decision_var_original_values' in st.session_state:
@@ -393,8 +397,13 @@ def InitialDesignContent(user_selected_folder):
                     st.code(traceback.format_exc())
 
                 # call mop.part_evaluation(specify_x_denorm=specify_x_denorm, counter='CurrentDesign')
-                # motor_design_variant = mop.ad.evaluate_design_json_wrapper(mop.ad.acm_template, specify_x_denorm, counter='CurrentDesign')
-
+                try:
+                    motor_design_variant = mop.ad.evaluate_design_json_wrapper(mop.ad.acm_template, specify_x_denorm, counter='CurrentDesign')
+                except Exception as e:
+                    st.error(f"评估设计时出错: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
+                    return
 
         else:
             st.info("请先在左栏修改 Decision Variables 的值")

@@ -624,13 +624,10 @@ class AC_Machine_Optiomization_Wrapper(object):
 
 def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
-        select_spec = "PMSM Q12p4ps5y1 Heart",
-        select_fea_config_dict=    "#0213 JMAG Bearingless Sub-hamonics",
-        # select_spec = "SliceIM Q12p4ps5y1-Qr10",
-        # select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
+        select_spec            = "PMSM Q12p5ps4y1 Spindle", # "PMSM Q12p4ps5y1 Heart", # select_spec = "SliceIM Q12p4ps5y1-Qr10",
+        select_fea_config_dict = "#0213 JMAG Bearingless Sub-hamonics",     # select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
         project_loc            = fr'../_default/',
-        bool_show_GUI          = False
-        # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
+        bool_show_GUI          = True    # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
 
     #########################

@@ -1617,7 +1617,7 @@ class acm_designer(object):
                 self.bool_run_in_JMAG_Script_Editor = False
 
                 def add_steel(self):
-                    print('[First run on this computer detected]', im_template.spec_input_dict['Steel'], 'is added to jmag material library.')
+                    print('[acm_designer.py] [First run on this computer detected]', im_template.spec_input_dict['Steel'], 'is added to jmag material library.')
                     import population
                     if 'M15' in im_template.spec_input_dict['Steel']:
                         population.add_M1xSteel(self.app, self.fea_config_dict['dir.parent'], steel_name="M-15 Steel")

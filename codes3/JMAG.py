@@ -196,7 +196,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     flag_already_there = False
                     for line in f.readlines():
                         print('[JMAG.py]', self.fea_config_dict['pc_name'], self.spec_input_dict['Steel'])
-                        if self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['Steel'] in line:
+                        if self.fea_config_dict['pc_name'] in line and self.spec_input_dict['Steel'] in line:
                             flag_already_there = True
                             break
                     if flag_already_there == False:
@@ -2384,7 +2384,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # This is only for post-processing and it is for handle a un-fixable filling bug with PyX.
         if bool_pyx:
             region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
-
 
         # Sleeve
         if not bool_pyx:
