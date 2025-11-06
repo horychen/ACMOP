@@ -2557,19 +2557,26 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
 
         # Maybe there is a bug here... regarding the excitation for suspension winding...
-        variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
-        variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_parallel_branch is 1 for suspension winding
+        # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
+        # variant_BeariW_CurrentAmp =  CurrentAmp_per_phase * 1 # number_parallel_branch is 1 for suspension winding
         EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
-        EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['circuit.TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
-        EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['circuit.SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
+        variant_DriveW_CurrentAmp = EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['circuit.TORQUE_CURRENT_RATIO'] * CurrentAmp_per_phase
+        variant_BeariW_CurrentAmp = EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['circuit.SUSPENSION_CURRENT_RATIO'] * CurrentAmp_per_phase
         # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
                                                                                                     # EX['CurrentAmp_per_phase'],
                                                                                                     # EX['DriveW_CurrentAmp'],
                                                                                                     # EX['BeariW_CurrentAmp'])
 
         slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
-        # print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
-        pass
+        print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
+        print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
+        print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
+        print('---acm_variant.DriveW_CurrentAmp =', variant_DriveW_CurrentAmp)
+        print('---acm_variant.BeariW_CurrentAmp =', variant_BeariW_CurrentAmp)
+        print('---TORQUE_CURRENT_RATIO:', acm_variant.template.fea_config_dict['circuit.TORQUE_CURRENT_RATIO'])
+        print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['circuit.SUSPENSION_CURRENT_RATIO'])
+        print('---DriveW_zQ:', EX['DriveW_zQ'])
+
 
     ''' JMAG Description
     '''
@@ -2795,7 +2802,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
                     if count>7:
                         logger = logging.getLogger(__name__)
-                        logger.debug('This should be 0: %s', float(row[0]))
+                        logger.debug('This should be 0: %s. This is likely due to you set up cases in your JMAG project. This automation supports case number of 1 only.', float(row[0]))
                         rotor_iron_loss = float(row[1]) # Rotor Core
                         stator_iron_loss = float(row[4]) # Stator Core
                         logger.info('Iron loss: %s %s', stator_iron_loss, rotor_iron_loss)

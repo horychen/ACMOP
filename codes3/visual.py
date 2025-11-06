@@ -1027,13 +1027,13 @@ if __name__ == '__main__':
 
             show_user_configurations = st.checkbox('Show User Configurations', value=True)
             if show_user_configurations:
-                st.sidebar.header('Specifications')
+                st.sidebar.header('Specifications: ' + select_spec )
                 st.sidebar.table(pd.DataFrame(data=list(mop.spec_input_dict.values()), index=list(
                     mop.spec_input_dict.keys()), dtype="string", columns=['Value',]))
-                st.sidebar.header('Simulation Settings')
+                st.sidebar.header('Simulation Settings: ' + select_fea_config_dict)
                 st.sidebar.table(pd.DataFrame(data=list(mop.fea_config_dict.values()), index=list(
                     mop.fea_config_dict.keys()), dtype="string", columns=['Value',]))
-            
+
             # 清空日志按钮
             st.sidebar.markdown('---')  # 添加分隔线
             log_file_path = os.path.join(path2project, f'acmop_-{datetime.date.today()}.log')
