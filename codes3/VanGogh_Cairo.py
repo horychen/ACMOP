@@ -1,5 +1,6 @@
 # importing pycairo
 import cairo
+import logging
 from pylab import np
 EPS=1e-4
 
@@ -47,14 +48,12 @@ class VanGogh_Cairo:
         cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (np.sqrt(v1.dot(v1))*np.sqrt(v2.dot(v2)))
         if 1.0 < cos夹角 < 1.0+EPS:
             cos夹角 = 1.0
-            print(f'{cos夹角=}')
-            print(f'{cos夹角=}')
-            print(f'{cos夹角=}')
+            logger = logging.getLogger(__name__)
+            logger.debug('cos夹角=%s', cos夹角)
         elif -1.0-EPS < cos夹角 < -1.0:
             cos夹角 = -1.0
-            print(f'{cos夹角=}')
-            print(f'{cos夹角=}')
-            print(f'{cos夹角=}')
+            logger = logging.getLogger(__name__)
+            logger.debug('cos夹角=%s', cos夹角)
         angle_between = np.arccos(cos夹角)
 
         radius = np.sqrt(v1.dot(v1))
@@ -259,13 +258,14 @@ class VanGogh_Cairo:
         self.surface.finish()
         import cairosvg
         cairosvg.svg2pdf(url=self.output_fname_no_suffix+f'.svg', write_to=self.output_fname_no_suffix+f'.pdf')
-        print(f"[Vangogh_Cairo.py] Cairo plot saved to {self.output_fname_no_suffix+f'.pdf (and .svg)'}")
+        logger = logging.getLogger(__name__)
+        logger.info("Cairo plot saved to %s.pdf (and .svg)", self.output_fname_no_suffix)
         if bool_open_pdf:
             import os
             try:
                 os.system('sumatraPDF2.exe ' + self.output_fname_no_suffix+'.pdf')
             except:
-                print('Viewer sumatraPDF2.exe is not found in this PC. Please manually open the pdf at', self.output_fname_no_suffix+'.pdf')
+                logger.warning('Viewer sumatraPDF2.exe is not found in this PC. Please manually open the pdf at %s', self.output_fname_no_suffix+'.pdf')
         return self.output_fname_no_suffix+f'.pdf'
 
     def getSketch(self, name, color):

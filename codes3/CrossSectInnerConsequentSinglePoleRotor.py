@@ -1,4 +1,5 @@
 from pylab import np, cos, sin
+import logging
 EPS = 1e-3 # [mm]
 
 # class ExceptionBadDesign(Exception):
@@ -88,9 +89,8 @@ class CrossSectConsequentSinglePoleRotor(object):
             else:
                 raise 
 
-        print(self.deg_alpha_rm)
-        print(self.deg_alpha_rm)
-        print(self.deg_alpha_rm)
+        logger = logging.getLogger(__name__)
+        logger.debug('deg_alpha_rm=%s', self.deg_alpha_rm)
 
         P1 = [r_ri, 0]
 

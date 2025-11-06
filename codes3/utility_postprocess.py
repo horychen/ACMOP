@@ -1,4 +1,5 @@
 import rich
+import logging
 #禁止在cache时打印 
 #also added to  D:\DrH\bopt-python\codes3\pyrhonen_procedure_as_function.py
 #also added to  D:\DrH\bopt-python\codes3\winding_layout.py
@@ -54,7 +55,8 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
             if proj_name is not None and proj_name in _swarm_project_names[idx]:
                 best_chromosome = chromosome
 
-                print('|||||||||||||||| Validate:', best_chromosome[::-1])
+                logger = logging.getLogger(__name__)
+                logger.info('Validate: %s', best_chromosome[::-1])
                 # plot the cross-sectional view
                 if False:
                     PyX_Utility.pyx_script_im(ad, best_chromosome, best_idx, Q, p, proj_name=None)
@@ -62,9 +64,10 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
 
                 # re-build the jmag project
                 if True:
-                    print('- Now re-build the JMAG project...')
+                    logger = logging.getLogger(__name__)
+                    logger.info('- Now re-build the JMAG project...')
                     x_denorm = np.array(best_chromosome[:-3]) 
-                    print(x_denorm)
+                    logger.debug('x_denorm: %s', x_denorm)
                     # quit()
 
                     # evaluate design (with json output)
@@ -76,9 +79,10 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
                 # Sensitivity analysis with respect to alpha_st
                 if True:
                     # debug
-                    print('需要转换开口角度转换为alpha_st然后做敏感性分析。')
+                    logger = logging.getLogger(__name__)
+                    logger.info('需要转换开口角度转换为alpha_st然后做敏感性分析。')
                     for name, value in zip(ad.spec.acm_template.x_denorm_names, best_chromosome):
-                        print(name, '\t', value)
+                        logger.debug('%s\t%s', name, value)
 
                     # Detect wide slot open design?
                     if True:
@@ -94,11 +98,12 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
                         deg_alpha_st_at_w_st = straight_slot_alpha_st(deg_alpha_st, mm_w_st)
                         直槽所对应开口角度 = (2*np.pi - deg_alpha_st_at_w_st * Q) / Q
 
-                        print('||||||||||||||||||||||||||||||||| Wide slot open design?', proj_name, Q, p, deg_alpha_st_at_w_st, deg_alpha_st, end='|||')
+                        logger = logging.getLogger(__name__)
+                        logger.info('Wide slot open design? %s, Q=%s, p=%s, deg_alpha_st_at_w_st=%s, deg_alpha_st=%s', proj_name, Q, p, deg_alpha_st_at_w_st, deg_alpha_st)
                         if deg_alpha_st <= deg_alpha_st_at_w_st:
-                            print('Yes.')
+                            logger.info('Yes.')
                         else:
-                            print('No.')
+                            logger.info('No.')
 
                     counter_bias = 700000
 
@@ -108,7 +113,8 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
                         deg_alpha_st = StatorSlotOpenAngleSo_to_AlphaSt(x_denorm[3], Q)
                         percent_ori = int(100*(deg_alpha_st / deg_alpha_st_at_w_st)) # (跟直槽比)
 
-                        print('percent_ori =', percent_ori)
+                        logger = logging.getLogger(__name__)
+                        logger.debug('percent_ori = %s', percent_ori)
                         # quit()
 
                         # evaluate design (with json output)
@@ -137,9 +143,10 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
 
                         import re
                         list_percent = [int(re.split('-|j', name)[1])-counter_bias for name in _swarm_project_names]
-                        print('|||', _swarm_project_names)
-                        print('|||', list_percent)
-                        print('|||', ad.solver.swarm_data_container.Ea)
+                        logger = logging.getLogger(__name__)
+                        logger.debug('||| %s', _swarm_project_names)
+                        logger.debug('||| %s', list_percent)
+                        logger.debug('||| %s', ad.solver.swarm_data_container.Ea)
                         fig = plt.figure()
                         plt.subplot(221)
                         plt.subplots_adjust(left=0.2, bottom=None, right=0.99, top=None, wspace=None, hspace=None)
@@ -200,16 +207,17 @@ def selection_criteria(ad, _swarm_data, _swarm_project_names, upper_bound_object
                     #         normalized_force_error_magnitude, \
                     #         force_error_angle = ad.evaluate_design_json_wrapper(ad.spec.acm_template, x_denorm, counter=counter_bias+100+step*percent_per_step)
 
-                    print(ad.solver.output_dir)
+                    logger = logging.getLogger(__name__)
+                    logger.debug('output_dir: %s', ad.solver.output_dir)
                     number_of_chromosome = ad.solver.read_swarm_data(ad.bound_filter)
                     _swarm_data          = ad.solver.swarm_data
                     _swarm_project_names = ad.solver.swarm_data_container.project_names
 
                     import re
                     list_percent = [int(re.split('-|j', name)[1])-counter_bias for name in _swarm_project_names]
-                    print('|||', _swarm_project_names)
-                    print('|||', list_percent)
-                    print('|||', ad.solver.swarm_data_container.Ea)
+                    logger.debug('||| %s', _swarm_project_names)
+                    logger.debug('||| %s', list_percent)
+                    logger.debug('||| %s', ad.solver.swarm_data_container.Ea)
                     plt.figure()
                     plt.subplot(221)
                     plt.plot(list_percent[:], [individual[-3] for individual in _swarm_data][:], '*', label=r'$O_A$ [USD]')
@@ -263,7 +271,8 @@ def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dic
 #####    
     # swarm_data_on_pareto_front = swarm_data_on_pareto_front[228:]       # TODO: 有损修改，需要重新调整结构
 ####
-    print('[utility_postprocess.py]', len(swarm_data_on_pareto_front), len(swarm_data_on_pareto_front[0]))
+    logger = logging.getLogger(__name__)
+    logger.debug('swarm_data_on_pareto_front length: %s, first element length: %s', len(swarm_data_on_pareto_front), len(swarm_data_on_pareto_front[0]) if swarm_data_on_pareto_front else 0)
 
     # list_of_swarm_data_on_pareto_front.append(swarm_data_on_pareto_front)
 
@@ -380,7 +389,8 @@ class SwarmAnalyzer(object):
 
     def get_swarm_group(self, folder_of_collection):
         path = self.path2acmop + folder_of_collection
-        print('DEBUG: Look into', path)
+        logger = logging.getLogger(__name__)
+        logger.debug('DEBUG: Look into %s', path)
         self.dict_path2SwarmDataOfTheSpecification = dict()
         self.dict_settingsOfTheSpecification = dict()
         list_specifications = []
@@ -415,7 +425,8 @@ class SwarmAnalyzer(object):
 
     # @st.cache # (hash_funcs={0:get_ad})
     def get_ad_list(self, selected_specifications):
-        print('[get_ad_list] for cache')
+        logger = logging.getLogger(__name__)
+        logger.debug('[get_ad_list] for cache')
         def get_ad(specification):
             """ 醉翁之意不在酒，要的不是ad，而是ad.solver.swarm_data """
             mop = acmop.AC_Machine_Optiomization_Wrapper(
@@ -438,7 +449,8 @@ class SwarmAnalyzer(object):
             # 读取 Swarm data
             ad = get_ad(specification)
             ad_list.append(ad)
-            print(f'\t get_ad({specification})')
+            logger = logging.getLogger(__name__)
+            logger.debug('\t get_ad(%s)', specification)
 
         return ad_list
 
@@ -448,15 +460,17 @@ class SwarmAnalyzer(object):
 
         # 调整图例legends的顺序
         if len(builtins.order)!=len(ad_list):
-            print('[utility_postprocess.py] Skip re-ordering.')
+            logger = logging.getLogger(__name__)
+            logger.info('Skip re-ordering.')
             ad_list_sorted = ad_list
         else:
             ad_list_sorted = [ad_list[排名-1] for 排名 in builtins.order ]
 
-        print('[utility_postprocess.py] ')
+        logger = logging.getLogger(__name__)
+        logger.info('')
         for ind, ad in enumerate(ad_list_sorted):
             builtins.ad = ad # 
-            print(f'\n[{ind+1}]', ad.select_spec, len(ad.analyzer.swarm_data_xf),  '\n')
+            logger.info('[%d] %s, swarm_data_xf length: %s', ind+1, ad.select_spec, len(ad.analyzer.swarm_data_xf))
 
             Qs = ad.spec_input_dict['Qs']
             ps = ad.spec_input_dict['ps']
@@ -486,7 +500,8 @@ class SwarmAnalyzer(object):
         # 绘制 Pareto front 的Z轴（云图色彩）
         fig = pareto_front_plot_color_bar_etc(scatter_handle, fig, ax, font, settings=None)
         fname = f'{os.path.dirname(__file__)}/ParetoFrontOverlapped-{builtins.folder_of_collection}.pdf'
-        print('[utility_postprocess.py] save to ', fname)
+        logger = logging.getLogger(__name__)
+        logger.info('save to %s', fname)
         fig.savefig(fname, format='pdf', dpi=400, transparent=True) # 不能用bbox_inches='tight'，否则colorbar 会偏
         return df, fig
 
@@ -506,19 +521,20 @@ class SwarmAnalyzer(object):
                           swarm_data_container.l_power_factor[0]) ]
         df_dict[select_spec] = list_of_table_column
 
-        print('[utility_postprocess.py] ')
-        print('-'*len(select_spec) + '\tTRV, FRW, Trip, Em, Ea, eta, TRV, PF')
-        print('\t', select_spec, ', '.join(list_of_table_column))
-        print('\trated_total_loss                    :', swarm_data_container.l_rated_total_loss                    [_best_index], 'W')
-        print('\trated_stator_copper_loss_along_stack:', swarm_data_container.l_rated_stator_copper_loss_along_stack[_best_index], 'W')
-        print('\trated_rotor_copper_loss_along_stack :', swarm_data_container.l_rated_rotor_copper_loss_along_stack [_best_index], 'W')
-        print('\tstator_copper_loss_in_end_turn      :', swarm_data_container.l_stator_copper_loss_in_end_turn      [_best_index], 'W')
-        print('\trotor_copper_loss_in_end_turn       :', swarm_data_container.l_rotor_copper_loss_in_end_turn       [_best_index], 'W')
-        print('\trated_iron_loss                     :', swarm_data_container.l_rated_iron_loss                     [_best_index], 'W')
-        print('\trated_windage_loss                  :', swarm_data_container.l_rated_windage_loss                  [_best_index], 'W')
-        print('\trated_rotor_volume                  :', swarm_data_container.RatedVol    [_best_index], 'm3')
-        print('\trated_rotor_weight                  :', swarm_data_container.RatedWeight [_best_index], 'N')
-        print('\trated_stack_length                  :', swarm_data_container.RatedStkLen [_best_index], 'mm')
+        logger = logging.getLogger(__name__)
+        logger.info('')
+        logger.info('-'*len(select_spec) + '\tTRV, FRW, Trip, Em, Ea, eta, TRV, PF')
+        logger.info('\t%s, %s', select_spec, ', '.join(list_of_table_column))
+        logger.info('\trated_total_loss                    : %s W', swarm_data_container.l_rated_total_loss                    [_best_index])
+        logger.info('\trated_stator_copper_loss_along_stack: %s W', swarm_data_container.l_rated_stator_copper_loss_along_stack[_best_index])
+        logger.info('\trated_rotor_copper_loss_along_stack : %s W', swarm_data_container.l_rated_rotor_copper_loss_along_stack [_best_index])
+        logger.info('\tstator_copper_loss_in_end_turn      : %s W', swarm_data_container.l_stator_copper_loss_in_end_turn      [_best_index])
+        logger.info('\trotor_copper_loss_in_end_turn       : %s W', swarm_data_container.l_rotor_copper_loss_in_end_turn       [_best_index])
+        logger.info('\trated_iron_loss                     : %s W', swarm_data_container.l_rated_iron_loss                     [_best_index])
+        logger.info('\trated_windage_loss                  : %s W', swarm_data_container.l_rated_windage_loss                  [_best_index])
+        logger.info('\trated_rotor_volume                  : %s m3', swarm_data_container.RatedVol    [_best_index])
+        logger.info('\trated_rotor_weight                  : %s N', swarm_data_container.RatedWeight [_best_index])
+        logger.info('\trated_stack_length                  : %s mm', swarm_data_container.RatedStkLen [_best_index])
         total_loss = swarm_data_container.l_rated_total_loss[_best_index]
         sizes = np.array( [ swarm_data_container.l_rated_iron_loss[_best_index],
                             swarm_data_container.l_rated_rotor_copper_loss_along_stack [_best_index] + swarm_data_container.l_rotor_copper_loss_in_end_turn[_best_index], # <- l_rotor_copper_loss_in_end_turn only exists for IM, there is no l_rotor_copper_loss_in_end_turn for PM motor.
@@ -539,7 +555,8 @@ class SwarmAnalyzer(object):
         return list_of_table_column, fig
 
     def donut_chart(self, total_loss, sizes, Qs, p, ps, Qr=None):
-        print('\tValidate:', sum(sizes)*total_loss, '=', total_loss)
+        logger = logging.getLogger(__name__)
+        logger.debug('\tValidate: %s * %s = %s', sum(sizes), total_loss, total_loss)
 
         #colors # https://www.schemecolor.com/color/green
         # colors = ['#C766A1','#F49762','#FFEC8A','#A1D47B', '#32D081', '#CCEFAB', '#F66867', '#F7DD7D', '#5BC5EA', '#3D93DD']
@@ -577,7 +594,8 @@ class SwarmAnalyzer(object):
         else:
             figname = f'{os.path.dirname(__file__)}/Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}-{builtins.folder_of_collection}.pdf'
         fig.savefig(figname, format='pdf', dpi=600, bbox_inches='tight', pad_inches=0.0, transparent=True)
-        print('\tSave donuts loss chart to', figname, '\n')
+        logger = logging.getLogger(__name__)
+        logger.info('\tSave donuts loss chart to %s', figname)
         # https://medium.com/@kvnamipara/a-better-visualisation-of-pie-charts-by-matplotlib-935b7667d77f
 
         # 如果转速可以变化，可以画成Stack Plots
@@ -604,14 +622,16 @@ class SwarmAnalyzer(object):
                     text,  # label
                     session_state[text] # st.empty() # global_recovered_values[text] # default value 
                 )
-                print('\t[default             ]', session_state[text])
+                logger = logging.getLogger(__name__)
+                logger.debug('\t[default             ] %s', session_state[text])
             else:
                 user_input_upper_bounds_4filter = st.text_input(\
                     text,  # label
                     '[0,0,0]' # st.empty() # global_recovered_values[text] # default value 
                 )
-                print('\t[default             ]', '[0,0,0]')
-            print('\t[user manually select]', user_input_upper_bounds_4filter)
+                logger = logging.getLogger(__name__)
+                logger.debug('\t[default             ] [0,0,0]')
+            logger.debug('\t[user manually select] %s', user_input_upper_bounds_4filter)
 
             # manually save dict instead of using wrapper
             # global_recovered_values[text] = user_input_upper_bounds_4filter
@@ -641,7 +661,8 @@ class SwarmAnalyzer(object):
         if number_of_one_optimal_design_selected == len(builtins.order ): # for writing paper (table results)
 
             ## 打印成latex文档直接可以用的表格形式
-            print('\n\n[Performance table] ready to be copied:')
+            logger = logging.getLogger(__name__)
+            logger.info('\n\n[Performance table] ready to be copied:')
 
             if True:
                 ## 自动顺序
@@ -653,8 +674,8 @@ class SwarmAnalyzer(object):
                 # 添加数据和分隔符（性能纵列）
                 index = 0
                 for specification, list_of_table_column in dict_of_list_of_table_column.items():
-
-                    print('\t', index, specification); index += 1
+                    logger = logging.getLogger(__name__)
+                    logger.debug('\t %d %s', index, specification); index += 1
                     for ind, entry in enumerate(list_of_table_column):
                         value = float(entry)
                         list_of_strings[ind] += f'{value:.1f}' + ' & '
@@ -684,32 +705,29 @@ class SwarmAnalyzer(object):
                 ]
 
 
-                print('\t#（性能横列）打出来看看')
-                print('\t', ['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'TRV', 'PF'])
+                logger.debug('\t#（性能横列）打出来看看')
+                logger.debug('\t %s', ['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'TRV', 'PF'])
                 for ind, specification in enumerate(ordered_specification_list):
                     list_of_table_column = dict_of_list_of_table_column[specification]
-                    print('\t', specification + ' & ' + ' & '.join([f'{float(el):.1f}' for el in list_of_table_column]))
+                    logger.debug('\t %s', specification + ' & ' + ' & '.join([f'{float(el):.1f}' for el in list_of_table_column]))
 
                 # 添加数据和分隔符（性能纵列）
                 index = 0
                 for specification in ordered_specification_list:
                     list_of_table_column = dict_of_list_of_table_column[specification]
-
-                    print('\t', index, specification); index += 1
+                    logger = logging.getLogger(__name__)
+                    logger.debug('\t %d %s', index, specification); index += 1
                     for ind, entry in enumerate(list_of_table_column):
                         value = float(entry)
                         list_of_strings[ind] += f'{value:.1f}' + ' & '
 
-            print('\t# （性能横列）打出来看看')
+            logger.debug('\t# （性能横列）打出来看看')
             for s in list_of_strings:
-                print('\t', s)
+                logger.debug('\t %s', s)
 
-            print('\t# （性能纵列）打出来看看')
+            logger.debug('\t# （性能纵列）打出来看看')
             for specification, list_of_table_column in dict_of_list_of_table_column.items():
-                print(specification, end='')
-                for performance in list_of_table_column:
-                    print(performance, end=r' & ')
-                print()
+                logger.debug('%s %s', specification, ' & '.join([str(performance) for performance in list_of_table_column]))
 
         if 'PMSM' in selected_specifications[0]:
             df = pd.DataFrame(data=df_dict, index=['TRV', 'FRW', '$T_\\mathrm{rip}$', '$E_m$', '$E_a$', '$\\eta$', 'Cost', 'disp.PF']).T
@@ -763,8 +781,9 @@ def call_selection_criteria(ad, upper_bound_objectives, best_idx=None, proj_name
                                 Q=ad.spec_input_dict['Qs'], p=ad.spec_input_dict['p'])
 
 def donut_chart(ad, total_loss, sizes, Qs, p, ps, Qr=None, output_dir=None):
-    print('\t[utility_postprocess.py] Validate:', np.sum(sizes)*total_loss, '=', total_loss)
-    print('\t', sizes, total_loss)
+    logger = logging.getLogger(__name__)
+    logger.debug('\t[utility_postprocess.py] Validate: %s * %s = %s', np.sum(sizes), total_loss, total_loss)
+    logger.debug('\t %s', sizes)
 
     #colors # https://www.schemecolor.com/color/green
     # colors = ['#C766A1','#F49762','#FFEC8A','#A1D47B', '#32D081', '#CCEFAB', '#F66867', '#F7DD7D', '#5BC5EA', '#3D93DD']
@@ -806,7 +825,8 @@ def donut_chart(ad, total_loss, sizes, Qs, p, ps, Qr=None, output_dir=None):
             # figname = f'{os.path.dirname(__file__)}/Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}-{builtins.folder_of_collection}.pdf'
             figname = f'{output_dir}Figure_loss_donut_chart_Qs{Qs}p{p}ps{ps}-{ad.select_spec.replace(" ", "_")}.pdf'
         fig.savefig(figname, format='pdf', dpi=600, bbox_inches='tight', pad_inches=0.0, transparent=True)
-        print('\tSave donuts loss chart to', figname, '\n')
+        logger = logging.getLogger(__name__)
+        logger.info('\tSave donuts loss chart to %s', figname)
         # https://medium.com/@kvnamipara/a-better-visualisation-of-pie-charts-by-matplotlib-935b7667d77f
 
     # 如果转速可以变化，可以画成Stack Plots
@@ -834,24 +854,23 @@ def performance_table_plus_donut_chart(ad, folder_as_select_spec, _best_index, _
                         ad.analyzer.PowerFactor[_best_index]) ]
     # df_dict[folder_as_select_spec] = list_of_table_column
 
-    print('[utility_postprocess.py] ')
-    print('-'*len(folder_as_select_spec) + '\tTRV, FRW, Trip, Em, Ea, eta, TRV, PF')
-    print('\t', folder_as_select_spec, ', '.join(list_of_table_column))
-    print('\trated_total_loss                    :', ad.analyzer.l_rated_total_loss                    [_best_index], 'W')
-    print('\trated_stator_copper_loss_along_stack:', ad.analyzer.l_rated_stator_copper_loss_along_stack[_best_index], 'W')
-    print('\trated_rotor_copper_loss_along_stack :', ad.analyzer.l_rated_rotor_copper_loss_along_stack [_best_index], 'W')
-    print('\tstator_copper_loss_in_end_turn      :', ad.analyzer.l_stator_copper_loss_in_end_turn      [_best_index], 'W')
-    print('\trotor_copper_loss_in_end_turn       :', ad.analyzer.l_rotor_copper_loss_in_end_turn       [_best_index], 'W')
-    print('\trated_iron_loss                     :', ad.analyzer.l_rated_iron_loss                     [_best_index], 'W')
-    print('\trated_windage_loss                  :', ad.analyzer.l_rated_windage_loss                  [_best_index], 'W')
+    logger = logging.getLogger(__name__)
+    logger.info('')
+    logger.info('-'*len(folder_as_select_spec) + '\tTRV, FRW, Trip, Em, Ea, eta, TRV, PF')
+    logger.info('\t%s, %s', folder_as_select_spec, ', '.join(list_of_table_column))
+    logger.info('\trated_total_loss                    : %s W', ad.analyzer.l_rated_total_loss                    [_best_index])
+    logger.info('\trated_stator_copper_loss_along_stack: %s W', ad.analyzer.l_rated_stator_copper_loss_along_stack[_best_index])
+    logger.info('\trated_rotor_copper_loss_along_stack : %s W', ad.analyzer.l_rated_rotor_copper_loss_along_stack [_best_index])
+    logger.info('\tstator_copper_loss_in_end_turn      : %s W', ad.analyzer.l_stator_copper_loss_in_end_turn      [_best_index])
+    logger.info('\trotor_copper_loss_in_end_turn       : %s W', ad.analyzer.l_rotor_copper_loss_in_end_turn       [_best_index])
+    logger.info('\trated_iron_loss                     : %s W', ad.analyzer.l_rated_iron_loss                     [_best_index])
+    logger.info('\trated_windage_loss                  : %s W', ad.analyzer.l_rated_windage_loss                  [_best_index])
     # print('\trated_magnet_Joule_loss             :', ad.analyzer.l_rated_magnet_Joule_loss             [_best_index], 'W')
     # print('\trated_rotor_volume                  :', ad.analyzer.RatedVol    [_best_index], 'm3')
     # print('\trated_rotor_weight                  :', ad.analyzer.RatedWeight [_best_index], 'N')
-    print('\trated_stack_length                  :', ad.analyzer.RatedStkLen [_best_index], 'mm')
+    logger.info('\trated_stack_length                  : %s mm', ad.analyzer.RatedStkLen [_best_index])
     total_loss = ad.analyzer.l_rated_total_loss[_best_index]
-    print('[Warning] Magnet loss is not included in donut plot')
-    print('[Warning] Magnet loss is not included in donut plot')
-    print('[Warning] Magnet loss is not included in donut plot')
+    logger.warning('Magnet loss is not included in donut plot')
     sizes_in_percentage = np.array( [ ad.analyzer.l_rated_iron_loss[_best_index],
                         # ad.analyzer.l_rated_magnet_Joule_loss[_best_index] + 
                         ad.analyzer.l_rated_rotor_copper_loss_along_stack [_best_index] + ad.analyzer.l_rotor_copper_loss_in_end_turn[_best_index], # <- l_rotor_copper_loss_in_end_turn only exists for IM, there is no l_rotor_copper_loss_in_end_turn for PM motor.
@@ -973,7 +992,8 @@ def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, z_filter=20, outp
         fname = f'{os.path.dirname(__file__)}/ParetoFrontOverlapped-{ad.select_spec.replace(" ", "_")}.pdf' # builtins.folder_of_collection
     else:
         fname = f'{output_dir}ParetoFrontOverlapped-{ad.select_spec.replace(" ", "_")}.pdf' # builtins.folder_of_collection
-    print('[utility_postprocess.py] save Pareto Front Plot to ', fname)
+    logger = logging.getLogger(__name__)
+    logger.info('save Pareto Front Plot to %s', fname)
     fig.savefig(fname, format='pdf', dpi=400, transparent=True) # 不能用bbox_inches='tight'，否则colorbar 会偏
 
     if bool_return_auto_optimal_designs_xf:

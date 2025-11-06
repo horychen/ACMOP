@@ -1,9 +1,8 @@
 import win32com.client, os, logging, utility, numpy
 import pythoncom  # 用于 COM 初始化
 from pylab import np, plt, mpl
-print('The mpl backend is', mpl.rcParams['backend'])
-print('The mpl backend is', mpl.rcParams['backend'])
-print('The mpl backend is', mpl.rcParams['backend'])
+logger = logging.getLogger(__name__)
+logger.debug('The mpl backend is %s', mpl.rcParams['backend'])
 mpl.use('Agg') # ('pdf') #   # https://github.com/matplotlib/matplotlib/issues/21950
 EPS=0.01 # mm
 
@@ -186,7 +185,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             self.app = app # means that the JMAG Designer is turned ON now.
 
             def add_steel(self):
-                print('[JMAG.py] [First run on %s detected]'%(self.fea_config_dict['pc_name']), self.spec_input_dict['Steel'], 'is added to jmag material library.')
+                logger = logging.getLogger(__name__)
+                logger.info('[First run on %s detected] %s is added to jmag material library.', self.fea_config_dict['pc_name'], self.spec_input_dict['Steel'])
                 import population
                 if 'M15' in self.spec_input_dict['Steel']:
                     population.add_M1xSteel(self.app, self.fea_config_dict['dir.parent'], steel_name="M-15 Steel")
@@ -205,7 +205,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 with open(fname, 'r') as f:
                     flag_already_there = False
                     for line in f.readlines():
-                        print('[JMAG.py]', self.fea_config_dict['pc_name'], self.spec_input_dict['Steel'])
+                        logger = logging.getLogger(__name__)
+                        logger.debug('%s %s', self.fea_config_dict['pc_name'], self.spec_input_dict['Steel'])
                         if self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['Steel'] in line:
                             flag_already_there = True
                             break
@@ -214,10 +215,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         else:
             app = self.app
 
-        print('[JMAG.py] expected_project_file_path:', expected_project_file_path)
-        print('[JMAG.py] expected_project_file_path (to abs path):', os.path.abspath(expected_project_file_path))
+        logger = logging.getLogger(__name__)
+        logger.info('expected_project_file_path: %s', expected_project_file_path)
+        logger.info('expected_project_file_path (to abs path): %s', os.path.abspath(expected_project_file_path))
         if os.path.exists(expected_project_file_path):
-            print('[JMAG.py] JMAG project exists already. I learned my lessions. I will NOT delete it but create a new one with a different name instead.')
+            logger.info('JMAG project exists already. I learned my lessions. I will NOT delete it but create a new one with a different name instead.')
             # os.remove(expected_project_file_path)
             attempts = 2
             temp_path = expected_project_file_path[:-len('.jproj')] + 'attempts%d.jproj'%(attempts)
@@ -265,9 +267,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         p = SI['p']
         s = SI['no_segmented_magnets']
         Q = SI['Qs']
-        print(Q)
-        print(int(1 + 1 + 2*p*1*s + 1 + 1 + Q*2))
-        print(len(part_ID_list))
+        logger = logging.getLogger(__name__)
+        logger.debug('Q: %s', Q)
+        logger.debug('Expected part count: %s', int(1 + 1 + 2*p*1*s + 1 + 1 + Q*2))
+        logger.debug('Actual part_ID_list length: %s', len(part_ID_list))
         # quit()
                                 #   轴 转子 永磁体  轴套 定子 绕组
         if len(part_ID_list) != int(1 + 1 + 2*pm*1*s + 1 + 1 + Q*2):
@@ -1428,7 +1431,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # N40H Reversible
         available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220] # according to JMAG
         magnet_temperature = min(available_temperature_list, key=lambda x:abs(x-acm_template.spec_input_dict['Temperature']))        
-        print('[inner_rotor_motor.py] magnet_temperature is', magnet_temperature, 'deg C.')
+        logger = logging.getLogger(__name__)
+        logger.info('magnet_temperature is %s deg C.', magnet_temperature)
         if 'PMSM' in acm_variant.template.name:
             study.SetMaterialByName(u"Magnet", u"Arnold/Reversible/N40H")
             study.GetMaterial(u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
@@ -2059,7 +2063,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     def run_study(acm_variant, app, study, fea_config_dict, toc):
         logger = logging.getLogger(__name__)
         if fea_config_dict['designer.JMAG_Scheduler'] == False:
-            print('[JMAG.py] Run jam.exe...')
+            logger.info('Run jam.exe...')
             # if run_list[1] == True:
             try:
                 study.RunAllCases()
@@ -2580,8 +2584,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         variant_tuple_list = get_tuple_list(acm_variant)
         template_tuple_list = get_tuple_list(acm_variant.template)
         if toString==False:
-            print('- Bearingless PMSM Individual #%s\n\t' % (acm_variant.name), end=' ')
-            print(', \n\t'.join("%s = %s" % item for item in variant_tuple_list))
+            logger = logging.getLogger(__name__)
+            logger.info('- Bearingless PMSM Individual #%s', acm_variant.name)
+            logger.info('\t%s', ', \n\t'.join("%s = %s" % item for item in variant_tuple_list))
             # print(', \n\t'.join("%s = %s" % item for item in template_tuple_list))
             return ''
         else:
@@ -2783,14 +2788,16 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     if count>8:
                         rotor_iron_loss = float(row[2]) # Rotor Core
                         stator_iron_loss = float(row[3]) # Stator Core
-                        print('[utility.py] Iron loss:', stator_iron_loss, rotor_iron_loss)
+                        logger = logging.getLogger(__name__)
+                        logger.info('Iron loss: %s %s', stator_iron_loss, rotor_iron_loss)
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
                     if count>7:
-                        print('[JMAG.py] This should be 0:', float(row[0]))
+                        logger = logging.getLogger(__name__)
+                        logger.debug('This should be 0: %s', float(row[0]))
                         rotor_iron_loss = float(row[1]) # Rotor Core
                         stator_iron_loss = float(row[4]) # Stator Core
-                        print('[JMAG.py] Iron loss:', stator_iron_loss, rotor_iron_loss)
+                        logger.info('Iron loss: %s %s', stator_iron_loss, rotor_iron_loss)
                         break
         with open(path_prefix + study_name + '_joule_loss_loss.csv', 'r') as f:
             count = 0
@@ -2800,13 +2807,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     if count>8:
                         rotor_eddycurrent_loss  = float(row[2]) # Rotor Core
                         stator_eddycurrent_loss = float(row[3]) # Stator Core
-                        print('[utility.py] Eddy current loss:', stator_eddycurrent_loss, rotor_eddycurrent_loss)
+                        logger = logging.getLogger(__name__)
+                        logger.info('Eddy current loss: %s %s', stator_eddycurrent_loss, rotor_eddycurrent_loss)
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
                     if count>7:
                         rotor_eddycurrent_loss  = float(row[1]) # Rotor Core
                         stator_eddycurrent_loss = float(row[4]) # Stator Core
-                        print('[utility.py] Eddy current loss:', stator_eddycurrent_loss, rotor_eddycurrent_loss)
+                        logger = logging.getLogger(__name__)
+                        logger.info('Eddy current loss: %s %s', stator_eddycurrent_loss, rotor_eddycurrent_loss)
                         break
         with open(path_prefix + study_name + '_hysteresis_loss_loss.csv', 'r') as f:
             count = 0
@@ -2816,13 +2825,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     if count>8:
                         rotor_hysteresis_loss = float(row[2]) # Rotor Core
                         stator_hysteresis_loss = float(row[3]) # Stator Core
-                        print('[utility.py] Hysteresis loss:', stator_hysteresis_loss, rotor_hysteresis_loss)
+                        logger = logging.getLogger(__name__)
+                        logger.info('Hysteresis loss: %s %s', stator_hysteresis_loss, rotor_hysteresis_loss)
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
                     if count>7:
                         rotor_hysteresis_loss  = float(row[1]) # Rotor Core
                         stator_hysteresis_loss = float(row[4]) # Stator Core
-                        print('[utility.py] Hysteresis loss:', stator_hysteresis_loss, rotor_hysteresis_loss)
+                        logger = logging.getLogger(__name__)
+                        logger.info('Hysteresis loss: %s %s', stator_hysteresis_loss, rotor_hysteresis_loss)
                         break
 
         # Joule Loss (Copper and Magnet)
@@ -2883,7 +2894,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         else:
             rotor_Joule_loss = sum(effective_part) / len(effective_part)
         if 'PMSM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
-            print('[utility.py] Magnet Joule loss:', rotor_Joule_loss)
+            logger = logging.getLogger(__name__)
+            logger.info('Magnet Joule loss: %s', rotor_Joule_loss)
 
         if femm_solver is not None:
             # blockPrint()
@@ -2978,12 +2990,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             coil_flux_linkage_peak2peak_value_results = []
             for k, v in dm.FluxLinkage_dict.items():
                 coil_flux_linkage_peak2peak_value_results.append( max(v) - min(v) )
-                print(k, max(v), min(v))
+                logger = logging.getLogger(__name__)
+                logger.debug('%s max: %s, min: %s', k, max(v), min(v))
             coil_flux_linkage_peak2peak_value = np.average(coil_flux_linkage_peak2peak_value_results)
-            print(coil_flux_linkage_peak2peak_value_results)
+            logger = logging.getLogger(__name__)
+            logger.debug('coil_flux_linkage_peak2peak_value_results: %s', coil_flux_linkage_peak2peak_value_results)
 
         except Exception as e:
-            print(e)
+            logger = logging.getLogger(__name__)
+            logger.error('Exception in build_str_results: %s', e)
             logging.getLogger(__name__).error('Error when loading csv results for Tran2TSS. Check the Report of JMAG Designer. (Maybe Material is not added.)', exc_info=True)
             msg = 'CSV results are not found. Will re-build and re-run the JMAG project...' 
             raise utility.ExceptionReTry(msg)
@@ -3071,8 +3086,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # NEW CODES for rated performance
         ################################################################
         # caculate the fitness
-        print('[utility.py]', '-'*40)
-        print('[utility.py] Calculate the fitness for', acm_variant.name)
+        logger = logging.getLogger(__name__)
+        logger.info('-'*40)
+        logger.info('Calculate the fitness for %s', acm_variant.name)
 
         # LOSS
         if 'IM' in machine_type:
@@ -3150,16 +3166,18 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         else:
                                     # 基波电流幅值（在一根导体里的电流，六相逆变器中的GroupBDW相的电流，所以相当于已经考虑了并联支路数了）
             stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.coils.mm2_slot_area*1e-6/acm_variant.template.d['EX']['DriveW_zQ'])
-            print('[utility.py] Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2'%(stator_current_density))
+            logger = logging.getLogger(__name__)
+            logger.info('Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2', stator_current_density)
             rotor_current_density = 0
 
-        print('[utility.py] Required torque: %g Nm'%(required_torque))
-        print("[utility.py] acm_variant.template.d['EX']['Omega']: %g rad/s"%(acm_variant.template.d['EX']['Omega']))
+        logger = logging.getLogger(__name__)
+        logger.info('Required torque: %g Nm', required_torque)
+        logger.info("acm_variant.template.d['EX']['Omega']: %g rad/s", acm_variant.template.d['EX']['Omega'])
         rated_shaft_power  = acm_variant.template.d['EX']['Omega'] * required_torque
         rated_efficiency   = rated_shaft_power / (rated_total_loss + rated_shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
 
         rated_rotor_volume = np.pi*(acm_variant.template.d['GP']['mm_r_ro'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
-        print('[utility.py] rated_stack_length_mm =', rated_stack_length_mm)
+        logger.info('rated_stack_length_mm = %s', rated_stack_length_mm)
 
         # This weighted list suggests that peak-to-peak torque ripple of 5% is comparable with Em of 5% or Ea of 1 deg. Ref: Ye gu ECCE 2018
         # Eric suggests Ea is 1 deg. But I think this may be too much emphasis on Ea so large Trip does not matter anymore (not verified yet).
@@ -3181,10 +3199,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
             if 'FSPM' in machine_type:
                 Vol_PM = (acm_variant.statorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
-                print('[utility.py] Area_PM', (acm_variant.statorMagnet.mm2_magnet_area*1e-6))
+                logger = logging.getLogger(__name__)
+                logger.info('Area_PM %s', (acm_variant.statorMagnet.mm2_magnet_area*1e-6))
             else:
                 Vol_PM = (acm_variant.rotorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
-                print('[utility.py] Area_PM', (acm_variant.rotorMagnet.mm2_magnet_area*1e-6))
+                logger.info('Area_PM %s', (acm_variant.rotorMagnet.mm2_magnet_area*1e-6))
         else:
             Vol_PM = 0.0
         # print('[utility.py] Area_Fe', (acm_variant.template.d['GP']['mm_r_so'].value*1e-3) ** 2)
@@ -3238,10 +3257,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             f4 = 0
 
         FRW = ss_avg_force_magnitude / rotor_weight
-        print('[utility.py] FRW:', FRW, 'Rotor weight:', rotor_weight, 'Stack length:', acm_variant.template.d['EX']['mm_template_stack_length'], 'Rated stack length:', rated_stack_length_mm)
+        logger = logging.getLogger(__name__)
+        logger.info('FRW: %s, Rotor weight: %s, Stack length: %s, Rated stack length: %s', FRW, rotor_weight, acm_variant.template.d['EX']['mm_template_stack_length'], rated_stack_length_mm)
         rated_rotor_volume = acm_variant.template.get_rotor_volume(stack_length=rated_stack_length_mm) 
         rated_rotor_weight = acm_variant.template.get_rotor_weight(stack_length=rated_stack_length_mm)
-        print('[utility.py] rated_rotor_volume:', rated_rotor_volume, 'rated_rotor_weight:', rated_rotor_weight)
+        logger.info('rated_rotor_volume: %s, rated_rotor_weight: %s', rated_rotor_volume, rated_rotor_weight)
 
         rated_results = [   rated_shaft_power, 
                             rated_efficiency,

@@ -3,6 +3,7 @@
 #     pass
 
 import enum
+import logging
 
 
 def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(layer_X_phases, coil_pitch):
@@ -27,7 +28,8 @@ class winding_layout_v2(object):
         # m = 3
         if p % m == 0 or (ps is not None and ps % m == 0):
             if DPNV_or_SEPA is not None:
-                print('Warning: asymmetric suspension winding for DPNV.')
+                logger = logging.getLogger(__name__)
+                logger.warning('Warning: asymmetric suspension winding for DPNV.')
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # Regular Motor Winding
@@ -1078,8 +1080,9 @@ class winding_layout_v2(object):
                     phase_U_starting_slot_number = 1 # 没有等于0的哈，等于0你得以槽的中线作图绘制定子铁芯；现在的代码是以齿的中线作图绘制定子铁芯的哦。
 
                 self.deg_winding_U_phase_phase_axis_angle = 360/Qs*0.5 * (phase_U_starting_slot_number + self.coil_pitch_y+(SPP-1) )
-                print('[wily] self.deg_winding_U_phase_phase_axis_angle=', self.deg_winding_U_phase_phase_axis_angle)
-                print('[wily] q = SPP =', SPP)
+                logger = logging.getLogger(__name__)
+                logger.info('[wily] self.deg_winding_U_phase_phase_axis_angle=%s', self.deg_winding_U_phase_phase_axis_angle)
+                logger.info('[wily] q = SPP = %s', SPP)
             else:
                 # This clause includes fractional slot winding with an SPP value below 1.
 
@@ -1107,11 +1110,13 @@ class winding_layout_v2(object):
                     # fractional slot and q>1
                     self.deg_winding_U_phase_phase_axis_angle = deg_winding_V_phase_phase_axis_angle - 360/Qs*相邻的属于同一相的线圈的个数
                     msg = '[winding_layout.py] [Warning] This case (q=%g) is not thought thorough, so you must inspect the initial excitation angle and initial rotor position manually to make sure it is id=0 control.'%(q)
-                    print(msg)
+                    logger = logging.getLogger(__name__)
+                    logger.warning(msg)
                     if q>2:
                         raise Exception(msg)
-                print('[wily] self.deg_winding_U_phase_phase_axis_angle=', self.deg_winding_U_phase_phase_axis_angle, 'deg_winding_V_phase_phase_axis_angle=', deg_winding_V_phase_phase_axis_angle)
-                print('[wily] q = SPP =', SPP)
+                logger = logging.getLogger(__name__)
+                logger.info('[wily] self.deg_winding_U_phase_phase_axis_angle=%s, deg_winding_V_phase_phase_axis_angle=%s', self.deg_winding_U_phase_phase_axis_angle, deg_winding_V_phase_phase_axis_angle)
+                logger.info('[wily] q = SPP = %s', SPP)
 
                 # print(self.deg_winding_U_phase_phase_axis_angle, deg_winding_V_phase_phase_axis_angle, 尾, 头, 相邻的属于同一相的线圈的个数)
                 # quit()

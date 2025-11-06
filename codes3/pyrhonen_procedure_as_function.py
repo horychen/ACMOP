@@ -1777,7 +1777,8 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
 
     if SI['coil_pitch_y'] < 0:
         kw1 = 1
-        print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SI["coil_pitch_y"]}, kw1={kw1}')
+        logger = logging.getLogger(__name__)
+        logger.info('[zQ] coil_pitch_y=%s, kw1=%s', SI["coil_pitch_y"], kw1)
     else:
         if wily.number_winding_layer == 1:
             # full pitch - easy
@@ -1797,25 +1798,22 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
                 kd1 = wily.kd1
             except:
                 kd1 = 1
-                print('[pyrhonen_procedure_as_function.py] The winding is a fractional slot one and the distribution factor is absent... Set as kd1 = 1.')
+                logger = logging.getLogger(__name__)
+                logger.warning('The winding is a fractional slot one and the distribution factor is absent... Set as kd1 = 1.')
         # kd1 = 2*sin(1/SI['m']*np.pi/2)/(SI['Qs']/(SI['m']*SI['p'])*sin(1*np.pi*SI['p']/SI['Qs']))
         kq1 = sin(1*coil_span_W/pole_pitch_tau_p*np.pi/2)
         if kq1<0:
-            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
-            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
-            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
-            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
-            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
-            print(f'[Pyrhonen_procedure_as_function.py] {kq1=} It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)')
+            logger = logging.getLogger(__name__)
+            logger.warning('kq1=%s It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)', kq1)
             kq1 *= -1.0
         ksq1 = 1
         kw1 = kd1 * kq1 * ksq1
-        print(f'[Pyrhonen_procedure_as_function.py] [zQ] coil_pitch_y={SI["coil_pitch_y"]}, kw1={kw1}, kd1={kd1}, kq1={kq1}')
+        logger = logging.getLogger(__name__)
+        logger.info('[zQ] coil_pitch_y=%s, kw1=%s, kd1=%s, kq1=%s', SI["coil_pitch_y"], kw1, kd1, kq1)
 
         if np.abs(kw1) > 1:
-            print('DEBUG, kw1 =', kw1)
-            print('DEBUG, kw1 =', kw1)
-            print('DEBUG, kw1 =', kw1)
+            logger = logging.getLogger(__name__)
+            logger.warning('DEBUG, kw1 = %s (abs > 1, setting to 0.866)', kw1)
             kw1 = 0.866
 
     alpha_i = 2/np.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
@@ -1838,12 +1836,14 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
     # quit()
 
     no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi*SI['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
-    print(sqrt(2)*desired_emf_Em , SI['ExcitationFreqSimulated'], kw1,  air_gap_flux_Phi_m)
+    logger = logging.getLogger(__name__)
+    logger.debug('sqrt(2)*desired_emf_Em=%s, ExcitationFreqSimulated=%s, kw1=%s, air_gap_flux_Phi_m=%s', sqrt(2)*desired_emf_Em, SI['ExcitationFreqSimulated'], kw1, air_gap_flux_Phi_m)
     if no_series_coil_turns_N<1:
         raise Exception(f'What? no_series_coil_turns_N is negative? {no_series_coil_turns_N=}')
-    print('[Pyrhonen_procedure_as_function.py] [zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_Bg is', no_series_coil_turns_N)
+    logger = logging.getLogger(__name__)
+    logger.info('[zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_Bg is %s', no_series_coil_turns_N)
     no_series_coil_turns_N = round(no_series_coil_turns_N)
-    print('[Pyrhonen_procedure_as_function.py] [zQ] Rounds up to:', no_series_coil_turns_N)
+    logger.info('[zQ] Rounds up to: %s', no_series_coil_turns_N)
     backup = no_series_coil_turns_N
     distribution_q = SI['Qs'] / (2*SI['p']*SI['m'])
     bool_we_have_plenty_voltage = True
@@ -1853,9 +1853,9 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
         no_series_coil_turns_N = min([SI['p']*distribution_q*i for i in range(1000)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
     if no_series_coil_turns_N > 990:
         raise
-    print('[Pyrhonen_procedure_as_function.py] [zQ] no_series_coil_turns_N should be multiple of pq:', no_series_coil_turns_N, '= q * p =', distribution_q, '*', SI['p'])
+    logger.info('[zQ] no_series_coil_turns_N should be multiple of pq: %s = q * p = %s * %s', no_series_coil_turns_N, distribution_q, SI['p'])
     no_conductors_per_slot_zQ = 2* SI['m'] * no_series_coil_turns_N / SI['Qs'] * number_parallel_branch
-    print('[Pyrhonen_procedure_as_function.py] [zQ] =', no_conductors_per_slot_zQ)
+    logger.info('[zQ] = %s', no_conductors_per_slot_zQ)
     return no_conductors_per_slot_zQ
 
 #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~

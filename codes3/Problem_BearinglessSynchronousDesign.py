@@ -4,8 +4,9 @@ import utility
 import logging, os, shutil
 import pywintypes
 import builtins
+logger = logging.getLogger(__name__)
 if hasattr(builtins, 'ad'):
-    print('[Problem_BlessSyn] Global variable ad is shared between modules as we cannot pass new argument to udp class.')
+    logger.info('Global variable ad is shared between modules as we cannot pass new argument to udp class.')
 else:
     raise Exception('[Problem_BlessSyn] Please add global variable (address) "ad" to module __builtins__.')
 
@@ -29,7 +30,7 @@ class Problem_BearinglessSynchronousDesign(object):
         else:
             # This is not reachable
             raise Exception(f'ad.counter_fitness_called = {ad.counter_fitness_called} != ad.counter_fitness_return = {ad.counter_fitness_return}!!!')
-        print('[Problem_BlessSyn] Call fitness: %d, %d'%(ad.counter_fitness_called, ad.counter_fitness_return))
+        logger.debug('Call fitness: %d, %d', ad.counter_fitness_called, ad.counter_fitness_return)
 
         # 不要标幺化了！统一用真的bounds，见get_bounds()
         x_denorm = x
@@ -43,7 +44,7 @@ class Problem_BearinglessSynchronousDesign(object):
                     raise Exception('ad.counter_fitness_return >= len(ad.solver.swarm_data)')
                     quit()
                 x_denorm = ad.solver.swarm_data[ad.counter_fitness_return][:-3]
-                print('[Problem_BlessSyn]', ad.solver.swarm_data[ad.counter_fitness_return])
+                logger.debug('swarm_data[%d]: %s', ad.counter_fitness_return, ad.solver.swarm_data[ad.counter_fitness_return])
 
             if stuck_at < ad.counter_fitness_called:
                 stuck_at = ad.counter_fitness_called
@@ -65,8 +66,8 @@ class Problem_BearinglessSynchronousDesign(object):
                         try:
                             shutil.rmtree(ad.   folder_to_be_deleted) # .jfiles directory
                         except PermissionError as error:
-                            print(error)
-                            print('Skip deleting this folder...')
+                            logger.warning('PermissionError: %s', error)
+                            logger.warning('Skip deleting this folder...')
                     # update to be deleted when JMAG releases the use
                     ad.   folder_to_be_deleted = ad.   expected_project_file[:-5]+'jfiles'
 
@@ -82,7 +83,7 @@ class Problem_BearinglessSynchronousDesign(object):
             #     break
 
             except utility.ExceptionBadNumberOfParts as error:
-                print('ExceptionBadNumberOfParts captured:', str(error)) 
+                logger.error('ExceptionBadNumberOfParts captured: %s', str(error)) 
                 # print("Detail: {}".format(error.payload))
                 # f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
                 # f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
@@ -91,8 +92,8 @@ class Problem_BearinglessSynchronousDesign(object):
                 raise error
 
             except pywintypes.com_error as error:
-                print(error)
-                print('The call to JMAG has failed. Restart?')
+                logger.error('pywintypes.com_error: %s', error)
+                logger.error('The call to JMAG has failed. Restart?')
                 raise error
 
             except Exception as error:
@@ -102,9 +103,7 @@ class Problem_BearinglessSynchronousDesign(object):
 
                 raise error
                 f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
-                print(str(error))
-                logger = logging.getLogger(__name__)
-                logger.error(str(error))
+                logger.error('Exception: %s', str(error))
                 break
                 # except FileNotFoundError as error: # The copy region target is not found
                 #     print(str(error))
@@ -171,7 +170,7 @@ class Problem_BearinglessSynchronousDesign(object):
                 f2 
                 # Ripple Performance (Weighted Sum)
                 f3 
-                print('f1,f2,f3:',f1,f2,f3)
+                logger.debug('f1,f2,f3: %s, %s, %s', f1, f2, f3)
 
                 if ad.acm_template.fea_config_dict['moo.apply_constraints']==True:
                     # Constraints (Em<0.2 and Ea<10 deg):
@@ -179,24 +178,24 @@ class Problem_BearinglessSynchronousDesign(object):
                     # if abs(normalized_torque_ripple)>=0.2 or abs(normalized_force_error_magnitude) >= 0.2 or abs(force_error_angle) > 10 or FRW < 1:
                     # if abs(normalized_torque_ripple)>=0.2 or abs(normalized_force_error_magnitude) >= 0.2 or abs(force_error_angle) > 10:
                     if abs(normalized_torque_ripple)>=0.3 or abs(normalized_force_error_magnitude) >= 0.35 or abs(force_error_angle) > 20 or FRW < 0.5:
-                        print('[Problem_BlessSyn] Constraints are violated:')
+                        logger.warning('Constraints are violated:')
                         if abs(normalized_torque_ripple)>=0.3:
-                            print('\tabs(normalized_torque_ripple)>=0.3 | (=%f)' % (normalized_torque_ripple))
+                            logger.warning('\tabs(normalized_torque_ripple)>=0.3 | (=%f)', normalized_torque_ripple)
                         if abs(normalized_force_error_magnitude) >= 0.35:
-                            print('\tabs(normalized_force_error_magnitude) >= 0.35 | (=%f)' % (normalized_force_error_magnitude))
+                            logger.warning('\tabs(normalized_force_error_magnitude) >= 0.35 | (=%f)', normalized_force_error_magnitude)
                         if abs(force_error_angle) > 20:
-                            print('\tabs(force_error_angle) > 20 | (=%f)' % (force_error_angle))
+                            logger.warning('\tabs(force_error_angle) > 20 | (=%f)', force_error_angle)
                         if FRW < 0.5:
-                            print('\tFRW < 0.5 | (=%f)' % (FRW))
+                            logger.warning('\tFRW < 0.5 | (=%f)', FRW)
                         # f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
                         # f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
                         f1, f2, f3 = get_bad_fintess_values(machine_type='CSPPM')
-                    print('[Problem_BearinglessSyn] f1,f2,f3:',f1,f2,f3)
+                    logger.debug('f1,f2,f3: %s, %s, %s', f1, f2, f3)
 
                 break
 
         ad.counter_fitness_return += 1
-        print('[Problem_BlessSyn] Fitness: %d, %d\n----------------'%(ad.counter_fitness_called, ad.counter_fitness_return))
+        logger.debug('Fitness: %d, %d', ad.counter_fitness_called, ad.counter_fitness_return)
         # raise KeyboardInterrupt
         return [f1, f2, f3]
         # return [f1, f2, torque_ripple]
@@ -208,7 +207,7 @@ class Problem_BearinglessSynchronousDesign(object):
     # Return bounds of decision variables (a.k.a. chromosome)
     def get_bounds(self):
         global ad
-        print('[Problem_BlessSyn] Problem_BearinglessSynchronousDesign.get_bounds:', ad.acm_template.bounds_denorm)
+        logger.debug('Problem_BearinglessSynchronousDesign.get_bounds: %s', ad.acm_template.bounds_denorm)
         min_b, max_b = np.asarray(ad.acm_template.bounds_denorm).T 
         return ( min_b.tolist(), max_b.tolist() )
 

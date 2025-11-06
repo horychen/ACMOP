@@ -1,4 +1,5 @@
 from pylab import np, cos, sin
+import logging
 EPS = 1e-3 # [mm]
 
 class ExceptionBadDesign(Exception):
@@ -84,7 +85,8 @@ class CrossSectInnerNotchedRotor(object):
             if s == 1:
                 alpha_rs = alpha_rm # alpha_rs is the variable actually being used in the following...
             else:
-                print('DEBUG s>1 notched rotor')
+                logger = logging.getLogger(__name__)
+                logger.debug('DEBUG s>1 notched rotor')
             #     print('s=%d: This is not tested. For now it simply assumes the iron notch between poles becomes the iron notch between the segments of one pole.' % (s))
             # print('[class CrossSectInnerNotchedRotor] Rotor has no notch, i.e., there is no P2 or P3.')
             # print('alpha_rp is', alpha_rp)
@@ -120,7 +122,8 @@ class CrossSectInnerNotchedRotor(object):
 
 
         def print_point(P):
-            print( '(%g, %g)' % (P[0], P[1]) )
+            logger = logging.getLogger(__name__)
+            logger.debug('(%g, %g)', P[0], P[1])
             print_point(P1)
             print_point(P2)
             print_point(P3)
@@ -141,8 +144,9 @@ class CrossSectInnerNotchedRotor(object):
             # print(P1, P2, P3, P4, P5, P6)
             # print(P1, P2, P3, P4, P5, P6)
             if alpha_rm >= alpha_rp*0.9800:
-                print('[CrossSectInnerNotchedRotor.py] Non-NOTCHED ROTOR IS USED.\n')
-                print('[CrossSectInnerNotchedRotor.py] alpha_P5 is', alpha_P5, alpha_P5/np.pi*180)
+                logger = logging.getLogger(__name__)
+                logger.info('Non-NOTCHED ROTOR IS USED.')
+                logger.info('alpha_P5 is %s, %s deg', alpha_P5, alpha_P5/np.pi*180)
                 P1p5 = [P2[0] - d_rp, P2[1]]
                 if bool_draw_whole_model:
                     list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
@@ -282,7 +286,8 @@ class CrossSectInnerNotchedMagnet(object):
 
         # rotor inter-pole notch being too small
         if alpha_rm >= alpha_rp*0.9800:
-            print('[CrossSectInnerNotchedRotor.py] FULL POLE PITCH MAGNET IS USED.')
+            logger = logging.getLogger(__name__)
+            logger.info('FULL POLE PITCH MAGNET IS USED.')
             alpha_rm = alpha_rp
 
         # print(alpha_rm/np.pi*180)
@@ -294,8 +299,10 @@ class CrossSectInnerNotchedMagnet(object):
             if s == 1:
                 alpha_rs = alpha_rm # alpha_rs is the variable actually being used in the following...
             else:
-                print('[Warn] s=%d: This is not tested. For now it simply assumes the iron notch between poles becomes the iron notch between the segments of one pole.' % (s))
-            print('[Warn] [class CrossSectInnerNotchedMagnet] Magnet is fully spanned.')
+                logger = logging.getLogger(__name__)
+                logger.warning('s=%d: This is not tested. For now it simply assumes the iron notch between poles becomes the iron notch between the segments of one pole.', s)
+            logger = logging.getLogger(__name__)
+            logger.warning('[class CrossSectInnerNotchedMagnet] Magnet is fully spanned.')
 
 
         # print(alpha_rm/np.pi*180)
@@ -303,7 +310,8 @@ class CrossSectInnerNotchedMagnet(object):
         # print(alpha_rm/np.pi*180)
 
         if d_pm + 2*EPS < d_rp:
-            print('[Warn]: [class CrossSectInnerNotchedMagnet] Detect d_rp is too close to d_pm. To avoid small line entity error in JMAG, set d_pm equal to d_rp because rotor core is plotted already.')
+            logger = logging.getLogger(__name__)
+            logger.warning('[class CrossSectInnerNotchedMagnet] Detect d_rp is too close to d_pm. To avoid small line entity error in JMAG, set d_pm equal to d_rp because rotor core is plotted already.')
             raise ExceptionBadDesign('[Error] Magnet depth d_pm is too close to inter-pole notch depth d_rp.')
 
         P1 = [r_ri, 0]
@@ -333,7 +341,8 @@ class CrossSectInnerNotchedMagnet(object):
             Rout = r_P4+d_pm
             Rin  = r_P4
             self.mm2_magnet_area = alpha_rm/alpha_rp  *  np.pi*(Rout**2 - Rin**2) # magnet area for all the poles
-            print('[CrossSectInnerNotchedRotor.py] Magnet area in total is %g mm^2'%(self.mm2_magnet_area))
+            logger = logging.getLogger(__name__)
+            logger.info('Magnet area in total is %g mm^2', self.mm2_magnet_area)
             if bool_re_evaluate:
                 return self.mm2_magnet_area
 

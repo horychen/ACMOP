@@ -1,4 +1,5 @@
 from pylab import np, cos, sin, arctan
+import logging
 class CrossSectInnerRotorStator:
     # CrossSectInnerRotorStator Describes the inner rotor motor stator.
     #    Properties are set upon class creation and cannot be modified.
@@ -401,7 +402,8 @@ class CrossSectInnerRotorStator_PMAtYoke:
         # Draw slot for inserting PM
         P0 = [r_sy, 0]
         # print('||DEBUG', P0, np.sqrt(P5[0]**2 + P5[1]**2))
-        print(mm_d_pm, r_sy, P5)
+        logger = logging.getLogger(__name__)
+        logger.debug('mm_d_pm=%s, r_sy=%s, P5=%s', mm_d_pm, r_sy, P5)
         alpha_pm_depth = 2*np.arcsin(0.5*mm_d_pm / r_sy)
         # print('magnet angle', alpha_pm_depth/np.pi*180)
         mm_w_pm = d_sy - self.mm_difference_pm_yoke
