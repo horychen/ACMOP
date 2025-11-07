@@ -1570,34 +1570,34 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 phase_shift_beari = -120 if CommutatingSequenceB == 1 else 120
 
                 func = app.FunctionFactory().Composite()        
-                f1 = app.FunctionFactory().Sin(ampD, freq, 0*phase_shift_drive) # "freq" variable cannot be used here. So pay extra attension here when you create new case of a different freq.
+                f1 = app.FunctionFactory().Sin(ampD, freq, -90 + 0*phase_shift_drive) # "freq" variable cannot be used here. So pay extra attension here when you create new case of a different freq.
                 if 'CPPM' in acm_variant.template.name or 'CSPPM' in acm_variant.template.name: 
                     dcB = ampB/np.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
-                    f2 = app.FunctionFactory().Sin(ampB, freq, 0*phase_shift_beari)
+                    f2 = app.FunctionFactory().Sin(ampB, freq, -90 + 0*phase_shift_beari)
                 func.AddFunction(f1)
                 func.AddFunction(f2)
                 study.GetCircuit().GetComponent(I1).SetFunction(func)
 
                 func = app.FunctionFactory().Composite()        
-                f1 = app.FunctionFactory().Sin(ampD, freq, 1*phase_shift_drive)
+                f1 = app.FunctionFactory().Sin(ampD, freq, -90 + 1*phase_shift_drive)
                 if 'CPPM' in acm_variant.template.name or 'CSPPM' in acm_variant.template.name: 
                     dcB = -0.5*ampB/np.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
-                    f2 = app.FunctionFactory().Sin(ampB, freq, 1*phase_shift_beari)
+                    f2 = app.FunctionFactory().Sin(ampB, freq, -90 + 1*phase_shift_beari)
                 func.AddFunction(f1)
                 func.AddFunction(f2)
                 study.GetCircuit().GetComponent(I2).SetFunction(func)
 
                 func = app.FunctionFactory().Composite()
-                f1 = app.FunctionFactory().Sin(ampD, freq, 2*phase_shift_drive)
+                f1 = app.FunctionFactory().Sin(ampD, freq, -90 + 2*phase_shift_drive)
                 if 'CPPM' in acm_variant.template.name or 'CSPPM' in acm_variant.template.name: 
                     dcB = -0.5*ampB/np.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
-                    f2 = app.FunctionFactory().Sin(ampB, freq, 2*phase_shift_beari)
+                    f2 = app.FunctionFactory().Sin(ampB, freq, -90 + 2*phase_shift_beari)
                 func.AddFunction(f1)
                 func.AddFunction(f2)
                 study.GetCircuit().GetComponent(I3).SetFunction(func)
