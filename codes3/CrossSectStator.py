@@ -141,6 +141,134 @@ class CrossSectInnerRotorStator:
         # return [list_segments]
         return {'innerCoord': self.innerCoord, 'list_regions':[list_segments], 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])]}
 
+class CrossSectInnerRotorStatorClosedSlot:
+    def __init__(self,
+                    name  = 'StatorCore',
+                    color = '#BAFD01',
+                    deg_alpha_st = 40, # span angle of tooth: class type DimAngular
+                    deg_alpha_sto= 20, # angle of tooth edge: class type DimAngular
+                    mm_r_si      = 40, # inner radius of stator teeth: class type DimLinear
+                    mm_d_st      = 15, # tooth base length: class type DimLinear
+                    mm_d_sy      = 15, # back iron thickness: class type DimLinear
+                    mm_w_st      = 13, # tooth base width: class type DimLinear
+                    Q            = 6,  # number of stator slots (integer)
+                    location = None
+                ):
+
+        self.name = name
+        self.color = color
+        self.deg_alpha_st = deg_alpha_st
+        self.deg_alpha_sto = deg_alpha_sto
+        self.mm_r_si      = mm_r_si     
+        self.mm_d_st      = mm_d_st     
+        self.mm_d_sy      = mm_d_sy     
+        self.mm_w_st      = mm_w_st     
+        self.Q = Q               
+        self.location = location 
+
+    def draw(self, drawer, bool_draw_whole_model=False):
+
+        drawer.getSketch(self.name, self.color)
+
+        alpha_st = self.deg_alpha_st * np.pi/180
+        alpha_so = -self.deg_alpha_sto * np.pi/180
+        r_si = self.mm_r_si
+        d_so = self.mm_d_sto
+        d_sp = self.mm_d_stt
+        d_st = self.mm_d_st
+        d_sy = self.mm_d_sy
+        w_st = self.mm_w_st
+        r_st = self.mm_r_st
+        r_sf = self.mm_r_sf
+        r_sb = self.mm_r_sb
+        Q    = self.Q
+
+        alpha_slot_span = 360/Q * np.pi/180
+
+        P1 = [r_si, 0]
+        P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
+        P3_temp = [ d_so*cos(alpha_st*0.5), 
+                    d_so*-sin(alpha_st*0.5)]
+        P3_local_rotate = [   cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
+                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        P3 = [  P3_local_rotate[0] + P2[0],
+                P3_local_rotate[1] + P2[1] ] 
+
+        三角形的底 = r_si + d_sp
+        三角形的高 = w_st*0.5
+        三角形的角度 = arctan(三角形的高 / 三角形的底)
+        P4 = [  三角形的底*cos(三角形的角度), 
+                三角形的底*-sin(三角形的角度)]
+
+        P5 = [ P4[0] + d_st, 
+               P4[1]]
+
+        # Option 1
+        # 6 [94.01649113009418, -25.191642873516543] 97.33303383272235
+        # Radius_InnerStatorYoke = r_si+d_sp+d_st
+        # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
+        # Option 2
+        Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
+        P6 = [ Radius_InnerStatorYoke *  cos(alpha_slot_span*0.5),
+               Radius_InnerStatorYoke * -sin(alpha_slot_span*0.5) ]
+
+        P7 = [ (r_si+d_sp+d_st+d_sy)*cos(alpha_slot_span*0.5),
+               (r_si+d_sp+d_st+d_sy)*-sin(alpha_slot_span*0.5) ]
+        P8 = [  r_si+d_sp+d_st+d_sy, 0]
+
+        list_segments = []
+        if bool_draw_whole_model:
+            P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
+            P3_Mirror = [P3[0], -P3[1]]
+            P4_Mirror = [P4[0], -P4[1]]
+            P5_Mirror = [P5[0], -P5[1]]
+            def iPark(P, theta):
+                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+            def draw_fraction(list_segments, P2, P3, P4, P5,
+                                            P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
+                P5_Rotate = iPark(P5, alpha_slot_span)
+                list_segments += drawer.drawArc([0,0], P2, P2_Mirror)
+                list_segments += drawer.drawLine(P2, P3)
+                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
+                list_segments += drawer.drawLine(P3, P4)
+                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
+                list_segments += drawer.drawLine(P4, P5)
+                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+                list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+            for i in range(Q):
+                draw_fraction(list_segments, iPark(P2, i*alpha_slot_span), 
+                                             iPark(P3, i*alpha_slot_span), 
+                                             iPark(P4, i*alpha_slot_span), 
+                                             iPark(P5, i*alpha_slot_span),
+                                             iPark(P2_Mirror, i*alpha_slot_span), 
+                                             iPark(P3_Mirror, i*alpha_slot_span), 
+                                             iPark(P4_Mirror, i*alpha_slot_span), 
+                                             iPark(P5_Mirror, i*alpha_slot_span), )
+                # raise
+            # draw a circle (this is officially suggested)
+            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
+            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+        else:
+            list_segments += drawer.drawArc([0,0], P2, P1)
+            list_segments += drawer.drawLine(P2, P3)
+            list_segments += drawer.drawLine(P3, P4)
+            list_segments += drawer.drawLine(P4, P5)
+            list_segments += drawer.drawArc([0,0], P6, P5)
+            list_segments += drawer.drawLine(P6, P7)
+            list_segments += drawer.drawArc([0,0], P7, P8)
+            list_segments += drawer.drawLine(P8, P1)
+
+        # DEBUG
+        # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
+        #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
+
+        self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+
+        # return [list_segments]
+        return {'innerCoord': self.innerCoord, 'list_regions':[list_segments], 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])]}
+
+
 def get_area_polygon(a,b,c,d):
     x1, x2, x3, x4 = a[0], b[0], c[0], d[0]
     y1, y2, y3, y4 = a[1], b[1], c[1], d[1]

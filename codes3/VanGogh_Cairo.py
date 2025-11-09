@@ -115,7 +115,7 @@ class VanGogh_Cairo:
 
         return True
 
-    def draw_spmsm(self, acm_variant, bool_draw_whole_model=True):
+    def draw_spmsm(self, acm_variant, bool_draw_whole_model=True, lw=0.5):
         # Rotor Core
         if 1:
             list_regions_1 = acm_variant.rotorCore.draw(self, bool_draw_whole_model=bool_draw_whole_model)
@@ -157,7 +157,7 @@ class VanGogh_Cairo:
         # self.iRotateCopy = acm_variant.coils.stator_core.Q
         # region4 = self.prepareSection(list_regions)
 
-        self.apply_stroke()
+        self.apply_stroke(lw=lw)
         self.convert_to_pdf()
 
         if False:
@@ -242,10 +242,10 @@ class VanGogh_Cairo:
 
         return True
 
-    def apply_stroke(self):
+    def apply_stroke(self, lw=0.5):
 
         self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-        self.ctx.set_line_width(0.5)
+        self.ctx.set_line_width(lw)
 
         # setting color of the context
         self.ctx.set_source_rgba(0.0, 0.0, 0.0, 1)

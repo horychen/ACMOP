@@ -15,9 +15,13 @@ def derive_mm_r_ri(GP,SI):
     GP       ['mm_r_ri'].value = GP['mm_r_ro'].value - GP['mm_d_pm'].value - GP['mm_d_ri'].value
     if GP    ['mm_r_ri'].value<=0:
         logger = logging.getLogger(__name__)
-        logger.warning('mm_r_ri: %s, mm_r_ro: %s, mm_d_pm: %s, mm_d_ri: %s', GP['mm_r_ri'].value, GP['mm_r_ro'].value, GP['mm_d_pm'].value, GP['mm_d_ri'].value)
-        logger.warning('背铁太厚了 或 split_ration太小了！建议增大split_ratio是下限')
+        logger.error('mm_r_ri: %s, mm_r_ro: %s, mm_d_pm: %s, mm_d_ri: %s', GP['mm_r_ri'].value, GP['mm_r_ro'].value, GP['mm_d_pm'].value, GP['mm_d_ri'].value)
+        logger.error('背铁太厚了 或 split_ration太小了！建议增大split_ratio是下限')
     return GP['mm_r_ri'].value 
+
+def derive_mm_d_ri(GP,SI):
+    GP       ['mm_d_ri'].value = GP['mm_r_ro'].value - GP['mm_d_pm'].value - GP['mm_r_ri'].value
+    return GP['mm_d_ri'].value
 
 class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
     ''' This is a surface mounted PM motor but it might have saliency on q-axis if alpha_rm is less than 180/p.
@@ -37,20 +41,23 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         SI = self.SI      # Specification Input dictionary (was SD)
         childGP = OrderedDict({
             # SPMSM Peculiar
-            "mm_d_pm"           : acmop_parameter("free",     "magnet_depth",                  None, [None, None], lambda GP,SI:None),
-            "mm_d_ri"           : acmop_parameter("free",     "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SI:None),
+            "mm_d_pm"           : acmop_parameter("fixed",     "magnet_depth",                  None, [None, None], lambda GP,SI:None),
+            "mm_d_ri"           : acmop_parameter("derived",     "rotor_iron (back iron) depth",  None, [None, None], lambda GP,SI:derive_mm_d_ri(GP,SI)),
             "deg_alpha_rm"      : acmop_parameter("fixed",     "magnet_pole_span_angle",        None, [None, None], lambda GP,SI:None),
-            "mm_d_rp"           : acmop_parameter("free",     "inter_polar_iron_thickness",    None, [None, None], lambda GP,SI:None),
-            "deg_alpha_rs"      : acmop_parameter("free" if SI['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None], lambda GP,SI:None),
-            "mm_d_rs"           : acmop_parameter("free" if SI['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None], lambda GP,SI:None),
+            "mm_d_rp"           : acmop_parameter("fixed",     "inter_polar_iron_thickness",    None, [None, None], lambda GP,SI:None),
+            "deg_alpha_rs"      : acmop_parameter("fixed" if SI['no_segmented_magnets']!=1 else "fixed",   "magnet_segment_span_angle",     None, [None, None], lambda GP,SI:None),
+            "mm_d_rs"           : acmop_parameter("fixed" if SI['no_segmented_magnets']!=1 else "fixed",   "inter_segment_iron_thickness",  None, [None, None], lambda GP,SI:None),
             "mm_r_ri"           : acmop_parameter("derived",  "rotor_inner_radius",            None, [None, None], lambda GP,SI:derive_mm_r_ri(GP,SI)),
         })
         GP.update(childGP)
 
+        self.set_gp_values_and_types_based_on_fea_config(spec_input_dict)
+        GP = self.update_geometric_parameters_using_x_denorm_dict(self.d['x_denorm_dict'])
+
         # Get Analytical Design
         self.PracticalInitialDesign(fea_config_dict, SI, GP, EX)
 
-        self.set_gp_values_and_types_based_on_fea_config(fea_config_dict)
+        print(self.d['x_denorm_dict'])
 
         # 定义搜索空间，determine bounds
         self.original_template_neighbor_bounds = self.get_template_neighbor_bounds()
@@ -159,10 +166,10 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             alpha_rm_over_alpha_rp = 0.75
             # stator_yoke_flux_density_Bsy = 1.5
 
-        stator_outer_diameter_Dse = SI['mm_stator_outer_diameter'] * 1e-3 # this is related to the stator current density and should be determined by Js and power.
-        sleeve_length = SI['mm_sleeve_length'] * 1e-3 # mm
+        stator_outer_diameter_Dse = GP['mm_r_so'].value*2 * 1e-3 # this is related to the stator current density and should be determined by Js and power.
+        sleeve_length = GP['mm_d_sleeve'].value * 1e-3 # mm
 
-        rotor_outer_radius_r_or = SI['mm_radius_shaft']*1e-3 + SI['mm_d_pm']*1e-3 + SI['mm_d_ri']*1e-3
+        rotor_outer_radius_r_or = 1e-3* (GP['mm_r_ri'].value + GP['mm_d_pm'].value + GP['mm_d_ri'].value)
         stator_inner_radius_r_is  = rotor_outer_radius_r_or + (sleeve_length+SI['minimum_mechanical_air_gap_length_mm'])*1e-3 # [m]
         stator_inner_diameter_Dis = stator_inner_radius_r_is*2
         split_ratio = stator_inner_diameter_Dis / stator_outer_diameter_Dse
@@ -236,13 +243,13 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "deg_alpha_st": [ 0.35*360/Q, 1.0*360/Q],
             "mm_w_st":      [0.8*GP['mm_w_st'].value, 1.2*GP['mm_w_st'].value],
             "mm_d_st":      [0.8*GP['mm_d_st'].value, 1.1*GP['mm_d_st'].value], # if mm_d_st is too large, the derived stator yoke can be negative
-            "mm_d_sto":     [0.5,                                           5], # this will influence split_ratio
+            "mm_d_sto":     [0.2,                                         0.8], # this will influence split_ratio
             "mm_r_so":      [1.0*GP['mm_r_so'].value, 1.2*GP['mm_r_so'].value],
-            "mm_d_pm":      [2.5, 7],
+            "mm_d_pm":      [1, 3],
             "mm_d_ri":      [0.8*GP['mm_d_ri'].value,  1.2*GP['mm_d_ri'].value],
             # SPMSM specific
             "deg_alpha_rm": [0.6*360/(2*p),          1.0*360/(2*p)],
-            "mm_d_rp":      [2.5,   GP['mm_d_pm'].value],
+            "mm_d_rp":      [GP['mm_d_pm'].value/2,   GP['mm_d_pm'].value],
             # Rest parameters haven't been determined yet (need to be determined by the user defined fixed or free variables)
             "deg_alpha_rs": [0.8*360/(2*p)/s,        GP['deg_alpha_rm'].value/s],
             "mm_d_rs":      [2.5,   6],
@@ -377,6 +384,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
             logger.info('[PMSM JMAG] InitialRotationAngle : %s %s %s %s', (deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,  + deg_pole_span)
             logger.info('[PMSM JMAG] InitialRotationAngle = %s deg', (deg_pole_span-GP['deg_alpha_rm'].value)*0.5  - deg_pole_span*0.5  + wily.deg_winding_U_phase_phase_axis_angle   + deg_pole_span)
             self.InitialRotationAngle = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span
+            logger.info('[PMSM JMAG] InitialRotationAngle = %s deg', self.InitialRotationAngle)
 
         self.boolCustomizedCircuit = False
 
@@ -412,6 +420,33 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
             GP['deg_alpha_rs'].value = GP['deg_alpha_rm'].value # raise Exception('Invalid alpha_rs. Check that it is equal to alpha_rm for s=1')
             GP['mm_d_rs'].value = 0 # raise Exception('Invalid d_rs. Check that it is equal to 0 for s =1')
         # This is all we need
+
+class bearingless_spmsm_closedSlot_variant(bearingless_spmsm_design_variant):
+    ''' A variant of bearingless_spmsm_design_variant with closed slots.
+    '''
+    def __init__(self, template=None, x_denorm=None, counter=None, counter_loop=None):
+        # 初始化父类
+        super(bearingless_spmsm_closedSlot_variant, self).__init__(template, x_denorm, counter, counter_loop)
+
+        # 修改定子截面为闭口槽
+        self.stator_core = CrossSectStator.CrossSectInnerRotorClosedSlotStator( name = 'StatorCore',
+                                            deg_alpha_st = self.d['GP']['deg_alpha_st'].value, #40,
+                                            deg_alpha_sto = self.d['GP']['deg_alpha_sto'].value, #20,
+                                            mm_r_si = self.d['GP']['mm_r_si'].value,
+                                            mm_d_sto = self.d['GP']['mm_d_sto'].value,
+                                            mm_d_stt = self.d['GP']['mm_d_stt'].value,
+                                            mm_d_st = self.d['GP']['mm_d_st'].value,
+                                            mm_d_sy = self.d['GP']['mm_d_sy'].value,
+                                            mm_w_st = self.d['GP']['mm_w_st'].value,
+                                            mm_r_st = 0.0, # =0
+                                            mm_r_sf = 0.0, # =0
+                                            mm_r_sb = 0.0, # =0
+                                            Q = self.SI['Qs'],
+                                            location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
+                                            )
+
+        self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
+                                                    stator_core = self.stator_core)
 
 
 def add_carbon_fiber_material(app):

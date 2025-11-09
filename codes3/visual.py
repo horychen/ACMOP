@@ -84,6 +84,8 @@ def BasicInformationContent():
 def InitialDesignContent(user_selected_folder):
     mop = swarm_dict[user_selected_folder]
     # mop
+    st.write('GP:')
+    mop.ad.acm_template.d['GP']
 
     col1, col2 = st.columns(2)
 
@@ -808,8 +810,7 @@ def SelectIndividualContent():
                         _best_index, _proj_name, _best_individual_data_reversed = el
                         _best_individual_data = _best_individual_data_reversed[::-1]
 
-                    st.write(F'\t{el[0]}, {el[1]}, f3={el[-1][0]:.1f}, f2={el[-1][1]:.4f}, f1={el[-1][2]:.1f}, ' +
-                             ', '.join(F'{x:.2f}' for x in el[-1][3:]))
+                    st.write(F'\t{el[0]}, {el[1]}, f3={el[-1][0]:.2f}, f2={el[-1][1]:.4f}, f1={el[-1][2]:.0f}, ' + ', '.join(F'{x:.2f}' for x in el[-1][3:]))
 
                 if ind == 0 and _best_index is not None:
                     if st.checkbox('There is only one individual left, do you want to re-produce it?'):
@@ -1052,4 +1053,4 @@ if __name__ == '__main__':
     # """ DO NOT MODIFY ENDS """
     # """ DO NOT MODIFY ENDS """
     # """ DO NOT MODIFY ENDS """
-    print(f"====================== End   {datetime.datetime.now()} ======================")
+    print(f"--------------------- End   {datetime.datetime.now()} ---------------------")

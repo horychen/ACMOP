@@ -3150,7 +3150,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         rated_iron_loss                      = rated_ratio * dm.jmag_loss_list[2]
         rated_windage_loss                   = utility.get_windage_loss(acm_variant, rated_stack_length_mm)
 
-        print(acm_variant.template.d['EX']['mm_template_stack_length'])
+        # print(acm_variant.template.d['EX']['mm_template_stack_length'])
         # print(rated_ratio)
         # print(torque_average)
         # print(required_torque)
@@ -3238,6 +3238,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             f1 = -TRV
         elif acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'Cost':
             f1 = Cost
+        elif acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'TorqueDensityOverSquireRootCopperLoss':
+            f1 = -TRV / np.sqrt(rated_stator_copper_loss_along_stack + stator_copper_loss_in_end_turn)
         else:
             raise 
 
@@ -3251,15 +3253,22 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         else:
             raise 
 
-        if acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'BearinglessRippleSum':
-            # Ripple Performance (Weighted Sum)
-            f3 = sum(list_weighted_ripples)
-        elif acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'ForceErrorMagnitude':
-            f3 = normalized_force_error_magnitude
-        elif acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'ForceErrorAngle':
-            f3 = force_error_angle
-        else:
-            raise 
+        if acm_variant.template.fea_config_dict["moo.fitness_OC"] is not None:
+            if acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'BearinglessRippleSum':
+                # Ripple Performance (Weighted Sum)
+                f3 = sum(list_weighted_ripples)
+            elif acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'ForceErrorMagnitude':
+                f3 = normalized_force_error_magnitude
+            elif acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'ForceErrorAngle':
+                f3 = force_error_angle
+            elif acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'IronLoss':
+                f3 = rated_iron_loss
+            elif acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'TorqueRipple':
+                f3 = normalized_torque_ripple
+            elif acm_variant.template.fea_config_dict["moo.fitness_OC"] == 'CoggingTorque':
+                raise Exception("CoggingTorque is not implemented")
+            else:
+                raise Exception("Unknown fitness function")
 
         if acm_variant.template.fea_config_dict["moo.fitness_OD"] is not None:
             f4 = 0

@@ -95,11 +95,6 @@ class template_machine_as_numbers(object):
             if v.type == 'derived' and v.calc is None:
                 raise Exception('calc method is not defined for the derived acmop_parameter:', v)
 
-        # assert free variables
-        # for k, v in geometric_parameters.items():
-        #     if v.type == 'free' and v.bounds[0] is None and v.bounds[1] is None:
-        #         raise Exception('bounds is not specified for the free acmop_parameter:', v)
-
         # all in one place
         self.d = {
             # "which_filter": fea_config_dict['which_filter'],
@@ -109,7 +104,7 @@ class template_machine_as_numbers(object):
             "bounds_denorm": [],
         }
 
-        self.set_gp_values_and_types_based_on_fea_config(fea_config_dict)
+        # self.set_gp_values_and_types_based_on_fea_config(spec_input_dict)
 
     ''' 初始化，定义优化
     '''
@@ -187,16 +182,13 @@ class template_machine_as_numbers(object):
             return gravity * self.get_rotor_volume(stack_length=stack_length) * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
 
     # 依据fea_config_dict来设置GP的value和type
-    def set_gp_values_and_types_based_on_fea_config(self, fea_config_dict):
-        for key in fea_config_dict.keys():
-            # if key.startswith('machine.GP') and key.endswith('value'):
-            #     param_name = key.split('.')[-2]
-            #     if param_name in self.d['GP'].keys():
-            #         self.d['GP'][param_name].value = fea_config_dict[key]
-            if key.startswith('machine.GP') and key.endswith('type'):
-                param_name = key.split('.')[-2]
-                if param_name in self.d['GP'].keys():
-                    self.d['GP'][param_name].type = fea_config_dict[key]
+    def set_gp_values_and_types_based_on_fea_config(self, spec_input_dict):
+        for key, property in spec_input_dict['GP-user'].items():
+            if property['value'] is not None: self.d['GP'][key].value = property['value']
+            if property['bounds'] is not None: self.d['GP'][key].bounds = property['bounds']
+            self.d['GP'][key].type = property['type']
+            if property['type'] == 'free':
+                self.d['x_denorm_dict'][key] = property['value']
     ''' 玩弄几何变量
     '''
     def build_x_denorm(self):
@@ -311,14 +303,15 @@ class variant_machine_as_objects(object):
             # template as variant
             GP = self.template.d['GP'] # do nothing, use template's GP
         else:
-            x_denorm_dict = self.template.get_x_denorm_dict_from_x_denorm_list(x_denorm)
-            if verbose:
-                for k,v in x_denorm_dict.items():
-                    logger = logging.getLogger(__name__)
-                    logger.debug('\t %s: %s', k, v)
+            # x_denorm_dict = self.template.get_x_denorm_dict_from_x_denorm_list(x_denorm)
+            # if verbose:
+            #     for k,v in x_denorm_dict.items():
+            #         logger = logging.getLogger(__name__)
+            #         logger.debug('\t %s: %s', k, v)
                 # print(self.d['GP']['mm_r_ri'].value)
                 # print(self.d['GP']['mm_r_ri'].value)
-            GP = self.template.update_geometric_parameters_using_x_denorm_dict(x_denorm_dict)
+            # GP = self.template.update_geometric_parameters_using_x_denorm_dict(x_denorm_dict)
+            pass
 
         #03 Inherit properties
         # self.template.d['EX']

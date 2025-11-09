@@ -61,20 +61,6 @@
     "circuit.TORQUE_CURRENT_RATIO" : 1.0,
     "circuit.SUSPENSION_CURRENT_RATIO" : 0.0,
 
-    "machine.type": "PMSM",
-    "machine.GP.deg_alpha_st.type": "free",
-    "machine.GP.deg_alpha_st.value": null,
-    "machine.GP.deg_alpha_st.bounds": [5,30],
-    "machine.GP.mm_w_st.type": "free",
-    "machine.GP.mm_w_st.value": null,
-    "machine.GP.mm_w_st.bounds": [5,30],
-    "machine.GP.mm_d_sto.type": "free",
-    "machine.GP.mm_d_sto.value": null,
-    "machine.GP.mm_d_sto.bounds": [5,30],
-    "machine.GP.mm_d_rp.type": "free",
-    "machine.GP.mm_d_rp.value": null,
-    "machine.GP.mm_d_rp.bounds": [5,30],
-
     "local_sensitivity_analysis":false,
     "local_sensitivity_analysis_number_of_variants": 20,
 
@@ -107,12 +93,11 @@
     "moo.popsize": 78,
     "moo.apply_constraints": false,
     "moo.save_acm_variant_object_as_jsonpickle": true,
-    "moo.fitness_OA": "Cost",
+    "moo.fitness_OA": "TorqueDensityOverSquireRootCopperLoss",
     "moo.fitness_OB": "Efficiency",
-    "moo.fitness_OC": "BearinglessRippleSum",
+    "moo.fitness_OC": "TorqueRipple",
     "moo.fitness_OD": null
-},
-
+    },
 
     "#03 JMAG Non-Bearingless Motor Evaluation Setting": {
 
