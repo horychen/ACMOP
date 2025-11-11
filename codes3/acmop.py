@@ -1,5 +1,5 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
-import os, json, acm_designer, VanGogh_Cairo, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design, bearingless_spmsm_heart
+import os, json, acm_designer, VanGogh_Cairo, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design, bearingless_spmsm_heart, bearingless_spmsm_closedSlot_design
 import utility
 import logging, collections
 from dataclasses import dataclass
@@ -127,7 +127,7 @@ class AC_Machine_Optiomization_Wrapper(object):
             if 'Heart' in self.select_spec:
                 function = bearingless_spmsm_heart.bearingless_spmsm_template
             if 'ClosedStator' in self.select_spec:
-                function = bearingless_spmsm_design.bearingless_spmsm_closedSlot_variant
+                function = bearingless_spmsm_closedSlot_design.bearingless_spmsm_closedStator_template
         elif 'PMVM' in self.select_spec:
             function = vernier_motor_design.vernier_motor_VShapePM_template
         elif 'IM' in self.select_spec:

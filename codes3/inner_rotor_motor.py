@@ -18,12 +18,12 @@ def derive_mm_r_si(GP,SI):
     # return GP['mm_r_si'].value
 
     # (option 2) depends on d_sy (which is bad, as d_sy is also derived) and r_os
-    # GP['mm_r_si'].value = GP['mm_r_so'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_stt'].value
-    # return GP['mm_r_si'].value
+    GP['mm_r_si'].value = GP['mm_r_so'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_stt'].value
+    return GP['mm_r_si'].value
 
     # (option 3) depends on r_or and air gap length
-    GP       ['mm_r_si'].value = GP['mm_r_ro'].value + GP['mm_d_sleeve'].value + GP['mm_d_mech_air_gap'].value
-    return GP['mm_r_si'].value
+    # GP       ['mm_r_si'].value = GP['mm_r_ro'].value + GP['mm_d_sleeve'].value + GP['mm_d_mech_air_gap'].value
+    # return GP['mm_r_si'].value
 
 def derive_deg_alpha_sto(GP,SI):
     # this allows a square tooth tip, or else the tooth tip might be pointy
@@ -79,13 +79,9 @@ class template_machine_as_numbers(object):
             "mm_d_sleeve"       : acmop_parameter("fixed",     "sleeve_length",                 None, [None, None], lambda GP,SI:None),
             "split_ratio"       : acmop_parameter("fixed",     "split_ratio_r_is_slash_r_os",   None, [None, None], lambda GP,SI:None), #derive_split_ratio(GP,SI)),
             # STATOR                           Type       Name                          Value  Bounds       Calc
-            "deg_alpha_st"  : acmop_parameter("fixed",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
             "mm_w_st"       : acmop_parameter("fixed",    "stator_tooth_width"         , None, [None, None], lambda GP,SI:None),
-            "mm_d_sto"      : acmop_parameter("fixed",   "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
-            "deg_alpha_sto" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_sto(GP,SI)),
-            "mm_d_stt"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_stt(GP,SI)),
-            "mm_r_si"       : acmop_parameter("derived", "stator_inner_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si(GP,SI)),
-            "mm_r_so"       : acmop_parameter("derived", "stator_outer_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_so(GP,SI)),
+            "mm_r_si"       : acmop_parameter("fixed", "stator_inner_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_si(GP,SI)),
+            "mm_r_so"       : acmop_parameter("fixed", "stator_outer_radius"        , None, [None, None], lambda GP,SI:derive_mm_r_so(GP,SI)),
             "mm_d_sy"       : acmop_parameter("fixed",   "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy(GP,SI)),
             "mm_d_st"       : acmop_parameter("fixed",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:derive_mm_d_st(GP,SI)),
         })
@@ -237,11 +233,12 @@ class template_machine_as_numbers(object):
             if parameter.type == 'derived':
                 try:
                     parameter.value = parameter.calc(self.d['GP'], self.SI)
-                except TypeError as e: # TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType' 用来计算的变量还未被赋值
                     list_parameter_to_derive.append(key)
+                except TypeError as e: # TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType' 用来计算的变量还未被赋值
                     count_TypeError += 1
                     logger = logging.getLogger(__name__)
                     logger.warning('%s TypeError: None is used for derivation of %s', f'{count_TypeError=}', f'{parameter=}')
+                    print('%s TypeError: None is used for derivation of %s', f'{count_TypeError=}', f'{parameter=}')
                 else: # no exception
                     if parameter.value<=0:
                         logger = logging.getLogger(__name__)
@@ -251,7 +248,12 @@ class template_machine_as_numbers(object):
                         raise Exception('Error: Negative derived parameter', str(parameter))
         for key in list_parameter_to_derive:
             parameter =  self.d['GP'][key]
-            parameter.value = parameter.calc(self.d['GP'], self.SI)
+            try:
+                parameter.value = parameter.calc(self.d['GP'], self.SI)
+            except TypeError as e:
+                logger = logging.getLogger(__name__)
+                logger.warning('TypeError fixed: %s', f'{parameter=}')
+                pass
             count_TypeError -= 1
             logger = logging.getLogger(__name__)
             logger.info('TypeError fixed: %s', f'{count_TypeError=}')

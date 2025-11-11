@@ -49,10 +49,6 @@
                     "type":   "free",
                     "value":  null,
                     "bounds": null},
-                "mm_d_sto":{
-                    "type":   "free",
-                    "value":  null,
-                    "bounds": null},
                 "mm_d_mech_air_gap":{
                     "type":   "fixed",
                     "value":  0.10,
