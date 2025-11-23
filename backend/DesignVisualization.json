@@ -7,12 +7,12 @@
     "ps": 5,
     "coil_pitch_y": 1,
     "no_segmented_magnets": 1,
-    "mec_power": 75,
+    "mec_power": 50000,
     "guess_air_gap_flux_density_Bg": 0.9,
     "guess_stator_tooth_flux_density_Bst": 1.5,
     "guess_stator_yoke_flux_density_Bsy": 1.2,
-    "guess_efficiency": 0.9,
-    "guess_power_factor": 0.8,
+    "guess_efficiency": 0.94,
+    "guess_power_factor": 0.85,
     "safety_factor_to_yield": null,
     "safety_factor_to_critical_speed": 1.0,
     "bool_skew_stator": false,
@@ -26,9 +26,9 @@
         "coils": "<<non-serializable: CrossSectInnerRotorStatorWinding>>"
     },
     "EX-user": {
-        "ExcitationFreqSimulated": 113.33,
-        "VoltageRating": 36,
-        "mm_stack_length": 10,
+        "ExcitationFreqSimulated": 2000,
+        "VoltageRating": 400,
+        "mm_stack_length": 50,
         "Steel": "M19Gauge29",
         "lamination_stacking_factor_kFe": 0.95,
         "Coil": "Cu",
@@ -37,27 +37,27 @@
         "WindingFill": 0.3882,
         "AWG": 26,
         "end_winding_length_factor_kov": 1.8,
-        "stator_slot_area": 1.003855001951089e-05,
-        "end_winding_length_Lew": 0.023993758616273224,
+        "stator_slot_area": 0.00025096375048777126,
+        "end_winding_length_Lew": 0.11996879308136611,
         "wily": "<<non-serializable: winding_layout_v2>>",
-        "DriveW_zQ": 442.0,
-        "DriveW_CurrentAmp": 2.362547977221429,
-        "DriveW_Freq": 113.33,
+        "DriveW_zQ": 14.0,
+        "DriveW_CurrentAmp": 127.73726234789206,
+        "DriveW_Freq": 2000,
         "DriveW_Rs": 1.0,
         "DriveW_poles": 8,
-        "BeariW_zQ": 442.0,
-        "BeariW_CurrentAmp": 0.12434463038007522,
-        "BeariW_Freq": 113.33,
+        "BeariW_zQ": 14.0,
+        "BeariW_CurrentAmp": 6.723013807783793,
+        "BeariW_Freq": 2000,
         "BeariW_Rs": 1.0,
         "BeariW_poles": 10,
         "slot_current_utilizing_ratio": 1.0,
-        "the_speed": 1699.95,
-        "Omega": 178.0183477156656
+        "the_speed": 30000.0,
+        "Omega": 3141.592653589793
     },
     "GP-user": {
         "mm_r_so": {
             "type": "fixed",
-            "value": 25,
+            "value": 125,
             "bounds": null
         },
         "split_ratio": {
@@ -70,10 +70,10 @@
         },
         "mm_d_stt": {
             "type": "free",
-            "value": 0.75,
+            "value": 1.5,
             "bounds": [
-                0.5,
-                1.5
+                0.75,
+                3.5
             ]
         },
         "mm_d_pm": {
@@ -81,7 +81,7 @@
             "value": 2,
             "bounds": [
                 1,
-                3
+                4
             ]
         },
         "mm_w_st": {
@@ -144,7 +144,7 @@
     },
     "x_denorm_dict": {
         "split_ratio": 0.7,
-        "mm_d_stt": 0.75,
+        "mm_d_stt": 1.5,
         "mm_d_pm": 2,
         "mm_w_st": null,
         "mm_d_sy": null
@@ -155,20 +155,20 @@
             0.7
         ],
         "mm_d_stt": [
-            0.5,
-            1.5
+            0.75,
+            3.5
         ],
         "mm_d_pm": [
             1,
-            3
+            4
         ],
         "mm_w_st": null,
         "mm_d_sy": null
     },
     "EX": {
-        "ExcitationFreqSimulated": 113.33,
-        "VoltageRating": 36,
-        "mm_stack_length": 10,
+        "ExcitationFreqSimulated": 2000,
+        "VoltageRating": 400,
+        "mm_stack_length": 50,
         "Steel": "M19Gauge29",
         "lamination_stacking_factor_kFe": 0.95,
         "Coil": "Cu",
@@ -177,25 +177,25 @@
         "WindingFill": 0.3882,
         "AWG": 26,
         "end_winding_length_factor_kov": 1.8,
-        "stator_slot_area": 1.003855001951089e-05,
-        "end_winding_length_Lew": 0.023993758616273224,
+        "stator_slot_area": 0.00025096375048777126,
+        "end_winding_length_Lew": 0.11996879308136611,
         "wily": "<<non-serializable: winding_layout_v2>>",
-        "DriveW_zQ": 442.0,
-        "DriveW_CurrentAmp": 2.362547977221429,
-        "DriveW_Freq": 113.33,
+        "DriveW_zQ": 14.0,
+        "DriveW_CurrentAmp": 127.73726234789206,
+        "DriveW_Freq": 2000,
         "DriveW_Rs": 1.0,
         "DriveW_poles": 8,
-        "BeariW_zQ": 442.0,
-        "BeariW_CurrentAmp": 0.12434463038007522,
-        "BeariW_Freq": 113.33,
+        "BeariW_zQ": 14.0,
+        "BeariW_CurrentAmp": 6.723013807783793,
+        "BeariW_Freq": 2000,
         "BeariW_Rs": 1.0,
         "BeariW_poles": 10,
         "slot_current_utilizing_ratio": 1.0,
-        "the_speed": 1699.95,
-        "Omega": 178.0183477156656
+        "the_speed": 30000.0,
+        "Omega": 3141.592653589793
     },
-    "output_dir": "C:\\_Codes\\ACMOP\\backend\\_default\\PMSM_Q12p4ps5y1_Heart/",
-    "swarm_data_file": "C:\\_Codes\\ACMOP\\backend\\_default\\PMSM_Q12p4ps5y1_Heart/PMSM Q12p4ps5y1 Heart.json",
-    "select_spec": "PMSM Q12p4ps5y1 Heart",
+    "output_dir": "C:\\_Codes\\ACMOP\\backend\\_default\\PMSM-Q12p4ps5y1-50kW/",
+    "swarm_data_file": "C:\\_Codes\\ACMOP\\backend\\_default\\PMSM-Q12p4ps5y1-50kW/PMSM-Q12p4ps5y1-50kW.json",
+    "select_spec": "PMSM-Q12p4ps5y1-50kW",
     "select_fea_config_dict": "#0213 JMAG Bearingless Sub-hamonics"
 }

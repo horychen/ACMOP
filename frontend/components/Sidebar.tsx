@@ -52,6 +52,12 @@ export function Sidebar({ className }: SidebarProps) {
                 Visualizer
               </Link>
             </Button>
+            <Button variant={pathname === "/design-visualizer" ? "secondary" : "ghost"} className="w-full justify-start" asChild>
+              <Link href="/design-visualizer">
+                <Box className="mr-2 h-4 w-4" />
+                Design Visualizer (New)
+              </Link>
+            </Button>
           </div>
         </div>
 

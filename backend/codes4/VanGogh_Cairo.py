@@ -39,7 +39,7 @@ class VanGogh_Cairo:
     def drawLine(self, p1, p2):
         self.ctx.move_to(p1[0], p1[1])
         self.ctx.line_to(p2[0], p2[1])
-        return []
+        return [{'move_to': (p1[0], p1[1]), 'line_to': (p2[0], p2[1])}]
 
     def drawArc(self, centerxy, startxy, endxy):
 
@@ -54,16 +54,16 @@ class VanGogh_Cairo:
             cos夹角 = -1.0
             logger = logging.getLogger(__name__)
             logger.debug('cos夹角=%s', cos夹角)
-        angle_between = np.arccos(cos夹角)
+        angle_between = math.acos(cos夹角)
 
         radius = math.sqrt(v1.dot(v1))
-        angle_start = np.arctan2(v1[1], v1[0])
+        angle_start = math.atan2(v1[1], v1[0])
         angle_end = angle_start + angle_between
 
         self.ctx.move_to(startxy[0], startxy[1])
         self.ctx.arc(centerxy[0], centerxy[1], radius, angle_start, angle_end)
         # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_end, angle_start)
-        return []
+        return [{'move_to': (centerxy[0], centerxy[1]), 'arc': (radius, angle_start, angle_end)}]
 
     def draw_doubly_salient(self, acm_variant, bool_draw_whole_model=True, bool_show_pdf=False):
         # Rotor Core
@@ -316,10 +316,10 @@ if __name__ == '__main__':
         context.curve_to(x1, y1, x2, y2, x3, y3)
 
         context.move_to(100, 100)
-        context.arc(100, 100, 50, 0, 0.667*np.pi)
+        context.arc(100, 100, 50, 0, 0.667*math.pi)
 
         context.move_to(500, 100)
-        context.arc_negative(500, 100, 50, 0, 0.667*np.pi)
+        context.arc_negative(500, 100, 50, 0, 0.667*math.pi)
 
         # setting color of the context
         context.set_source_rgba(0.4, 1, 0.4, 1)

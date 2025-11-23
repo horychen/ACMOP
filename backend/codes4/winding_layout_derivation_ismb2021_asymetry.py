@@ -95,13 +95,13 @@ def belong_to_band(LB, UB, PHI):
         else:
             return False
 def angular_location(PHI, radius_bias=0):
-    X = (RADIUS+radius_bias) * math.cos(PHI/180*np.pi)
-    Y = (RADIUS+radius_bias) * math.sin(PHI/180*np.pi)
+    X = (RADIUS+radius_bias) * math.cos(PHI/180*math.pi)
+    Y = (RADIUS+radius_bias) * math.sin(PHI/180*math.pi)
     return X, Y
 def phase_angle_of_slot_i_at_frequency_h(slot_number, h, Q):
     # - \alpha_{i,h}^e
     # - fundamental frequency <=> h=p
-    槽距角 = deg_elec_angle_between_adjacent_slots = 2*np.pi * h / Q 
+    槽距角 = deg_elec_angle_between_adjacent_slots = 2*math.pi * h / Q 
     return deg_elec_angle_between_adjacent_slots * (slot_number-1) # 水平向右定义为1号槽
 
 import PyX_Utility
@@ -222,14 +222,14 @@ def draw_connection_star(m, phase_belt, connection_star_raw_dict):
                 else:
                     radius = RADIUS
 
-                # X = (radius) * math.cos(4*factor_reverse/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
-                # Y = (radius) * math.sin(4*factor_reverse/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
-                X = (radius) * math.cos(4/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
-                Y = (radius) * math.sin(4/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
+                # X = (radius) * math.cos(4*factor_reverse/180*math.pi) # (radius, 0)旋转一个小角度（比如4度）
+                # Y = (radius) * math.sin(4*factor_reverse/180*math.pi) # (radius, 0)旋转一个小角度（比如4度）
+                X = (radius) * math.cos(4/180*math.pi) # (radius, 0)旋转一个小角度（比如4度）
+                Y = (radius) * math.sin(4/180*math.pi) # (radius, 0)旋转一个小角度（比如4度）
 
                 # X += -(PHI_ori//360)*distance_between_label_layers # 水平移动
 
-                angle = PHI/180*np.pi
+                angle = PHI/180*math.pi
                 X, Y = X*math.cos(angle) + Y*-math.sin(angle), X*math.sin(angle) + Y*math.cos(angle) # Park Trans.
 
                 u.pyx_text((X,Y), r'\textbf{'+label+'}', scale=0.8) # T2 
@@ -308,10 +308,10 @@ def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequenc
                 else:
                     # Option 2 (looks better)
                     # distance_between_label_layers = 1.25
-                    X = (RADIUS) * math.cos(4*factor_reverse/180*np.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
-                    Y = (RADIUS) * math.sin(4*factor_reverse/180*np.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
+                    X = (RADIUS) * math.cos(4*factor_reverse/180*math.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
+                    Y = (RADIUS) * math.sin(4*factor_reverse/180*math.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
                     X += -(PHI_ori//360)*distance_between_label_layers # 水平移动
-                    angle = PHI/180*np.pi
+                    angle = PHI/180*math.pi
                     X, Y = X*math.cos(angle) + Y*-math.sin(angle), X*math.sin(angle) + Y*math.cos(angle) # Park Trans.
                     u.pyx_text((X,Y), r'\textbf{'+label+'}', scale=1)
 
@@ -328,9 +328,9 @@ def winding_distribution_factor_verPyrhonen(h, Q, p, m=3):
     # This is tested and shown to be wrong. cjh 2022-04-23 with h=1, Q=12, p=4, m=3
 
     # Option 2: Winding distribution factor Pyrhonen@(2.24)
-    # alpha_u = 2*np.pi / Q * h*p # <- should be h*p or *p???
-    alpha_u = 2*np.pi / Q * p # <- should be h*p or *p???
-    # print('#debug', alpha_u/np.pi*180)
+    # alpha_u = 2*math.pi / Q * h*p # <- should be h*p or *p???
+    alpha_u = 2*math.pi / Q * p # <- should be h*p or *p???
+    # print('#debug', alpha_u/math.pi*180)
     q=Q/(2*p*m)
     if q%0 != 0:
         raise Exception('The formula is only valid for integral slot winding.')
@@ -358,7 +358,7 @@ def winding_distribution_factor(Q, connection_star_raw_dict, h, bool_double_laye
             if key in Aa[0]:
                 list_phase_shift += [0]*len(val)
             elif key in Aa[1]:
-                list_phase_shift += [np.pi]*len(val)
+                list_phase_shift += [math.pi]*len(val)
 
     # phasors in DPNV group a/c will be flipped (phase shifted 180^e)
     if phase_Aa_dpnv_grouping_dict is not None:
@@ -369,7 +369,7 @@ def winding_distribution_factor(Q, connection_star_raw_dict, h, bool_double_laye
         for idx, slot_number in enumerate(list_slots_of_a_phase):
             if slot_number in reversed_excitation_upper_layer:
                 # print(slot_number, reversed_excitation_upper_layer)
-                list_phase_shift[idx] += np.pi
+                list_phase_shift[idx] += math.pi
 
     # print(list_slots_of_a_phase)
     if bool_double_layer_winding == True:
@@ -540,16 +540,16 @@ def winding_short_pitch_factor(h, coil_pitch_y, Q, npp):
     y_Q = Q / (2*npp)
 
     # h: harmonic order
-    # k_ph = math.sin(h*npp * coil_pitch_y/y_Q * np.pi*0.5) # if you use this, h*npp = v*npp = n, 此时h=3，是指极对数为3个npp的谐波。
+    # k_ph = math.sin(h*npp * coil_pitch_y/y_Q * math.pi*0.5) # if you use this, h*npp = v*npp = n, 此时h=3，是指极对数为3个npp的谐波。
                                                           # 此时，h的意义是相对于npp这个磁场为三次的谐波磁场，如果npp为2，那么h=3所对应的是气隙中6对极的谐波。
 
-    k_ph = math.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)   # if you use this, h/npp = n,         此时h=3，是指极对数为3的谐波。   <- 这是我们要的，
+    k_ph = math.sin(h/npp * coil_pitch_y/y_Q * math.pi*0.5)   # if you use this, h/npp = n,         此时h=3，是指极对数为3的谐波。   <- 这是我们要的，
                                                           # 我们要计算气隙中某个极对数的谐波所对应分布绕组和短距绕组，并相乘，所以净极对数(h)要对得上。
                                                           # 换句话说，我们要的是h=3次谐波的短距系数，而不是相对于ps为3次的谐波的短距系数。
-    # coil_pitch_y / (Q/2) * np.pi is the short pitch radian for 1 pole pair field 
-    # coil_pitch_y / (Q/4) * np.pi is the short pitch radian for 2 pole pair field
-    # coil_pitch_y / (Q/(2*npp)) * np.pi is the short pitch radian for npp pole pair field
-    # Bb "k_ph = math.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)", you are trying to use the short pitch radian for npp pole pair field to calculate the pitch factor for a h pole pair field.
+    # coil_pitch_y / (Q/2) * math.pi is the short pitch radian for 1 pole pair field 
+    # coil_pitch_y / (Q/4) * math.pi is the short pitch radian for 2 pole pair field
+    # coil_pitch_y / (Q/(2*npp)) * math.pi is the short pitch radian for npp pole pair field
+    # Bb "k_ph = math.sin(h/npp * coil_pitch_y/y_Q * math.pi*0.5)", you are trying to use the short pitch radian for npp pole pair field to calculate the pitch factor for a h pole pair field.
     # That is why you first need to convert the short pitch radian to mechanical radian first (divided Bb npp) and then convert it to h pole pair field's (multiplied Bb h).
 
     # Slack Conversation
@@ -570,20 +570,20 @@ def winding_short_pitch_factor(h, coil_pitch_y, Q, npp):
         # if coil_pitch_y > y_Q:
         #     # 长距
         #     # print('[Warning] Over-pitch winding detected!')
-        #     the_angle = h* 0.5* (-np.pi + coil_pitch_y/y_Q*np.pi)
+        #     the_angle = h* 0.5* (-math.pi + coil_pitch_y/y_Q*math.pi)
         #     k_ph = math.cos(the_angle)
         # elif abs(coil_pitch_y - y_Q)<1e-3: # EPS
         #     k_ph = 1.0
         # else:
         #     # 短距
-        #     the_angle = h* 0.5* (np.pi - coil_pitch_y/y_Q*np.pi)
+        #     the_angle = h* 0.5* (math.pi - coil_pitch_y/y_Q*math.pi)
         #     k_ph = math.cos(the_angle)
-        #     # k_ph = math.sin(h * coil_pitch_y/y_Q * np.pi*0.5) # this is only valid for short pitching
+        #     # k_ph = math.sin(h * coil_pitch_y/y_Q * math.pi*0.5) # this is only valid for short pitching
     return k_ph
 def winding_short_pitch_factor_v2(h, coil_pitch_y, Q):
     y_Q = Q / (2) 
-    k_ph = math.sin(h * coil_pitch_y/y_Q * np.pi*0.5)
-    # Here, coil_pitch_y/y_Q * np.pi is the short pitch radian (elec.) for 1 pole pair field
+    k_ph = math.sin(h * coil_pitch_y/y_Q * math.pi*0.5)
+    # Here, coil_pitch_y/y_Q * math.pi is the short pitch radian (elec.) for 1 pole pair field
     return k_ph
 
 import pyx
@@ -830,15 +830,15 @@ class Winding_Derivation(object):
             absolute harminic index h = v*p, with v the relative harmonic index w.r.t. p.
         '''
 
-        alpha_u = 2*np.pi / Q *p
+        alpha_u = 2*math.pi / Q *p
 
         # print(v, p, alpha_u, coil_pitch_y)
         gamma =            coil_pitch_y*alpha_u/p
         radii = math.sin(v*p*coil_pitch_y*alpha_u/p/2)
-        print(f'Coil span [mech.deg] = {gamma/np.pi*180} | [elec.deg] = {v*p*gamma / np.pi*180}', end=' | ')
+        print(f'Coil span [mech.deg] = {gamma/math.pi*180} | [elec.deg] = {v*p*gamma / math.pi*180}', end=' | ')
         # print('\t radii:', radii)
-        ELS_angles = -0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
-        CJH_angles =  0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
+        ELS_angles = -0.5*math.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
+        CJH_angles =  0.5*math.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
         ELS_pitch_factor_per_coil = radii * np.exp(1j*ELS_angles)
         CJH_pitch_factor_per_coil = radii * np.exp(1j*CJH_angles)
         return ELS_pitch_factor_per_coil, CJH_pitch_factor_per_coil
@@ -855,25 +855,25 @@ class Winding_Derivation(object):
             kp_cjh_list.append(cjh)
 
             print(f'\tkp@Coil+{i:02d}', end='\t|\t')
-            # print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*1), end='\t|\t')
-            print(  'cjh = %.3f∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*1))
+            # print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/math.pi*180*1), end='\t|\t')
+            print(  'cjh = %.3f∠%.1f' % (np.abs(cjh), np.angle(cjh)/math.pi*180*1))
 
         for i in negative_connected_coils:
             els, cjh = self.get_complex_number_winding_factor_of_coil_i(i, self.coil_pitch_y, Q=self.Q, v=v, p=p)
             # this is pitch factor of coil in negative zone
-            els *= -1 # np.abs(els) * np.exp(1j*(np.angle(els)*1+np.pi)/p)
-            cjh *= -1 # np.abs(cjh) * np.exp(1j*(np.angle(cjh)*1+np.pi)/p)
+            els *= -1 # np.abs(els) * np.exp(1j*(np.angle(els)*1+math.pi)/p)
+            cjh *= -1 # np.abs(cjh) * np.exp(1j*(np.angle(cjh)*1+math.pi)/p)
             kp_els_list.append(els)
             kp_cjh_list.append(cjh)
 
             print(f'\tkp@Coil-{i:02d}', end='\t|\t')
-            # print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*1), end='\t|\t')
-            print(  'cjh = %.3f∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*1))
+            # print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/math.pi*180*1), end='\t|\t')
+            print(  'cjh = %.3f∠%.1f' % (np.abs(cjh), np.angle(cjh)/math.pi*180*1))
 
         ''' When you sum up the vectors, they must be first converted to using elec.rad by multiplying the angle by p pole pairs.
         '''
         average = lambda x: np.sum(x)/len(x)
-        # print([np.angle(el)/np.pi*180 for el in kp_els_list])
+        # print([np.angle(el)/math.pi*180 for el in kp_els_list])
         # quit()
         _kw_els = average(kp_els_list)
         _kw_cjh = average(kp_cjh_list)
@@ -915,10 +915,10 @@ class Winding_Derivation(object):
             dict_kw_cjh[f'{ZONE}'] = _kw_cjh
             dict_kw_els[f'{ZONE}_abs'] = np.abs(_kw_els)
             dict_kw_cjh[f'{ZONE}_abs'] = np.abs(_kw_cjh)
-            dict_kw_els[f'{ZONE}_angle'] = np.angle(_kw_els)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-            dict_kw_cjh[f'{ZONE}_angle'] = np.angle(_kw_cjh)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-            # print('kw(els)=', _kw_els, '=', f'{np.abs(_kw_els)}∠{np.angle(_kw_els)/np.pi*180}')
-            print('kw(cjh)=', _kw_cjh, '=', f'{np.abs(_kw_cjh):.3f}∠{np.angle(_kw_cjh)/np.pi*180:.1f}')
+            dict_kw_els[f'{ZONE}_angle'] = np.angle(_kw_els)/math.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+            dict_kw_cjh[f'{ZONE}_angle'] = np.angle(_kw_cjh)/math.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+            # print('kw(els)=', _kw_els, '=', f'{np.abs(_kw_els)}∠{np.angle(_kw_els)/math.pi*180}')
+            print('kw(cjh)=', _kw_cjh, '=', f'{np.abs(_kw_cjh):.3f}∠{np.angle(_kw_cjh)/math.pi*180:.1f}')
 
         self.SIict_kw_els = dict_kw_els
         self.SIict_kw_cjh = dict_kw_cjh
@@ -1569,7 +1569,7 @@ class winding_diagram:
                                         ctx.stroke()
 
                                         ctx.set_dash([1, 0])
-                                        ctx.arc(    XTerminal,           1.0 + NINE + CANVAS_OFFSET, 0.2, 0, 2*np.pi)
+                                        ctx.arc(    XTerminal,           1.0 + NINE + CANVAS_OFFSET, 0.2, 0, 2*math.pi)
                                         ctx.rel_move_to(0, 0.5)
                                         ctx.show_text(f'{phase.lower()}{grp}{"+"}')
                                         ctx.stroke()
@@ -1587,7 +1587,7 @@ class winding_diagram:
                                         ctx.stroke()
 
                                         ctx.set_dash([1, 0])
-                                        ctx.arc(    XTerminal,           1.0 + NINE + CANVAS_OFFSET, 0.2, 0, 2*np.pi)
+                                        ctx.arc(    XTerminal,           1.0 + NINE + CANVAS_OFFSET, 0.2, 0, 2*math.pi)
                                         ctx.rel_move_to(0, 0.5)
                                         ctx.show_text(f'{phase.lower()}{grp}{"-"}')
                                         ctx.stroke()

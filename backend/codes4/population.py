@@ -6,6 +6,7 @@ def print(*arg, **kwarg):
 # execfile(r'D:\Users\horyc\OneDrive - UW-Madison\ec_rotate.py') # , {'__name__': 'load'})
 
 from math import cos, sin, pi
+import math
 import csv
 import logging
 import numpy as np  # for de
@@ -2851,7 +2852,7 @@ class bearingless_induction_motor_design(object):
 
 
         if self.fea_config_dict is not None:
-            self.SIict_coil_connection = {'layer X phases': self.wily.layer_X_phases, 'layer X signs':self.wily.layer_X_signs,           # 这里的命名规则是按照seprate winding的情况来的。
+            self.dict_coil_connection = {'layer X phases': self.wily.layer_X_phases, 'layer X signs':self.wily.layer_X_signs,           # 这里的命名规则是按照seprate winding的情况来的。
                                          'layer Y phases': self.wily.layer_Y_phases, 'layer Y signs':self.wily.layer_Y_signs}   # 这里的命名规则是按照seprate winding的情况来的。
 
         #06 Meshing & Solver Properties
@@ -2980,7 +2981,7 @@ class bearingless_induction_motor_design(object):
             x_denorm = [None]*8
             x_denorm[0] = self.spec_geometry_dict['Length_AirGap']
             x_denorm[1] = self.spec_geometry_dict['Width_StatorTeethBody']
-            x_denorm[2] = ( 2*np.pi*(self.Radius_OuterRotor - self.spec_geometry_dict['Length_HeadNeckRotorSlot'])  - self.Radius_of_RotorSlot * (2*self.Qr+2*np.pi) ) / self.Qr # self.spec_geometry_dict['rotor_tooth_width_b_dr']*1e3 # Radius_of_RotorSlot = 1e3 * (2*pi*(im.Radius_OuterRotor - Length_HeadNeckRotorSlot)*1e-3 - rotor_tooth_width_b_dr*im.Qr) / (2*im.Qr+2*pi)
+            x_denorm[2] = ( 2*math.pi*(self.Radius_OuterRotor - self.spec_geometry_dict['Length_HeadNeckRotorSlot'])  - self.Radius_of_RotorSlot * (2*self.Qr+2*math.pi) ) / self.Qr # self.spec_geometry_dict['rotor_tooth_width_b_dr']*1e3 # Radius_of_RotorSlot = 1e3 * (2*pi*(im.Radius_OuterRotor - Length_HeadNeckRotorSlot)*1e-3 - rotor_tooth_width_b_dr*im.Qr) / (2*im.Qr+2*pi)
             x_denorm[3] = self.spec_geometry_dict['Angle_StatorSlotOpen']
             x_denorm[4] = self.spec_geometry_dict['Width_RotorSlotOpen']
             x_denorm[5] = self.spec_geometry_dict['Width_StatorTeethHeadThickness']
@@ -3311,9 +3312,9 @@ class bearingless_induction_motor_design(object):
 
     def get_rotor_volume(self, stack_length=None):
         if stack_length is None:
-            return np.pi*(self.Radius_OuterRotor*1e-3)**2 * (self.stack_length*1e-3)
+            return math.pi*(self.Radius_OuterRotor*1e-3)**2 * (self.stack_length*1e-3)
         else:
-            return np.pi*(self.Radius_OuterRotor*1e-3)**2 * (stack_length*1e-3)
+            return math.pi*(self.Radius_OuterRotor*1e-3)**2 * (stack_length*1e-3)
 
     def get_rotor_weight(self, gravity=9.8, stack_length=None):
         material_density_rho = get_material_data()[0]
@@ -4078,11 +4079,11 @@ class bearingless_induction_motor_design(object):
                     condition = study.GetCondition(which_phase)
                     condition.RemoveSubCondition("delete")
             link_FEMCoils_2_CoilSet('Torque',
-                                    self.SIict_coil_connection['layer X phases'], 
-                                    self.SIict_coil_connection['layer X signs'])  
+                                    self.dict_coil_connection['layer X phases'], 
+                                    self.dict_coil_connection['layer X signs'])  
             link_FEMCoils_2_CoilSet('Suspension', 
-                                    self.SIict_coil_connection['layer Y phases'], 
-                                    self.SIict_coil_connection['layer Y signs'])  
+                                    self.dict_coil_connection['layer Y phases'], 
+                                    self.dict_coil_connection['layer Y signs'])  
         else: # DPNV Winding
             # 两个改变，一个是激励大小的改变（本来是200A 和 5A，现在是205A和195A），
             # 另一个绕组分组的改变，现在的A相是上层加下层为一相，以前是用俩单层绕组等效的。
@@ -4102,7 +4103,7 @@ class bearingless_induction_motor_design(object):
             count = 0 # count indicates which slot the current rightlayer is in.
             index = 0
             dict_dir = {'+':1, '-':0}
-            coil_pitch = self.wily.coil_pitch_y #self.SIict_coil_connection[0]
+            coil_pitch = self.wily.coil_pitch_y #self.dict_coil_connection[0]
             # select the part (via `Set') to assign the FEM Coil condition
             for UVW, UpDown in zip(self.wily.layer_X_phases, self.wily.layer_X_signs):
 

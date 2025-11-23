@@ -155,7 +155,7 @@ class Swarm_Data_Analyzer(object):
         # self.l_original_rotor_weight                = [weight/rated*ori for weight, rated, ori in zip(self.l_rated_rotor_weight, self.l_rated_stack_length, self.l_original_stack_length)]
 
         # TODO: change to EX['mec_power'] and EX['the_speed']
-        # required_torque = 50e3 / (30000/60*2*np.pi)         # TODO: should use rated stack length and torque average to compute this
+        # required_torque = 50e3 / (30000/60*2*math.pi)         # TODO: should use rated stack length and torque average to compute this
         # self.l_TRV = [required_torque/raw for raw in self.l_rated_rotor_volume]
         # self.l_FRW = [F/W for W, F in zip(self.l_original_rotor_weight, self.l_ss_avg_force_magnitude)] # FRW
         pass
@@ -454,7 +454,7 @@ class swarm_data_container(object):
         self.l_original_rotor_weight                = [weight/rated*ori for weight, rated, ori in zip(self.l_rated_rotor_weight, self.l_rated_stack_length, self.l_original_stack_length)]
 
         # TODO: change to EX['mec_power'] and EX['the_speed']
-        required_torque = 50e3 / (30000/60*2*np.pi)         # TODO: should use rated stack length and torque average to compute this
+        required_torque = 50e3 / (30000/60*2*math.pi)         # TODO: should use rated stack length and torque average to compute this
         self.l_TRV = [required_torque/raw for raw in self.l_rated_rotor_volume]
         self.l_FRW = [F/W for W, F in zip(self.l_original_rotor_weight, self.l_ss_avg_force_magnitude)] # FRW
 
@@ -1238,7 +1238,7 @@ class acm_designer(object):
                 electrical_period = acm_variant.template.fea_config_dict['designer.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
                 number_of_steps   = acm_variant.template.fea_config_dict['designer.number_of_steps_2ndTSS']
                 step_size_sec = electrical_period / number_of_steps
-                step_size_mech_deg = EX['Omega'] * step_size_sec / np.pi * 180
+                step_size_mech_deg = EX['Omega'] * step_size_sec / math.pi * 180
 
                 for index in range(-self.toolJd.dm.number_of_steps_at_steady_state, 0):
                     time                         = float(time_list[index])
@@ -2006,8 +2006,8 @@ class acm_designer(object):
                 study.GetStep().SetTableProperty("Division", DM.GetDataSet("SectionStepTable"))
 
             # static FEA solver with FEMM (need eddy current FEA results)
-            # print('::', im_variant.Omega, im_variant.Omega/2/np.pi)
-            # print('::', femm_solver.im.Omega, femm_solver.im.Omega/2/np.pi)
+            # print('::', im_variant.Omega, im_variant.Omega/2/math.pi)
+            # print('::', femm_solver.im.Omega, femm_solver.im.Omega/2/math.pi)
             # quit()
             # rotating_static_FEA()
 

@@ -2,10 +2,10 @@
     "ClosedStatorPMSM Q12p5ps4y1 Spindle": {
         "machine_type": "ClosedStatorPMSM",
         "DPNV_or_SEPA": true,
-        "m":   3,
+        "m": 3,
         "Qs": 12,
-        "p":   5,
-        "ps":  4,
+        "p": 5,
+        "ps": 4,
         "coil_pitch_y": 1,
         "mec_power": 6,
         "guess_air_gap_flux_density_Bg": 0.9,
@@ -41,60 +41,186 @@
             "end_winding_length_factor_kov": 1.8
         },
         "GP-user": {
-            "mm_r_so":{
-                "type":   "fixed",
-                "value":  6.5,
-                "bounds": null},
-            "split_ratio":{
+            "mm_r_so": {
+                "type": "fixed",
+                "value": 6.5,
+                "bounds": null
+            },
+            "split_ratio": {
                 "type": "free",
                 "value": 0.615,
-                "bounds": [0.3,0.7]},
-            "mm_d_stt":{
-                "type":   "free",
-                "value":  0.75,
-                "bounds": [0.5,1.5]},
-            "mm_d_pm":{
-                "type":   "free",
-                "value":  2,
-                "bounds": [1,3]},
-            "mm_w_st":{
+                "bounds": [
+                    0.3,
+                    0.7
+                ]
+            },
+            "mm_d_stt": {
+                "type": "free",
+                "value": 0.75,
+                "bounds": [
+                    0.5,
+                    1.5
+                ]
+            },
+            "mm_d_pm": {
+                "type": "free",
+                "value": 2,
+                "bounds": [
+                    1,
+                    3
+                ]
+            },
+            "mm_w_st": {
                 "type": "free",
                 "value": null,
-                "bounds": null},
-            "mm_d_sy":{
-                "type":   "free",
-                "value":  null,
-                "bounds": null},
-            "mm_d_mech_air_gap":{
-                "type":   "fixed",
-                "value":  0.10,
-                "bounds": null},
-            "mm_d_sleeve":{
-                "type":   "fixed",
-                "value":  0.05,
-                "bounds": null},
-            "mm_r_ri":{
-                "type":   "fixed",
-                "value":  0.25,
-                "bounds": null},
-            "mm_d_st":{
-                "type":   "derived",
-                "value":  null,
-                "bounds": null},
-            "mm_d_ri":{
-                "type":   "derived",
-                "value":  null,
-                "bounds": null}
+                "bounds": null
+            },
+            "mm_d_sy": {
+                "type": "free",
+                "value": null,
+                "bounds": null
+            },
+            "mm_d_mech_air_gap": {
+                "type": "fixed",
+                "value": 0.10,
+                "bounds": null
+            },
+            "mm_d_sleeve": {
+                "type": "fixed",
+                "value": 0.05,
+                "bounds": null
+            },
+            "mm_r_ri": {
+                "type": "fixed",
+                "value": 0.25,
+                "bounds": null
+            },
+            "mm_d_st": {
+                "type": "derived",
+                "value": null,
+                "bounds": null
+            },
+            "mm_d_ri": {
+                "type": "derived",
+                "value": null,
+                "bounds": null
+            }
         }
     },
-
+    "PMSM-Q12p4ps5y1-50kW": {
+        "machine_type": "PMSM",
+        "DPNV_or_SEPA": true,
+        "m": 3,
+        "Qs": 12,
+        "p": 4,
+        "ps": 5,
+        "coil_pitch_y": 1,
+        "no_segmented_magnets": 1,
+        "mec_power": 50000,
+        "guess_air_gap_flux_density_Bg": 0.9,
+        "guess_stator_tooth_flux_density_Bst": 1.5,
+        "guess_stator_yoke_flux_density_Bsy": 1.2,
+        "guess_efficiency": 0.94,
+        "guess_power_factor": 0.85,
+        "safety_factor_to_yield": null,
+        "safety_factor_to_critical_speed": 1.0,
+        "bool_skew_stator": false,
+        "bool_skew_rotor": false,
+        "GeometricComponentsObjects": {
+            "rotorCore": null,
+            "shaft": null,
+            "rotorMagnet": null,
+            "sleeve": null,
+            "statorCore": null,
+            "coils": null
+        },
+        "EX-user": {
+            "ExcitationFreqSimulated": 2000,
+            "VoltageRating": 400,
+            "mm_stack_length": 50,
+            "Steel": "M19Gauge29",
+            "lamination_stacking_factor_kFe": 0.95,
+            "Coil": "Cu",
+            "Js": 4e6,
+            "Temperature": 75,
+            "WindingFill": 0.3882,
+            "AWG": 26,
+            "end_winding_length_factor_kov": 1.8
+        },
+        "GP-user": {
+            "mm_r_so": {
+                "type": "fixed",
+                "value": 125,
+                "bounds": null
+            },
+            "split_ratio": {
+                "type": "free",
+                "value": 0.70,
+                "bounds": [
+                    0.3,
+                    0.7
+                ]
+            },
+            "mm_d_stt": {
+                "type": "free",
+                "value": 1.5,
+                "bounds": [
+                    0.75,
+                    3.5
+                ]
+            },
+            "mm_d_pm": {
+                "type": "free",
+                "value": 2,
+                "bounds": [
+                    1,
+                    4
+                ]
+            },
+            "mm_w_st": {
+                "type": "free",
+                "value": null,
+                "bounds": null
+            },
+            "mm_d_sy": {
+                "type": "free",
+                "value": null,
+                "bounds": null
+            },
+            "mm_d_mech_air_gap": {
+                "type": "fixed",
+                "value": 0.5,
+                "bounds": null
+            },
+            "mm_d_sleeve": {
+                "type": "fixed",
+                "value": 1.0,
+                "bounds": null
+            },
+            "mm_r_ri": {
+                "type": "fixed",
+                "value": 15,
+                "bounds": null
+            },
+            "mm_d_st": {
+                "type": "derived",
+                "value": null,
+                "bounds": null
+            },
+            "mm_d_ri": {
+                "type": "derived",
+                "value": null,
+                "bounds": null
+            }
+        }
+    },
     "PMSM Q12p4ps5y1 Heart": {
         "machine_type": "PMSM",
         "DPNV_or_SEPA": true,
-        "m":   3,
+        "m": 3,
         "Qs": 12,
-        "p":   4,
-        "ps":  5,
+        "p": 4,
+        "ps": 5,
         "coil_pitch_y": 1,
         "no_segmented_magnets": 1,
         "mec_power": 75,
@@ -129,53 +255,70 @@
             "end_winding_length_factor_kov": 1.8
         },
         "GP-user": {
-            "mm_r_so":{
-                "type":   "fixed",
-                "value":  25,
-                "bounds": null},
-            "split_ratio":{
+            "mm_r_so": {
+                "type": "fixed",
+                "value": 25,
+                "bounds": null
+            },
+            "split_ratio": {
                 "type": "free",
                 "value": 0.70,
-                "bounds": [0.3,0.7]},
-            "mm_d_stt":{
-                "type":   "free",
-                "value":  0.75,
-                "bounds": [0.5,1.5]},
-            "mm_d_pm":{
-                "type":   "free",
-                "value":  2,
-                "bounds": [1,3]},
-            "mm_w_st":{
+                "bounds": [
+                    0.3,
+                    0.7
+                ]
+            },
+            "mm_d_stt": {
+                "type": "free",
+                "value": 0.75,
+                "bounds": [
+                    0.5,
+                    1.5
+                ]
+            },
+            "mm_d_pm": {
+                "type": "free",
+                "value": 2,
+                "bounds": [
+                    1,
+                    3
+                ]
+            },
+            "mm_w_st": {
                 "type": "free",
                 "value": null,
-                "bounds": null},
-            "mm_d_sy":{
-                "type":   "free",
-                "value":  null,
-                "bounds": null},
-            "mm_d_mech_air_gap":{
-                "type":   "fixed",
-                "value":  0.5,
-                "bounds": null},
-            "mm_d_sleeve":{
-                "type":   "fixed",
-                "value":  1.0,
-                "bounds": null},
-            "mm_r_ri":{
-                "type":   "fixed",
-                "value":  15,
-                "bounds": null},
-            "mm_d_st":{
-                "type":   "derived",
-                "value":  null,
-                "bounds": null},
-            "mm_d_ri":{
-                "type":   "derived",
-                "value":  null,
-                "bounds": null}
+                "bounds": null
+            },
+            "mm_d_sy": {
+                "type": "free",
+                "value": null,
+                "bounds": null
+            },
+            "mm_d_mech_air_gap": {
+                "type": "fixed",
+                "value": 0.5,
+                "bounds": null
+            },
+            "mm_d_sleeve": {
+                "type": "fixed",
+                "value": 1.0,
+                "bounds": null
+            },
+            "mm_r_ri": {
+                "type": "fixed",
+                "value": 5,
+                "bounds": null
+            },
+            "mm_d_st": {
+                "type": "derived",
+                "value": null,
+                "bounds": null
+            },
+            "mm_d_ri": {
+                "type": "derived",
+                "value": null,
+                "bounds": null
+            }
         }
-
     }
-
 }
-

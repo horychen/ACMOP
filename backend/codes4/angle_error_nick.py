@@ -40,12 +40,12 @@ def angle_error(alpha_star, alpha_actual):
     vectors = np.zeros((N,2))
     
     #unit vectors for desired angle
-    vectors_star[:,0] = math.cos( np.deg2rad(alpha_star) )
-    vectors_star[:,1] = math.sin( np.deg2rad(alpha_star) )
+    vectors_star[:,0] = np.cos( np.deg2rad(alpha_star) )
+    vectors_star[:,1] = np.sin( np.deg2rad(alpha_star) )
     
     #unit vectors for actual angle
-    vectors[:,0] = math.cos( np.deg2rad(alpha_actual) )
-    vectors[:,1] = math.sin( np.deg2rad(alpha_actual) )
+    vectors[:,0] = np.cos( np.deg2rad(alpha_actual) )
+    vectors[:,1] = np.sin( np.deg2rad(alpha_actual) )
     
     #determine angle between vectors in degrees (note that this is only the angle magnitude):
     #This is just doing the dot product between all corresponding unit vectors
@@ -70,11 +70,11 @@ def compute_angle_error(alpha_star, alpha_actual):
     vectors =      np.zeros((N,2))
     
     #unit vectors for desired angle
-    vectors_star[:,0] = math.cos( np.deg2rad(alpha_star) )
-    vectors_star[:,1] = math.sin( np.deg2rad(alpha_star) )
+    vectors_star[:,0] = np.cos( np.deg2rad(alpha_star) )
+    vectors_star[:,1] = np.sin( np.deg2rad(alpha_star) )
     #unit vectors for actual angle
-    vectors[:,0] = math.cos( np.deg2rad(alpha_actual) )
-    vectors[:,1] = math.sin( np.deg2rad(alpha_actual) )
+    vectors[:,0] = np.cos( np.deg2rad(alpha_actual) )
+    vectors[:,1] = np.sin( np.deg2rad(alpha_actual) )
     
     #determine angle between vectors in degrees (note that this is only the angle magnitude):
     #This is just doing the cross product between all corresponding unit vectors

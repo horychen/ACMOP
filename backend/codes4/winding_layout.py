@@ -1041,7 +1041,7 @@ class winding_layout_v2(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         try: 
             self.coil_pitch_y
-            self.SIistributed_or_concentrated = False if abs(self.coil_pitch_y) == 1 else True
+            self.distributed_or_concentrated = False if abs(self.coil_pitch_y) == 1 else True
 
             # below is valid for PMSM only
 
@@ -1128,7 +1128,7 @@ class winding_layout_v2(object):
 
 
         # 这是实际在pre_procee中调用的字典
-        self.SIict_coil_connection = {'layer X phases': self.layer_X_phases, 'layer X signs':self.layer_X_signs,   # 这里的命名规则是按照seprate winding的情况来的。
+        self.dict_coil_connection = {'layer X phases': self.layer_X_phases, 'layer X signs':self.layer_X_signs,   # 这里的命名规则是按照seprate winding的情况来的。
                                      'layer Y phases': self.layer_Y_phases, 'layer Y signs':self.layer_Y_signs}   # 这里的命名规则是按照seprate winding的情况来的。
 
 
@@ -1280,11 +1280,11 @@ def nextpow2(L):
 def periodic2pi(x):
     # make x periodic positive
     while(x<0):
-        x += 2*np.pi
+        x += 2*math.pi
 
     # make it within 2*pi
-    if int(x / (2*np.pi)) != 0:
-        x = x % (2*np.pi)
+    if int(x / (2*math.pi)) != 0:
+        x = x % (2*math.pi)
 
     return x
 
@@ -1322,14 +1322,14 @@ class PhaseWinding:
         self.slot_per_phase = Qs / m # Only upper layer counts for one slot.
         self.turns_per_slot = turns_per_slot
         self.degree_between_slots = 360.0 / Qs # mechanical deg.
-        self.radian_between_slots = self.degree_between_slots / 180.0 * np.pi # mechanical rad.
+        self.radian_between_slots = self.degree_between_slots / 180.0 * math.pi # mechanical rad.
         self.ox_distribution_phase_U = ox_distribution_phase_U
         print(self.ox_distribution_phase_U)
 
         # turn function 
         self.setTurnFuncObject(self.ox_distribution_phase_U) # define self.turn_func
         # <turn function> defined by Lipo 2012
-        self.avg_val_of_turn_func = integrate.quad(self.turn_func, 0, 2*np.pi)[0] / (2*np.pi) # [1] is error of integration
+        self.avg_val_of_turn_func = integrate.quad(self.turn_func, 0, 2*math.pi)[0] / (2*math.pi) # [1] is error of integration
         # winding function
         self.winding_func = lambda x: self.turn_func(x)-self.avg_val_of_turn_func
 
@@ -1390,7 +1390,7 @@ class PhaseWinding:
         self.sym_begin_pos_2 = self.lst_x[index] + (self.lst_x[index+1] - self.lst_x[index]) / 2.
 
         # symmetrical pos_1
-        self.sym_begin_pos_1 = self.sym_begin_pos_2 + np.pi
+        self.sym_begin_pos_1 = self.sym_begin_pos_2 + math.pi
 
         if index == 1:
             self.sym_begin_pos = self.sym_begin_pos_1
@@ -1406,7 +1406,7 @@ class PhaseWinding:
             that is because you set too small Fs, which leads to
             to big step Ts.
         '''
-        base_freq = 1.0/(2*np.pi) #频域横坐标除以基频，即以基频为单位，此处的基频为 2*pi rad/s
+        base_freq = 1.0/(2*math.pi) #频域横坐标除以基频，即以基频为单位，此处的基频为 2*pi rad/s
         Ts = 1.0/Fs
         t = [el*Ts for el in range(0,L)]
         x = [func(el) for el in t]
@@ -1423,7 +1423,7 @@ class PhaseWinding:
             # print('\t', f, Y)
 
 
-        L_4pi = int(4*np.pi / Ts) +1 # 画前两个周期的
+        L_4pi = int(4*math.pi / Ts) +1 # 画前两个周期的
         
         self.fig_plot2piFft = plt.figure(7)
         plt.subplot(211)
@@ -1452,9 +1452,9 @@ class PhaseWinding:
         # plt.show()
 
     def plotFuncObj(self, func):
-        x = np.arange(0, 2*np.pi, 0.5/180*np.pi)
+        x = np.arange(0, 2*math.pi, 0.5/180*math.pi)
         y = [func(el) for el in x]
-        x = [el/np.pi for el in x] # x for plot. unit is pi
+        x = [el/math.pi for el in x] # x for plot. unit is pi
         
         self.fig_plotFuncObj = plt.figure()
         ax = plt.subplot(111) #注意:一般都在ax中设置,不在plot中设置
@@ -1488,7 +1488,7 @@ if __name__ == '__main__':
     turns_per_layer = zQ / wily.number_winding_layer
     U_phase = PhaseWinding(wily.Qs, wily.m, turns_per_layer, wily.ox_distribution_phase_U)
     U_phase.plotFuncObj(U_phase.winding_func)
-    U_phase.plot2piFft(U_phase.winding_func, Fs=1/(2*np.pi/3600), L=65536*2**4) # 采样频率：在2pi的周期内取720个点
+    U_phase.plot2piFft(U_phase.winding_func, Fs=1/(2*math.pi/3600), L=65536*2**4) # 采样频率：在2pi的周期内取720个点
 
 
     plt.show()
@@ -1748,7 +1748,7 @@ class winding_layout(object):
 
         try: 
             self.coil_pitch
-            self.SIistributed_or_concentrated = False if abs(self.coil_pitch) == 1 else True
+            self.distributed_or_concentrated = False if abs(self.coil_pitch) == 1 else True
         except:
             raise Exception('Error: Not implemented for this winding.')
 

@@ -107,7 +107,7 @@ class bearingless_spmsm_closedStator_template(inner_rotor_motor.template_machine
         # yoke_split_ratio = [0.2, 0.45]
         GP['mm_d_sy'].bounds = [el * (GP['mm_r_so'].value - GP['mm_r_si'].value) for el in [0.2, 0.45]]
         # tooth_split_ratio_at_middle_slot = [0.25, 0.50]
-        GP['mm_w_st'].bounds = [el / Q * np.pi * (GP['mm_r_so'].value + GP['mm_r_si'].value) for el in [0.25, 0.50]]
+        GP['mm_w_st'].bounds = [el / Q * math.pi * (GP['mm_r_so'].value + GP['mm_r_si'].value) for el in [0.25, 0.50]]
 
     """ Obsolete feature """
     def build_design_parameters_list(self):

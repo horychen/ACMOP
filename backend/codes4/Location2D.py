@@ -5,7 +5,7 @@ class Location2D(object):
 
         self.anchor_xy = anchor_xy  #Distance from global origin xy coordinate to component's origin xy coordinate
         
-        self.theta = deg_theta * np.pi/180  # Angles about global xy axes to 
+        self.theta = deg_theta * math.pi/180  # Angles about global xy axes to 
                                             # rotate component's xy axes in radians
 
     def transformCoords(self, points, deg_addTheta=0):
@@ -19,8 +19,8 @@ class Location2D(object):
         for point in points:
 
             # 旋转方向和eMach是反一下的，我是Park变换。
-            cosT = math.cos( self.theta + (deg_addTheta*np.pi/180) )
-            sinT = math.sin( self.theta + (deg_addTheta*np.pi/180) )
+            cosT = math.cos( self.theta + (deg_addTheta*math.pi/180) )
+            sinT = math.sin( self.theta + (deg_addTheta*math.pi/180) )
             
             transCoords.append( [ points[0]*cosT + points[1]*sinT, 
                                   points[0]*-sinT + points[1]*cosT ] )

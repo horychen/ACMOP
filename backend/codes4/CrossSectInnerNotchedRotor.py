@@ -71,18 +71,18 @@ class CrossSectInnerNotchedRotor(object):
     def _calculate_points(self):
         """Calculate all point coordinates based on the geometric parameters."""
         mm_d_pm  = self.mm_d_pm
-        alpha_rm = self.deg_alpha_rm * np.pi/180
-        alpha_rs = self.deg_alpha_rs * np.pi/180
+        alpha_rm = self.deg_alpha_rm * math.pi/180
+        alpha_rs = self.deg_alpha_rs * math.pi/180
         r_ri     = self.mm_r_ri
         d_ri     = self.mm_d_ri
         d_rp     = self.mm_d_rp
         d_rs     = self.mm_d_rs
         p        = self.p
         s        = self.s
-        alpha_rp = 2*np.pi/(2*p) # pole span
+        alpha_rp = 2*math.pi/(2*p) # pole span
 
         # Adjust alpha_rm if it's too close to alpha_rp
-        if abs(alpha_rp - alpha_rm) <= 2 * np.pi/180:
+        if abs(alpha_rp - alpha_rm) <= 2 * math.pi/180:
             alpha_rm = alpha_rp
             if s == 1:
                 alpha_rs = alpha_rm
@@ -164,7 +164,7 @@ class CrossSectInnerNotchedRotor(object):
             if alpha_rm >= alpha_rp*0.9800:
                 logger = logging.getLogger(__name__)
                 logger.info('Non-NOTCHED ROTOR IS USED.')
-                logger.info('alpha_P5 is %s, %s deg', self.alpha_P5, self.alpha_P5/np.pi*180)
+                logger.info('alpha_P5 is %s, %s deg', self.alpha_P5, self.alpha_P5/math.pi*180)
                 if bool_draw_whole_model:
                     list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
                     list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1)
@@ -255,6 +255,7 @@ class CrossSectInnerNotchedRotor(object):
 
         innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))
 
+        self.list_region=[list_segments]
         return {'innerCoord': innerCoord, 'list_regions':[list_segments], 'mirrorAxis': None}
 
 class CrossSectInnerNotchedMagnet(object):
@@ -273,15 +274,15 @@ class CrossSectInnerNotchedMagnet(object):
     def _calculate_points(self):
         """Calculate all point coordinates based on the notched_rotor."""
         d_pm     = self.notched_rotor.mm_d_pm
-        alpha_rm = self.notched_rotor.deg_alpha_rm * np.pi/180
-        alpha_rs = self.notched_rotor.deg_alpha_rs * np.pi/180
+        alpha_rm = self.notched_rotor.deg_alpha_rm * math.pi/180
+        alpha_rs = self.notched_rotor.deg_alpha_rs * math.pi/180
         r_ri     = self.notched_rotor.mm_r_ri
         d_ri     = self.notched_rotor.mm_d_ri
         d_rp     = self.notched_rotor.mm_d_rp
         d_rs     = self.notched_rotor.mm_d_rs
         p        = self.notched_rotor.p
         s        = self.notched_rotor.s
-        alpha_rp = 2*np.pi/(2*p) # pole span
+        alpha_rp = 2*math.pi/(2*p) # pole span
 
         # rotor inter-pole notch being too small
         if alpha_rm >= alpha_rp*0.9800:
@@ -289,7 +290,7 @@ class CrossSectInnerNotchedMagnet(object):
             logger.info('FULL POLE PITCH MAGNET IS USED.')
             alpha_rm = alpha_rp
 
-        if abs(alpha_rp - alpha_rm) <= 2 * np.pi/180:
+        if abs(alpha_rp - alpha_rm) <= 2 * math.pi/180:
             alpha_rm = alpha_rp
             if s == 1:
                 alpha_rs = alpha_rm
@@ -327,7 +328,7 @@ class CrossSectInnerNotchedMagnet(object):
 
         Rout = r_P4+d_pm
         Rin  = r_P4
-        self.mm2_magnet_area = alpha_rm/alpha_rp  *  np.pi*(Rout**2 - Rin**2)
+        self.mm2_magnet_area = alpha_rm/alpha_rp  *  math.pi*(Rout**2 - Rin**2)
         logger = logging.getLogger(__name__)
         logger.info('Magnet area in total is %g mm^2', self.mm2_magnet_area)
 
@@ -412,6 +413,7 @@ class CrossSectInnerNotchedMagnet(object):
             list_segments = []
 
         innerCoord = ( 0.5*(P4[0]+P6_extra[0]), 0.5*(P4[1]+P6_extra[1]))
+        self.list_region = list_regions
         return {'innerCoord': innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
 
 class CrossSectSleeve(object):
@@ -442,10 +444,10 @@ class CrossSectSleeve(object):
         self.P1 = [r_or, 0]
         self.P2 = [r_or+d_sleeve, 0]
 
-        self.P3 = [cos(np.pi/p)*self.P1[0] + sin(np.pi/p)*self.P1[1],
-                  -sin(np.pi/p)*self.P1[0] + cos(np.pi/p)*self.P1[1]]
-        self.P4 = [cos(np.pi/p)*self.P2[0] + sin(np.pi/p)*self.P2[1],
-                  -sin(np.pi/p)*self.P2[0] + cos(np.pi/p)*self.P2[1]]
+        self.P3 = [cos(math.pi/p)*self.P1[0] + sin(math.pi/p)*self.P1[1],
+                  -sin(math.pi/p)*self.P1[0] + cos(math.pi/p)*self.P1[1]]
+        self.P4 = [cos(math.pi/p)*self.P2[0] + sin(math.pi/p)*self.P2[1],
+                  -sin(math.pi/p)*self.P2[0] + cos(math.pi/p)*self.P2[1]]
 
     def draw(self, drawer):
 
@@ -468,7 +470,7 @@ class CrossSectSleeve(object):
         list_segments = []
 
         innerCoord = ( 0.5*(P1[0]+P2[0]), 0.5*(P1[1]+P2[1]))
-
+        self.list_region = list_regions
         return {'innerCoord': innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
 
 class CrossSectShaft(object):
@@ -509,6 +511,7 @@ class CrossSectShaft(object):
 
         innerCoord = ( 0, 0 )
 
+        self.list_region = list_regions
         return {'innerCoord': innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
 
 if __name__ == '__main__':

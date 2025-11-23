@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import pyrhonen_procedure_as_function, winding_layout
 import numpy as np
 import logging
+import math
 import utility
 from utility import acmop_parameter
 from time import time as clock_time
@@ -141,24 +142,24 @@ class template_machine_as_numbers(object):
 
         # 单个永磁体极面下，气隙中的磁通全部进入两侧的定子轭部（的深度）
         # 定子除了轭部以外的部分全部为齿部
-        stator_yoke_depth_d_sy  = Bg * np.pi * stator_inner_diameter_Dsi * get_alpha_rm_over_alpha_rp(p) / (2*Bsy * 2*p)
+        stator_yoke_depth_d_sy  = Bg * math.pi * stator_inner_diameter_Dsi * get_alpha_rm_over_alpha_rp(p) / (2*Bsy * 2*p)
 
         # 定子齿部深度依赖于轭部深度
         stator_tooth_depth_d_st = (stator_outer_diameter_Dso - stator_inner_diameter_Dsi) *0.5 - stator_yoke_depth_d_sy
         stator_slot_depth_d_ss = stator_tooth_depth_d_st
 
         # 单个永磁体极面下，气隙中的磁通全部进入Qs个定子齿部（的宽度）
-        stator_tooth_width_w_st = Bg * np.pi * stator_inner_diameter_Dsi / (Bst* Q)
+        stator_tooth_width_w_st = Bg * math.pi * stator_inner_diameter_Dsi / (Bst* Q)
 
         # 计算槽面积
         def get_stator_slot_area(Q, stator_outer_diameter_Dso, stator_yoke_depth_d_sy, stator_inner_diameter_Dsi, stator_tooth_width_w_st, stator_tooth_depth_d_st):
-            return np.pi/(4*Q) * ((stator_outer_diameter_Dso - 2*stator_yoke_depth_d_sy)**2 - stator_inner_diameter_Dsi**2) - stator_tooth_width_w_st * stator_tooth_depth_d_st
+            return math.pi/(4*Q) * ((stator_outer_diameter_Dso - 2*stator_yoke_depth_d_sy)**2 - stator_inner_diameter_Dsi**2) - stator_tooth_width_w_st * stator_tooth_depth_d_st
         EX['stator_slot_area'] = get_stator_slot_area(Q, stator_outer_diameter_Dso, stator_yoke_depth_d_sy, stator_inner_diameter_Dsi, stator_tooth_width_w_st, stator_tooth_depth_d_st)
 
         # 计算端部绕组长度
-        slot_pitch_pps = np.pi * (stator_inner_diameter_Dsi + stator_slot_depth_d_ss) / Q
+        slot_pitch_pps = math.pi * (stator_inner_diameter_Dsi + stator_slot_depth_d_ss) / Q
         kov = EX['end_winding_length_factor_kov']
-        EX['end_winding_length_Lew'] = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_w_st) + slot_pitch_pps*kov * (SI['coil_pitch_y'] - 1)
+        EX['end_winding_length_Lew'] = math.pi*0.5 * (slot_pitch_pps + stator_tooth_width_w_st) + slot_pitch_pps*kov * (SI['coil_pitch_y'] - 1)
 
         # STATOR
         GP['mm_r_si'].value              = 1e3*stator_inner_radius_r_is # mm
@@ -170,16 +171,16 @@ class template_machine_as_numbers(object):
         GP['mm_d_sleeve'].value          = 1e3*sleeve_length
         GP['mm_d_mech_air_gap'].value    = 1e3*mech_air_gap_length
         GP['mm_r_ro'].value              = 1e3*rotor_outer_radius_r_or
-        GP['mm_d_ri'].value              = 1e3*stator_inner_radius_r_is - equivalent_air_gap_length - GP['mm_d_pm'].value - GP['mm_r_ri'].value
+        GP['mm_d_ri'].value              = 1e3*(stator_inner_radius_r_is - equivalent_air_gap_length) - GP['mm_d_pm'].value - GP['mm_r_ri'].value
 
 
     ''' 实用
     '''
     def get_rotor_volume(self, stack_length=None):
         if stack_length is None:
-            return np.pi*(self.SI['GP']['mm_r_ro'].value*1e-3)**2 * (self.SI['EX']['mm_template_stack_length']*1e-3)
+            return math.pi*(self.SI['GP']['mm_r_ro'].value*1e-3)**2 * (self.SI['EX']['mm_stack_length']*1e-3)
         else:
-            return np.pi*(self.SI['GP']['mm_r_ro'].value*1e-3)**2 * (stack_length*1e-3)
+            return math.pi*(self.SI['GP']['mm_r_ro'].value*1e-3)**2 * (stack_length*1e-3)
     def get_rotor_weight(self, gravity=9.8, stack_length=None):
         material_density_rho = pyrhonen_procedure_as_function.get_material_data()[0]
         if stack_length is None:
@@ -320,7 +321,7 @@ class variant_machine_as_objects(object):
             else:
                 number_of_rotor_pole_pairs = SI['number_of_rotor_pole_pairs']
             EX['the_speed'] = EX['DriveW_Freq']*60. / number_of_rotor_pole_pairs # rpm
-            EX['Omega']     = EX['the_speed'] / 60. * 2*np.pi
+            EX['Omega']     = EX['the_speed'] / 60. * 2*math.pi
             # self.omega = None # This variable name is devil! you can't tell its electrical or mechanical! #+ self.SIriveW_Freq * (1-self.the_slip) * 2*pi
         else:
             raise Exception('Not implemented.')

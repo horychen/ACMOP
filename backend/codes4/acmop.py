@@ -4,6 +4,7 @@ import bearingless_spmsm_closedSlot_design, bearingless_spmsm_heart
 import utility
 import logging, collections
 from dataclasses import dataclass
+import math
 import builtins
 @dataclass
 class AC_Machine_Optiomization_Wrapper(object):
@@ -128,9 +129,7 @@ class AC_Machine_Optiomization_Wrapper(object):
     def part_initialDesign(self):
         if 'ClosedStator' in self.select_spec:
             function = bearingless_spmsm_closedSlot_design.bearingless_spmsm_closedStator_template
-        # elif 'PMSM' in self.select_spec:
-        #     function = bearingless_spmsm_design.bearingless_spmsm_template
-        elif 'Heart' in self.select_spec:
+        elif 'PMSM' in self.select_spec: #elif 'Heart' in self.select_spec:
             function = bearingless_spmsm_heart.bearingless_spmsm_template
         # elif 'PMVM' in self.select_spec:
         #     function = vernier_motor_design.vernier_motor_VShapePM_template
@@ -642,7 +641,7 @@ def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
         # select_spec            = "ClosedStatorPMSM Q12p5ps4y1 Spindle", # "PMSM Q12p4ps5y1 Heart", # select_spec = "SliceIM Q12p4ps5y1-Qr10",
         # select_fea_config_dict = "#0301 JMAG Non-Bearingless",   # "#0213 JMAG Bearingless Sub-hamonics",     # select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
-        select_spec            = "PMSM Q12p4ps5y1 Heart",
+        select_spec            = "PMSM-Q12p4ps5y1-50kW", # "PMSM Q12p4ps5y1 Heart",
         select_fea_config_dict = "#0213 JMAG Bearingless Sub-hamonics",     # select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
         project_loc            = fr'../_default/',
         bool_show_GUI          = True    # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
@@ -694,7 +693,7 @@ def main(number_which_part):
 if __name__ == '__main__':
     # mop = main(1)
     mop = main(31)
-    # mop = main(3)
+    mop = main(3)
     # mop = main(4)
     # mop = main(5)
 

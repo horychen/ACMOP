@@ -1433,7 +1433,7 @@ class desgin_specification(object):
             stator_inner_radius_r_is  = rotor_outer_radius_r_or + 3.75*1e-3 # m (sleeve 3 mm, air gap 0.75 mm)
             stator_inner_diameter_Dis = stator_inner_radius_r_is*2
 
-            stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*self.p)
+            stator_yoke_height_h_ys = air_gap_flux_density_B * math.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*self.p)
             stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
             stator_slot_height_h_ss = stator_tooth_height_h_ds
             stator_tooth_width_b_ds = air_gap_flux_density_B *pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* self.Qs)
@@ -1443,9 +1443,9 @@ class desgin_specification(object):
             if fea_config_dict is not None:
                 wily = winding_layout_v2(spec_input_dict['DPNV_or_SEPA'], self.Qs, self.p, self.ps, self.coil_pitch_y)
 
-            slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / self.Qs
+            slot_pitch_pps = math.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / self.Qs
             kov = 1.8 # \in [1.6, 2.0]
-            end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (wily.coil_pitch_y - 1)
+            end_winding_length_Lew = math.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (wily.coil_pitch_y - 1)
 
             spec_geometry_dict = dict()
             Q = spec_geometry_dict['Qs'] = self.Qs
@@ -1541,7 +1541,7 @@ class desgin_specification(object):
         rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
 
         # Bianchi2006@(1)--(3)
-        stator_yoke_height_h_ys = air_gap_flux_density_B * np.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*self.p)
+        stator_yoke_height_h_ys = air_gap_flux_density_B * math.pi * stator_inner_diameter_Dis * alpha_rm_over_alpha_rp / (2*stator_yoke_flux_density_Bys * 2*self.p)
         stator_tooth_height_h_ds = (stator_outer_diameter_Dse - stator_inner_diameter_Dis) / 2 - stator_yoke_height_h_ys
         stator_slot_height_h_ss = stator_tooth_height_h_ds
         stator_tooth_width_b_ds = air_gap_flux_density_B *pi * stator_inner_diameter_Dis / (stator_tooth_flux_density_B_ds* self.Qs)
@@ -1554,9 +1554,9 @@ class desgin_specification(object):
             wily = winding_layout_v2(spec_input_dict['DPNV_or_SEPA'], self.Qs, self.p, self.ps, self.coil_pitch_y)
 
         # Bianchi2006@(5)
-        slot_pitch_pps = np.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / self.Qs
+        slot_pitch_pps = math.pi * (stator_inner_diameter_Dis + stator_slot_height_h_ss) / self.Qs
         kov = 1.8 # \in [1.6, 2.0]
-        end_winding_length_Lew = np.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (wily.coil_pitch_y - 1)
+        end_winding_length_Lew = math.pi*0.5 * (slot_pitch_pps + stator_tooth_width_b_ds) + slot_pitch_pps*kov * (wily.coil_pitch_y - 1)
 
         spec_geometry_dict = dict()
         Q = spec_geometry_dict['Qs'] = self.Qs
@@ -1670,9 +1670,9 @@ class desgin_specification(object):
     def get_stack_length(self):
         speed_rpm = self.ExcitationFreqSimulated * 60 / self.p # rpm
         rotor_outer_radius_r_or = eric_specify_tip_speed_get_radius(self.tip_speed, speed_rpm)
-        required_torque = self.mec_power/(2*np.pi*speed_rpm)*60
+        required_torque = self.mec_power/(2*math.pi*speed_rpm)*60
         rotor_volume_Vr = required_torque/(2*self.TangentialStress)
-        stack_length = rotor_volume_Vr / (np.pi * rotor_outer_radius_r_or**2)
+        stack_length = rotor_volume_Vr / (math.pi * rotor_outer_radius_r_or**2)
         return stack_length
 
     def get_zQ(self):
@@ -1690,7 +1690,7 @@ class desgin_specification(object):
         rotor_outer_diameter_Dr = rotor_outer_radius_r_or*2
         air_gap_length_delta = 3.75*1e-3 # mm
         air_gap_diameter_D = rotor_outer_diameter_Dr + air_gap_length_delta*2 # Assume single sided air gap length is 2.75 mm (including sleeve length of 2 mm)
-        pole_pitch_tau_p = np.pi*air_gap_diameter_D/(2*self.p)
+        pole_pitch_tau_p = math.pi*air_gap_diameter_D/(2*self.p)
 
         if self.pmsm_template.wily.coil_pitch_y < 0:
             kw1 = 1
@@ -1700,16 +1700,16 @@ class desgin_specification(object):
                 coil_span_W = pole_pitch_tau_p
             else: 
                 # short pitch (not tested)
-                stator_slot_pitch_tau_us = np.pi * air_gap_diameter_D / self.Qs
+                stator_slot_pitch_tau_us = math.pi * air_gap_diameter_D / self.Qs
                 coil_span_W = self.pmsm_template.wily.coil_pitch_y * stator_slot_pitch_tau_us
                 # for 2 pole motor, the recommended short pitch is 0.7. --p76
 
-            kd1 = 2*sin(1/no_phase_m*np.pi/2)/(self.Qs/(no_phase_m*self.p)*sin(1*np.pi*self.p/self.Qs))
-            kq1 = sin(1*coil_span_W/pole_pitch_tau_p*np.pi/2)        
+            kd1 = 2*sin(1/no_phase_m*math.pi/2)/(self.Qs/(no_phase_m*self.p)*sin(1*math.pi*self.p/self.Qs))
+            kq1 = sin(1*coil_span_W/pole_pitch_tau_p*math.pi/2)        
             ksq1 = 1
             kw1 = kd1 * kq1 * ksq1
 
-        alpha_i = 2/np.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
+        alpha_i = 2/math.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
 
         guess_air_gap_flux_density = 0.9 # T
 
@@ -1718,7 +1718,7 @@ class desgin_specification(object):
 
         air_gap_flux_Phi_m = alpha_i * guess_air_gap_flux_density * pole_pitch_tau_p * stack_length_eff
 
-        no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi*self.ExcitationFreqSimulated * kw1 * air_gap_flux_Phi_m)
+        no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*math.pi*self.ExcitationFreqSimulated * kw1 * air_gap_flux_Phi_m)
         print('The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density is', no_series_coil_turns_N)
         no_series_coil_turns_N = round(no_series_coil_turns_N)
         print('Rounds up to:', no_series_coil_turns_N)
@@ -1751,9 +1751,9 @@ def get_mm_template_stack_length(SI, rotor_outer_radius_r_or):
 
     speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
     # rotor_outer_radius_r_or = eric_specify_tip_speed_get_radius(SI['tip_speed'], speed_rpm)
-    required_torque = SI['mec_power']/(2*np.pi*speed_rpm)*60
+    required_torque = SI['mec_power']/(2*math.pi*speed_rpm)*60
     rotor_volume_Vr = required_torque/(2*SI['TangentialStress'])
-    m_stack_length = rotor_volume_Vr / (np.pi * rotor_outer_radius_r_or**2)
+    m_stack_length = rotor_volume_Vr / (math.pi * rotor_outer_radius_r_or**2)
     return 1e3*m_stack_length # m -> mm
 
 def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specified_mm_stack_length=None):
@@ -1773,7 +1773,7 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
             number_parallel_branch = 1
     speed_rpm = SI['EX']['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
-    pole_pitch_tau_p = np.pi*stator_inner_diameter_Dis/(2*SI['p']) # TODO
+    pole_pitch_tau_p = math.pi*stator_inner_diameter_Dis/(2*SI['p']) # TODO
 
     if SI['coil_pitch_y'] < 0:
         kw1 = 1
@@ -1785,7 +1785,7 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
             coil_span_W = pole_pitch_tau_p
         else: 
             # short pitch (not tested)
-            stator_slot_pitch_tau_us = np.pi * stator_inner_diameter_Dis / SI['Qs']
+            stator_slot_pitch_tau_us = math.pi * stator_inner_diameter_Dis / SI['Qs']
             coil_span_W = SI['coil_pitch_y'] * stator_slot_pitch_tau_us
             # for 2 pole motor, the recommended short pitch is 0.7. --p76
 
@@ -1800,8 +1800,8 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
                 kd1 = 1
                 logger = logging.getLogger(__name__)
                 logger.warning('The winding is a fractional slot one and the distribution factor is absent... Set as kd1 = 1.')
-        # kd1 = 2*sin(1/SI['m']*np.pi/2)/(SI['Qs']/(SI['m']*SI['p'])*sin(1*np.pi*SI['p']/SI['Qs']))
-        kq1 = sin(1*coil_span_W/pole_pitch_tau_p*np.pi/2)
+        # kd1 = 2*sin(1/SI['m']*math.pi/2)/(SI['Qs']/(SI['m']*SI['p'])*sin(1*math.pi*SI['p']/SI['Qs']))
+        kq1 = sin(1*coil_span_W/pole_pitch_tau_p*math.pi/2)
         if kq1<0:
             logger = logging.getLogger(__name__)
             logger.warning('kq1=%s It is a negative number!!! I am going to take its absolute value as pitch factor (neglecting the roatating direction of the field.)', kq1)
@@ -1816,7 +1816,7 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
             logger.warning('DEBUG, kw1 = %s (abs > 1, setting to 0.866)', kw1)
             kw1 = 0.866
 
-    alpha_i = 2/np.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
+    alpha_i = 2/math.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
 
     # guess_air_gap_flux_density_Bg = 0.9 # T
     guess_air_gap_flux_density_Bg = SI['guess_air_gap_flux_density_Bg']
@@ -1829,7 +1829,7 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
     stack_length_eff = mm_stack_length*1e-3 + 2 * air_gap_length_delta
     air_gap_flux_Phi_m = alpha_i * guess_air_gap_flux_density_Bg * pole_pitch_tau_p * stack_length_eff
 
-    no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi* SI['EX']['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
+    no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*math.pi* SI['EX']['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
 
     logger = logging.getLogger(__name__)
     logger.debug('sqrt(2)*desired_emf_Em=%s, ExcitationFreqSimulated=%s, kw1=%s, air_gap_flux_Phi_m=%s', sqrt(2)*desired_emf_Em, SI['EX']['ExcitationFreqSimulated'], kw1, air_gap_flux_Phi_m)

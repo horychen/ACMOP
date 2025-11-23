@@ -45,8 +45,8 @@ class CrossSectInnerRotorStator:
 
     def _calculate_points(self):
         """Calculate all point coordinates based on the geometric parameters."""
-        alpha_st = self.deg_alpha_st * np.pi/180
-        alpha_so = -self.deg_alpha_sto * np.pi/180
+        alpha_st = self.deg_alpha_st * math.pi/180
+        alpha_so = -self.deg_alpha_sto * math.pi/180
         r_si = self.mm_r_si
         d_so = self.mm_d_sto
         d_sp = self.mm_d_stt
@@ -55,7 +55,7 @@ class CrossSectInnerRotorStator:
         w_st = self.mm_w_st
         Q    = self.Q
 
-        alpha_slot_span = 360/Q * np.pi/180
+        alpha_slot_span = 360/Q * math.pi/180
 
         self.P1 = [r_si, 0]
         self.P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
@@ -163,8 +163,16 @@ class CrossSectInnerRotorStator:
 
         self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
-        # return [list_segments]
+        self.list_region = [list_segments]
         return {'innerCoord': self.innerCoord, 'list_regions':[list_segments], 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])]}
+
+    def drawArc(self, center, PA, PB):
+        self.drawer.drawArc(center, PA, PB)
+        builtins.ad.visualize_dict['GeometricComponentsObjects']['statorCore']
+        
+    def drawLine(self, PA, PB):
+        self.drawer.drawLine(PA, PB)
+        builtins.ad.visualize_dict['GeometricComponentsObjects']
 
 class CrossSectInnerRotorClosedSlotStator:
     def __init__(self,
@@ -201,7 +209,7 @@ class CrossSectInnerRotorClosedSlotStator:
         d_stt = self.mm_d_stt
         Q    = self.Q
 
-        alpha_slot_span = 360/Q * np.pi/180
+        alpha_slot_span = 360/Q * math.pi/180
 
         self.P1 = [r_si, 0]
         self.P2 = [r_si*cos(alpha_slot_span*0.5), r_si*-sin(alpha_slot_span*0.5)]
@@ -314,7 +322,7 @@ class CrossSectInnerRotorClosedSlotStator:
 
         self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
-        # return [list_segments]
+        self.list_region = [list_segments]
         return {'innerCoord': self.innerCoord, 'list_regions':[list_segments], 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])]}
 
 
@@ -340,8 +348,8 @@ class CrossSectInnerRotorStatorWinding(object):
 
     def _calculate_points(self):
         """Calculate all point coordinates based on the stator_core."""
-        alpha_st = self.statorCore.deg_alpha_st * np.pi/180
-        alpha_so = self.statorCore.deg_alpha_sto * np.pi/180
+        alpha_st = self.statorCore.deg_alpha_st * math.pi/180
+        alpha_so = self.statorCore.deg_alpha_sto * math.pi/180
         r_si     = self.statorCore.mm_r_si
         d_so     = self.statorCore.mm_d_sto
         d_sp     = self.statorCore.mm_d_stt
@@ -350,7 +358,7 @@ class CrossSectInnerRotorStatorWinding(object):
         w_st     = self.statorCore.mm_w_st
         Q        = self.statorCore.Q
 
-        alpha_slot_span = 360/Q * np.pi/180
+        alpha_slot_span = 360/Q * math.pi/180
 
         self.P1 = [r_si, 0]
         self.POpen = [(r_si+d_sp)*cos(alpha_slot_span*0.5*1.00), (r_si+d_sp)*-sin(alpha_slot_span*0.5*1.00)]
@@ -474,7 +482,7 @@ class CrossSectInnerRotorStatorWinding(object):
         # 我乱给的
         self.innerCoord = ( 0.5*(self.POpen[0]+self.P6[0]), 0.5*(self.POpen[1]+self.P6[1]))
 
-        # return [list_segments]
+        self.list_region = list_regions
         return {'innerCoord': self.innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
 
 
@@ -508,9 +516,9 @@ class CrossSectInnerRotorStator_PMAtYoke:
         # self.deg_alpha_st = deg_alpha_st
         self.Q = Q * 2 # 先搞起来
 
-        self.alpha_slot_span = 2*np.pi / self.Q
+        self.alpha_slot_span = 2*math.pi / self.Q
 
-        self.deg_alpha_st = (self.alpha_slot_span/2) /np.pi*180 *0.9 # 360 / self.Q / 2
+        self.deg_alpha_st = (self.alpha_slot_span/2) /math.pi*180 *0.9 # 360 / self.Q / 2
         self.deg_alpha_sto = self.deg_alpha_st/2 #deg_alpha_sto
         self.mm_r_si      = mm_r_si     
         self.mm_d_sto     = mm_d_sto # * 0
@@ -518,7 +526,7 @@ class CrossSectInnerRotorStator_PMAtYoke:
         self.mm_d_st      = mm_d_st     
         self.mm_d_sy      = mm_d_sy     
         # self.mm_w_st      = mm_w_st     
-        # print(self.deg_alpha_st, self.alpha_slot_span/np.pi*180)
+        # print(self.deg_alpha_st, self.alpha_slot_span/math.pi*180)
         self.mm_w_st = 2*(self.mm_r_si+self.mm_d_stt)*sin(0.5*(self.alpha_slot_span/2))
         self.mm_r_st      = mm_r_st     
         self.mm_r_sf      = mm_r_sf     
@@ -532,8 +540,8 @@ class CrossSectInnerRotorStator_PMAtYoke:
 
     def _calculate_points(self):
         """Calculate all point coordinates based on the geometric parameters."""
-        alpha_st = self.deg_alpha_st * np.pi/180
-        alpha_so = -self.deg_alpha_sto * np.pi/180
+        alpha_st = self.deg_alpha_st * math.pi/180
+        alpha_so = -self.deg_alpha_sto * math.pi/180
         r_si = self.mm_r_si
         d_sto = self.mm_d_sto
         d_stt = self.mm_d_stt
@@ -624,7 +632,7 @@ class CrossSectInnerRotorStator_PMAtYoke:
                 if i % 2 == 1:
                     list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
                 else:
-                    # print(alpha_slot_span/2/np.pi*180,  alpha_pm_depth/2/np.pi*180)
+                    # print(alpha_slot_span/2/math.pi*180,  alpha_pm_depth/2/math.pi*180)
                     P5_Rotate2PM = iPark(P0, alpha_slot_span/2 - alpha_pm_depth/2)
                     list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate2PM)
                     P5_RotatePassPM = iPark(P5_Rotate2PM, alpha_pm_depth)
@@ -659,7 +667,7 @@ class CrossSectInnerRotorStator_PMAtYoke:
 
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
-            # return [list_segments]
+            self.list_region = [list_segments]
             return {'innerCoord': self.innerCoord, 
                     'list_regions':[list_segments], 
                     'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
@@ -684,8 +692,8 @@ class CrossSectStatorMagnetAtYoke:
 
     def _calculate_points(self):
         """Calculate all point coordinates based on the stator_core."""
-        alpha_st = self.statorCore.deg_alpha_st * np.pi/180
-        alpha_so = -self.statorCore.deg_alpha_sto * np.pi/180
+        alpha_st = self.statorCore.deg_alpha_st * math.pi/180
+        alpha_so = -self.statorCore.deg_alpha_sto * math.pi/180
         r_si = self.statorCore.mm_r_si
         d_so = self.statorCore.mm_d_sto
         d_sp = self.statorCore.mm_d_stt
@@ -782,7 +790,7 @@ class CrossSectStatorMagnetAtYoke:
                     pass
                 else:
                     magnet = dict()
-                    # print(alpha_slot_span/2/np.pi*180,  alpha_pm_depth/2/np.pi*180)
+                    # print(alpha_slot_span/2/math.pi*180,  alpha_pm_depth/2/math.pi*180)
                     P5_Rotate2PM = iPark(P0, alpha_slot_span/2 - alpha_pm_depth/2)
                     # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate2PM)
                     P5_RotatePassPM = iPark(P5_Rotate2PM, alpha_pm_depth)
@@ -822,7 +830,7 @@ class CrossSectStatorMagnetAtYoke:
 
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
-            # return [list_segments]
+            self.list_region = [list_segments]
             return {'innerCoord': self.innerCoord, 
                     'list_regions':[list_segments], 
                     # 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
@@ -847,8 +855,8 @@ class CrossSectToroidalWiniding:
 
     def _calculate_points(self):
         """Calculate all point coordinates based on the stator_core."""
-        alpha_st = self.statorCore.deg_alpha_st * np.pi/180
-        alpha_so = -self.statorCore.deg_alpha_sto * np.pi/180
+        alpha_st = self.statorCore.deg_alpha_st * math.pi/180
+        alpha_so = -self.statorCore.deg_alpha_sto * math.pi/180
         r_si = self.statorCore.mm_r_si
         d_so = self.statorCore.mm_d_sto
         d_sp = self.statorCore.mm_d_stt
@@ -946,7 +954,7 @@ class CrossSectToroidalWiniding:
                 #     pass
                 # else:
                 if True:
-                    # print(alpha_slot_span/2/np.pi*180,  alpha_pm_depth/2/np.pi*180)
+                    # print(alpha_slot_span/2/math.pi*180,  alpha_pm_depth/2/math.pi*180)
                     P5_Rotate2PM = iPark(P0, alpha_slot_span/2 - alpha_pm_depth/2)
                     # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate2PM)
                     P5_RotatePassPM = iPark(P5_Rotate2PM, alpha_pm_depth)
@@ -1006,7 +1014,7 @@ class CrossSectToroidalWiniding:
 
             # self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
-            # return [list_segments]
+            self.list_region = [list_segments]
             return {
                     # 'innerCoord': self.innerCoord, 
                     'list_regions':[list_segments], 
@@ -1047,9 +1055,9 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         # self.deg_alpha_st = deg_alpha_st
         self.Q = Q
 
-        self.alpha_slot_span = 2*np.pi / self.Q
+        self.alpha_slot_span = 2*math.pi / self.Q
 
-        self.deg_alpha_st = deg_alpha_st # (self.alpha_slot_span/2) /np.pi*180 *0.9 # 360 / self.Q / 2
+        self.deg_alpha_st = deg_alpha_st # (self.alpha_slot_span/2) /math.pi*180 *0.9 # 360 / self.Q / 2
         self.deg_alpha_sto = self.deg_alpha_st/2 #deg_alpha_sto
         self.mm_r_si      = mm_r_si     
         self.mm_d_sto     = mm_d_sto # * 0
@@ -1057,7 +1065,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         self.mm_d_st      = mm_d_st     
         self.mm_d_sy      = mm_d_sy     
         self.mm_w_st      = mm_w_st     
-        # print(self.deg_alpha_st, self.alpha_slot_span/np.pi*180)
+        # print(self.deg_alpha_st, self.alpha_slot_span/math.pi*180)
         # self.mm_w_st = 2*(self.mm_r_si+self.mm_d_stt)*sin(0.5*(self.alpha_slot_span/2))
         self.mm_r_st      = mm_r_st     
         self.mm_r_sf      = mm_r_sf     
@@ -1072,8 +1080,8 @@ class CrossSectInnerRotorStator_PMAtToothBody:
 
     def _calculate_points(self):
         """Calculate all point coordinates based on the geometric parameters."""
-        alpha_st = self.deg_alpha_st   * np.pi/180
-        alpha_so = -self.deg_alpha_sto * np.pi/180
+        alpha_st = self.deg_alpha_st   * math.pi/180
+        alpha_so = -self.deg_alpha_sto * math.pi/180
         r_si = self.mm_r_si
         d_sto = self.mm_d_sto
         d_stt = self.mm_d_stt
@@ -1081,7 +1089,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         d_sy = self.mm_d_sy
         w_st = self.mm_w_st
         mm_d_pm = self.mm_d_pm
-        alpha_pm_at_airgap = self.deg_alpha_pm_at_airgap/180*np.pi if self.deg_alpha_pm_at_airgap is not None else 0
+        alpha_pm_at_airgap = self.deg_alpha_pm_at_airgap/180*math.pi if self.deg_alpha_pm_at_airgap is not None else 0
         alpha_slot_span = self.alpha_slot_span
 
         self.P0 = [r_si, 0]
@@ -1213,7 +1221,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
 
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
-            # return [list_segments]
+            self.list_region = [list_segments]
             return {'innerCoord': self.innerCoord, 
                     'list_regions':[list_segments], 
                     'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
@@ -1242,7 +1250,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
 
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
-            # return [list_segments]
+            self.list_region = [list_segments]
             return {'innerCoord': self.innerCoord, 
                     'list_regions':[list_segments], 
                     'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
@@ -1267,8 +1275,8 @@ class CrossSectStatorMagnetAtToothBody:
 
     def _calculate_points(self):
         """Calculate all point coordinates based on the stator_core."""
-        alpha_st = self.statorCore.deg_alpha_st * np.pi/180
-        alpha_so = -self.statorCore.deg_alpha_sto * np.pi/180
+        alpha_st = self.statorCore.deg_alpha_st * math.pi/180
+        alpha_so = -self.statorCore.deg_alpha_sto * math.pi/180
         r_si = self.statorCore.mm_r_si
         d_sto = self.statorCore.mm_d_sto
         d_stt = self.statorCore.mm_d_stt
@@ -1279,7 +1287,7 @@ class CrossSectStatorMagnetAtToothBody:
         mm_d_pm = self.statorCore.mm_d_pm
         mm_d_air_pm = self.mm_d_air_pm
         alpha_slot_span = self.statorCore.alpha_slot_span
-        alpha_pm_at_airgap = self.statorCore.deg_alpha_pm_at_airgap/180*np.pi
+        alpha_pm_at_airgap = self.statorCore.deg_alpha_pm_at_airgap/180*math.pi
 
         self.P0 = [r_si + mm_d_air_pm, 0]
         self.P1 = [r_si* cos(alpha_pm_at_airgap/2) + mm_d_air_pm, 
@@ -1410,7 +1418,7 @@ class CrossSectStatorMagnetAtToothBody:
 
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
-            # return [list_segments]
+            self.list_region = [list_segments]
             return {'innerCoord': self.innerCoord, 
                     'list_regions':[list_segments], 
                     'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
@@ -1434,7 +1442,7 @@ class CrossSectStatorMagnetAtToothBody:
             list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
-            # return [list_segments]
+            self.list_region = [list_segments]
             return {'innerCoord': self.innerCoord, 
                     'list_regions':[list_segments], 
                     'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],

@@ -109,7 +109,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         self.app = None      # app = jd
         self.projName = None # The name of JMAG Designer project (a string)
         self.geomApp = None  # The Geometry Editor selfect
-        self.SIoc = None      # The document selfect in Geometry Editor
+        self.doc = None      # The document selfect in Geometry Editor
         self.ass = None      # The assemble selfect in Geometry Editor
         self.sketch = None   # The sketch selfect in Geometry Editor
         self.model = None    # The model selfect in JMAG Designer
@@ -239,549 +239,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         self.app.Quit()
 
     def save(self, name, description):
-        self.SIoc.SaveModel(False) # True: Project is also saved. 
+        self.doc.SaveModel(False) # True: Project is also saved. 
         model = self.app.GetCurrentModel()
         model.SetName(name)
         model.SetDescription(description)
 
     ''' PM Motor
     '''
-    def pre_process_CSPPM(self, app, model, acm_variant):
-        # pre-process : you can select part by coordinate!
-        ''' Group '''
-        def group(name, id_list):
-            model.GetGroupList().CreateGroup(name)
-            for the_id in id_list:
-                model.GetGroupList().AddPartToGroup(name, the_id)
-                # model.GetGroupList().AddPartToGroup(name, name) #<- this also works
-
-        part_ID_list = model.GetPartIDs()
-
-        # view = app.View()
-        # view.ClearSelect()
-        # sel = view.GetCurrentSelection()
-        # sel.SelectPart(123)
-        # sel.SetBlockUpdateView(False)
-        SI = acm_variant.template.spec_input_dict
-        pm = SI['number_of_rotor_pole_pairs']
-        p = SI['p']
-        s = SI['no_segmented_magnets']
-        Q = SI['Qs']
-        logger = logging.getLogger(__name__)
-        logger.debug('Q: %s', Q)
-        logger.debug('Expected part count: %s', int(1 + 1 + 2*p*1*s + 1 + 1 + Q*2))
-        logger.debug('Actual part_ID_list length: %s', len(part_ID_list))
-        # quit()
-                                #   轴 转子 永磁体  轴套 定子 绕组
-        if len(part_ID_list) != int(1 + 1 + 2*pm*1*s + 1 + 1 + Q*2):
-        # if len(part_ID_list) != int(1 + 1 + p*1*s +      1 + Q*2):
-        # if len(part_ID_list) != int(1 + Q*2 + 1):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=False)
-            logger = logging.getLogger(__name__)
-            logger.error(msg)
-            raise utility.ExceptionBadNumberOfParts(msg)
-
-        self.id_rotorCore = id_rotorCore = part_ID_list[0]
-        id_shaft = part_ID_list[1]
-        partIDRange_Magnet = part_ID_list[2:int(2+pm*s*2)]                           # 此处C.P.应为1*p
-        id_sleeve = part_ID_list[int(2+2*pm*s)]
-        self.id_statorCore = id_statorCore = part_ID_list[int(2+2*pm*s*1)+1]
-        partIDRange_Coil = part_ID_list[int(2+2*pm*s*1) + 2 : int(2+2*pm*s*1) + 2 + int(Q*2)]
-
-        # debug
-        # print(p)
-        # print(int(s))
-        # print(id_rotorCore)
-        # print(id_shaft)
-        # print(partIDRange_Magnet)
-        # print(len(partIDRange_Magnet))
-        # print(id_sleeve)
-        # print(id_statorCore)
-        # print(partIDRange_Coil)
-        # print(len(partIDRange_Coil))
-        # print(part_ID_list)
-        # quit()
-
-        self.bool_suppressShaft = False
-        model.SuppressPart(id_sleeve, 1)
-
-        group("Magnet", partIDRange_Magnet)
-        group("Coils", partIDRange_Coil)
-
-        ''' Add Part to Set for later references '''
-        def add_part_to_set(name, x, y, ID=None):
-            model.GetSetList().CreatePartSet(name)
-            model.GetSetList().GetSet(name).SetMatcherType("Selection")
-            model.GetSetList().GetSet(name).ClearParts()
-            sel = model.GetSetList().GetSet(name).GetSelection()
-            if ID is None:
-                # print x,y
-                sel.SelectPartByPosition(x,y,0) # z=0 for 2D
-            else:
-                sel.SelectPart(ID)
-            model.GetSetList().GetSet(name).AddSelected(sel)
-
-        # def edge_set(name,x,y):
-        #     model.GetSetList().CreateEdgeSet(name)
-        #     model.GetSetList().GetSet(name).SetMatcherType(u"Selection")
-        #     model.GetSetList().GetSet(name).ClearParts()
-        #     sel = model.GetSetList().GetSet(name).GetSelection()
-        #     sel.SelectEdgeByPosition(x,y,0) # sel.SelectEdge(741)
-        #     model.GetSetList().GetSet(name).AddSelected(sel)
-        # edge_set(u"AirGapCoast", 0, self.template.SI['GP']['mm_r_ro'].value+0.5*self.Length_AirGap)
-
-        # Shaft
-        add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
-
-        # Create Set for 8 poles Winding
-        Angle_StatorSlotSpan = 360/Q
-        # R = self.mm_r_si + self.mm_d_stt + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
-        # THETA = 0.25*(Angle_StatorSlotSpan)/180.*np.pi
-        R = math.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
-        THETA = np.arctan(acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0])
-        X = R*math.cos(THETA)
-        Y = R*math.sin(THETA)
-        countXL = 0
-        wily = acm_variant.template.SI['EX']['wily']
-        # try:
-        #     wily.layer_X_phases
-        # except AttributeError:
-        #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'layer_X_phases', implying that the object wily has become a dict after jsonpickle.")
-        #     WILY = namedtuple('WILY', acm_variant.template.SI['EX']['wily'])
-        #     wily_as_obj =      WILY(**acm_variant.template.SI['EX']['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
-        #     wily = wily_as_obj
-
-        for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
-            countXL += 1
-            add_part_to_set("CoilLX%s%s %d"%(UVW,UpDown,countXL), X, Y)
-
-            # print(X, Y, THETA)
-            THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*math.cos(THETA)
-            Y = R*math.sin(THETA)
-
-        # Create Set for 2 poles Winding
-        # THETA = 0.75*(Angle_StatorSlotSpan)/180.*np.pi # 这里这个角度的选择，决定了悬浮绕组产生悬浮力的方向！！！！！
-        THETA = np.arctan(-acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0]) + (2*np.pi)/Q
-        X = R*math.cos(THETA)
-        Y = R*math.sin(THETA)
-        countYL = 0
-        for UVW, UpDown in zip(wily.layer_Y_phases,wily.layer_Y_signs):
-            countYL += 1 
-            add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
-
-            THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*math.cos(THETA)
-            Y = R*math.sin(THETA)
-
-        # Create Set for Magnets
-        GP = acm_variant.template.SI['GP']
-        R = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value - 0.5*GP['mm_d_pm'].value
-        # alpha_rs = GP['deg_alpha_rs'].value /180*np.pi
-        deg_pole_span = 360 / (p*2)
-
-        # 这里暂时进不去
-        if s>1:
-            deg_alpha_notch  = (GP['deg_alpha_rm'].value - s*GP['deg_alpha_rs'].value) / (s-1) # inter-segment notch占的角度
-            alpha_notch = deg_alpha_notch /180*np.pi
-        # 从这开始
-        list_xy_magnets = []
-        # list_xy_airWithinRotorSlot = []
-        for ind in range(int(p*2)):
-            natural_ind = ind + 1
-            
-            if s==1:
-                      # v---This negative sign means we walk CCW to assign sets.
-                THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*np.pi
-                X = R*math.cos(THETA)
-                Y = R*math.sin(THETA)
-
-                add_part_to_set("Magnet %d"%(natural_ind), X, Y)
-                list_xy_magnets.append([X,Y])
-
-
-            ### 这里进不去（暂时）
-
-            else:     # v---This negative sign means we walk CCW to assign sets.
-                THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*np.pi # initial position
-                # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*np.pi # initial position
-                for s in range(s):
-                    X = R*math.cos(THETA)
-                    Y = R*math.sin(THETA)
-                    add_part_to_set("Magnet %d s%d"%(natural_ind, s), X, Y)
-                    list_xy_magnets.append([X,Y])
-                    THETA -= alpha_notch + alpha_rs
-                        # ^---This negative sign means we walk CCW to assign sets.
-
-        # Create Set for Motion Region
-        def part_list_set(name, list_xy, list_part_id=None, prefix=None):
-            model.GetSetList().CreatePartSet(name)
-            model.GetSetList().GetSet(name).SetMatcherType("Selection")
-            model.GetSetList().GetSet(name).ClearParts()
-            sel = model.GetSetList().GetSet(name).GetSelection() 
-            for xy in list_xy:
-                sel.SelectPartByPosition(xy[0],xy[1],0) # z=0 for 2D
-            if list_part_id is not None:
-                for ID in list_part_id:
-                    sel.SelectPart(ID)
-            model.GetSetList().GetSet(name).AddSelected(sel)
-
-        part_list_set('Motion_Region', list_xy_magnets, list_part_id=[id_rotorCore, id_shaft])
-
-        # quit()
-        part_list_set('MagnetSet', list_xy_magnets)
-
-        
-        # debug
-        # print(p)
-        # print(int(s))
-        # print(id_rotorCore)
-        # print(id_shaft)
-        # print(partIDRange_Magnet)
-        # print(len(partIDRange_Magnet))
-        # # print(id_sleeve)
-        # print(id_statorCore)
-        # print(partIDRange_Coil)
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(len(partIDRange_Coil))
-        # quit()
-        
-        return True
-    def pre_process_CPPM(self, app, model, acm_variant):
-        # pre-process : you can select part by coordinate!
-        ''' Group '''
-        def group(name, id_list):
-            model.GetGroupList().CreateGroup(name)
-            for the_id in id_list:
-                model.GetGroupList().AddPartToGroup(name, the_id)
-                # model.GetGroupList().AddPartToGroup(name, name) #<- this also works
-
-        part_ID_list = model.GetPartIDs()
-
-        # view = app.View()
-        # view.ClearSelect()
-        # sel = view.GetCurrentSelection()
-        # sel.SelectPart(123)
-        # sel.SetBlockUpdateView(False)
-        SI = acm_variant.template.spec_input_dict
-        p = SI['p']
-        s = SI['no_segmented_magnets']
-        Q = SI['Qs']
-        # print(Q)
-        # print(int(1 + 1 + p*1*s + 1 + Q*2))
-        # print(len(part_ID_list))
-        # quit()
-                                #   轴 转子 永磁体  定子 绕组
-        if len(part_ID_list) != int(1 + 1 + p*1*s + 1 + Q*2):
-        # if len(part_ID_list) != int(1 + 1 + p*1*s +      1 + Q*2):
-        # if len(part_ID_list) != int(1 + Q*2 + 1):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(toString=False)
-            logger = logging.getLogger(__name__)
-            logger.error(msg)
-            raise utility.ExceptionBadNumberOfParts(msg)
-
-        self.id_rotorCore = id_rotorCore = part_ID_list[0]
-        id_shaft = part_ID_list[1]
-        partIDRange_Magnet = part_ID_list[2:int(2+p*s*1)]                           # 此处C.P.应为1*p
-        # id_sleeve = part_ID_list[int(2+p*s*2)]
-        self.id_statorCore = id_statorCore = part_ID_list[int(2+p*s*1)]
-        partIDRange_Coil = part_ID_list[int(2+p*s*1) + 1 : int(2+p*s*1)+ 1 + int(Q*2)]
-
-        # debug
-        # print(p)
-        # print(int(s))
-        # print(id_rotorCore)
-        # print(id_shaft)
-        # print(partIDRange_Magnet)
-        # print(len(partIDRange_Magnet))
-        # # print(id_sleeve)
-        # print(id_statorCore)
-        # print(partIDRange_Coil)
-        # print(len(partIDRange_Coil))
-        # quit()
-
-        self.bool_suppressShaft = False
-        # model.SuppressPart(id_sleeve, 1)
-
-        group("Magnet", partIDRange_Magnet)
-        group("Coils", partIDRange_Coil)
-
-        ''' Add Part to Set for later references '''
-        def add_part_to_set(name, x, y, ID=None):
-            model.GetSetList().CreatePartSet(name)
-            model.GetSetList().GetSet(name).SetMatcherType("Selection")
-            model.GetSetList().GetSet(name).ClearParts()
-            sel = model.GetSetList().GetSet(name).GetSelection()
-            if ID is None:
-                # print x,y
-                sel.SelectPartByPosition(x,y,0) # z=0 for 2D
-            else:
-                sel.SelectPart(ID)
-            model.GetSetList().GetSet(name).AddSelected(sel)
-
-        # def edge_set(name,x,y):
-        #     model.GetSetList().CreateEdgeSet(name)
-        #     model.GetSetList().GetSet(name).SetMatcherType(u"Selection")
-        #     model.GetSetList().GetSet(name).ClearParts()
-        #     sel = model.GetSetList().GetSet(name).GetSelection()
-        #     sel.SelectEdgeByPosition(x,y,0) # sel.SelectEdge(741)
-        #     model.GetSetList().GetSet(name).AddSelected(sel)
-        # edge_set(u"AirGapCoast", 0, self.template.SI['GP']['mm_r_ro'].value+0.5*self.Length_AirGap)
-
-        # Shaft
-        add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
-
-        # Create Set for 8 poles Winding
-        Angle_StatorSlotSpan = 360/Q
-        # R = self.mm_r_si + self.mm_d_stt + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
-        # THETA = 0.25*(Angle_StatorSlotSpan)/180.*np.pi
-        R = math.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
-        THETA = np.arctan(acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0])
-        X = R*math.cos(THETA)
-        Y = R*math.sin(THETA)
-        countXL = 0
-        wily = acm_variant.template.SI['EX']['wily']
-        # try:
-        #     wily.layer_X_phases
-        # except AttributeError:
-        #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'layer_X_phases', implying that the object wily has become a dict after jsonpickle.")
-        #     WILY = namedtuple('WILY', acm_variant.template.SI['EX']['wily'])
-        #     wily_as_obj =      WILY(**acm_variant.template.SI['EX']['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
-        #     wily = wily_as_obj
-
-        for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
-            countXL += 1
-            add_part_to_set("CoilLX%s%s %d"%(UVW,UpDown,countXL), X, Y)
-
-            # print(X, Y, THETA)
-            THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*math.cos(THETA)
-            Y = R*math.sin(THETA)
-
-        # Create Set for 2 poles Winding
-        # THETA = 0.75*(Angle_StatorSlotSpan)/180.*np.pi # 这里这个角度的选择，决定了悬浮绕组产生悬浮力的方向！！！！！
-        THETA = np.arctan(-acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0]) + (2*np.pi)/Q
-        X = R*math.cos(THETA)
-        Y = R*math.sin(THETA)
-        countYL = 0
-        for UVW, UpDown in zip(wily.layer_Y_phases,wily.layer_Y_signs):
-            countYL += 1 
-            add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
-
-            THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*math.cos(THETA)
-            Y = R*math.sin(THETA)
-
-        # Create Set for Magnets
-        GP = acm_variant.template.SI['GP']
-        R = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value - 0.5*GP['mm_d_pm'].value
-        # alpha_rs = GP['deg_alpha_rs'].value /180*np.pi
-        deg_pole_span = 360 / (p*2)
-
-        # 这里暂时进不去
-        if s>1:
-            deg_alpha_notch  = (GP['deg_alpha_rm'].value - s*GP['deg_alpha_rs'].value) / (s-1) # inter-segment notch占的角度
-            alpha_notch = deg_alpha_notch /180*np.pi
-        # 从这开始
-        list_xy_magnets = []
-        # list_xy_airWithinRotorSlot = []
-        for ind in range(int(p)):
-            natural_ind = ind + 1
-            
-            if s==1:
-                      # v---This negative sign means we walk CCW to assign sets.
-                THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*2*ind) /180.*np.pi
-                X = R*math.cos(THETA)
-                Y = R*math.sin(THETA)
-
-                add_part_to_set("Magnet %d"%(natural_ind), X, Y)
-                list_xy_magnets.append([X,Y])
-
-
-            ### 这里进不去（暂时）
-
-            else:     # v---This negative sign means we walk CCW to assign sets.
-                THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*np.pi # initial position
-                # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*np.pi # initial position
-                for s in range(s):
-                    X = R*math.cos(THETA)
-                    Y = R*math.sin(THETA)
-                    add_part_to_set("Magnet %d s%d"%(natural_ind, s), X, Y)
-                    list_xy_magnets.append([X,Y])
-                    THETA -= alpha_notch + alpha_rs
-                        # ^---This negative sign means we walk CCW to assign sets.
-
-        # Create Set for Motion Region
-        def part_list_set(name, list_xy, list_part_id=None, prefix=None):
-            model.GetSetList().CreatePartSet(name)
-            model.GetSetList().GetSet(name).SetMatcherType("Selection")
-            model.GetSetList().GetSet(name).ClearParts()
-            sel = model.GetSetList().GetSet(name).GetSelection() 
-            for xy in list_xy:
-                sel.SelectPartByPosition(xy[0],xy[1],0) # z=0 for 2D
-            if list_part_id is not None:
-                for ID in list_part_id:
-                    sel.SelectPart(ID)
-            model.GetSetList().GetSet(name).AddSelected(sel)
-
-        part_list_set('Motion_Region', list_xy_magnets, list_part_id=[id_rotorCore, id_shaft])
-
-        part_list_set('MagnetSet', list_xy_magnets)
-
-        
-        # debug
-        # print(p)
-        # print(int(s))
-        # print(id_rotorCore)
-        # print(id_shaft)
-        # print(partIDRange_Magnet)
-        # print(len(partIDRange_Magnet))
-        # # print(id_sleeve)
-        # print(id_statorCore)
-        # print(partIDRange_Coil)
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(part_ID_list)
-        # print(len(partIDRange_Coil))
-        # quit()
-        
-        return True
-    def pre_process_fluxAlternator(self, app, model, acm_variant):
-        # pre-process : you can select part by coordinate!
-        ''' Group '''
-        def group(name, id_list):
-            model.GetGroupList().CreateGroup(name)
-            for the_id in id_list:
-                model.GetGroupList().AddPartToGroup(name, the_id)
-                # model.GetGroupList().AddPartToGroup(name, name) #<- this also works
-
-        part_ID_list = model.GetPartIDs()
-        print(part_ID_list)
-
-        SI = acm_variant.template.spec_input_dict
-        p  = SI['p']
-        pe = SI['pe']
-        Q  = SI['Qs']
-                                #   转子 轴 永磁体 定子 绕组
-        if len(part_ID_list) != int(1 + 1 + pe*2 + 1 + Q*4):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + pe*2 + 1 + Q*4), len(part_ID_list)) + self.show(toString=False)
-            logger = logging.getLogger(__name__)
-            logger.error(msg)
-            raise utility.ExceptionBadNumberOfParts(msg)
-
-
-        self.id_rotorCore = id_rotorCore = part_ID_list[0]
-        id_shaft           = part_ID_list[1]
-        partIDRange_Magnet = part_ID_list[2:int(2+pe*2)]
-        self.id_statorCore = id_statorCore = part_ID_list[  int(2+pe*2)]
-        partIDRange_Coil   = part_ID_list[  int(2+pe*2)+1 : int(2+pe*2)+1 + int(Q*4)]
-
-        # debug
-        # print(id_rotorCore)
-        # print(id_shaft)
-        # print(partIDRange_Magnet)
-        # print(id_statorCore)
-        # print(partIDRange_Coil)
-
-        # model.SuppressPart(id_shaft, 1) # cause internal error if you suppress parts that relate to condition settings
-        self.bool_suppressShaft = False
-
-        # group("Magnet", partIDRange_Magnet)
-        group("Magnet-CW",  [partIDRange_Magnet[0]])
-        group("Magnet-CCW", [partIDRange_Magnet[1]])
-        group("Coils", partIDRange_Coil)
-
-        ''' Add Part to Set for later references '''
-        def add_part_to_set(name, x, y, ID=None):
-            model.GetSetList().CreatePartSet(name)
-            model.GetSetList().GetSet(name).SetMatcherType("Selection")
-            model.GetSetList().GetSet(name).ClearParts()
-            sel = model.GetSetList().GetSet(name).GetSelection()
-            if ID is None:
-                # print x,y
-                sel.SelectPartByPosition(x,y,0) # z=0 for 2D
-            else:
-                sel.SelectPart(ID)
-            model.GetSetList().GetSet(name).AddSelected(sel)
-
-        # def edge_set(name,x,y):
-        #     model.GetSetList().CreateEdgeSet(name)
-        #     model.GetSetList().GetSet(name).SetMatcherType(u"Selection")
-        #     model.GetSetList().GetSet(name).ClearParts()
-        #     sel = model.GetSetList().GetSet(name).GetSelection()
-        #     sel.SelectEdgeByPosition(x,y,0) # sel.SelectEdge(741)
-        #     model.GetSetList().GetSet(name).AddSelected(sel)
-        # edge_set(u"AirGapCoast", 0, self.template.SI['GP']['mm_r_ro'].value+0.5*self.Length_AirGap)
-
-        # Shaft
-        add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
-
-
-        wily_not_used = acm_variant.template.SI['EX']['wily']
-
-        # Create Set for 4 poles Winding
-        countXL = 0
-        for coil in acm_variant.coils.wily:
-            countXL += 1 
-            UVW = coil['LayerX-Phase']
-            UpDown = coil['LayerX-Direction']
-            X = coil['LayerX-X']
-            Y = coil['LayerX-Y']
-            add_part_to_set("CoilLX%s%s %d"%(UVW,UpDown,countXL), X, Y)
-
-        # Create Set for 2 poles Winding
-        countYL = 0
-        for coil in acm_variant.coils.wily:
-            countYL += 1 
-            UVW = coil['LayerY-Phase']
-            UpDown = coil['LayerY-Direction']
-            X = coil['LayerY-X']
-            Y = coil['LayerY-Y']
-            add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
-
-        # Create Set for Magnets
-        GP = acm_variant.template.SI['GP']
-
-        list_xy_magnets = []
-        # for ind in range(int(p*2)):
-        counterMagnet = 0
-        for magnet in acm_variant.statorMagnet.maly:
-            counterMagnet += 1
-                    # v---This negative sign means we walk CCW to assign sets.
-            # THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*np.pi
-            # X = R*math.cos(THETA)
-            # Y = R*math.sin(THETA)
-            X = magnet['X']
-            Y = magnet['Y']
-            add_part_to_set("Magnet %d"%(counterMagnet), X, Y)
-            list_xy_magnets.append([X,Y])
-
-        # Create Set for Motion Region
-        def add_parts_to_set(name, list_xy, list_part_id=None, prefix=None):
-            model.GetSetList().CreatePartSet(name)
-            model.GetSetList().GetSet(name).SetMatcherType("Selection")
-            model.GetSetList().GetSet(name).ClearParts()
-            sel = model.GetSetList().GetSet(name).GetSelection() 
-            for xy in list_xy:
-                sel.SelectPartByPosition(xy[0],xy[1],0) # z=0 for 2D
-            if list_part_id is not None:
-                for ID in list_part_id:
-                    sel.SelectPart(ID)
-            model.GetSetList().GetSet(name).AddSelected(sel)
-
-        if 'PMSM' in acm_variant.template.name:
-            add_parts_to_set('Motion_Region', list_xy_magnets, list_part_id=[id_rotorCore, id_shaft])
-        elif 'Flux_Alternator' in acm_variant.template.name:
-            add_parts_to_set('Motion_Region', [], list_part_id=[id_rotorCore, id_shaft])
-
-        add_parts_to_set('MagnetSet', list_xy_magnets)
-        return True
     def pre_process_PMSM(self, app, model, acm_variant):
         # pre-process : you can select part by coordinate!
         ''' Group '''
@@ -860,33 +324,31 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # Create Set for 4 poles Winding
         Angle_StatorSlotSpan = 360/Q
         # R = self.mm_r_si + self.mm_d_stt + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
-        # THETA = 0.25*(Angle_StatorSlotSpan)/180.*np.pi
+        # THETA = 0.25*(Angle_StatorSlotSpan)/180.*math.pi
         R = math.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
-        THETA = np.arctan(acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0])
+        THETA = math.atan2(acm_variant.coils.PCoil[1], acm_variant.coils.PCoil[0])
         X = R*math.cos(THETA)
         Y = R*math.sin(THETA)
         countXL = 0
         wily = acm_variant.template.SI['EX']['wily']
-        # try:
-        #     wily.layer_X_phases
-        # except AttributeError:
-        #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'layer_X_phases', implying that the object wily has become a dict after jsonpickle.")
-        #     WILY = namedtuple('WILY', acm_variant.template.SI['EX']['wily'])
-        #     wily_as_obj =      WILY(**acm_variant.template.SI['EX']['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
-        #     wily = wily_as_obj
 
         for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
             countXL += 1 
             add_part_to_set("CoilLX%s%s %d"%(UVW,UpDown,countXL), X, Y)
 
             # print(X, Y, THETA)
-            THETA += Angle_StatorSlotSpan/180.*np.pi
+            THETA += Angle_StatorSlotSpan/180.*math.pi
             X = R*math.cos(THETA)
             Y = R*math.sin(THETA)
 
         # Create Set for 2 poles Winding
-        # THETA = 0.75*(Angle_StatorSlotSpan)/180.*np.pi # 这里这个角度的选择，决定了悬浮绕组产生悬浮力的方向！！！！！
-        THETA = np.arctan(-acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0]) + (2*np.pi)/Q
+        if acm_variant.coils.PCoil[1] >= 0:
+            raise Exception(f'Pay attention to the coil setup. The codes are written assuming the first coil is in the 12th slot. In other words acm_variant.coils.PCoil[1] should negative, but {acm_variant.coils.PCoil[1]=}')
+        # THETA = 0.75*(Angle_StatorSlotSpan)/180.*math.pi # 这里这个角度的选择，决定了悬浮绕组产生悬浮力的方向！！！！！
+        if acm_variant.coils.PCoil[1] > 0.0:
+            THETA = math.atan2(-acm_variant.coils.PCoil[1], acm_variant.coils.PCoil[0]) + (2*math.pi)/Q # needed for case in which PCoil[1] > 0
+        else:
+            THETA = math.atan2(-acm_variant.coils.PCoil[1], acm_variant.coils.PCoil[0]) - (2*math.pi)/Q # needed for case in which PCoil[1] < 0
         X = R*math.cos(THETA)
         Y = R*math.sin(THETA)
         countYL = 0
@@ -894,19 +356,19 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             countYL += 1 
             add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
 
-            THETA += Angle_StatorSlotSpan/180.*np.pi
+            THETA += Angle_StatorSlotSpan/180.*math.pi
             X = R*math.cos(THETA)
             Y = R*math.sin(THETA)
 
         # Create Set for Magnets
         GP = acm_variant.template.SI['GP']
         R = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value - 0.5*GP['mm_d_pm'].value
-        alpha_rs = GP['deg_alpha_rs'].value /180*np.pi
+        alpha_rs = GP['deg_alpha_rs'].value /180*math.pi
         deg_pole_span = 360 / (p*2)
 
         if s>1:
             deg_alpha_notch  = (GP['deg_alpha_rm'].value - s*GP['deg_alpha_rs'].value) / (s-1) # inter-segment notch占的角度
-            alpha_notch = deg_alpha_notch /180*np.pi
+            alpha_notch = deg_alpha_notch /180*math.pi
 
         list_xy_magnets = []
         # list_xy_airWithinRotorSlot = []
@@ -915,15 +377,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             if s==1:
                       # v---This negative sign means we walk CCW to assign sets.
-                THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*np.pi
+                THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*math.pi
                 X = R*math.cos(THETA)
                 Y = R*math.sin(THETA)
 
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
             else:     # v---This negative sign means we walk CCW to assign sets.
-                THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*np.pi # initial position
-                # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*np.pi # initial position
+                THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*math.pi # initial position
+                # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*math.pi # initial position
                 for s in range(s):
                     X = R*math.cos(THETA)
                     Y = R*math.sin(THETA)
@@ -947,130 +409,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         part_list_set('Motion_Region', list_xy_magnets, list_part_id=[id_rotorCore, id_shaft])
 
         part_list_set('MagnetSet', list_xy_magnets)
-        return True
-    def pre_process_FSPM(self, app, model, acm_variant):
-
-        ''' 1. Group: make multiple parts that have the same name as a group'''
-        def group(name, id_list):
-            model.GetGroupList().CreateGroup(name)
-            for the_id in id_list:
-                # model.GetGroupList().AddPartToGroup(name, name) #<- this also works
-                model.GetGroupList().AddPartToGroup(name, the_id)
-
-        part_ID_list = model.GetPartIDs()
-        SI = acm_variant.template.spec_input_dict
-        p = SI['p']
-        pe = SI['pe']
-        Qs = SI['Qs']
-                                   #   轴 转子 永磁体  定子 绕组
-        self.number_of_parts_in_JMAG = 1 + 1 + pe*2 + 1 + Qs*2
-
-        if len(part_ID_list) != self.number_of_parts_in_JMAG:
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(self.number_of_parts_in_JMAG), len(part_ID_list))
-            #  + self.show(toString=False)
-            logger = logging.getLogger(__name__)
-            logger.error(msg)
-            raise utility.ExceptionBadNumberOfParts(msg)
-
-        self.id_rotorCore = id_rotorCore = part_ID_list[0]
-        id_shaft = part_ID_list[1]
-        partIDRange_Magnet = part_ID_list[2:int(2+pe*2)]
-        self.id_statorCore = id_statorCore = part_ID_list[int(2+pe*2)]
-        partIDRange_Coil = part_ID_list[int(2+pe*2)+1 : int(2+pe*2)+1 + int(Qs*2)]
-
-        # group("Magnet", partIDRange_Magnet)
-        # group("Magnet-CW",  partIDRange_Magnet[0::2])
-        # group("Magnet-CCW", partIDRange_Magnet[1::2])
-        group("Magnet-CCW",  partIDRange_Magnet[0::2]) # for reversing torque sign
-        group("Magnet-CW", partIDRange_Magnet[1::2])
-        group("Coils", partIDRange_Coil)
-
-
-        ''' 2. Add Part to Set for later references '''
-        def add_part_to_set(name, x, y, ID=None):
-            model.GetSetList().CreatePartSet(name)
-            model.GetSetList().GetSet(name).SetMatcherType("Selection")
-            model.GetSetList().GetSet(name).ClearParts()
-            sel = model.GetSetList().GetSet(name).GetSelection()
-            if ID is None:
-                sel.SelectPartByPosition(x,y,0) # z=0 for 2D
-            else:
-                sel.SelectPart(ID)
-            model.GetSetList().GetSet(name).AddSelected(sel)
-
-        # Shaft Set
-        # add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
-        self.bool_suppressShaft = True
-        if self.bool_suppressShaft:
-            model.SuppressPart(id_shaft, 1)
-
-        # Create Sets for Coils
-        wily = acm_variant.template.SI['EX']['wily']
-        Angle_StatorSlotSpan = 360/Qs
-        R = math.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2) # switch coil naming for intuitive concentric winding (cf. PMSM)
-
-        # Coils belonging to Layer X
-        THETA = np.arctan(-acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0]) + (2*np.pi)/Qs
-        X = R*math.cos(THETA)
-        Y = R*math.sin(THETA)
-        countXL = 0
-        for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
-            countXL += 1 
-            add_part_to_set("CoilLX%s%s %d"%(UVW,UpDown,countXL), X, Y)
-
-            # print(X, Y, THETA)
-            THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*math.cos(THETA)
-            Y = R*math.sin(THETA)
-
-        # Coils belonging to Layer Y
-        THETA = np.arctan(acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0]) # switch coil naming for intuitive concentric winding (cf. PMSM)
-        X = R*math.cos(THETA)
-        Y = R*math.sin(THETA)
-        countYL = 0
-        for UVW, UpDown in zip(wily.layer_Y_phases,wily.layer_Y_signs):
-            countYL += 1 
-            add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
-
-            THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*math.cos(THETA)
-            Y = R*math.sin(THETA)
-
-        # Create Set for Magnets
-        GP = acm_variant.template.SI['GP']
-        R = 0.5*(GP['mm_r_si'].value + GP['mm_r_so'].value)
-        deg_pole_span = 360 / (pe*2)
-        list_xy_magnets = []
-        for ind in range(int(pe*2)):
-            natural_ind = ind + 1
-                  # v---This negative sign means we walk CCW to assign sets.
-            THETA = -(deg_pole_span*ind) /180*np.pi
-            X = R*math.cos(THETA)
-            Y = R*math.sin(THETA)
-            add_part_to_set("Magnet %d"%(natural_ind), X, Y)
-            list_xy_magnets.append([X,Y])
-
-        # Create Set for Motion Region
-        def part_list_set(name, list_xy, list_part_id=None, prefix=None):
-            model.GetSetList().CreatePartSet(name)
-            model.GetSetList().GetSet(name).SetMatcherType("Selection")
-            model.GetSetList().GetSet(name).ClearParts()
-            sel = model.GetSetList().GetSet(name).GetSelection() 
-            for xy in list_xy:
-                sel.SelectPartByPosition(xy[0],xy[1],0) # z=0 for 2D
-            if list_part_id is not None:
-                for ID in list_part_id:
-                    sel.SelectPart(ID)
-            model.GetSetList().GetSet(name).AddSelected(sel)
-
-        part_list_set('MagnetSet', list_xy_magnets)
-
-        if self.bool_suppressShaft == False:
-            add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft)
-            part_list_set('Motion_Region', [], list_part_id=[id_rotorCore, id_shaft])
-        else:
-            part_list_set('Motion_Region', [], list_part_id=[id_rotorCore, ])
-
         return True
 
     def add_magnetic_transient_study(self, app, model, dir_csv_output_folder, study_name, acm_variant):
@@ -1102,7 +440,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         study.GetStudyProperties().SetValue("ConversionType", 0)
         study.GetStudyProperties().SetValue("NonlinearMaxIteration", acm_variant.template.fea_config_dict['designer.max_nonlinear_iteration'])
-        study.GetStudyProperties().SetValue("ModelThickness", EX['mm_template_stack_length']) # [mm] Stack Length
+        study.GetStudyProperties().SetValue("ModelThickness", EX['mm_stack_length']) # [mm] Stack Length
 
         # Material
         self.add_material(study, acm_variant)
@@ -1173,7 +511,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             DM.CreatePointArray("point_array/timevsdivision", "SectionStepTable")
 
             # FREQUENCY = EX['DriveW_Freq'] # PMSM
-            FREQUENCY = SI['ExcitationFreqSimulated'] # FSPM
+            FREQUENCY = SI['EX-user']['ExcitationFreqSimulated'] # FSPM
 
             if number_cycles_prolonged == 0:
                 if number_cycles_in_3rdTSS == 0:
@@ -1379,7 +717,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         #     rotorCoreName = "SalientPoleRotor"
         rotorCoreName = acm_variant.rotorCore.name
 
-        if 'M19' in acm_template.spec_input_dict['Steel']:
+        if 'M19' in acm_template.spec_input_dict['EX-user']['Steel']:
             study.SetMaterialByName("StatorCore", "M-19 Steel Gauge-29")
             study.GetMaterial("StatorCore").SetValue("Laminated", 1)
             study.GetMaterial("StatorCore").SetValue("LaminationFactor", 95)
@@ -1389,7 +727,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(rotorCoreName).SetValue("Laminated", 1)
             study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 98)
 
-        elif 'M15' in acm_template.spec_input_dict['Steel']:
+        elif 'M15' in acm_template.spec_input_dict['EX-user']['Steel']:
             study.SetMaterialByName("StatorCore", "M-15 Steel")
             study.GetMaterial("StatorCore").SetValue("Laminated", 1)
             study.GetMaterial("StatorCore").SetValue("LaminationFactor", 98)
@@ -1398,7 +736,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(rotorCoreName).SetValue("Laminated", 1)
             study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 98)
 
-        elif acm_template.spec_input_dict['Steel'] == 'Arnon5':
+        elif acm_template.spec_input_dict['EX-user']['Steel'] == 'Arnon5':
             study.SetMaterialByName("StatorCore", "Arnon5-final")
             study.GetMaterial("StatorCore").SetValue("Laminated", 1)
             study.GetMaterial("StatorCore").SetValue("LaminationFactor", 96)
@@ -1407,7 +745,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(rotorCoreName).SetValue("Laminated", 1)
             study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 96)
 
-        elif acm_template.spec_input_dict['Steel'] == '35CS250':
+        elif acm_template.spec_input_dict['EX-user']['Steel'] == '35CS250':
             study.SetMaterialByName(u"StatorCore", u"35CS250")
             study.SetMaterialByName(rotorCoreName, u"35CS250")
 
@@ -1430,7 +768,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # N40H Reversible
         available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220] # according to JMAG
-        magnet_temperature = min(available_temperature_list, key=lambda x:abs(x-acm_template.spec_input_dict['Temperature']))        
+        magnet_temperature = min(available_temperature_list, key=lambda x:abs(x-acm_template.spec_input_dict['EX-user']['Temperature']))        
         logger = logging.getLogger(__name__)
         logger.info('magnet_temperature is %s deg C.', magnet_temperature)
         if 'PMSM' in acm_variant.template.name:
@@ -1772,9 +1110,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     def addConstraintCocentricity(self, vA, vB):
         print(vA.GetName(), vB.GetName())
         ref1 = self.sketch.GetItem(vA.GetName())
-        ref2 = self.SIoc.CreateReferenceFromItem(ref1)
+        ref2 = self.doc.CreateReferenceFromItem(ref1)
         ref3 = self.sketch.GetItem(vB.GetName())
-        ref4 = self.SIoc.CreateReferenceFromItem(ref3)
+        ref4 = self.doc.CreateReferenceFromItem(ref3)
         self.sketch.CreateBiConstraint(u"concentricity", ref2, ref4)
 
         # ref1 = geomApp.GetDocument().GetAssembly().GetItem(u"StatorCore").GetItem(u"Vertex.7")
@@ -1799,7 +1137,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # print(A.GetX(), A.GetY())
         line = self.sketch.CreateLine(startxy[0],startxy[1],endxy[0],endxy[1])
         if returnVertexName==False:
-            return [line]
+            return [line] # startxy[0],startxy[1],endxy[0],endxy[1]
         else:
             return [line], [A,B]
 
@@ -1816,7 +1154,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                                     startxy[0], startxy[1],
                                     endxy[0], endxy[1])
         if returnVertexName==False:
-            return [arc]
+            return [arc] # centerxy[0], centerxy[1], startxy[0], startxy[1], endxy[0], endxy[1]
         else:
             return [arc], [A,B,C]
 
@@ -1838,7 +1176,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if self.geomApp is None:
             self.app.LaunchGeometryEditor()
             self.geomApp = self.app.CreateGeometryEditor(True)
-            self.SIoc = self.geomApp.NewDocument()                
+            self.doc = self.geomApp.NewDocument()                
         geomApp = self.geomApp
         return geomApp
 
@@ -1853,10 +1191,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             self.sketchNameList.append(sketchName)
 
         self.geomApp = self.checkGeomApp()
-        self.SIoc = self.geomApp.GetDocument()
-        self.ass = self.SIoc.GetAssembly()
+        self.doc = self.geomApp.GetDocument()
+        self.ass = self.doc.GetAssembly()
         ref1 = self.ass.GetItem('XY Plane')
-        ref2 = self.SIoc.CreateReferenceFromItem(ref1)
+        ref2 = self.doc.CreateReferenceFromItem(ref1)
         self.sketch = self.ass.CreateSketch(ref2)
         self.sketch.SetProperty('Name', sketchName)
 
@@ -1875,11 +1213,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         for idx, list_segments in enumerate(list_regions):
 
             # Region
-            self.SIoc.GetSelection().Clear()
+            self.doc.GetSelection().Clear()
             for segment in list_segments:
                 # print(segment)
                 # debugging = list_segments(i).GetName()
-                self.SIoc.GetSelection().Add(self.sketch.GetItem(segment.GetName()))
+                self.doc.GetSelection().Add(self.sketch.GetItem(segment.GetName()))
 
             self.sketch.CreateRegions()
             # self.sketch.CreateRegionsWithCleanup(EPS, True) # StatorCore will fail
@@ -1896,16 +1234,16 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if 'list_regions_to_remove' in token.keys():
             for region_object, boo in zip(list_region_objects, token['list_regions_to_remove']):
                 if boo:
-                    self.SIoc.GetSelection().Clear()
-                    self.SIoc.GetSelection().Add(region_object)
-                    self.SIoc.GetSelection().Delete()
+                    self.doc.GetSelection().Clear()
+                    self.doc.GetSelection().Add(region_object)
+                    self.doc.GetSelection().Delete()
         # quit()
         if 'inner_or_outer_region_to_remove' in token.keys():
             for REGION_NAME, boo in zip(['Region', 'Region.2'], token['inner_or_outer_region_to_remove']):
                 if boo:
-                    self.SIoc.GetSelection().Clear()
-                    self.SIoc.GetSelection().Add(self.sketch.GetItem(REGION_NAME))
-                    self.SIoc.GetSelection().Delete()
+                    self.doc.GetSelection().Clear()
+                    self.doc.GetSelection().Add(self.sketch.GetItem(REGION_NAME))
+                    self.doc.GetSelection().Delete()
 
         for idx, region_object in enumerate(list_region_objects):
             # Mirror
@@ -1927,7 +1265,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         mirror = self.sketch.CreateRegionMirrorCopy()
         mirror.SetProperty('Merge', bMerge)
-        ref2 = self.SIoc.CreateReferenceFromItem(region)
+        ref2 = self.doc.CreateReferenceFromItem(region)
         mirror.SetPropertyByReference('Region', ref2)
         
         if edge4Ref is None:
@@ -1937,7 +1275,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 mirror.SetProperty('SymmetryType', symmetryType)
         else:
             ref1 = self.sketch.GetItem(edge4Ref.GetName()) # e.g., u"Line"
-            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
+            ref2 = self.doc.CreateReferenceFromItem(ref1)
             mirror.SetPropertyByReference('Symmetry', ref2)
 
         if bMerge == False and region.GetName() == 'Region':
@@ -1952,7 +1290,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         circular_pattern = self.sketch.CreateRegionCircularPattern()
         circular_pattern.SetProperty('Merge', bMerge)
 
-        ref2 = self.SIoc.CreateReferenceFromItem(region)
+        ref2 = self.doc.CreateReferenceFromItem(region)
         # ref2 = 
         circular_pattern.SetPropertyByReference('Region', ref2)
         # circular_pattern.SetPropertyByReference('Region.2', ref2)
@@ -1971,7 +1309,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         #     # ref1 = self.ass.GetItem(self.sketch.GetName()).GetItem('Vertex.3')
         #     origin = self.sketch.CreateVertex(0,0)
         #     ref1 = self.ass.GetItem(self.sketch.GetName()).GetItem(origin.GetName())
-        #     ref2 = self.SIoc.CreateReferenceFromItem(ref1)
+        #     ref2 = self.doc.CreateReferenceFromItem(ref1)
         #     circular_pattern.SetPropertyByReference('Center', ref2)
         # elif True:
         #     # Matlab's actxserver cannot pass integer to JMAG (the following 1)
@@ -2462,6 +1800,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # Import Model into Designer
             self.save(acm_variant.name, self.show(acm_variant, toString=False))
 
+        import builtins
+        builtins.ad.visualize_dict['GeometricComponentsObjects']['rotorCore'] = acm_variant.rotorCore
+        builtins.ad.visualize_dict['GeometricComponentsObjects']['shaft'] = acm_variant.shaft
+        builtins.ad.visualize_dict['GeometricComponentsObjects']['rotorMagnet'] = acm_variant.rotorMagnet
+        builtins.ad.visualize_dict['GeometricComponentsObjects']['sleeve'] = acm_variant.sleeve
+        builtins.ad.visualize_dict['GeometricComponentsObjects']['statorCore'] = acm_variant.statorCore
+        builtins.ad.visualize_dict['GeometricComponentsObjects']['coils'] = acm_variant.coils
+
         return True
     
     def draw_doublySalient(self, acm_variant, bool_draw_whole_model=True):
@@ -2712,7 +2058,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     # time_list.append(float(row[0]))
                     ForConX_list.append(float(row[1]))
                     ForConY_list.append(float(row[2]))
-        ForConAbs_list = math.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
+        ForConAbs_list = np.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
 
         # Current
         key_list = []
@@ -2943,7 +2289,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                                 EX['DriveW_zQ'],
                                 wily.coil_pitch_y,
                                 acm_variant.template.SI['Qs'],
-                                EX['mm_template_stack_length'],
+                                EX['mm_stack_length'],
                                 EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp'], # total current amplitude
                                 GP['mm_r_ro'].value,       # mm
                                 GP['mm_r_so'].value*2*1e-3 # m, stator_yoke_diameter_Dsyi
@@ -2955,8 +2301,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(
                 EX['slot_current_utilizing_ratio']*acm_variant.coils.mm2_slot_area*1e-6, 
                 copper_loss_parameters=copper_loss_parameters, 
-                STATOR_SLOT_FILL_FACTOR=acm_variant.template.SI['WindingFill'],
-                TEMPERATURE_OF_COIL=acm_variant.template.SI['Temperature'])
+                STATOR_SLOT_FILL_FACTOR=EX['WindingFill'],
+                TEMPERATURE_OF_COIL=EX['Temperature'])
             # s, r, sAlongStack, rAlongStack, Js, Jr = 0, 0, 0, 0, 0, 0
 
         dm = data_manager()
@@ -2992,7 +2338,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         machine_type = acm_variant.template.machine_type
 
         try:
-            self.SIm = dm = self.read_csv_results_4_general_purpose(tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver, acm_variant=acm_variant)
+            self.dm = dm = self.read_csv_results_4_general_purpose(tran_study_name, dir_csv_output_folder, fea_config_dict, femm_solver, acm_variant=acm_variant)
 
             # Get peak to peak coil flux linkage
             coil_flux_linkage_peak2peak_value_results = []
@@ -3070,7 +2416,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         else:
             raise Exception('Unknown machine type:', acm_variant.template.machine_type)
 
-        windage_loss = utility.get_windage_loss(acm_variant, acm_variant.template.SI['EX']['mm_template_stack_length'])
+        windage_loss = utility.get_windage_loss(acm_variant, acm_variant.template.SI['EX']['mm_stack_length'])
 
         # 这样计算效率，输出转矩大的，铁耗大一倍也没关系了，总之就是气隙变得最小。。。要不就不要优化气隙了。。。
         total_loss   = copper_loss + iron_loss + windage_loss
@@ -3140,17 +2486,17 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             rotor_copper_loss_in_end_turn  = 0
 
         speed_rpm       = acm_variant.template.SI['ExcitationFreqSimulated'] * 60 / acm_variant.template.SI['p'] # rpm
-        required_torque = acm_variant.template.SI['mec_power'] / (2*np.pi*speed_rpm)*60
+        required_torque = acm_variant.template.SI['mec_power'] / (2*math.pi*speed_rpm)*60
 
         rated_ratio                          = required_torque / torque_average 
-        rated_stack_length_mm                = rated_ratio * acm_variant.template.SI['EX']['mm_template_stack_length']
+        rated_stack_length_mm                = rated_ratio * acm_variant.template.SI['EX']['mm_stack_length']
         rated_stator_copper_loss_along_stack = rated_ratio * stator_copper_loss_along_stack
         rated_magnet_Joule_loss              = rated_ratio * magnet_Joule_loss
         rated_rotor_copper_loss_along_stack  = rated_ratio * rotor_copper_loss_along_stack
         rated_iron_loss                      = rated_ratio * dm.jmag_loss_list[2]
         rated_windage_loss                   = utility.get_windage_loss(acm_variant, rated_stack_length_mm)
 
-        # print(acm_variant.template.SI['EX']['mm_template_stack_length'])
+        # print(acm_variant.template.SI['EX']['mm_stack_length'])
         # print(rated_ratio)
         # print(torque_average)
         # print(required_torque)
@@ -3184,7 +2530,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         rated_shaft_power  = acm_variant.template.SI['EX']['Omega'] * required_torque
         rated_efficiency   = rated_shaft_power / (rated_total_loss + rated_shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
 
-        rated_rotor_volume = np.pi*(acm_variant.template.SI['GP']['mm_r_ro'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
+        rated_rotor_volume = math.pi*(acm_variant.template.SI['GP']['mm_r_ro'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
         logger.info('rated_stack_length_mm = %s', rated_stack_length_mm)
 
         # This weighted list suggests that peak-to-peak torque ripple of 5% is comparable with Em of 5% or Ea of 1 deg. Ref: Ye gu ECCE 2018
@@ -3203,7 +2549,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         price_per_volume_magnet   = 11.61 * 61023.744 # $/in^3 NdFeB PM
         # price_per_volume_aluminum = 0.88  / 16387.064 # $/in^3 wire or cast Al
         # Vol_Fe = (2*acm_variant.template.SI['GP']['mm_r_so'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
-        Vol_Fe = ( np.pi*(acm_variant.template.SI['GP']['mm_r_so'].value*1e-3)**2 - np.pi*(acm_variant.template.SI['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
+        Vol_Fe = ( math.pi*(acm_variant.template.SI['GP']['mm_r_so'].value*1e-3)**2 - math.pi*(acm_variant.template.SI['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
         if 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
             if 'FSPM' in machine_type:
                 Vol_PM = (acm_variant.statorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
@@ -3275,7 +2621,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         FRW = ss_avg_force_magnitude / rotor_weight
         logger = logging.getLogger(__name__)
-        logger.info('FRW: %s, Rotor weight: %s, Stack length: %s, Rated stack length: %s', FRW, rotor_weight, acm_variant.template.SI['EX']['mm_template_stack_length'], rated_stack_length_mm)
+        logger.info('FRW: %s, Rotor weight: %s, Stack length: %s, Rated stack length: %s', FRW, rotor_weight, acm_variant.template.SI['EX']['mm_stack_length'], rated_stack_length_mm)
         rated_rotor_volume = acm_variant.template.get_rotor_volume(stack_length=rated_stack_length_mm) 
         rated_rotor_weight = acm_variant.template.get_rotor_weight(stack_length=rated_stack_length_mm)
         logger.info('rated_rotor_volume: %s, rated_rotor_weight: %s', rated_rotor_volume, rated_rotor_weight)
@@ -3292,7 +2638,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                             rated_windage_loss,
                             rated_rotor_volume,
                             rated_stack_length_mm,  # new!
-                            acm_variant.template.SI['EX']['mm_template_stack_length']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
+                            acm_variant.template.SI['EX']['mm_stack_length']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
 
         # print(type(acm_variant.counter)==type(''))
         # print(type(acm_variant.counter)==type(''))

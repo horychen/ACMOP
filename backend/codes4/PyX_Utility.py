@@ -76,7 +76,7 @@ class PyX_Utility:
         textattrs = [pyx.text.halign.center, pyx.text.vshift.middlezero]
         X = pyx.text.text(startxy[0], startxy[1], r"", textattrs) # must have textattrs or else you will have normsubpath cannot close error: AssertionError: normsubpathitems do not match
         Y = pyx.text.text(endxy[0], endxy[1], r"", textattrs)
-        self.cvs.stroke(pyx.connector.arc(X, Y, boxdists=[0.0, 0.0], relangle=relative_angle/np.pi*180), 
+        self.cvs.stroke(pyx.connector.arc(X, Y, boxdists=[0.0, 0.0], relangle=relative_angle/math.pi*180), 
                         [global_settings['linewidth'], global_settings['linestyle'], global_settings['linecolor']]+settings) # https://pyx-project.org/manual/connector.html?highlight=relangle
 
         if bool_track:
@@ -331,10 +331,10 @@ def pyx_script_pmsm(ad, best_chromosome, best_idx, Q, p, proj_name):
                 # 按照Eric的要求，把不必要的线给删了。
                 if abs(path[1] + path[3]) < EPS: # 镜像对称线
                     bool_exclude_path = True
-                if abs(path[0] - path[2]) + math.cos(2*np.pi/Q/2) < EPS: # 旋转对称线（特别情况，tan(90°) = ∞
+                if abs(path[0] - path[2]) + math.cos(2*math.pi/Q/2) < EPS: # 旋转对称线（特别情况，tan(90°) = ∞
                     bool_exclude_path = True                
                 else:
-                    if abs( abs((path[1] - path[3])/(path[0] - path[2])) - abs(np.tan(2*np.pi/Q/2)) ) < EPS: # 旋转对称线
+                    if abs( abs((path[1] - path[3])/(path[0] - path[2])) - abs(np.tan(2*math.pi/Q/2)) ) < EPS: # 旋转对称线
                         bool_exclude_path = True
 
             if not is_at_stator(path, mm_rotor_outer_radius, mm_air_gap_length):
@@ -353,7 +353,7 @@ def pyx_script_pmsm(ad, best_chromosome, best_idx, Q, p, proj_name):
             # tool_tikz.c.fill(pyx.path.circle(0, 0, 125), [pyx.color.rgb.white]) # use this if THICK is used. <- this will over-write everthing... how to change zorder?
 
 
-            _ = 2*np.pi/Q
+            _ = 2*math.pi/Q
  
             if True: # full model
                 for counter in range(Q):
@@ -396,25 +396,25 @@ def pyx_script_pmsm(ad, best_chromosome, best_idx, Q, p, proj_name):
 
                 # 转子：旋转复制
                 if not is_at_stator(path, mm_rotor_outer_radius, mm_air_gap_length):
-                    path[0], path[1] = rotate(0.5*np.pi - 0.5*0.5*_, path[0], path[1])
-                    path[2], path[3] = rotate(0.5*np.pi - 0.5*0.5*_, path[2], path[3])
+                    path[0], path[1] = rotate(0.5*math.pi - 0.5*0.5*_, path[0], path[1])
+                    path[2], path[3] = rotate(0.5*math.pi - 0.5*0.5*_, path[2], path[3])
                     pyx_draw_path(tool_tikz, path, sign=1, bool_exclude_path=bool_exclude_path)
                     # print(index, '\t|', ',\t'.join(['%g'%(el) for el in path]))
 
-                    # path[0], path[1] = rotate(0.5*np.pi - 0*0.5*_, path[0], path[1])
-                    # path[2], path[3] = rotate(0.5*np.pi - 0*0.5*_, path[2], path[3])
+                    # path[0], path[1] = rotate(0.5*math.pi - 0*0.5*_, path[0], path[1])
+                    # path[2], path[3] = rotate(0.5*math.pi - 0*0.5*_, path[2], path[3])
                     # pyx_draw_path(tool_tikz, path, sign=1, bool_exclude_path=bool_exclude_path)
 
                 # 定子：镜像+旋转复制
                 if is_at_stator(path, mm_rotor_outer_radius, mm_air_gap_length):
 
-                    path[0], path[1] = rotate(0.5*np.pi - 0.5*_, path[0], path[1])
-                    path[2], path[3] = rotate(0.5*np.pi - 0.5*_, path[2], path[3])
+                    path[0], path[1] = rotate(0.5*math.pi - 0.5*_, path[0], path[1])
+                    path[2], path[3] = rotate(0.5*math.pi - 0.5*_, path[2], path[3])
                     pyx_draw_path(tool_tikz, path, sign=1, bool_exclude_path=bool_exclude_path)
                     # print(index, '\t|', ',\t'.join(['%g'%(el) for el in path]))
 
-                    path_mirror[0], path_mirror[1] = rotate(0.5*np.pi - 0.5*_, path_mirror[0], path_mirror[1])
-                    path_mirror[2], path_mirror[3] = rotate(0.5*np.pi - 0.5*_, path_mirror[2], path_mirror[3])
+                    path_mirror[0], path_mirror[1] = rotate(0.5*math.pi - 0.5*_, path_mirror[0], path_mirror[1])
+                    path_mirror[2], path_mirror[3] = rotate(0.5*math.pi - 0.5*_, path_mirror[2], path_mirror[3])
                     pyx_draw_path(tool_tikz, path_mirror, sign=-1, bool_exclude_path=bool_exclude_path)
 
                     # 注意，所有 tack_path 中的 path 都已经转动了90度了！

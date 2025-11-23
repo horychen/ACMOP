@@ -60,7 +60,6 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "mm_d_sto"      : acmop_parameter("fixed",   "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
             "deg_alpha_sto" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_sto(GP,SI)),
             "mm_d_stt"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_stt(GP,SI)),
-
         })
         GP.update(childGP)
 
@@ -133,7 +132,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         # yoke_split_ratio = [0.2, 0.45]
         GP['mm_d_sy'].bounds = [el * (GP['mm_r_so'].value - GP['mm_r_si'].value) for el in [0.2, 0.45]]
         # tooth_split_ratio_at_middle_slot = [0.25, 0.50]
-        GP['mm_w_st'].bounds = [el / Q * np.pi * (GP['mm_r_so'].value + GP['mm_r_si'].value) for el in [0.25, 0.50]]
+        GP['mm_w_st'].bounds = [el / Q * math.pi * (GP['mm_r_so'].value + GP['mm_r_si'].value) for el in [0.25, 0.50]]
 
         # attention: the bounds are determined around the template design, which means any change of the template design will lead to a change of the order the bounds.
         # original_template_neighbor_bounds = {

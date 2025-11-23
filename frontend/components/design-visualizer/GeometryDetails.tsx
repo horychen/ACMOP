@@ -1,0 +1,112 @@
+'use client';
+
+import React from 'react';
+import { GeometricComponentsObjects, GeometricComponent } from '@/lib/DesignData';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+interface GeometryDetailsProps {
+    data: GeometricComponentsObjects;
+    onComponentSelect?: (componentKey: string | null) => void;
+}
+
+export default function GeometryDetails({ data, onComponentSelect }: GeometryDetailsProps) {
+    const renderComponentDetails = (name: string, component: GeometricComponent) => {
+        // Separate points and other parameters
+        const parameters: Record<string, any> = {};
+        const points: Record<string, [number, number]> = {};
+
+        Object.entries(component).forEach(([key, val]) => {
+            if (key === 'py/object' || key === 'location' || key === 'color' || key === 'name') return;
+
+            // Check if it's a point (starts with P and is array of 2 numbers)
+            // Also handle P1p5 etc.
+            if (key.startsWith('P') && Array.isArray(val) && val.length === 2 && typeof val[0] === 'number') {
+                points[key] = val as [number, number];
+            } else if (typeof val !== 'object' || val === null) {
+                parameters[key] = val;
+            }
+        });
+
+        return (
+            <div className="space-y-4">
+                <div>
+                    <h4 className="text-sm font-semibold mb-2">Parameters</h4>
+                    <Table>
+                        <TableBody>
+                            {Object.entries(parameters).map(([k, v]) => (
+                                <TableRow key={k} className="h-8">
+                                    <TableCell className="py-1 font-medium text-xs">{k}</TableCell>
+                                    <TableCell className="py-1 text-right text-xs font-mono">
+                                        {typeof v === 'number' ? v.toFixed(4) : String(v)}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                <div>
+                    <h4 className="text-sm font-semibold mb-2">Points</h4>
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="h-8">
+                                <TableHead className="h-8 py-1 text-xs">Point</TableHead>
+                                <TableHead className="h-8 py-1 text-right text-xs">X</TableHead>
+                                <TableHead className="h-8 py-1 text-right text-xs">Y</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {Object.entries(points).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true })).map(([k, [x, y]]) => (
+                                <TableRow key={k} className="h-8">
+                                    <TableCell className="py-1 font-medium text-xs">{k}</TableCell>
+                                    <TableCell className="py-1 text-right text-xs font-mono">{x.toFixed(3)}</TableCell>
+                                    <TableCell className="py-1 text-right text-xs font-mono">{y.toFixed(3)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <Card className="h-full flex flex-col">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Geometry Details</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-hidden p-0">
+                <Tabs
+                    defaultValue={Object.keys(data)[0]}
+                    className="h-full flex flex-col"
+                    onValueChange={(value) => onComponentSelect?.(value)}
+                >
+                    <div className="px-4 pt-2">
+                        <TabsList className="w-full justify-start overflow-x-auto h-auto flex-wrap gap-1 bg-transparent p-0">
+                            {Object.keys(data).map(key => (
+                                <TabsTrigger
+                                    key={key}
+                                    value={key}
+                                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border text-xs px-2 py-1 h-auto"
+                                >
+                                    {data[key as keyof GeometricComponentsObjects].name || key}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </div>
+
+                    <ScrollArea className="flex-1 p-4">
+                        {Object.entries(data).map(([key, component]) => (
+                            <TabsContent key={key} value={key} className="mt-0">
+                                {renderComponentDetails(key, component)}
+                            </TabsContent>
+                        ))}
+                    </ScrollArea>
+                </Tabs>
+            </CardContent>
+        </Card>
+    );
+}

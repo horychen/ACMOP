@@ -595,7 +595,7 @@ class VanGogh_pyPlotter(VanGogh):
             return radius*math.cos(phi) + center[0], radius*math.sin(phi) + center[1]
 
         # get list of points
-        # phis = np.arange(rotation, rotation+angle_span, 2*radius*np.pi / (360./maxseg))
+        # phis = np.arange(rotation, rotation+angle_span, 2*radius*math.pi / (360./maxseg))
         phis = np.linspace(rotation, rotation+angle_span, int(360./maxseg))
         return ax.plot( *xy(radius, phis, center), c='k', **kwarg)
     
@@ -821,8 +821,8 @@ class VanGogh_TikZPlotter():
         else:
             # PyX: Option 2: use pyx.arc. 
             radius = math.sqrt((startxy[0] - centerxy[0])**2 + (startxy[1] - centerxy[1])**2)
-            angle_start = np.arctan2( (startxy[1] - centerxy[1]), (startxy[0] - centerxy[0]) ) / np.pi*180
-            angle_end   = np.arctan2(   (endxy[1] - centerxy[1]),   (endxy[0] - centerxy[0]) ) / np.pi*180
+            angle_start = np.arctan2( (startxy[1] - centerxy[1]), (startxy[0] - centerxy[0]) ) / math.pi*180
+            angle_end   = np.arctan2(   (endxy[1] - centerxy[1]),   (endxy[0] - centerxy[0]) ) / math.pi*180
             if ccw == 1:
                 路径 = pyx.path.path(pyx.path.arc(centerxy[0], centerxy[1], radius, angle_start, angle_end-angle_start))
             else:
@@ -834,8 +834,8 @@ class VanGogh_TikZPlotter():
                 # See pyx_fill_example.py
                 # from pylab import np; import math
                 # upArc = path.path(path.arc(0,0,1,240,300))
-                # right = path.line(0,0,1*math.cos(240/180*np.pi),1*math.sin(240/180*np.pi))
-                # left  = path.line(1*math.cos(300/180*np.pi),1*math.sin(300/180*np.pi),0,0)
+                # right = path.line(0,0,1*math.cos(240/180*math.pi),1*math.sin(240/180*math.pi))
+                # left  = path.line(1*math.cos(300/180*math.pi),1*math.sin(300/180*math.pi),0,0)
                 # p = right<<upArc<<left
                 # c.fill(p,[color.gray(0.9)])
                 # c.stroke(p, [style.linewidth.thin]) # comment this for no outline/
@@ -1641,7 +1641,7 @@ if __name__ == '!__main__':
     # npoints = 5
 
     # # Calculate the xy coords for each point on the circle
-    # s = 2 * np.pi / npoints
+    # s = 2 * math.pi / npoints
     # verts = np.zeros((npoints, 2))
     # for i in np.arange(npoints):
     #     angle = s * i
