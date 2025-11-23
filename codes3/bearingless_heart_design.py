@@ -33,8 +33,8 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         self.name = '__SPMSM'
 
         # 初始化搜索空间
-        GP = self.d['GP'] # Geometry Parameter
-        EX = self.d['EX'] # EXcitations (was OP: Other Property)
+        GP = self.SI['GP'] # Geometry Parameter
+        EX = self.SI['EX'] # EXcitations (was OP: Other Property)
         SI = self.SI      # Specification Input dictionary (was SD)
         childGP = OrderedDict({
             # SPMSM Peculiar
@@ -52,18 +52,18 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         self.Bianchi2006(fea_config_dict, SI, GP, EX)
 
         # Apply free variable filter to the child class
-        if 'FixedAirgap_FixedPMDepth' == self.d['which_filter']:
-            self.d['GP']['mm_d_pm'].type = "fixed"
-            self.d['GP']['mm_d_ri'].type = "fixed"
-            self.d['GP']['mm_r_ri'].type = "fixed"
+        if 'FixedAirgap_FixedPMDepth' == self.SI['which_filter']:
+            self.SI['GP']['mm_d_pm'].type = "fixed"
+            self.SI['GP']['mm_d_ri'].type = "fixed"
+            self.SI['GP']['mm_r_ri'].type = "fixed"
             # 下面三个去父类那边fix，不要在这里搞
-            # self.d['GP']['mm_r_ro'].type = "fixed"
-            # self.d['GP']['mm_d_mech_air_gap'].type = "fixed"
-            # self.d['GP']['mm_d_sleeve'].type = "fixed"
+            # self.SI['GP']['mm_r_ro'].type = "fixed"
+            # self.SI['GP']['mm_d_mech_air_gap'].type = "fixed"
+            # self.SI['GP']['mm_d_sleeve'].type = "fixed"
 
         # 定义搜索空间，determine bounds
         self.original_template_neighbor_bounds = self.get_template_neighbor_bounds()
-        self.bounds_denorm = self.define_search_space(GP, self.original_template_neighbor_bounds)
+        self.bounds_denorm = self.SIefine_search_space(GP, self.original_template_neighbor_bounds)
 
         # Template's Other Properties (Shared by the swarm)
         EX = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SI)
@@ -170,7 +170,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         p = self.SI['p']
         s = self.SI['no_segmented_magnets']
 
-        GP = self.d['GP']
+        GP = self.SI['GP']
 
         ######################    get bounds have a misalignment    ######################
         # attention: the bounds are determined around the template design, which means any change of the template design will lead to a change of the order the bounds.
@@ -202,7 +202,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
 
     """ Obsolete feature """
     def build_design_parameters_list(self):
-        GP = self.d['GP']
+        GP = self.SI['GP']
         SI = self.SI
         # obsolete feature
         design_parameters = [

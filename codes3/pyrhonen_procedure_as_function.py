@@ -39,17 +39,17 @@ class geometry_data(object):
 from winding_layout import winding_layout_v2
 class desgin_specification(object):
     def __init__(self, **kwarg):
-        self.DPNV_or_SEPA = kwarg['DPNV_or_SEPA']
+        self.SIPNV_or_SEPA = kwarg['DPNV_or_SEPA']
         self.Qs = kwarg['Qs']
         self.m = kwarg['m']
         self.p = kwarg['p']
         self.ps = kwarg['ps']
         self.coil_pitch_y = kwarg['coil_pitch_y']
-        if self.DPNV_or_SEPA == True:
-            self.winding_layout = winding_layout_v2(self.DPNV_or_SEPA, self.Qs, self.p, self.ps, self.coil_pitch_y)
+        if self.SIPNV_or_SEPA == True:
+            self.winding_layout = winding_layout_v2(self.SIPNV_or_SEPA, self.Qs, self.p, self.ps, self.coil_pitch_y)
         else:
             # two layer winding in the sense of one layer torque winding and one layer suspension winding 
-            self.winding_layout = winding_layout_v2(self.DPNV_or_SEPA, self.Qs, self.p, self.ps)
+            self.winding_layout = winding_layout_v2(self.SIPNV_or_SEPA, self.Qs, self.p, self.ps)
 
         self.mec_power = kwarg['mec_power']
         self.ExcitationFreqSimulated = kwarg['ExcitationFreqSimulated']
@@ -121,7 +121,7 @@ class desgin_specification(object):
         u'''转子类型+基本信息+槽配合+电负荷+导电材料+温度+导磁材料+磁负荷+叠压系数+假设+目的'''
         name = '%s%sp%dps%d_%dkW%dHz%dVtan%d_Qs%dQr%dJs%gJr%g%s%d%s%d@%dK_%s@%d_Bt%gs%grBy%gs%gr_b%.2fEff%gPf%g' % (
                 'PS' if self.PS_or_SC else 'SC',
-                'DPNV' if self.DPNV_or_SEPA else 'SEPA',
+                'DPNV' if self.SIPNV_or_SEPA else 'SEPA',
                 self.p,
                 self.ps,
                 self.mec_power*1e-3,
@@ -576,7 +576,7 @@ class desgin_specification(object):
         print('\nN=%d means desired line-to-line EMF $E_m\\times\\sqrt{3}=%g$ Vrms becomes %g Vrms.' % (no_series_coil_turns_N, desired_emf_Em*sqrt(3), no_series_coil_turns_N * (2*pi*self.ExcitationFreqSimulated * kw1 * air_gap_flux_Phi_m) / sqrt(2)*sqrt(3)), file=fname)
         print('\nEMF induced by one turn is: %g Vrms'% ((2*pi*self.ExcitationFreqSimulated * kw1 * air_gap_flux_Phi_m) / sqrt(2)), file=fname)
 
-        if self.DPNV_or_SEPA:
+        if self.SIPNV_or_SEPA:
             number_parallel_branch = 2
         else:
             number_parallel_branch = 1
@@ -645,7 +645,7 @@ class desgin_specification(object):
                 print('\nN=%g means desired line-to-line EMF $E_m\\times\\sqrt{3}=%g$ Vrms becomes %g Vrms.' % ((no_series_coil_turns_N), desired_emf_Em*sqrt(3), no_series_coil_turns_N * (2*pi*self.ExcitationFreqSimulated * kw1 * air_gap_flux_Phi_m) / sqrt(2)*sqrt(3)), file=fname)
                 print('\nEMF induced by one turn is: %g Vrms'% ((2*pi*self.ExcitationFreqSimulated * kw1 * air_gap_flux_Phi_m) / sqrt(2)), file=fname)
 
-                if self.DPNV_or_SEPA:
+                if self.SIPNV_or_SEPA:
                     number_parallel_branch = 2
                 else:
                     number_parallel_branch = 1
@@ -1313,23 +1313,23 @@ class desgin_specification(object):
             Width_StatorTeethHeadThickness = design_parameters[6]             # [6]       # stator tooth head length [mm]
         '''
 
-        self.delta    =  self.spec_geometry_dict["delta"]      = 1e3*air_gap_length_delta      # delta or L_g
+        self.SIelta    =  self.spec_geometry_dict["delta"]      = 1e3*air_gap_length_delta      # delta or L_g
         self.w_st     =  self.spec_geometry_dict["w_st"]       = 1e3*stator_tooth_width_b_ds   # w_st
         self.w_rt     =  self.spec_geometry_dict["w_rt"]       = 1e3*rotor_tooth_width_b_dr    # w_rt
         self.theta_so =  self.spec_geometry_dict["theta_so"]   = Angle_StatorSlotOpen          # theta_so
         self.w_ro     =  self.spec_geometry_dict["w_ro"]       = 1e3*b1                        # w_ro
-        self.d_so     =  self.spec_geometry_dict["d_so"]       = Width_StatorTeethHeadThickness# d_so
-        self.d_ro     =  self.spec_geometry_dict["d_ro"]       = Length_HeadNeckRotorSlot      # d_ro
-        self.d_st     =  self.spec_geometry_dict["d_st"]       = 1e3*stator_slot_height_h_ss   # d_st
-        self.d_sy     =  self.spec_geometry_dict["d_sy"]       = 1e3*stator_yoke_height_h_ys   # d_sy
+        self.SI_so     =  self.spec_geometry_dict["d_so"]       = Width_StatorTeethHeadThickness# d_so
+        self.SI_ro     =  self.spec_geometry_dict["d_ro"]       = Length_HeadNeckRotorSlot      # d_ro
+        self.SI_st     =  self.spec_geometry_dict["d_st"]       = 1e3*stator_slot_height_h_ss   # d_st
+        self.SI_sy     =  self.spec_geometry_dict["d_sy"]       = 1e3*stator_yoke_height_h_ys   # d_sy
 
-        print('-'*20+'\ndelta', '%g mm'%self.delta, file=fname)
+        print('-'*20+'\ndelta', '%g mm'%self.SIelta, file=fname)
         print('w_st',           '%g mm'%self.w_st, file=fname)
         print('w_rt',           '%g mm'%self.w_rt, file=fname)
         print('theta_so',       '%g deg'%self.theta_so, file=fname)
         print('w_ro',           '%g mm'%self.w_ro, file=fname)
-        print('d_so',           '%g mm'%self.d_so, file=fname)
-        print('d_ro',           '%g mm'%self.d_ro, '\n'+'-'*20, file=fname)
+        print('d_so',           '%g mm'%self.SI_so, file=fname)
+        print('d_ro',           '%g mm'%self.SI_ro, '\n'+'-'*20, file=fname)
         
         self.Radius_of_RotorSlot = Radius_of_RotorSlot # 外圆 of 转子槽
 
@@ -1680,7 +1680,7 @@ class desgin_specification(object):
         stator_phase_voltage_rms = self.VoltageRating / np.sqrt(3)
         desired_emf_Em = 0.95 * stator_phase_voltage_rms 
         
-        if self.DPNV_or_SEPA:
+        if self.SIPNV_or_SEPA:
             number_parallel_branch = 2
         else:
             number_parallel_branch = 1
@@ -1739,7 +1739,7 @@ class desgin_specification(object):
 # Public Access Utility Funcitons for Initial Design
 def get_stator_phase_current_rms(SI):
     no_phase_m = SI['m']
-    stator_phase_voltage_rms = SI['VoltageRating'] / np.sqrt(3)
+    stator_phase_voltage_rms = SI['EX']['VoltageRating'] / np.sqrt(3)
     stator_phase_current_rms = SI['mec_power'] / (no_phase_m*SI['guess_efficiency']*stator_phase_voltage_rms*SI['guess_power_factor'])
     return stator_phase_current_rms
 
@@ -1758,7 +1758,7 @@ def get_mm_template_stack_length(SI, rotor_outer_radius_r_or):
 
 def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specified_mm_stack_length=None):
 
-    stator_phase_voltage_rms = SI['VoltageRating'] / np.sqrt(3)
+    stator_phase_voltage_rms = SI['EX']['VoltageRating'] / np.sqrt(3)
     desired_emf_Em = 0.95 * stator_phase_voltage_rms 
 
     if SI['DPNV_or_SEPA'] is None:
@@ -1771,7 +1771,7 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
         else:
             # Separate
             number_parallel_branch = 1
-    speed_rpm = SI['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
+    speed_rpm = SI['EX']['ExcitationFreqSimulated'] * 60 / SI['p'] # rpm
 
     pole_pitch_tau_p = np.pi*stator_inner_diameter_Dis/(2*SI['p']) # TODO
 
@@ -1826,25 +1826,23 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
     else:
         mm_stack_length = specified_mm_stack_length
     air_gap_length_delta = 0.5*(stator_inner_diameter_Dis - rotor_outer_diameter_Dr)
-    # print(stator_inner_diameter_Dis, rotor_outer_diameter_Dr, air_gap_length_delta)
-    # quit()
     stack_length_eff = mm_stack_length*1e-3 + 2 * air_gap_length_delta
-    # print(mm_stack_length, 2 * air_gap_length_delta)
-    # quit()
     air_gap_flux_Phi_m = alpha_i * guess_air_gap_flux_density_Bg * pole_pitch_tau_p * stack_length_eff
-    # print(alpha_i, guess_air_gap_flux_density_Bg,  pole_pitch_tau_p,  stack_length_eff)
-    # quit()
 
-    no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi*SI['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
+    no_series_coil_turns_N = sqrt(2)*desired_emf_Em / (2*np.pi* SI['EX']['ExcitationFreqSimulated'] * kw1 * air_gap_flux_Phi_m)
+
     logger = logging.getLogger(__name__)
-    logger.debug('sqrt(2)*desired_emf_Em=%s, ExcitationFreqSimulated=%s, kw1=%s, air_gap_flux_Phi_m=%s', sqrt(2)*desired_emf_Em, SI['ExcitationFreqSimulated'], kw1, air_gap_flux_Phi_m)
+    logger.debug('sqrt(2)*desired_emf_Em=%s, ExcitationFreqSimulated=%s, kw1=%s, air_gap_flux_Phi_m=%s', sqrt(2)*desired_emf_Em, SI['EX']['ExcitationFreqSimulated'], kw1, air_gap_flux_Phi_m)
     if no_series_coil_turns_N<1:
         raise Exception(f'What? no_series_coil_turns_N is negative? {no_series_coil_turns_N=}')
     logger = logging.getLogger(__name__)
     logger.info('[zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_Bg is %s', no_series_coil_turns_N)
+
     no_series_coil_turns_N = round(no_series_coil_turns_N)
+
     logger.info('[zQ] Rounds up to: %s', no_series_coil_turns_N)
     backup = no_series_coil_turns_N
+
     distribution_q = SI['Qs'] / (2*SI['p']*SI['m'])
     bool_we_have_plenty_voltage = True
     if bool_we_have_plenty_voltage:

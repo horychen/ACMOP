@@ -22,8 +22,8 @@ class flux_alternator_template(inner_rotor_motor.template_machine_as_numbers):
         self.name = '__Flux_Alternator'
 
         # 初始化搜索空间
-        GP = self.d['GP'] # Geometry Parameter
-        EX = self.d['EX'] # EXcitations (was OP: Other Property)
+        GP = self.SI['GP'] # Geometry Parameter
+        EX = self.SI['EX'] # EXcitations (was OP: Other Property)
         SI = self.SI      # Specification Input dictionary (was SD)
         childGP = OrderedDict({
             # Flux_Alternator Peculiar                     Type       Name                         Value  Bounds       Calc
@@ -48,7 +48,7 @@ class flux_alternator_template(inner_rotor_motor.template_machine_as_numbers):
 
         # 定义搜索空间，determine bounds
         original_template_neighbor_bounds = self.get_template_neighbor_bounds()
-        self.bounds_denorm = self.define_search_space(GP, original_template_neighbor_bounds)
+        self.bounds_denorm = self.SIefine_search_space(GP, original_template_neighbor_bounds)
 
         # Template's Other Properties (Shared by the swarm)
         EX = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SI)
@@ -127,7 +127,7 @@ class flux_alternator_template(inner_rotor_motor.template_machine_as_numbers):
         p = self.SI['p']
         # s = self.SI['no_segmented_magnets']
 
-        GP = self.d['GP']
+        GP = self.SI['GP']
 
         deg_alpha_rsp_ini = 360 / (self.SI['Qs']*2) * (self.SI['pm']*2)
 

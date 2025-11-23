@@ -21,8 +21,8 @@ class bearingless_induction_template(inner_rotor_motor.template_machine_as_numbe
         self.name = '__BLIM'
 
         # 初始化搜索空间
-        GP = self.d['GP']
-        EX = self.d['EX']
+        GP = self.SI['GP']
+        EX = self.SI['EX']
         SI = self.SI
         childGP = OrderedDict({
             # IM Peculiar
@@ -109,7 +109,7 @@ class bearingless_induction_template(inner_rotor_motor.template_machine_as_numbe
         p = self.SI['p']
         s = self.SI['no_segmented_magnets']
 
-        GP = self.d['GP']
+        GP = self.SI['GP']
 
         original_template_neighbor_bounds = {
             # STATOR
@@ -132,7 +132,7 @@ class bearingless_induction_template(inner_rotor_motor.template_machine_as_numbe
         return original_template_neighbor_bounds
 
     def build_design_parameters_list(self):
-        GP = self.d['GP']
+        GP = self.SI['GP']
         SI = self.SI
         # obsolete feature
         design_parameters = [

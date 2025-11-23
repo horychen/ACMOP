@@ -617,9 +617,9 @@ class Winding_Derivation(object):
             drawer_T3a, dpnv_grouping_dict_a    = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*ps, which_phase='Aa') # p is original frequency, ps is the new frequency
             drawer_T3b, dpnv_grouping_dict_b    = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*ps, which_phase='Bb') # (Unchanged) NOTE THAT THE PHASE V and W are transposed!
             drawer_T3c, dpnv_grouping_dict_c    = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*ps, which_phase='Cc') # (Unchanged) NOTE THAT THE PHASE V and W are transposed!
-            self.dpnv_grouping_dict_a = dpnv_grouping_dict_a
-            self.dpnv_grouping_dict_b = dpnv_grouping_dict_b
-            self.dpnv_grouping_dict_c = dpnv_grouping_dict_c
+            self.SIpnv_grouping_dict_a = dpnv_grouping_dict_a
+            self.SIpnv_grouping_dict_b = dpnv_grouping_dict_b
+            self.SIpnv_grouping_dict_c = dpnv_grouping_dict_c
         # drawer_T33, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(3*p), which_phase='Aa') # 3次谐波
         # drawer_T35, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(5*p), which_phase='Aa') # 5次谐波
         # drawer_T37, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(7*p), which_phase='Aa') # 7次谐波
@@ -796,17 +796,17 @@ class Winding_Derivation(object):
 
 
 
-        self.drawer_T1 = drawer_T1
-        self.drawer_T2 = drawer_T2
-        self.drawer_T4 = drawer_T4
+        self.SIrawer_T1 = drawer_T1
+        self.SIrawer_T2 = drawer_T2
+        self.SIrawer_T4 = drawer_T4
         if m == 3:
-            self.drawer_T3a = drawer_T3a
-            self.drawer_T3b = drawer_T3b
-            self.drawer_T3c = drawer_T3c
-            self.drawer_T4a = drawer_T4a
-            self.drawer_T4b = drawer_T4b
-            self.drawer_T4c = drawer_T4c
-        self.drawer_Text = drawer_Text
+            self.SIrawer_T3a = drawer_T3a
+            self.SIrawer_T3b = drawer_T3b
+            self.SIrawer_T3c = drawer_T3c
+            self.SIrawer_T4a = drawer_T4a
+            self.SIrawer_T4b = drawer_T4b
+            self.SIrawer_T4c = drawer_T4c
+        self.SIrawer_Text = drawer_Text
 
 
 if __name__ == '__main__':

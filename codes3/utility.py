@@ -332,7 +332,7 @@ class Pyrhonen_design(object):
         self.Width_StatorTeethHeadThickness = im.Width_StatorTeethHeadThickness
         self.Length_HeadNeckRotorSlot       = im.Length_HeadNeckRotorSlot
 
-        self.design_parameters_denorm = [   self.air_gap_length_delta,
+        self.SIesign_parameters_denorm = [   self.air_gap_length_delta,
                                             self.stator_tooth_width_b_ds,
                                             self.rotor_tooth_width_b_dr,
                                             self.Angle_StatorSlotOpen,
@@ -341,9 +341,9 @@ class Pyrhonen_design(object):
                                             self.Length_HeadNeckRotorSlot ]
 
         if bounds is None:
-            self.design_parameters_denorm
+            self.SIesign_parameters_denorm
         else:
-            self.show_norm(bounds, self.design_parameters_denorm)
+            self.show_norm(bounds, self.SIesign_parameters_denorm)
 
 
     def show_denorm(self, bounds, design_parameters_norm):
@@ -360,10 +360,10 @@ class Pyrhonen_design(object):
         print(design_parameters_denorm)
         print(min_b)
         print(bounds)
-        self.design_parameters_norm = (design_parameters_denorm - min_b)/diff #= pop
-        # print type(self.design_parameters_norm)
+        self.SIesign_parameters_norm = (design_parameters_denorm - min_b)/diff #= pop
+        # print type(self.SIesign_parameters_norm)
         print('[Normalized]:', end=' ')
-        print(self.design_parameters_norm.tolist())
+        print(self.SIesign_parameters_norm.tolist())
 
         # pop = design_parameters_norm
         # min_b, max_b = np.asarray(bounds).T 
@@ -628,7 +628,7 @@ def read_csv_results_4_comparison__transient(study_name, path_prefix):
     return dm
 
 def read_csv_results_4_comparison_eddycurrent(study_name, path_prefix):
-    # path_prefix = self.dir_csv_output_folder
+    # path_prefix = self.SIir_csv_output_folder
     # Torque
     TorCon_list = []
     with open(path_prefix + study_name + '_torque.csv', 'r') as f:
@@ -1236,7 +1236,7 @@ class SwarmDataAnalyzer(object):
         self.sw = sw
         self.spec = spec
 
-        self.dir_run = dir_run
+        self.SIir_run = dir_run
         self.run_integer = run_integer
         with open(dir_run+'swarm_data.txt', 'r') as f:
             self.buf = f.readlines()[1:]
@@ -1303,7 +1303,7 @@ class SwarmDataAnalyzer(object):
     def get_best_generation(self, popsize=50, generator=None, returnMore=False):
 
         if generator is None:
-            generator = self.design_parameters_generator()
+            generator = self.SIesign_parameters_generator()
 
         cost = self.list_cost_function()
         indices, items = min_indices(cost, popsize)
@@ -1372,7 +1372,7 @@ class SwarmDataAnalyzer(object):
         geo_param[list_label[4]] = []
         geo_param[list_label[5]] = []
         geo_param[list_label[6]] = []
-        for el in self.design_parameters_generator():
+        for el in self.SIesign_parameters_generator():
             geo_param[list_label[0]].append(el[0])
             geo_param[list_label[1]].append(el[1])
             geo_param[list_label[2]].append(el[2])
@@ -1448,15 +1448,15 @@ class SwarmDataAnalyzer(object):
                 print(u'目标函数值对不上，是因为跑完优化以后，我修改了钢的密度，所以后处理中重新计算的目标函数会有所不同。')
                 print(u'此外，铜耗按叠长放大，其实是保守估计了，因为端部的铜耗不会因为叠长变化而变化。')
 
-                self.best_design_display = next(itertools.islice(self.design_display_generator(),    index_list[best_index], None))
-                self.best_design_denorm = next(itertools.islice(self.design_parameters_generator(), index_list[best_index], None))
+                self.best_design_display = next(itertools.islice(self.SIesign_display_generator(),    index_list[best_index], None))
+                self.best_design_denorm = next(itertools.islice(self.SIesign_parameters_generator(), index_list[best_index], None))
                 print( self.best_design_display )
-                    # for ind, el in enumerate(self.design_display_generator()):
+                    # for ind, el in enumerate(self.SIesign_display_generator()):
                     #     if ind == index_list[best_index]:
                     #         print(ind, el)
                     #         break
-                    # print (next(itertools.islice(self.design_parameters_generator(), index_list[best_index], index_list[best_index]+1)))
-                    # print (list(self.design_parameters_generator())[index_list[best_index]])
+                    # print (next(itertools.islice(self.SIesign_parameters_generator(), index_list[best_index], index_list[best_index]+1)))
+                    # print (list(self.SIesign_parameters_generator())[index_list[best_index]])
                 data = [float(el) for el in self.best_design_display.split('\n')[3].split(',')]
                 print(data)
                 # unpacking

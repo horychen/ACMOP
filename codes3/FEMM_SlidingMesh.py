@@ -44,16 +44,16 @@ class Individual_Analyzer_FEMM_Edition(object):
         for attribute in dir(self):
             if 'femm' in attribute:
                 self.list_of_time_domain_attributes.append(attribute)
-                exec(f'self.dict_{attribute} = dict()')
+                exec(f'self.SIict_{attribute} = dict()')
 
     def add(self, time, rotor_position_mech_deg, torque, forces, energy, circuitProperties, index=None):
 
-        self.add_to_list_or_dict(time, self.femm_time, self.dict_femm_time, index=index)
-        self.add_to_list_or_dict(rotor_position_mech_deg, self.femm_rotor_position_mech_deg, self.dict_femm_rotor_position_mech_deg, index=index)
+        self.add_to_list_or_dict(time, self.femm_time, self.SIict_femm_time, index=index)
+        self.add_to_list_or_dict(rotor_position_mech_deg, self.femm_rotor_position_mech_deg, self.SIict_femm_rotor_position_mech_deg, index=index)
 
-        self.add_to_list_or_dict(torque, self.femm_torque, self.dict_femm_torque, index=index)
-        self.add_to_list_or_dict(forces, self.femm_forces, self.dict_femm_forces, index=index)
-        self.add_to_list_or_dict(energy, self.femm_energy, self.dict_femm_energy, index=index)
+        self.add_to_list_or_dict(torque, self.femm_torque, self.SIict_femm_torque, index=index)
+        self.add_to_list_or_dict(forces, self.femm_forces, self.SIict_femm_forces, index=index)
+        self.add_to_list_or_dict(energy, self.femm_energy, self.SIict_femm_energy, index=index)
         # print('-'*100)
         # print(circuitProperties)
         # print(circuitProperties[0])
@@ -62,9 +62,9 @@ class Individual_Analyzer_FEMM_Edition(object):
         circuit_currents     = list(map(lambda el: el[0], circuitProperties))
         circuit_voltages     = list(map(lambda el: el[1], circuitProperties))
         circuit_fluxLinkages = list(map(lambda el: el[2], circuitProperties))
-        self.add_to_list_or_dict(circuit_currents, self.femm_circuit_currents, self.dict_femm_circuit_currents, index=index) # 6 coils UVW and AC/BD
-        self.add_to_list_or_dict(circuit_voltages, self.femm_circuit_voltages, self.dict_femm_circuit_voltages, index=index) # 6 coils UVW and AC/BD
-        self.add_to_list_or_dict(circuit_fluxLinkages, self.femm_circuit_fluxLinkages, self.dict_femm_circuit_fluxLinkages, index=index) # 6 coils UVW and AC/BD
+        self.add_to_list_or_dict(circuit_currents, self.femm_circuit_currents, self.SIict_femm_circuit_currents, index=index) # 6 coils UVW and AC/BD
+        self.add_to_list_or_dict(circuit_voltages, self.femm_circuit_voltages, self.SIict_femm_circuit_voltages, index=index) # 6 coils UVW and AC/BD
+        self.add_to_list_or_dict(circuit_fluxLinkages, self.femm_circuit_fluxLinkages, self.SIict_femm_circuit_fluxLinkages, index=index) # 6 coils UVW and AC/BD
 
         ''' Get UVW and dq quantities
         '''
@@ -109,17 +109,17 @@ class Individual_Analyzer_FEMM_Edition(object):
         # Currents
         motor_current_d, motor_current_q     = Park_transform(motor_current_alpha, motor_current_beta, theta=rotor_position_elec_rad)
         bearing_current_d, bearing_current_q = Park_transform(bearing_current_alpha, bearing_current_beta, theta=rotor_position_elec_rad)
-        self.add_to_list_or_dict(motor_current_d, self.femm_motor_currents_d, self.dict_femm_motor_currents_d, index=index)
-        self.add_to_list_or_dict(motor_current_q, self.femm_motor_currents_q, self.dict_femm_motor_currents_q, index=index)
-        self.add_to_list_or_dict(bearing_current_d, self.femm_bearing_currents_d, self.dict_femm_bearing_currents_d, index=index)
-        self.add_to_list_or_dict(bearing_current_q, self.femm_bearing_currents_q, self.dict_femm_bearing_currents_q, index=index)
+        self.add_to_list_or_dict(motor_current_d, self.femm_motor_currents_d, self.SIict_femm_motor_currents_d, index=index)
+        self.add_to_list_or_dict(motor_current_q, self.femm_motor_currents_q, self.SIict_femm_motor_currents_q, index=index)
+        self.add_to_list_or_dict(bearing_current_d, self.femm_bearing_currents_d, self.SIict_femm_bearing_currents_d, index=index)
+        self.add_to_list_or_dict(bearing_current_q, self.femm_bearing_currents_q, self.SIict_femm_bearing_currents_q, index=index)
         # Fluxes
         motor_fluxLinkage_d, motor_fluxLinkage_q     = Park_transform(motor_fluxLinkage_alpha, motor_fluxLinkage_beta, theta=rotor_position_elec_rad)
         bearing_fluxLinkage_d, bearing_fluxLinkage_q = Park_transform(bearing_fluxLinkage_alpha, bearing_fluxLinkage_beta, theta=rotor_position_elec_rad)
-        self.add_to_list_or_dict(motor_fluxLinkage_d, self.femm_motor_fluxLinkage_d, self.dict_femm_motor_fluxLinkage_d, index=index)
-        self.add_to_list_or_dict(motor_fluxLinkage_q, self.femm_motor_fluxLinkage_q, self.dict_femm_motor_fluxLinkage_q, index=index)
-        self.add_to_list_or_dict(bearing_fluxLinkage_d, self.femm_bearing_fluxLinkage_d, self.dict_femm_bearing_fluxLinkage_d, index=index)
-        self.add_to_list_or_dict(bearing_fluxLinkage_q, self.femm_bearing_fluxLinkage_q, self.dict_femm_bearing_fluxLinkage_q, index=index)
+        self.add_to_list_or_dict(motor_fluxLinkage_d, self.femm_motor_fluxLinkage_d, self.SIict_femm_motor_fluxLinkage_d, index=index)
+        self.add_to_list_or_dict(motor_fluxLinkage_q, self.femm_motor_fluxLinkage_q, self.SIict_femm_motor_fluxLinkage_q, index=index)
+        self.add_to_list_or_dict(bearing_fluxLinkage_d, self.femm_bearing_fluxLinkage_d, self.SIict_femm_bearing_fluxLinkage_d, index=index)
+        self.add_to_list_or_dict(bearing_fluxLinkage_q, self.femm_bearing_fluxLinkage_q, self.SIict_femm_bearing_fluxLinkage_q, index=index)
 
     def add_to_list_or_dict(self, el, l, d, index=None):
         if index is None:
@@ -835,7 +835,7 @@ class FEMM_SlidingMesh(object):
         elif self.acm_variant.template.spec_input_dict['Steel'] == 'Arnon5':
             # Arnon5 is 1/5 thick as M15, which is too thin to use and it is expensive as well
             femm.mi_addmaterial('Arnon5-final',0,0, 0,0, 0.0,0.127,0, 0.96)
-            # BH = np.loadtxt(self.dir_parent + 'BH/Arnon5/Arnon5-final.txt', unpack=True, usecols=(0,1))
+            # BH = np.loadtxt(self.SIir_parent + 'BH/Arnon5/Arnon5-final.txt', unpack=True, usecols=(0,1))
             BH = np.loadtxt('D:/DrH/Codes/c/Arnon5/Arnon5-final.txt', unpack=True, usecols=(0,1))
 
             bdata = BH[1][1:] # if not skip the first point, there will be two (0,0) in FEMM software, reason unknown.
@@ -845,7 +845,7 @@ class FEMM_SlidingMesh(object):
 
         elif self.acm_variant.template.spec_input_dict['Steel'] == 'M15':
             femm.mi_addmaterial('My M-15 Steel',0,0, 0,0, 0,0.635,0, 0.98)
-            BH = np.loadtxt(self.dir_codes + '../Arnon5/M-15-Steel-BH-Curve.txt', unpack=True, usecols=(0,1))
+            BH = np.loadtxt(self.SIir_codes + '../Arnon5/M-15-Steel-BH-Curve.txt', unpack=True, usecols=(0,1))
             bdata = BH[1]
             hdata = BH[0]
             for n in range(0,len(bdata)):
@@ -859,7 +859,7 @@ class FEMM_SlidingMesh(object):
             # permeability are merely placeholders.
             femm.mi_addmaterial('Arnon5',0,0,0,0, 0.0,0.127,0,0.96)
             # A set of points defining the BH curve is then specified.
-            BH = np.loadtxt(self.dir_codes + 'Arnon5_Kang_after_JMAG_Smoothed.txt', unpack=True, usecols=(0,1))
+            BH = np.loadtxt(self.SIir_codes + 'Arnon5_Kang_after_JMAG_Smoothed.txt', unpack=True, usecols=(0,1))
             bdata = BH[1]
             hdata = BH[0]
             for n in range(0,len(bdata)):
@@ -988,26 +988,26 @@ class FEMM_SlidingMesh(object):
         omegaBeari = 2*np.pi*self.acm_variant.template.d['EX']['BeariW_Freq']
         phase_shift_drive = -120 if wily.CommutatingSequenceD == 1 else 120
         phase_shift_beari = -120 if wily.CommutatingSequenceB == 1 else 120
-        self.dict_stator_current_function = []
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) \
+        self.SIict_stator_current_function = []
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) \
                                                                                                                                                          - ampB * np.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) \
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) \
                                                                                                                                                          - ampB * np.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) \
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) \
                                                                                                                                                          - ampB * np.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) \
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) \
                                                                                                                                                          + ampB * np.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) \
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) \
                                                                                                                                                          + ampB * np.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
-        self.dict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) \
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) \
                                                                                                                                                          + ampB * np.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
 
-        femm.mi_addcircprop('U-GrpAC', self.dict_stator_current_function[0](0.0), SERIES_CONNECTED)
-        femm.mi_addcircprop('V-GrpAC', self.dict_stator_current_function[1](0.0), SERIES_CONNECTED)
-        femm.mi_addcircprop('W-GrpAC', self.dict_stator_current_function[2](0.0), SERIES_CONNECTED)
-        femm.mi_addcircprop('U-GrpBD', self.dict_stator_current_function[3](0.0), SERIES_CONNECTED)
-        femm.mi_addcircprop('V-GrpBD', self.dict_stator_current_function[4](0.0), SERIES_CONNECTED)
-        femm.mi_addcircprop('W-GrpBD', self.dict_stator_current_function[5](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('U-GrpAC', self.SIict_stator_current_function[0](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('V-GrpAC', self.SIict_stator_current_function[1](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('W-GrpAC', self.SIict_stator_current_function[2](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('U-GrpBD', self.SIict_stator_current_function[3](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('V-GrpBD', self.SIict_stator_current_function[4](0.0), SERIES_CONNECTED)
+        femm.mi_addcircprop('W-GrpBD', self.SIict_stator_current_function[5](0.0), SERIES_CONNECTED)
 
         Qs = SI['Qs']
 
@@ -1070,10 +1070,10 @@ class FEMM_SlidingMesh(object):
         GP = self.acm_variant.template.d['GP']
         Point_Stator = [GP['mm_r_si'].value - 0.3*GP['mm_d_mech_air_gap'].value, 0]
         Point_Rotor  = [GP['mm_r_si'].value - 0.6*GP['mm_d_mech_air_gap'].value, 0]
-        self.drawArc([0,0], Point_Stator, [-Point_Stator[0], Point_Stator[1]])
-        self.drawArc([0,0],               [-Point_Stator[0], Point_Stator[1]], Point_Stator)
-        self.drawArc([0,0], Point_Rotor,  [-Point_Rotor[0], Point_Rotor[1]])
-        self.drawArc([0,0],               [-Point_Rotor[0], Point_Rotor[1]], Point_Rotor)
+        self.SIrawArc([0,0], Point_Stator, [-Point_Stator[0], Point_Stator[1]])
+        self.SIrawArc([0,0],               [-Point_Stator[0], Point_Stator[1]], Point_Stator)
+        self.SIrawArc([0,0], Point_Rotor,  [-Point_Rotor[0], Point_Rotor[1]])
+        self.SIrawArc([0,0],               [-Point_Rotor[0], Point_Rotor[1]], Point_Rotor)
 
         # sliding band is implemented as anti-... in FEMM
         femm.mi_addboundprop('WholeModelSlidingBand', 0,0,0, 0,0,0, 0,0, 6,deg_innerAngle,deg_OuterAngle) # Periodic Air Gap (see https://www.femm.info/wiki/slidingbandbenchmark)
@@ -1239,23 +1239,23 @@ class FEMM_SlidingMesh(object):
         # rotor current
         # for i in range(self.rotor_slot_per_pole):
         #     circuit_name = 'r%s'%(self.rotor_phase_name_list[i])
-        #     femm.mi_modifycircprop(circuit_name, 1, self.dict_rotor_current_function[i](time))
+        #     femm.mi_modifycircprop(circuit_name, 1, self.SIict_rotor_current_function[i](time))
 
         # stator current
-        femm.mi_modifycircprop('U-GrpAC', 1, self.dict_stator_current_function[0](time))
-        femm.mi_modifycircprop('V-GrpAC', 1, self.dict_stator_current_function[1](time))
-        femm.mi_modifycircprop('W-GrpAC', 1, self.dict_stator_current_function[2](time))
-        femm.mi_modifycircprop('U-GrpBD', 1, self.dict_stator_current_function[3](time))
-        femm.mi_modifycircprop('V-GrpBD', 1, self.dict_stator_current_function[4](time))
-        femm.mi_modifycircprop('W-GrpBD', 1, self.dict_stator_current_function[5](time))
+        femm.mi_modifycircprop('U-GrpAC', 1, self.SIict_stator_current_function[0](time))
+        femm.mi_modifycircprop('V-GrpAC', 1, self.SIict_stator_current_function[1](time))
+        femm.mi_modifycircprop('W-GrpAC', 1, self.SIict_stator_current_function[2](time))
+        femm.mi_modifycircprop('U-GrpBD', 1, self.SIict_stator_current_function[3](time))
+        femm.mi_modifycircprop('V-GrpBD', 1, self.SIict_stator_current_function[4](time))
+        femm.mi_modifycircprop('W-GrpBD', 1, self.SIict_stator_current_function[5](time))
 
         return [
-            self.dict_stator_current_function[0](time),
-            self.dict_stator_current_function[1](time),
-            self.dict_stator_current_function[2](time),
-            self.dict_stator_current_function[3](time),
-            self.dict_stator_current_function[4](time),
-            self.dict_stator_current_function[5](time),
+            self.SIict_stator_current_function[0](time),
+            self.SIict_stator_current_function[1](time),
+            self.SIict_stator_current_function[2](time),
+            self.SIict_stator_current_function[3](time),
+            self.SIict_stator_current_function[4](time),
+            self.SIict_stator_current_function[5](time),
         ]
 
     def parallel_solve_transient_FEA(self, step_size_sec, step_size_mech_deg):
@@ -1622,9 +1622,9 @@ class FEMM_SlidingMesh(object):
             p2 = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
             self.add_line(p1, p2)
             p1 = (-im.Radius_OuterRotor-0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p2 = (-im.Radius_OuterRotor-im.Length_AirGap, 0)
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p1 = (-im.Radius_OuterStatorYoke, 0)
             self.add_line(p1, p2)
 
@@ -1635,9 +1635,9 @@ class FEMM_SlidingMesh(object):
             p2 = (0, -im.Location_RotorBarCenter-im.Radius_of_RotorSlot)
             self.add_line(p1, p2)
             p1 = (0, -im.Radius_OuterRotor-0.5*im.Length_AirGap)
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p2 = (0, -im.Radius_OuterRotor-im.Length_AirGap)
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p1 = (0, -im.Radius_OuterStatorYoke)
             self.add_line(p1, p2)
         elif fraction == 2:
@@ -1653,9 +1653,9 @@ class FEMM_SlidingMesh(object):
             p2 = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
             self.add_line(p1, p2)
             p1 = (-im.Radius_OuterRotor-0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p2 = (-im.Radius_OuterRotor-im.Length_AirGap, 0)
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p1 = (-im.Radius_OuterStatorYoke, 0)
             self.add_line(p1, p2)
 
@@ -1666,9 +1666,9 @@ class FEMM_SlidingMesh(object):
             p2 = (+im.Location_RotorBarCenter+im.Radius_of_RotorSlot, 0)
             self.add_line(p1, p2)
             p1 = (+im.Radius_OuterRotor+0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p2 = (+im.Radius_OuterRotor+im.Length_AirGap, 0)
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p1 = (+im.Radius_OuterStatorYoke, 0)
             self.add_line(p1, p2)
         else:
@@ -1762,7 +1762,7 @@ class FEMM_SlidingMesh(object):
         # vals_results_rotor_current = self.femm_integrate_4_current(self.fraction)
 
         if dir_output is None:
-            dir_output = self.dir_run_sweeping
+            dir_output = self.SIir_run_sweeping
 
         if returnData == False: # no return then write to file
             with open(dir_output + "femm_rotor_current_conditions.txt", "w") as stream:

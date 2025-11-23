@@ -4,20 +4,6 @@
         "circuit.TORQUE_CURRENT_RATIO" : 0.95,
         "circuit.SUSPENSION_CURRENT_RATIO" : 0.05,
 
-        "machine.type": "PMSM",
-        "machine.GP.deg_alpha_st.type": "free",
-        "machine.GP.deg_alpha_st.value": null,
-        "machine.GP.deg_alpha_st.bounds": [5,30],
-        "machine.GP.mm_w_st.type": "free",
-        "machine.GP.mm_w_st.value": null,
-        "machine.GP.mm_w_st.bounds": [5,30],
-        "machine.GP.mm_d_sto.type": "free",
-        "machine.GP.mm_d_sto.value": null,
-        "machine.GP.mm_d_sto.bounds": [5,30],
-        "machine.GP.mm_d_rp.type": "free",
-        "machine.GP.mm_d_rp.value": null,
-        "machine.GP.mm_d_rp.bounds": [5,30],
-
         "local_sensitivity_analysis":false,
         "local_sensitivity_analysis_number_of_variants": 20,
 

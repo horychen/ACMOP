@@ -141,12 +141,11 @@ class CrossSectInnerRotorStator:
         # return [list_segments]
         return {'innerCoord': self.innerCoord, 'list_regions':[list_segments], 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])]}
 
-class CrossSectInnerRotorStatorClosedSlot:
+class CrossSectInnerRotorClosedSlotStator:
     def __init__(self,
                     name  = 'StatorCore',
                     color = '#BAFD01',
-                    deg_alpha_st = 40, # span angle of tooth: class type DimAngular
-                    deg_alpha_sto= 20, # angle of tooth edge: class type DimAngular
+                    mm_d_stt     = 1,  # stator slot shoe depth
                     mm_r_si      = 40, # inner radius of stator teeth: class type DimLinear
                     mm_d_st      = 15, # tooth base length: class type DimLinear
                     mm_d_sy      = 15, # back iron thickness: class type DimLinear
@@ -157,8 +156,7 @@ class CrossSectInnerRotorStatorClosedSlot:
 
         self.name = name
         self.color = color
-        self.deg_alpha_st = deg_alpha_st
-        self.deg_alpha_sto = deg_alpha_sto
+        self.mm_d_stt     = mm_d_stt
         self.mm_r_si      = mm_r_si     
         self.mm_d_st      = mm_d_st     
         self.mm_d_sy      = mm_d_sy     
@@ -170,31 +168,25 @@ class CrossSectInnerRotorStatorClosedSlot:
 
         drawer.getSketch(self.name, self.color)
 
-        alpha_st = self.deg_alpha_st * np.pi/180
-        alpha_so = -self.deg_alpha_sto * np.pi/180
         r_si = self.mm_r_si
-        d_so = self.mm_d_sto
-        d_sp = self.mm_d_stt
         d_st = self.mm_d_st
         d_sy = self.mm_d_sy
         w_st = self.mm_w_st
-        r_st = self.mm_r_st
-        r_sf = self.mm_r_sf
-        r_sb = self.mm_r_sb
         Q    = self.Q
 
         alpha_slot_span = 360/Q * np.pi/180
 
         P1 = [r_si, 0]
-        P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
-        P3_temp = [ d_so*cos(alpha_st*0.5), 
-                    d_so*-sin(alpha_st*0.5)]
+        P2 = [r_si*cos(alpha_slot_span*0.5), r_si*-sin(alpha_slot_span*0.5)]
+
+        P3_temp = [ d_stt*cos(alpha_st*0.5), 
+                    d_stt*-sin(alpha_st*0.5)]
         P3_local_rotate = [   cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
                              -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
         P3 = [  P3_local_rotate[0] + P2[0],
                 P3_local_rotate[1] + P2[1] ] 
 
-        三角形的底 = r_si + d_sp
+        三角形的底 = r_si + d_stt
         三角形的高 = w_st*0.5
         三角形的角度 = arctan(三角形的高 / 三角形的底)
         P4 = [  三角形的底*cos(三角形的角度), 

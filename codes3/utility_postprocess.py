@@ -391,8 +391,8 @@ class SwarmAnalyzer(object):
         path = self.path2acmop + folder_of_collection
         logger = logging.getLogger(__name__)
         logger.debug('DEBUG: Look into %s', path)
-        self.dict_path2SwarmDataOfTheSpecification = dict()
-        self.dict_settingsOfTheSpecification = dict()
+        self.SIict_path2SwarmDataOfTheSpecification = dict()
+        self.SIict_settingsOfTheSpecification = dict()
         list_specifications = []
         for root, dirs, files in os.walk(path):
             for file in files:
@@ -401,7 +401,7 @@ class SwarmAnalyzer(object):
                     normpath = os.path.normpath(root)
                     specification = normpath.split(os.sep)[-1].replace('_', ' ') # convert folder name to spec name
                     list_specifications.append(specification)
-                    self.dict_path2SwarmDataOfTheSpecification[specification] = root + '/'
+                    self.SIict_path2SwarmDataOfTheSpecification[specification] = root + '/'
                     # print(specification)
                 if 'settings.txt' in file:
                     with open(root+'/'+file, 'r') as f:
@@ -409,8 +409,8 @@ class SwarmAnalyzer(object):
                         lst = buf.split('|')
                         specification = lst[0].strip()
                         select_fea_config_dict = lst[1].strip()
-                        self.dict_settingsOfTheSpecification[specification] = select_fea_config_dict
-        return list_specifications, self.dict_path2SwarmDataOfTheSpecification, self.dict_settingsOfTheSpecification
+                        self.SIict_settingsOfTheSpecification[specification] = select_fea_config_dict
+        return list_specifications, self.SIict_path2SwarmDataOfTheSpecification, self.SIict_settingsOfTheSpecification
 
     @staticmethod
     def call_selection_criteria(ad, upper_bound_objectives, best_idx=None, proj_name=None):
@@ -430,9 +430,9 @@ class SwarmAnalyzer(object):
         def get_ad(specification):
             """ 醉翁之意不在酒，要的不是ad，而是ad.solver.swarm_data """
             mop = acmop.AC_Machine_Optiomization_Wrapper(
-                select_fea_config_dict = self.dict_settingsOfTheSpecification[specification], 
+                select_fea_config_dict = self.SIict_settingsOfTheSpecification[specification], 
                 select_spec    = specification,
-                path2SwarmData = self.dict_path2SwarmDataOfTheSpecification[specification],
+                path2SwarmData = self.SIict_path2SwarmDataOfTheSpecification[specification],
                 bool_show_GUI = True
             )
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
@@ -546,7 +546,7 @@ class SwarmAnalyzer(object):
         # print('\n'.join([el for el in dir(ad) if not el.startswith('__')]))
         # print()
         # print('\n'.join([el for el in dir(ad) if not el.startswith('__')]))
-        fig = self.donut_chart(total_loss, sizes, 
+        fig = self.SIonut_chart(total_loss, sizes, 
                     ad.spec_input_dict['Qs'], 
                     ad.spec_input_dict['p'],
                     ad.spec_input_dict['ps'],

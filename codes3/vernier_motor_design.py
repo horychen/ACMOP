@@ -29,8 +29,8 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         self.name = '__PMVM'
 
         # 初始化搜索空间
-        GP = self.d['GP']
-        OP = self.d['OP']
+        GP = self.SI['GP']
+        OP = self.SI['OP']
         SD = self.SD
         childGP = OrderedDict({
             # Vernier specific
@@ -40,7 +40,7 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
             "mm_w_pm"           : acmop_parameter("derived",  "magnet_width",                    None, [None, None], lambda GP,SD:derive_mm_w_pm(GP,SD)),
             "mm_parallelogram"  : acmop_parameter("derived",  "parallelogram_slot_side_length",  None, [None, None], lambda GP,SD:derive_mm_parallelogram(GP,SD)),
         })
-        # self.d.update( {"GP": childGP} ) # this will cause issue of different passed GP and self.d['GP']. See !!!pass or !!!self
+        # self.SI.update( {"GP": childGP} ) # this will cause issue of different passed GP and self.SI['GP']. See !!!pass or !!!self
         GP.update(childGP)
 
         # Get Analytical Design
@@ -48,7 +48,7 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
 
         # 定义搜索空间，determine bounds
         original_template_neighbor_bounds = self.get_template_neighbor_bounds(GP, SD)        
-        self.bounds_denorm = self.define_search_space(GP, original_template_neighbor_bounds)
+        self.bounds_denorm = self.SIefine_search_space(GP, original_template_neighbor_bounds)
 
         # Template's Other Properties (Shared by the swarm)
         OP = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SD)
@@ -134,7 +134,7 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         '''
         # # these two are different, why?
         # print('!!!pass:', GP)
-        # print('!!!self:', self.d['GP'])
+        # print('!!!self:', self.SI['GP'])
 
         Q = SD['Qs']
         p = SD['p']

@@ -36,8 +36,8 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         self.name = '__SPMSM'
 
         # 初始化搜索空间
-        GP = self.d['GP'] # Geometry Parameter
-        EX = self.d['EX'] # EXcitations (was OP: Other Property)
+        GP = self.SI['GP'] # Geometry Parameter
+        EX = self.SI['EX'] # EXcitations (was OP: Other Property)
         SI = self.SI      # Specification Input dictionary (was SD)
         childGP = OrderedDict({
             # SPMSM Peculiar
@@ -52,16 +52,16 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP.update(childGP)
 
         self.set_gp_values_and_types_based_on_fea_config(spec_input_dict)
-        GP = self.update_geometric_parameters_using_x_denorm_dict(self.d['x_denorm_dict'])
+        GP = self.update_geometric_parameters_using_x_denorm_dict(self.SI['x_denorm_dict'])
 
         # Get Analytical Design
         self.PracticalInitialDesign(fea_config_dict, SI, GP, EX)
 
-        print(self.d['x_denorm_dict'])
+        print(self.SI['x_denorm_dict'])
 
         # 定义搜索空间，determine bounds
         self.original_template_neighbor_bounds = self.get_template_neighbor_bounds()
-        self.bounds_denorm = self.define_search_space(GP, self.original_template_neighbor_bounds)
+        self.bounds_denorm = self.SIefine_search_space(GP, self.original_template_neighbor_bounds)
 
         # Template's Other Properties (Shared by the swarm)
         EX = self.get_other_properties_after_geometric_parameters_are_initialized(GP, SI)
@@ -229,7 +229,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         p = self.SI['p']
         s = self.SI['no_segmented_magnets']
 
-        GP = self.d['GP']
+        GP = self.SI['GP']
 
         ######################    get bounds have a misalignment    ######################
         # attention: the bounds are determined around the template design, which means any change of the template design will lead to a change of the order the bounds.
@@ -261,7 +261,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
 
     """ Obsolete feature """
     def build_design_parameters_list(self):
-        GP = self.d['GP']
+        GP = self.SI['GP']
         SI = self.SI
         # obsolete feature
         design_parameters = [
@@ -291,32 +291,6 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             ]
         return design_parameters
 
-class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_objects):
-    ''' A variant of bearingless_spmsm_design_variant with closed slots.
-    '''
-    def __init__(self, template=None, x_denorm=None, counter=None, counter_loop=None):
-        # 初始化父类
-        super(bearingless_spmsm_closedSlot_variant, self).__init__(template, x_denorm, counter, counter_loop)
-
-        # 修改定子截面为闭口槽
-        self.stator_core = CrossSectStator.CrossSectInnerRotorClosedSlotStator( name = 'StatorCore',
-                                            deg_alpha_st = self.d['GP']['deg_alpha_st'].value, #40,
-                                            deg_alpha_sto = self.d['GP']['deg_alpha_sto'].value, #20,
-                                            mm_r_si = self.d['GP']['mm_r_si'].value,
-                                            mm_d_sto = self.d['GP']['mm_d_sto'].value,
-                                            mm_d_stt = self.d['GP']['mm_d_stt'].value,
-                                            mm_d_st = self.d['GP']['mm_d_st'].value,
-                                            mm_d_sy = self.d['GP']['mm_d_sy'].value,
-                                            mm_w_st = self.d['GP']['mm_w_st'].value,
-                                            mm_r_st = 0.0, # =0
-                                            mm_r_sf = 0.0, # =0
-                                            mm_r_sb = 0.0, # =0
-                                            Q = self.SI['Qs'],
-                                            location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
-                                            )
-
-        self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
-                                                    stator_core = self.stator_core)
 
 
 def add_carbon_fiber_material(app):

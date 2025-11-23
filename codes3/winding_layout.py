@@ -1041,7 +1041,7 @@ class winding_layout_v2(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         try: 
             self.coil_pitch_y
-            self.distributed_or_concentrated = False if abs(self.coil_pitch_y) == 1 else True
+            self.SIistributed_or_concentrated = False if abs(self.coil_pitch_y) == 1 else True
 
             # below is valid for PMSM only
 
@@ -1128,12 +1128,12 @@ class winding_layout_v2(object):
 
 
         # 这是实际在pre_procee中调用的字典
-        self.dict_coil_connection = {'layer X phases': self.layer_X_phases, 'layer X signs':self.layer_X_signs,   # 这里的命名规则是按照seprate winding的情况来的。
+        self.SIict_coil_connection = {'layer X phases': self.layer_X_phases, 'layer X signs':self.layer_X_signs,   # 这里的命名规则是按照seprate winding的情况来的。
                                      'layer Y phases': self.layer_Y_phases, 'layer Y signs':self.layer_Y_signs}   # 这里的命名规则是按照seprate winding的情况来的。
 
 
         # ACMDM: motor mode and suspension mode (ACMDM is the initiative my first try to clean up the code, which has been aborted)
-        self.DPNV_or_SEPA = DPNV_or_SEPA
+        self.SIPNV_or_SEPA = DPNV_or_SEPA
         self.Qs = Qs
         self.p = p
         self.m = m
@@ -1747,7 +1747,7 @@ class winding_layout(object):
 
         try: 
             self.coil_pitch
-            self.distributed_or_concentrated = False if abs(self.coil_pitch) == 1 else True
+            self.SIistributed_or_concentrated = False if abs(self.coil_pitch) == 1 else True
         except:
             raise Exception('Error: Not implemented for this winding.')
 

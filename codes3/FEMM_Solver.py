@@ -95,9 +95,9 @@ class VanGogh_FEMM(VanGogh):
             p2 = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
             self.add_line(p1, p2)
             p1 = (-im.Radius_OuterRotor-0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p2 = (-im.Radius_OuterRotor-im.Length_AirGap, 0)
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p1 = (-im.Radius_OuterStatorYoke, 0)
             self.add_line(p1, p2)
 
@@ -108,9 +108,9 @@ class VanGogh_FEMM(VanGogh):
             p2 = (0, -im.Location_RotorBarCenter-im.Radius_of_RotorSlot)
             self.add_line(p1, p2)
             p1 = (0, -im.Radius_OuterRotor-0.5*im.Length_AirGap)
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p2 = (0, -im.Radius_OuterRotor-im.Length_AirGap)
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p1 = (0, -im.Radius_OuterStatorYoke)
             self.add_line(p1, p2)
         elif fraction == 2:
@@ -126,9 +126,9 @@ class VanGogh_FEMM(VanGogh):
             p2 = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
             self.add_line(p1, p2)
             p1 = (-im.Radius_OuterRotor-0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p2 = (-im.Radius_OuterRotor-im.Length_AirGap, 0)
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p1 = (-im.Radius_OuterStatorYoke, 0)
             self.add_line(p1, p2)
 
@@ -139,9 +139,9 @@ class VanGogh_FEMM(VanGogh):
             p2 = (+im.Location_RotorBarCenter+im.Radius_of_RotorSlot, 0)
             self.add_line(p1, p2)
             p1 = (+im.Radius_OuterRotor+0.5*im.Length_AirGap, 0) # for later extending for moverotate with anti-periodic boundary condition
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p2 = (+im.Radius_OuterRotor+im.Length_AirGap, 0)
-            self.draw_line(p1, p2)
+            self.SIraw_line(p1, p2)
             p1 = (+im.Radius_OuterStatorYoke, 0)
             self.add_line(p1, p2)
         else:
@@ -177,46 +177,46 @@ class FEMM_Solver(object):
         self.stack_length = im.stack_length
 
         self.im = im
-        # self.dir_codes = im.fea_config_dict['dir.codes']
+        # self.SIir_codes = im.fea_config_dict['dir.codes']
 
         # evaluate initial design only or optimize
         if im.bool_initial_design == True:
-            self.dir_run = im.fea_config_dict['dir_femm_files'] + im.fea_config_dict['model_name_prefix'] + '/'
+            self.SIir_run = im.fea_config_dict['dir_femm_files'] + im.fea_config_dict['model_name_prefix'] + '/'
 
-            if not os.path.exists(self.dir_run):
-                logging.getLogger(__name__).debug('FEMM: There is no run yet. Generate the run folder under %s.' % self.dir_run)
-                os.makedirs(self.dir_run)
+            if not os.path.exists(self.SIir_run):
+                logging.getLogger(__name__).debug('FEMM: There is no run yet. Generate the run folder under %s.' % self.SIir_run)
+                os.makedirs(self.SIir_run)
 
             if flag_read_from_jmag == True:
                 if self.individual_index is not None:
-                    self.dir_run += 'static-jmag/' + 'ind#%04d/'%(self.individual_index)
+                    self.SIir_run += 'static-jmag/' + 'ind#%04d/'%(self.individual_index)
                 else:
-                    self.dir_run += 'static-jmag/'
-                if not os.path.exists(self.dir_run):
-                    os.makedirs(self.dir_run)
+                    self.SIir_run += 'static-jmag/'
+                if not os.path.exists(self.SIir_run):
+                    os.makedirs(self.SIir_run)
             else:
                 if self.individual_index is not None:
-                    self.dir_run += 'static-femm/' + 'ind#%04d/'%(self.individual_index)
+                    self.SIir_run += 'static-femm/' + 'ind#%04d/'%(self.individual_index)
                 else:
-                    self.dir_run += 'static-femm/'
-                if not os.path.exists(self.dir_run):
-                    os.makedirs(self.dir_run)
+                    self.SIir_run += 'static-femm/'
+                if not os.path.exists(self.SIir_run):
+                    os.makedirs(self.SIir_run)
         else:
             if self.individual_index is not None:
-                self.dir_run = im.fea_config_dict['output_dir'] +  'ind#%04d/'%(self.individual_index) # im.fea_config_dict['dir.femm_files'] +
+                self.SIir_run = im.fea_config_dict['output_dir'] +  'ind#%04d/'%(self.individual_index) # im.fea_config_dict['dir.femm_files'] +
             else:
-                self.dir_run = im.fea_config_dict['output_dir'] # im.fea_config_dict['dir.femm_files'] +
+                self.SIir_run = im.fea_config_dict['output_dir'] # im.fea_config_dict['dir.femm_files'] +
 
-            print('DEBUG', self.dir_run)
+            print('DEBUG', self.SIir_run)
 
-            if not os.path.exists(self.dir_run):
+            if not os.path.exists(self.SIir_run):
                 logger = logging.getLogger(__name__)
-                logger.debug('FEMM: There is no run yet. Generate the run folder as %s.' % self.dir_run)
-                os.makedirs(self.dir_run)
+                logger.debug('FEMM: There is no run yet. Generate the run folder as %s.' % self.SIir_run)
+                os.makedirs(self.SIir_run)
 
-        self.dir_run_sweeping = self.dir_run + 'femm_temp/' # 'sweeping/'
-        if not os.path.isdir(self.dir_run_sweeping):
-            os.makedirs(self.dir_run_sweeping)
+        self.SIir_run_sweeping = self.SIir_run + 'femm_temp/' # 'sweeping/'
+        if not os.path.isdir(self.SIir_run_sweeping):
+            os.makedirs(self.SIir_run_sweeping)
 
         self.output_file_name = self.get_output_file_name()
         self.rotor_slot_per_pole = int(im.Qr/im.DriveW_poles)
@@ -299,8 +299,8 @@ class FEMM_Solver(object):
 
                 # add excitation for the rotor circuit (which is only seen in FEMM static solver)
                 if self.flag_static_solver == True: #self.freq == 0: # Static FEA
-                    femm.mi_addcircprop(circuit_name, self.dict_rotor_current_function[i](0.0), SERIES_CONNECTED)
-                    # print self.dict_rotor_current_function[i](0.0)
+                    femm.mi_addcircprop(circuit_name, self.SIict_rotor_current_function[i](0.0), SERIES_CONNECTED)
+                    # print self.SIict_rotor_current_function[i](0.0)
                 else:  # Eddy Current FEA (with multi-phase 4-bar cage... haha this is practically nothing)
                     femm.mi_addcircprop(circuit_name, 0, PARALLEL_CONNECTED) # PARALLEL for PS circuit
 
@@ -330,8 +330,8 @@ class FEMM_Solver(object):
                     circuit_name = 'r%s'%(self.rotor_phase_name_list[i])
 
                     if self.flag_static_solver == True: #self.freq == 0: # Static FEA
-                        femm.mi_addcircprop(circuit_name, self.dict_rotor_current_function[i](0.0), SERIES_CONNECTED)
-                        # print self.dict_rotor_current_function[i](0.0)
+                        femm.mi_addcircprop(circuit_name, self.SIict_rotor_current_function[i](0.0), SERIES_CONNECTED)
+                        # print self.SIict_rotor_current_function[i](0.0)
                     else:  # Eddy Current FEA (with multi-phase 4-bar cage... haha this is practically nothing)
                         femm.mi_addcircprop(circuit_name, 0, PARALLEL_CONNECTED) # PARALLEL for PS circuit
 
@@ -382,12 +382,12 @@ class FEMM_Solver(object):
         nwl = im.wily.number_winding_layer # number of windign layers 
         if self.flag_static_solver == True: #self.freq == 0: 
             # static solver
-            femm.mi_addcircprop('dU', self.dict_stator_current_function[3](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('dV', self.dict_stator_current_function[4](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('dW', self.dict_stator_current_function[5](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('bU', self.dict_stator_current_function[0](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('bV', self.dict_stator_current_function[1](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('bW', self.dict_stator_current_function[2](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('dU', self.SIict_stator_current_function[3](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('dV', self.SIict_stator_current_function[4](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('dW', self.SIict_stator_current_function[5](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('bU', self.SIict_stator_current_function[0](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('bV', self.SIict_stator_current_function[1](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('bW', self.SIict_stator_current_function[2](0.0), SERIES_CONNECTED)
         else: # eddy current solver
             # if im.fea_config_dict['DPNV_separate_winding_implementation'] == True or im.fea_config_dict['DPNV'] == False:
             if im.spec_input_dict['DPNV_or_SEPA'] == False:
@@ -688,8 +688,8 @@ class FEMM_Solver(object):
                 circuit_name = 'r%s'%(self.rotor_phase_name_list[i])
 
                 if self.flag_static_solver == True: #self.freq == 0: # Static FEA
-                    femm.mi_addcircprop(circuit_name, self.dict_rotor_current_function[i](0.0), SERIES_CONNECTED)
-                    # print self.dict_rotor_current_function[i](0.0)
+                    femm.mi_addcircprop(circuit_name, self.SIict_rotor_current_function[i](0.0), SERIES_CONNECTED)
+                    # print self.SIict_rotor_current_function[i](0.0)
                 else:  # Eddy Current FEA (with multi-phase 4-bar cage... haha this is practically nothing)
                     femm.mi_addcircprop(circuit_name, 0, PARALLEL_CONNECTED) # PARALLEL for PS circuit
 
@@ -760,12 +760,12 @@ class FEMM_Solver(object):
         nwl = im.wily.number_winding_layer # number of windign layers 
         if self.flag_static_solver == True: #self.freq == 0: 
             # static solver
-            femm.mi_addcircprop('U-GrpAC', self.dict_stator_current_function[0](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('V-GrpAC', self.dict_stator_current_function[1](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('W-GrpAC', self.dict_stator_current_function[2](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('U-GrpBD', self.dict_stator_current_function[3](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('V-GrpBD', self.dict_stator_current_function[4](0.0), SERIES_CONNECTED)
-            femm.mi_addcircprop('W-GrpBD', self.dict_stator_current_function[5](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('U-GrpAC', self.SIict_stator_current_function[0](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('V-GrpAC', self.SIict_stator_current_function[1](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('W-GrpAC', self.SIict_stator_current_function[2](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('U-GrpBD', self.SIict_stator_current_function[3](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('V-GrpBD', self.SIict_stator_current_function[4](0.0), SERIES_CONNECTED)
+            femm.mi_addcircprop('W-GrpBD', self.SIict_stator_current_function[5](0.0), SERIES_CONNECTED)
         else: # eddy current solver
             # if im.fea_config_dict['DPNV_separate_winding_implementation'] == True or im.fea_config_dict['DPNV'] == False:
             if im.spec_input_dict['DPNV_or_SEPA'] == False:
@@ -1261,15 +1261,15 @@ class FEMM_Solver(object):
         # rotor current
         for i in range(self.rotor_slot_per_pole):
             circuit_name = 'r%s'%(self.rotor_phase_name_list[i])
-            femm.mi_modifycircprop(circuit_name, 1, self.dict_rotor_current_function[i](time))
+            femm.mi_modifycircprop(circuit_name, 1, self.SIict_rotor_current_function[i](time))
 
         # stator current
-        femm.mi_modifycircprop('U-GrpAC', 1, self.dict_stator_current_function[0](time))
-        femm.mi_modifycircprop('V-GrpAC', 1, self.dict_stator_current_function[1](time))
-        femm.mi_modifycircprop('W-GrpAC', 1, self.dict_stator_current_function[2](time))
-        femm.mi_modifycircprop('U-GrpBD', 1, self.dict_stator_current_function[3](time))
-        femm.mi_modifycircprop('V-GrpBD', 1, self.dict_stator_current_function[4](time))
-        femm.mi_modifycircprop('W-GrpBD', 1, self.dict_stator_current_function[5](time))
+        femm.mi_modifycircprop('U-GrpAC', 1, self.SIict_stator_current_function[0](time))
+        femm.mi_modifycircprop('V-GrpAC', 1, self.SIict_stator_current_function[1](time))
+        femm.mi_modifycircprop('W-GrpAC', 1, self.SIict_stator_current_function[2](time))
+        femm.mi_modifycircprop('U-GrpBD', 1, self.SIict_stator_current_function[3](time))
+        femm.mi_modifycircprop('V-GrpBD', 1, self.SIict_stator_current_function[4](time))
+        femm.mi_modifycircprop('W-GrpBD', 1, self.SIict_stator_current_function[5](time))
 
     def run_rotating_static_FEA(self): # deg_per_step is key parameter for this function
         # STATIC_RUN_PERIOD = 180 # deg
@@ -1289,24 +1289,24 @@ class FEMM_Solver(object):
             print('Locked Rotor! Run 40 stEPS for one slip period.')
             self.im.update_mechanical_parameters(syn_freq=0.0)
         # read currents from previous ec solve
-        self.dict_rotor_current_function, self.dict_stator_current_function = self.read_current_from_EC_FEA() # DriveW_Freq and slip_freq_breakdown_torque are used here
+        self.SIict_rotor_current_function, self.SIict_stator_current_function = self.read_current_from_EC_FEA() # DriveW_Freq and slip_freq_breakdown_torque are used here
 
         # debug current waveform
         # from pylab import plt
         # t = np.arange(0, 0.0005*STATIC_RUN_PERIOD/90, 0.000005)
         # plt.figure()
-        # for ir in self.dict_rotor_current_function:
+        # for ir in self.SIict_rotor_current_function:
         #     plt.plot(t, [ir(el) for el in t])
         # plt.figure()
-        # plt.plot(t, [self.dict_stator_current_function[0](el) for el in t])
-        # plt.plot(t, [self.dict_stator_current_function[3](el) for el in t])
+        # plt.plot(t, [self.SIict_stator_current_function[0](el) for el in t])
+        # plt.plot(t, [self.SIict_stator_current_function[3](el) for el in t])
         # plt.show()
         # quit()
 
         # self.time = 0.0
         # self.rotor_position_in_deg = 0.0
         self.add_material()
-        # self.draw_model()
+        # self.SIraw_model()
         self.vangogh.draw_model()
         self.add_block_labels_static_solver()
 
@@ -1351,7 +1351,7 @@ class FEMM_Solver(object):
     def parallel_solve(self, dir_run=None, number_of_instantces=5, bool_watchdog_postproc=True, bool_run_in_JMAG_Script_Editor=False):
         '''[并行求解] 当初没想好，旋转转子竟然不是并行的。。。
         Keyword Arguments:
-            dir_run {[type]} -- [静态场用self.dir_run，涡流场用self.dir_run_sweeping] (default: {None})
+            dir_run {[type]} -- [静态场用self.SIir_run，涡流场用self.SIir_run_sweeping] (default: {None})
                                 Not not use space in dir_run!!!
                                 Not not use space in dir_run!!!
                                 Not not use space in dir_run!!!
@@ -1359,15 +1359,15 @@ class FEMM_Solver(object):
             bool_watchdog_postproc {bool} -- [有些时候我们不喜欢用看门狗，后面看了就知道] (default: {True})
         '''
         if dir_run == None:
-           dir_run = self.dir_run
+           dir_run = self.SIir_run
 
         if bool_run_in_JMAG_Script_Editor: # for running script in JMAG, we need a .bat file wrapper for the subprocess calls.
-            # os.system('python "%smethod_parallel_solve_4jmag.py" %s' % (self.dir_codes, dir_run))
+            # os.system('python "%smethod_parallel_solve_4jmag.py" %s' % (self.SIir_codes, dir_run))
             with open('temp.bat', 'w') as f:
                 if '01' in self.im.fea_config_dict['pc_name']: # python is not added to path in Severson01
-                    f.write('"C:/Program Files/JMAG-Designer17.1/python2.7/python" "%smethod_parallel_solve_4jmag.py" %s %d' % (self.dir_codes, dir_run, number_of_instantces))
+                    f.write('"C:/Program Files/JMAG-Designer17.1/python2.7/python" "%smethod_parallel_solve_4jmag.py" %s %d' % (self.SIir_codes, dir_run, number_of_instantces))
                 else:
-                    f.write('python "%smethod_parallel_solve_4jmag.py" %s %d' % (self.dir_codes, dir_run, number_of_instantces))
+                    f.write('python "%smethod_parallel_solve_4jmag.py" %s %d' % (self.SIir_codes, dir_run, number_of_instantces))
             os.startfile('temp.bat')
             # os.remove('temp.bat')
 
@@ -1452,8 +1452,8 @@ class FEMM_Solver(object):
         self.list_rotor_current_amp = []
 
         # print 'femm_rotor_current_conditions000' # for noBar test (iron loss with only stator current excitation)
-        # data = np.loadtxt(self.dir_run_sweeping + 'femm_rotor_current_conditions.txt', unpack=True, usecols=(0,1))
-        data = np.loadtxt(self.dir_run_sweeping + 'ind999Freq.csv', unpack=True, skiprows=4, delimiter=",")
+        # data = np.loadtxt(self.SIir_run_sweeping + 'femm_rotor_current_conditions.txt', unpack=True, usecols=(0,1))
+        data = np.loadtxt(self.SIir_run_sweeping + 'ind999Freq.csv', unpack=True, skiprows=4, delimiter=",")
         print(data)
         # quit()
 
@@ -1472,15 +1472,15 @@ class FEMM_Solver(object):
         dict_stator_current_function = [None]*6
         # Old way (only valid for p=2, ps=1 full pitch DPNV winding)
             # print('[FEMM] Stator Current')                               # -1j is added to be consistent with JMAG
-            # self.dict_stator_current_from_EC_FEA = [ ('bU', complex(eval( '-1j*%g'                             %(self.im.BeariW_CurrentAmp) ))  ),
+            # self.SIict_stator_current_from_EC_FEA = [ ('bU', complex(eval( '-1j*%g'                             %(self.im.BeariW_CurrentAmp) ))  ),
             #                                          ('bV', complex(eval( '-1j*%g*(-0.5+1j*0.8660254037844386)'%(self.im.BeariW_CurrentAmp) ))  ),
             #                                          ('bW', complex(eval( '-1j*%g*(-0.5-1j*0.8660254037844386)'%(self.im.BeariW_CurrentAmp) ))  ),
             #                                          ('dU', complex(eval( '-1j*%g'                             %(self.im.DriveW_CurrentAmp) ))  ),
             #                                          ('dV', complex(eval( '-1j*%g*(-0.5+1j*0.8660254037844386)'%(self.im.DriveW_CurrentAmp) ))  ),
             #                                          ('dW', complex(eval( '-1j*%g*(-0.5-1j*0.8660254037844386)'%(self.im.DriveW_CurrentAmp) ))  )]
-            # self.dict_stator_current_from_EC_FEA = OrderedDict(self.dict_stator_current_from_EC_FEA)
+            # self.SIict_stator_current_from_EC_FEA = OrderedDict(self.SIict_stator_current_from_EC_FEA)
             # dict_stator_current_function = []
-            # for key, item in self.dict_stator_current_from_EC_FEA.items():
+            # for key, item in self.SIict_stator_current_from_EC_FEA.items():
             #     amp = np.sqrt(item.imag**2 + item.real**2)
             #     phase = np.arctan2(item.real, -item.imag) # atan2(y, x), y=a, x=-b
             #     dict_stator_current_function.append(lambda t, amp=amp, phase=phase: amp * sin(2*pi*self.im.DriveW_Freq*t + phase))
@@ -1490,8 +1490,8 @@ class FEMM_Solver(object):
         nwl = self.im.wily.number_winding_layer # number of windign layers 
         if self.im.spec_input_dict['DPNV_or_SEPA'] == False:
             # either a separate winding or a (4 pole) DPNV winding implemented as a separate winding
-            ampD =  0.5 * (self.DriveW_CurrentAmp/npb + self.BeariW_CurrentAmp) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
-            ampB = -0.5 * (self.DriveW_CurrentAmp/npb - self.BeariW_CurrentAmp) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
+            ampD =  0.5 * (self.SIriveW_CurrentAmp/npb + self.BeariW_CurrentAmp) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
+            ampB = -0.5 * (self.SIriveW_CurrentAmp/npb - self.BeariW_CurrentAmp) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
             if self.im.wily.bool_3PhaseCurrentSource != True:
                 raise Exception('Logic Error Detected.')
         else:
@@ -1521,8 +1521,8 @@ class FEMM_Solver(object):
         except:
             raise Exception('no breakdown torque slip freqeuncy available.')
 
-        self.dict_rotor_current_from_EC_FEA = []
-        self.dict_stator_current_from_EC_FEA = []
+        self.SIict_rotor_current_from_EC_FEA = []
+        self.SIict_stator_current_from_EC_FEA = []
 
         rotor_phase_name_list = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         with open(self.im.csv_previous_solve, 'r') as f:
@@ -1544,7 +1544,7 @@ class FEMM_Solver(object):
                                 natural_j = j+1
                                 re = float(row[current_phase_column+2*j])
                                 im = float(row[current_phase_column+2*j+1])
-                                self.dict_rotor_current_from_EC_FEA.append( ("r%s%d"%(rotor_phase_name_list[i], natural_j), (re, im)) )
+                                self.SIict_rotor_current_from_EC_FEA.append( ("r%s%d"%(rotor_phase_name_list[i], natural_j), (re, im)) )
 
                         ''' Stator Current '''
                         beginning_column = 1 # title column is not needed
@@ -1553,13 +1553,13 @@ class FEMM_Solver(object):
                             current_phase_column = beginning_column + i
                             re = float(row[current_phase_column])
                             im = float(row[current_phase_column+1])
-                            self.dict_stator_current_from_EC_FEA.append( (str_phase, (re, im)) )
+                            self.SIict_stator_current_from_EC_FEA.append( (str_phase, (re, im)) )
 
         print('[JMAG] Rotor Current')
         self.list_rotor_current_amp = []
-        self.dict_rotor_current_from_EC_FEA = OrderedDict(self.dict_rotor_current_from_EC_FEA)
+        self.SIict_rotor_current_from_EC_FEA = OrderedDict(self.SIict_rotor_current_from_EC_FEA)
         dict_rotor_current_function = []
-        for key, item in self.dict_rotor_current_from_EC_FEA.items():
+        for key, item in self.SIict_rotor_current_from_EC_FEA.items():
             amp = np.sqrt(item[1]**2 + item[0]**2)
             phase = np.arctan2(item[0], -item[1]) # atan2(y, x), y=a, x=-b
 
@@ -1569,22 +1569,22 @@ class FEMM_Solver(object):
             self.list_rotor_current_amp.append(amp)
 
         print('[JMAG] Stator Current')
-        self.dict_stator_current_from_EC_FEA = OrderedDict(self.dict_stator_current_from_EC_FEA)
-        self.dict_stator_current_function_wrong = []
+        self.SIict_stator_current_from_EC_FEA = OrderedDict(self.SIict_stator_current_from_EC_FEA)
+        self.SIict_stator_current_function_wrong = []
         dict_stator_current_function = []
-        for key, item in self.dict_stator_current_from_EC_FEA.items():
+        for key, item in self.SIict_stator_current_from_EC_FEA.items():
             amp = np.sqrt(item[1]**2 + item[0]**2)
             phase = np.arctan2(item[0], -item[1]) # atan2(y, x), y=a, x=-b
-            self.dict_stator_current_function_wrong.append(lambda t, amp=amp, phase=phase: amp * sin(2*pi*self.im.DriveW_Freq*t + phase))
+            self.SIict_stator_current_function_wrong.append(lambda t, amp=amp, phase=phase: amp * sin(2*pi*self.im.DriveW_Freq*t + phase))
             # dict_stator_current_function.append(lambda t, amp=amp, phase=phase: amp * sin(2*pi*self.im.slip_freq_breakdown_torque*t + phase))
             dict_stator_current_function.append(lambda t, amp=amp, phase=phase: amp * sin(2*pi*self.im.DriveW_Freq*t + phase))
             print('\t', key, item, amp, phase/pi*180)
-        # dict_stator_current_function =[self.dict_stator_current_function_wrong[0],
-        #                                self.dict_stator_current_function_wrong[2],
-        #                                self.dict_stator_current_function_wrong[1],
-        #                                self.dict_stator_current_function_wrong[3],
-        #                                self.dict_stator_current_function_wrong[5],
-        #                                self.dict_stator_current_function_wrong[4],]
+        # dict_stator_current_function =[self.SIict_stator_current_function_wrong[0],
+        #                                self.SIict_stator_current_function_wrong[2],
+        #                                self.SIict_stator_current_function_wrong[1],
+        #                                self.SIict_stator_current_function_wrong[3],
+        #                                self.SIict_stator_current_function_wrong[5],
+        #                                self.SIict_stator_current_function_wrong[4],]
         # print dict_stator_current_function
         if False:
 
@@ -1603,14 +1603,14 @@ class FEMM_Solver(object):
 
             ax = ax2
             iabc_wrong = []
-            for ind, func in enumerate(self.dict_stator_current_function_wrong):
+            for ind, func in enumerate(self.SIict_stator_current_function_wrong):
                 if ind == 3 or ind == 0:
                     ax.plot(t, [-func(el) for el in t], label=str(ind)+'wrong-reversed')
                 iabc_wrong.append(np.array([func(el) for el in t]))
 
             ax = ax1
             iabc = []
-            for ind, func in enumerate(self.dict_stator_current_function):
+            for ind, func in enumerate(self.SIict_stator_current_function):
                 ax.plot(t, [func(el) for el in t], label=ind)
                 iabc.append(np.array([func(el) for el in t]))
             # amplitude-invariant transform - the alpha-beta frame is actually rotating, because iabs is in rotor ref frame (slip frequency)
@@ -1678,9 +1678,9 @@ class FEMM_Solver(object):
         return dict_rotor_current_function, dict_stator_current_function
 
     def transformed_dict_stator_current_function(self, index_phase_A, time, theta):
-        ia_slip_freq = self.dict_stator_current_function[index_phase_A](time)
-        ib_slip_freq = self.dict_stator_current_function[index_phase_A+1](time)
-        ic_slip_freq = self.dict_stator_current_function[index_phase_A+2](time)
+        ia_slip_freq = self.SIict_stator_current_function[index_phase_A](time)
+        ib_slip_freq = self.SIict_stator_current_function[index_phase_A+1](time)
+        ic_slip_freq = self.SIict_stator_current_function[index_phase_A+2](time)
 
         iabc_vector_slip_freq = np.array([[ia_slip_freq, ib_slip_freq, ic_slip_freq]]).T
         ialbe = 2/3.* np.dot(np.array([ [1,      -0.5,       -0.5], 
@@ -1779,7 +1779,7 @@ class FEMM_Solver(object):
             # permeability are merely placeholders.
             femm.mi_addmaterial('Arnon5',0,0,0,0, 0.0,0.127,0,0.96)
             # A set of points defining the BH curve is then specified.
-            BH = np.loadtxt(self.dir_codes + 'Arnon5_Kang_after_JMAG_Smoothed.txt', unpack=True, usecols=(0,1))
+            BH = np.loadtxt(self.SIir_codes + 'Arnon5_Kang_after_JMAG_Smoothed.txt', unpack=True, usecols=(0,1))
             bdata = BH[1]
             hdata = BH[0]
             for n in range(0,len(bdata)):
@@ -1788,7 +1788,7 @@ class FEMM_Solver(object):
     def get_output_file_name(self, booL_dir=True):
         fname ='%s-%gHz'%(self.im.ID, self.freq)
         if booL_dir == True:
-            self.output_file_name = self.dir_run + fname
+            self.output_file_name = self.SIir_run + fname
             return self.output_file_name
         else:
             return fname
@@ -1800,7 +1800,7 @@ class FEMM_Solver(object):
     def has_results(self, dir_run=None):
         # print 'self.freq', self.freq
         if dir_run == None:
-            dir_run = self.dir_run
+            dir_run = self.SIir_run
 
         a = [f for f in os.listdir(dir_run) if '.ans' in f].__len__()
         b = [f for f in os.listdir(dir_run) if '.fem' in f].__len__()
@@ -1829,7 +1829,7 @@ class FEMM_Solver(object):
             self.fraction = 2 # this fixes a bug calling femm_integrate_4_current without calling run_frequency_sweeping before
             raise Exception('You should initialize FEMM Solver with freq!=0')
     
-        ans_file_list = os.listdir(self.dir_run_sweeping)
+        ans_file_list = os.listdir(self.SIir_run_sweeping)
         ans_file_list = [f for f in ans_file_list if '.ans' in f]
 
         femm.openfemm(True)
@@ -1838,9 +1838,9 @@ class FEMM_Solver(object):
         # write results to a data file
         str_results = ''
         for ind, f in enumerate( ans_file_list ):
-            # femm.opendocument(self.dir_run_sweeping + f[:-4] + '.fem')
+            # femm.opendocument(self.SIir_run_sweeping + f[:-4] + '.fem')
             # femm.mi_loadsolution()
-            femm.opendocument(self.dir_run_sweeping + f)
+            femm.opendocument(self.SIir_run_sweeping + f)
 
             # physical amount on rotor
             femm.mo_groupselectblock(100)
@@ -1862,7 +1862,7 @@ class FEMM_Solver(object):
             list_ans_file.append(f)
             list_torque.append(torque)
             femm.mo_close() 
-        with open(self.dir_run_sweeping + "eddycurrent_results.txt", "w") as stream:
+        with open(self.SIir_run_sweeping + "eddycurrent_results.txt", "w") as stream:
             stream.write(str_results)
 
         # find breakdown torque and slip frequency that we are interested
@@ -1874,7 +1874,7 @@ class FEMM_Solver(object):
         #     raise Exception('[DEBUG] JMAG disagrees with FEMM (!= 3 Hz).')
 
         # write rotor currents to file
-        self.femm_integrate_4_current(self.dir_run_sweeping + list_ans_file[index], self.fraction)
+        self.femm_integrate_4_current(self.SIir_run_sweeping + list_ans_file[index], self.fraction)
 
         femm.closefemm()
 
@@ -1932,7 +1932,7 @@ class FEMM_Solver(object):
         # vals_results_rotor_current = self.femm_integrate_4_current(self.fraction)
 
         if dir_output is None:
-            dir_output = self.dir_run_sweeping
+            dir_output = self.SIir_run_sweeping
 
         if returnData == False: # no return then write to file
             with open(dir_output + "femm_rotor_current_conditions.txt", "w") as stream:
@@ -1954,8 +1954,8 @@ class FEMM_Solver(object):
         # TODO 判断，如果文件存在，且不是空的！
         # if exists .txt file, then load it
         missed_ans_file_list = []
-        if os.path.exists(self.dir_run + "static_results.txt"):
-            data = np.loadtxt(self.dir_run + "static_results.txt", unpack=True, usecols=(0,1,2,3))
+        if os.path.exists(self.SIir_run + "static_results.txt"):
+            data = np.loadtxt(self.SIir_run + "static_results.txt", unpack=True, usecols=(0,1,2,3))
 
             # use dict to eliminate duplicates
             results_dict = {}
@@ -1983,18 +1983,18 @@ class FEMM_Solver(object):
             # quit()
 
             # write data without duplicates to file
-            with open(self.dir_run + "static_results_no_duplicates.txt", 'w') as f:
+            with open(self.SIir_run + "static_results_no_duplicates.txt", 'w') as f:
                 for key in keys_without_duplicates:
                     f.writelines('%g %g %g %g\n' % (key, results_dict[key][0], results_dict[key][1], results_dict[key][2]))
                 print('[FEMM.show_results_static] the last key is', max(keys_without_duplicates), '[begin from 0]. the length of keys is', len(keys_without_duplicates))
 
-            data = np.loadtxt(self.dir_run + "static_results_no_duplicates.txt", unpack=True, usecols=(0,1,2,3))
+            data = np.loadtxt(self.SIir_run + "static_results_no_duplicates.txt", unpack=True, usecols=(0,1,2,3))
 
             last_index = len(data[0])
         else:
             last_index = 0
 
-        ans_file_list = os.listdir(self.dir_run)
+        ans_file_list = os.listdir(self.SIir_run)
         ans_file_list = [f for f in ans_file_list if '.ans' in f]
 
         # last_index == 0 则说明是第一次运行后处理
@@ -2013,15 +2013,15 @@ class FEMM_Solver(object):
         for ind, f in enumerate( ans_file_list[last_index:] + missed_ans_file_list ):
             if ind >= len(ans_file_list[last_index:]):
                 print('...open missed .ans files')
-                if os.path.exists(self.dir_run + f) == False:
+                if os.path.exists(self.SIir_run + f) == False:
                     print('run mi_analyze for %s' % (f))
-                    femm.opendocument(self.dir_run + f[:-4] + '.fem')
+                    femm.opendocument(self.SIir_run + f[:-4] + '.fem')
                     femm.mi_analyze(1)
                 else:
-                    femm.opendocument(self.dir_run + f[:-4] + '.fem')                    
+                    femm.opendocument(self.SIir_run + f[:-4] + '.fem')                    
             else:
                 print(last_index + ind, end=' ')
-                femm.opendocument(self.dir_run + f[:-4] + '.fem')
+                femm.opendocument(self.SIir_run + f[:-4] + '.fem')
 
             # load solution (if corrupted, re-run)
             try:
@@ -2029,7 +2029,7 @@ class FEMM_Solver(object):
             except Exception as e:
                 logger = logging.getLogger(__name__)
                 logger.error('The .ans file to this .fem file is corrupted. re-run the .fem file %s'%(f), exc_info=True)
-                femm.opendocument(self.dir_run + f[:-4] + '.fem')
+                femm.opendocument(self.SIir_run + f[:-4] + '.fem')
                 femm.mi_analyze(1)
                 femm.mi_loadsolution()
 
@@ -2048,7 +2048,7 @@ class FEMM_Solver(object):
                 # print gap_force, gap_torque, torque, Fx, Fy
 
                 # write results to a data file
-                with open(self.dir_run + "static_results.txt", "a") as stream:
+                with open(self.SIir_run + "static_results.txt", "a") as stream:
                     stream.write("%s %g %g %g\n" % ( f[-8:-4], torque, Fx, Fy ))
             except Exception as e:
                 logger = logging.getLogger(__name__)
@@ -2075,7 +2075,7 @@ class FEMM_Solver(object):
         return data
 
     def write_physical_data(self, results_list):
-        with open(self.dir_run + "static_results.txt", "a") as f:
+        with open(self.SIir_run + "static_results.txt", "a") as f:
             results_rotor = ''
             for ind, row in enumerate(results_list):
                 results_rotor += "%s %g %g %g\n" \
@@ -2106,15 +2106,15 @@ class FEMM_Solver(object):
 
     def run_frequency_sweeping(self, freq_range, fraction=2):
 
-        if self.has_results(dir_run=self.dir_run_sweeping):
+        if self.has_results(dir_run=self.SIir_run_sweeping):
             return
 
         self.flag_static_solver = False
         self.flag_eddycurrent_solver = True
         self.fraction = fraction
 
-        for f in os.listdir(self.dir_run_sweeping):
-            os.remove(self.dir_run_sweeping + f)
+        for f in os.listdir(self.SIir_run_sweeping):
+            os.remove(self.SIir_run_sweeping + f)
 
         femm.openfemm(True) # bHide # False for debug
         femm.newdocument(0) # magnetic
@@ -2129,7 +2129,7 @@ class FEMM_Solver(object):
         # self.bool_automesh = True
 
         self.add_material()
-        # self.draw_model(fraction=fraction)
+        # self.SIraw_model(fraction=fraction)
         self.vangogh.draw_model(fraction=fraction)
         self.add_block_labels(fraction=fraction)
 
@@ -2143,14 +2143,14 @@ class FEMM_Solver(object):
             self.freq = freq
             temp = self.get_output_file_name(booL_dir=False)
             list_ans_file.append(temp+'.ans')
-            self.output_file_name = self.dir_run_sweeping + temp            
+            self.output_file_name = self.SIir_run_sweeping + temp            
             print(temp)
             if os.path.exists(self.output_file_name + '.ans'):
                 continue
             self.probdef()        
             femm.mi_saveas(self.output_file_name + '.fem')
 
-        self.parallel_solve(dir_run=self.dir_run_sweeping, number_of_instantces=5) # subprocess will wait for cmd but not the pytho script
+        self.parallel_solve(dir_run=self.SIir_run_sweeping, number_of_instantces=5) # subprocess will wait for cmd but not the pytho script
         self.wait(list_ans_file)
 
         # flux and current of circuit can be used for parameter identification
@@ -2177,7 +2177,7 @@ class FEMM_Solver(object):
 
             # write results to a data file, multiplying by ? to get
             # the results for all ? poles of the machine. # 如果只分析了对称场，记得乘回少掉的那部分。
-            with open(self.dir_run_sweeping + "results.txt", "a") as f:
+            with open(self.SIir_run_sweeping + "results.txt", "a") as f:
 
                 results_circuits = "[DW] %g + j%g A. %g + j%g V. %g + j%g Wb. [BW] %g + j%g A. %g + j%g V. %g + j%g Wb. [BAR] %g + j%g A. %g + j%g V. %g + j%g Wb. " \
                     % ( np.real(dict_circuits['dU'][0]), np.imag(dict_circuits['dU'][0]),
@@ -2201,7 +2201,7 @@ class FEMM_Solver(object):
         current_index = 0
         print('\nbegin waiting for eddy current solver...')
         while flag_pso_running:
-            for fname in os.listdir(self.dir_run_sweeping):
+            for fname in os.listdir(self.SIir_run_sweeping):
                 if fname == list_ans_file[current_index]:
                     current_index += 1
                     print(current_index)
@@ -2220,14 +2220,14 @@ class FEMM_Solver(object):
             [type] -- [function of rotor current]
         '''
         try:
-            self.dict_rotor_current_function
+            self.SIict_rotor_current_function
         except:
             print('\n\n\nrotor current function does not exist. build it now...')
             if bool_FEMM_or_JMAG:
-                self.dict_rotor_current_function, _ = self.read_current_conditions_from_FEMM()
+                self.SIict_rotor_current_function, _ = self.read_current_conditions_from_FEMM()
             else:
-                self.dict_rotor_current_function, _ = self.read_current_conditions_from_JMAG()
-        return self.dict_rotor_current_function[i]
+                self.SIict_rotor_current_function, _ = self.read_current_conditions_from_JMAG()
+        return self.SIict_rotor_current_function[i]
 
     def keep_collecting_static_results_for_optimization(self, list_name=None, list_rotor_position_in_deg=None):
         if list_name is None:
@@ -2238,7 +2238,7 @@ class FEMM_Solver(object):
         prefix = self.get_output_file_name(booL_dir=False)
         # print prefix + list_name[0] + '.ans'
         self.number_ans = len(list_name)
-        handle_torque = open(self.dir_run + "static_results.txt", 'w')
+        handle_torque = open(self.SIir_run + "static_results.txt", 'w')
         femm.openfemm(True)
 
         time_init = clock_time()
@@ -2247,13 +2247,13 @@ class FEMM_Solver(object):
         # x_division_stator = 
         # y_division_stator = 
         while flag_run_while:
-            for fname in os.listdir(self.dir_run):
+            for fname in os.listdir(self.SIir_run):
                 current_ans_file = prefix + list_name[current_index] + '.ans'
                 if fname == current_ans_file:
                     print('[debug]', current_index, list_name[current_index], list_rotor_position_in_deg[current_index])
                     # initialization
                     if current_index == 0:
-                        femm.opendocument(self.dir_run + current_ans_file)
+                        femm.opendocument(self.SIir_run + current_ans_file)
 
                         # get slot area for copper loss calculation
                         femm.mo_groupselectblock(11) # fraction is 1 
@@ -2314,7 +2314,7 @@ class FEMM_Solver(object):
                         # quit()
                     # read field data and write torque data
                     current_rotor_position = list_rotor_position_in_deg[current_index] / 180. * pi
-                    self.read_Torque_and_B_data(self.dir_run + current_ans_file,
+                    self.read_Torque_and_B_data(self.SIir_run + current_ans_file,
                                                 np.exp(1j*current_rotor_position),
                                                 handle_torque)
                     current_index += 1
@@ -2362,12 +2362,12 @@ class FEMM_Solver(object):
             print('copper loss', temp)
 
             # np.savetxt(f, np.c_[self.stator_Bx_data])
-            np.savetxt(self.dir_run + 'stator_Bx_data.txt', self.stator_Bx_data)
-            np.savetxt(self.dir_run + 'stator_By_data.txt', self.stator_By_data)
-            np.savetxt(self.dir_run + 'stator_Area_data.txt', self.stator_Area_data)
-            np.savetxt(self.dir_run + 'rotor_Bx_data.txt', self.rotor_Bx_data)
-            np.savetxt(self.dir_run + 'rotor_By_data.txt', self.rotor_By_data)
-            np.savetxt(self.dir_run + 'rotor_Area_data.txt', self.rotor_Area_data)
+            np.savetxt(self.SIir_run + 'stator_Bx_data.txt', self.stator_Bx_data)
+            np.savetxt(self.SIir_run + 'stator_By_data.txt', self.stator_By_data)
+            np.savetxt(self.SIir_run + 'stator_Area_data.txt', self.stator_Area_data)
+            np.savetxt(self.SIir_run + 'rotor_Bx_data.txt', self.rotor_Bx_data)
+            np.savetxt(self.SIir_run + 'rotor_By_data.txt', self.rotor_By_data)
+            np.savetxt(self.SIir_run + 'rotor_Area_data.txt', self.rotor_Area_data)
 
 
     def read_Torque_and_B_data(self, ans_file, rotation_operator, handle_torque):
@@ -2643,19 +2643,19 @@ class FEMM_Solver(object):
             #             print row
             #             data.append([float(el) for el in row])
             #     return data
-            # self.stator_Bx_data   = what_loadtxt_should_be_doing(self.dir_run + 'stator_Bx_data.txt')
-            # self.stator_By_data   = what_loadtxt_should_be_doing(self.dir_run + 'stator_By_data.txt')
-            # self.stator_Area_data = what_loadtxt_should_be_doing(self.dir_run + 'stator_Area_data.txt')
-            # self.rotor_Bx_data    = what_loadtxt_should_be_doing(self.dir_run + 'rotor_Bx_data.txt')
-            # self.rotor_By_data    = what_loadtxt_should_be_doing(self.dir_run + 'rotor_By_data.txt')
-            # self.rotor_Area_data  = what_loadtxt_should_be_doing(self.dir_run + 'rotor_Area_data.txt')
+            # self.stator_Bx_data   = what_loadtxt_should_be_doing(self.SIir_run + 'stator_Bx_data.txt')
+            # self.stator_By_data   = what_loadtxt_should_be_doing(self.SIir_run + 'stator_By_data.txt')
+            # self.stator_Area_data = what_loadtxt_should_be_doing(self.SIir_run + 'stator_Area_data.txt')
+            # self.rotor_Bx_data    = what_loadtxt_should_be_doing(self.SIir_run + 'rotor_Bx_data.txt')
+            # self.rotor_By_data    = what_loadtxt_should_be_doing(self.SIir_run + 'rotor_By_data.txt')
+            # self.rotor_Area_data  = what_loadtxt_should_be_doing(self.SIir_run + 'rotor_Area_data.txt')
 
-            self.stator_Bx_data   = np.loadtxt(self.dir_run + 'stator_Bx_data.txt'  )
-            self.stator_By_data   = np.loadtxt(self.dir_run + 'stator_By_data.txt'  )
-            self.stator_Area_data = np.loadtxt(self.dir_run + 'stator_Area_data.txt')
-            self.rotor_Bx_data    = np.loadtxt(self.dir_run + 'rotor_Bx_data.txt'   )
-            self.rotor_By_data    = np.loadtxt(self.dir_run + 'rotor_By_data.txt'   )
-            self.rotor_Area_data  = np.loadtxt(self.dir_run + 'rotor_Area_data.txt' )
+            self.stator_Bx_data   = np.loadtxt(self.SIir_run + 'stator_Bx_data.txt'  )
+            self.stator_By_data   = np.loadtxt(self.SIir_run + 'stator_By_data.txt'  )
+            self.stator_Area_data = np.loadtxt(self.SIir_run + 'stator_Area_data.txt')
+            self.rotor_Bx_data    = np.loadtxt(self.SIir_run + 'rotor_Bx_data.txt'   )
+            self.rotor_By_data    = np.loadtxt(self.SIir_run + 'rotor_By_data.txt'   )
+            self.rotor_Area_data  = np.loadtxt(self.SIir_run + 'rotor_Area_data.txt' )
     
         # print np.shape(self.stator_Bx_data)
         # print np.shape(self.stator_Bx_data[0])
@@ -2851,7 +2851,7 @@ class FEMM_Solver(object):
         femm.closefemm()
 
         # save for wait_greedy_search()
-        self.dir_femm_temp = dir_femm_temp
+        self.SIir_femm_temp = dir_femm_temp
         self.study_name = study_name
 
 
@@ -2860,7 +2860,7 @@ class FEMM_Solver(object):
         # 而且还需要有一个总管，负责总调。
         if bool_run_in_JMAG_Script_Editor: # run inside JMAG then a wrapper batch file is required to work properly.
             with open('temp2.bat', 'w') as f:
-                f.write('python "%smethod_parasolve_greedy_search.py" "%s" %d %.16f' % (self.dir_codes, 
+                f.write('python "%smethod_parasolve_greedy_search.py" "%s" %d %.16f' % (self.SIir_codes, 
                                                                                         dir_femm_temp, 
                                                                                         number_of_instantces,
                                                                                         self.stack_length))
@@ -2871,13 +2871,13 @@ class FEMM_Solver(object):
         else:
             print('\n' + '-'*20, self.study_name)
             proc = subprocess.Popen([sys.executable, 'parasolve_greedy_search_manager.py', 
-                                     str(number_of_instantces), self.dir_femm_temp, str(self.stack_length)], bufsize=-1)
+                                     str(number_of_instantces), self.SIir_femm_temp, str(self.stack_length)], bufsize=-1)
             # proc.wait() # don't wait on femm solver, and let jmag plot the model and get ready for the breakdownd slip info.
 
 
     def wait_greedy_search(self, tic):
         while True:
-            fname = self.dir_femm_temp + 'femm_found.csv'
+            fname = self.SIir_femm_temp + 'femm_found.csv'
             if os.path.exists(fname):
                 with open(fname, 'r') as f:
                     data = f.readlines()
@@ -2885,10 +2885,10 @@ class FEMM_Solver(object):
                     torque = float(data[1][:-1])
                 femm.openfemm(True)
                 vals_results_rotor_current, stator_slot_area, rotor_slot_area = \
-                    self.femm_integrate_4_current(fname[:-4]+'.ans', self.fraction, dir_output=self.dir_femm_temp, returnData=True)
+                    self.femm_integrate_4_current(fname[:-4]+'.ans', self.fraction, dir_output=self.SIir_femm_temp, returnData=True)
                 femm.closefemm()
                 
-                new_fname = self.dir_femm_temp + self.study_name + '.csv'
+                new_fname = self.SIir_femm_temp + self.study_name + '.csv'
                 os.rename(fname, new_fname)
                 with open(new_fname, 'w') as f:
                     str_results = "%g\n%g\n" % (freq, torque)

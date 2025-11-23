@@ -1,5 +1,5 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
-import os, json, acm_designer, VanGogh_Cairo, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design, bearingless_spmsm_heart, bearingless_spmsm_closedSlot_design
+import os, json, acm_designer, VanGogh_Cairo, bearingless_spmsm_closedSlot_design
 import utility
 import logging, collections
 from dataclasses import dataclass
@@ -124,26 +124,26 @@ class AC_Machine_Optiomization_Wrapper(object):
     # '[2] Initial Design Part'
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def part_initialDesign(self):
-        if 'PMSM' in self.select_spec:
-            function = bearingless_spmsm_design.bearingless_spmsm_template
-            if 'Heart' in self.select_spec:
-                function = bearingless_spmsm_heart.bearingless_spmsm_template
-            if 'ClosedStator' in self.select_spec:
-                function = bearingless_spmsm_closedSlot_design.bearingless_spmsm_closedStator_template
-        elif 'PMVM' in self.select_spec:
-            function = vernier_motor_design.vernier_motor_VShapePM_template
-        elif 'IM' in self.select_spec:
-            function = bearingless_induction_design.bearingless_induction_template
-        elif 'Flux Alternator' in self.select_spec:
-            function = flux_alternator_design.flux_alternator_template
-        elif 'FSPM' in self.select_spec:
-            function = flux_switching_pm_design.FSPM_template
-        elif 'CPPM' in self.select_spec:
-            function = bearingless_consequentPole_design.bearingless_conszequentPole_template
-        elif 'VCPPM' in self.select_spec:
-            function = bearingless_VShapeconsequentPole_design.bearingless_VconsequentPole_template
-        elif 'CSPPM' in self.select_spec:
-            function = bearingless_consequentsinglePole_design.bearingless_consequentsinglePole_template
+        if 'ClosedStator' in self.select_spec:
+            function = bearingless_spmsm_closedSlot_design.bearingless_spmsm_closedStator_template
+        # if 'PMSM' in self.select_spec:
+        #     function = bearingless_spmsm_design.bearingless_spmsm_template
+        #     if 'Heart' in self.select_spec:
+        #         function = bearingless_spmsm_heart.bearingless_spmsm_template
+        # elif 'PMVM' in self.select_spec:
+        #     function = vernier_motor_design.vernier_motor_VShapePM_template
+        # elif 'IM' in self.select_spec:
+        #     function = bearingless_induction_design.bearingless_induction_template
+        # elif 'Flux Alternator' in self.select_spec:
+        #     function = flux_alternator_design.flux_alternator_template
+        # elif 'FSPM' in self.select_spec:
+        #     function = flux_switching_pm_design.FSPM_template
+        # elif 'CPPM' in self.select_spec:
+        #     function = bearingless_consequentPole_design.bearingless_conszequentPole_template
+        # elif 'VCPPM' in self.select_spec:
+        #     function = bearingless_VShapeconsequentPole_design.bearingless_VconsequentPole_template
+        # elif 'CSPPM' in self.select_spec:
+        #     function = bearingless_consequentsinglePole_design.bearingless_consequentsinglePole_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
         self.ad = acm_designer.acm_designer(

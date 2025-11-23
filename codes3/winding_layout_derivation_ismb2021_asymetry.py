@@ -625,9 +625,9 @@ class Winding_Derivation(object):
             drawer_T3a, dpnv_grouping_dict_a    = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*ps, which_phase='Aa') # p is original frequency, ps is the new frequency
             drawer_T3b, dpnv_grouping_dict_b    = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*ps, which_phase='Bb') # (Unchanged) NOTE THAT THE PHASE V and W are transposed!
             drawer_T3c, dpnv_grouping_dict_c    = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*ps, which_phase='Cc') # (Unchanged) NOTE THAT THE PHASE V and W are transposed!
-            self.dpnv_grouping_dict_a = dpnv_grouping_dict_a
-            self.dpnv_grouping_dict_b = dpnv_grouping_dict_b
-            self.dpnv_grouping_dict_c = dpnv_grouping_dict_c
+            self.SIpnv_grouping_dict_a = dpnv_grouping_dict_a
+            self.SIpnv_grouping_dict_b = dpnv_grouping_dict_b
+            self.SIpnv_grouping_dict_c = dpnv_grouping_dict_c
         # drawer_T33, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(3*p), which_phase='Aa') # 3次谐波
         # drawer_T35, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(5*p), which_phase='Aa') # 5次谐波
         # drawer_T37, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(7*p), which_phase='Aa') # 7次谐波
@@ -813,17 +813,17 @@ class Winding_Derivation(object):
 
 
 
-        self.drawer_T1 = drawer_T1
-        self.drawer_T2 = drawer_T2
-        self.drawer_T4 = drawer_T4
+        self.SIrawer_T1 = drawer_T1
+        self.SIrawer_T2 = drawer_T2
+        self.SIrawer_T4 = drawer_T4
         if m == 3:
-            self.drawer_T3a = drawer_T3a
-            self.drawer_T3b = drawer_T3b
-            self.drawer_T3c = drawer_T3c
-            self.drawer_T4a = drawer_T4a
-            self.drawer_T4b = drawer_T4b
-            self.drawer_T4c = drawer_T4c
-        self.drawer_Text = drawer_Text
+            self.SIrawer_T3a = drawer_T3a
+            self.SIrawer_T3b = drawer_T3b
+            self.SIrawer_T3c = drawer_T3c
+            self.SIrawer_T4a = drawer_T4a
+            self.SIrawer_T4b = drawer_T4b
+            self.SIrawer_T4c = drawer_T4c
+        self.SIrawer_Text = drawer_Text
 
     def get_complex_number_winding_factor_of_coil_i(self, i, coil_pitch_y, Q, v, p):
         ''' In this formulation, the basic component is a coil rather than a coill side.
@@ -895,14 +895,14 @@ class Winding_Derivation(object):
             if p_or_ps == self.ps or bool_study_suspension_subharmonics:
                 # suspension winding has different connection patten from the torque winding
                 if ZONE == 'A':
-                    dpnv_grouping_AC = self.dpnv_grouping_dict_a['GAC']
-                    dpnv_grouping_BD = self.dpnv_grouping_dict_a['GBD']
+                    dpnv_grouping_AC = self.SIpnv_grouping_dict_a['GAC']
+                    dpnv_grouping_BD = self.SIpnv_grouping_dict_a['GBD']
                 if ZONE == 'B':
-                    dpnv_grouping_AC = self.dpnv_grouping_dict_b['GAC']
-                    dpnv_grouping_BD = self.dpnv_grouping_dict_b['GBD']
+                    dpnv_grouping_AC = self.SIpnv_grouping_dict_b['GAC']
+                    dpnv_grouping_BD = self.SIpnv_grouping_dict_b['GBD']
                 if ZONE == 'C':
-                    dpnv_grouping_AC = self.dpnv_grouping_dict_c['GAC']
-                    dpnv_grouping_BD = self.dpnv_grouping_dict_c['GBD']
+                    dpnv_grouping_AC = self.SIpnv_grouping_dict_c['GAC']
+                    dpnv_grouping_BD = self.SIpnv_grouping_dict_c['GBD']
                 connection_star_raw_results = [-int(el) for el in dpnv_grouping_AC] + [int(el) for el in dpnv_grouping_BD]
                 pcc = [    el  for el in connection_star_raw_results if el>0]
                 ncc = [abs(el) for el in connection_star_raw_results if el<0]
@@ -920,8 +920,8 @@ class Winding_Derivation(object):
             # print('kw(els)=', _kw_els, '=', f'{np.abs(_kw_els)}∠{np.angle(_kw_els)/np.pi*180}')
             print('kw(cjh)=', _kw_cjh, '=', f'{np.abs(_kw_cjh):.3f}∠{np.angle(_kw_cjh)/np.pi*180:.1f}')
 
-        self.dict_kw_els = dict_kw_els
-        self.dict_kw_cjh = dict_kw_cjh
+        self.SIict_kw_els = dict_kw_els
+        self.SIict_kw_cjh = dict_kw_cjh
         return dict_kw_els, dict_kw_cjh
 
 def main_derivation():
@@ -1195,8 +1195,8 @@ class winding_diagram:
         l_leftlayer2  = self.layer_Y_signs
 
         # dl: dict list
-        self.dl_rightlayer = dl_rightlayer = {'U': [], 'V': [], 'W':[]}
-        self.dl_leftlayer  = dl_leftlayer  = {'U': [], 'V': [], 'W':[]}
+        self.SIl_rightlayer = dl_rightlayer = {'U': [], 'V': [], 'W':[]}
+        self.SIl_leftlayer  = dl_leftlayer  = {'U': [], 'V': [], 'W':[]}
         count_slot = 0
         while True:
             try:
@@ -1233,14 +1233,14 @@ class winding_diagram:
         # dl_rightlayer['C'] = dl_rightlayer['W']
         # dl_leftlayer['C'] = dl_leftlayer['W']
 
-        self.dl_grouping_AC = dict()
-        self.dl_grouping_BD = dict()
+        self.SIl_grouping_AC = dict()
+        self.SIl_grouping_BD = dict()
         if self.grouping_AC is not None:
             for phase in ['U', 'V', 'W']:
-                self.dl_grouping_AC[phase] = [el for el in dl_rightlayer[phase] if grouping_AC[abs(int(el))-1]==True ]
-                self.dl_grouping_BD[phase] = [el for el in dl_rightlayer[phase] if grouping_AC[abs(int(el))-1]==False]
-                print(f'Phase {phase}, Group A/C:', self.dl_grouping_AC[phase])
-                print(f'         Group B/D:', self.dl_grouping_BD[phase])
+                self.SIl_grouping_AC[phase] = [el for el in dl_rightlayer[phase] if grouping_AC[abs(int(el))-1]==True ]
+                self.SIl_grouping_BD[phase] = [el for el in dl_rightlayer[phase] if grouping_AC[abs(int(el))-1]==False]
+                print(f'Phase {phase}, Group A/C:', self.SIl_grouping_AC[phase])
+                print(f'         Group B/D:', self.SIl_grouping_BD[phase])
 
     @staticmethod
     def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(layer_X_phases, coil_pitch):
@@ -1260,7 +1260,7 @@ class winding_diagram:
             HEIGHT      = 50
             PIXEL_SCALE = 10
             # with cairo.SVGSurface(f'{output_dir}tec-ismb-winding-diagram-{phase}.svg', WIDTH*PIXEL_SCALE, HEIGHT*PIXEL_SCALE) as surface:
-            temp = self.dl_rightlayer['U']
+            temp = self.SIl_rightlayer['U']
             with cairo.SVGSurface(f'{output_dir}winding-diagram-{phase}-{"".join(temp)}.svg', WIDTH*PIXEL_SCALE, HEIGHT*PIXEL_SCALE) as surface:
                 ctx = cairo.Context(surface)
                 ctx.scale(PIXEL_SCALE, PIXEL_SCALE)
@@ -1271,7 +1271,7 @@ class winding_diagram:
                 ctx.set_font_size(1)
                 ctx.select_font_face("Times new roman", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
-                Qs = len(self.dl_rightlayer['U'])*3
+                Qs = len(self.SIl_rightlayer['U'])*3
                 # print(Qs, 'should be 36')
 
                 COIL_LENGTH = 4 # 导体长度
@@ -1291,8 +1291,8 @@ class winding_diagram:
                 ''' Draw coils in the slots as vertical lines for 3 phases
                 '''
                 for color, winding_layout_right, winding_layout_left, _ in zip( ['#5C9C31', '#E97675', '#6C8FAB'] , 
-                                                                                [self.dl_rightlayer['U'], self.dl_rightlayer['V'], self.dl_rightlayer['W']],
-                                                                                [self.dl_leftlayer['U'], self.dl_leftlayer['V'], self.dl_leftlayer['W']],
+                                                                                [self.SIl_rightlayer['U'], self.SIl_rightlayer['V'], self.SIl_rightlayer['W']],
+                                                                                [self.SIl_leftlayer['U'], self.SIl_leftlayer['V'], self.SIl_leftlayer['W']],
                                                                                 list(range(3))):
                     if _ == 0:
                         ctx.set_source_rgba(92/255, 156/255, 49/255, 1.0)
@@ -1451,8 +1451,8 @@ class winding_diagram:
 
                         terminal_bias = 0.5
 
-                        self.dl_grouping_AC[phase] # ['-8', '+13', '+14', '-19', '-20', '+25']
-                        self.dl_grouping_BD[phase] # ['+1', '+2', '-7', '+26', '-31', '-32']
+                        self.SIl_grouping_AC[phase] # ['-8', '+13', '+14', '-19', '-20', '+25']
+                        self.SIl_grouping_BD[phase] # ['+1', '+2', '-7', '+26', '-31', '-32']
 
                         def avoid_coil_distance_is_over_half_slots(grouping_number):
                             for index, str_number in enumerate(grouping_number):
@@ -1462,14 +1462,14 @@ class winding_diagram:
                                         print('Re-order as', grouping_number)
                             return grouping_number
 
-                        self.dl_grouping_AC[phase] = avoid_coil_distance_is_over_half_slots(self.dl_grouping_AC[phase])
-                        self.dl_grouping_BD[phase] = avoid_coil_distance_is_over_half_slots(self.dl_grouping_BD[phase])
-                        print(self.dl_grouping_AC[phase])
-                        print(self.dl_grouping_BD[phase])
+                        self.SIl_grouping_AC[phase] = avoid_coil_distance_is_over_half_slots(self.SIl_grouping_AC[phase])
+                        self.SIl_grouping_BD[phase] = avoid_coil_distance_is_over_half_slots(self.SIl_grouping_BD[phase])
+                        print(self.SIl_grouping_AC[phase])
+                        print(self.SIl_grouping_BD[phase])
 
-                        for grouping_number, NINE_BIAS, grp in zip([self.dl_grouping_BD[phase], self.dl_grouping_AC[phase]],
+                        for grouping_number, NINE_BIAS, grp in zip([self.SIl_grouping_BD[phase], self.SIl_grouping_AC[phase]],
                         # for grouping_number, NINE_BIAS, grp in zip(
-                        #                                       (self.dl_grouping_BD[phase], self.dl_grouping_AC[phase][::-1]),
+                        #                                       (self.SIl_grouping_BD[phase], self.SIl_grouping_AC[phase][::-1]),
                                                               [1.0, 0.5],
                                                               ['b', 'a']):
                             HORIZONTAL_OFFSET = 0.0

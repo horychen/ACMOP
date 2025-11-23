@@ -409,7 +409,7 @@ if __name__ == '__main__':
                     # self.Width_StatorTeethHeadThickness = pmsm.Width_StatorTeethHeadThickness
                     # self.Length_HeadNeckRotorSlot       = pmsm.Length_HeadNeckRotorSlot
 
-                    # self.design_parameters_denorm = [   self.air_gap_length_delta,
+                    # self.SIesign_parameters_denorm = [   self.air_gap_length_delta,
                                                         # self.stator_tooth_width_b_ds,
                                                         # self.rotor_tooth_width_b_dr,
                                                         # self.Angle_StatorSlotOpen,
@@ -418,9 +418,9 @@ if __name__ == '__main__':
                                                         # self.Length_HeadNeckRotorSlot ]
 
                     # if bounds is None:
-                        # self.design_parameters_denorm
+                        # self.SIesign_parameters_denorm
                     # else:
-                        # self.show_norm(bounds, self.design_parameters_denorm)
+                        # self.show_norm(bounds, self.SIesign_parameters_denorm)
 
 
                 # def show_denorm(self, bounds, design_parameters_norm):
@@ -437,10 +437,10 @@ if __name__ == '__main__':
                 #     print(design_parameters_denorm)
                 #     print(min_b)
                 #     print(bounds)
-                #     self.design_parameters_norm = (design_parameters_denorm - min_b)/diff #= pop
-                #     # print type(self.design_parameters_norm)
+                #     self.SIesign_parameters_norm = (design_parameters_denorm - min_b)/diff #= pop
+                #     # print type(self.SIesign_parameters_norm)
                 #     print('[Normalized]:', end=' ')
-                #     print(self.design_parameters_norm.tolist())
+                #     print(self.SIesign_parameters_norm.tolist())
                         
             # def local_sensitivity_analysis(self, specify_x_denorm=None):
                         # 敏感性检查：以基本设计为准，检查不同的参数取极值时的电机性能变化！这是最简单有效的办法。七个设计参数，那么就有14种极值设计。

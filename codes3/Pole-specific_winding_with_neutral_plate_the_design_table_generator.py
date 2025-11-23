@@ -91,7 +91,7 @@ class ValidSet_of_PoleSpecificWindingWithNeutralPlate(object):
     def get_design(self, layers, ps, p, k1, k):
         # c/d = reduced( k1/ps )
         self.c = c = Fraction(k1, ps).numerator
-        self.d = d = Fraction(k1, ps).denominator
+        self.SI = d = Fraction(k1, ps).denominator
         print('c/d\t= %d/%d'%(c, d))
 
         self.Qr = Qr = k*d

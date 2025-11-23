@@ -50,7 +50,7 @@ def load_settings(select_spec, select_fea_config_dict, path2swarmData, bool_post
                 print('\t', ke+':', va)
     # decode_raw_fea_configs(raw_fea_config_dicts)
 
-    spec_input_dict = raw_specs[select_spec]['Inputs']
+    spec_input_dict = raw_specs[select_spec]
     fea_config_dict = raw_fea_config_dicts[select_fea_config_dict]
     fea_config_dict['bool_post_processing'] = bool_post_processing
 

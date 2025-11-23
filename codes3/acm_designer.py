@@ -6,7 +6,7 @@ import population, FEMM_Solver, pyrhonen_procedure_as_function
 
 # BPMSM codes
 import JMAG, FEMM_SlidingMesh
-import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design
+import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design, bearingless_spmsm_closedSlot_design
 
 class Swarm_Data_Analyzer(object):
     def __init__(self, fname, desired_x_denorm_dict):
@@ -54,11 +54,11 @@ class Swarm_Data_Analyzer(object):
                 x_denorm = []
                 for key in desired_x_denorm_dict.keys():
                     if key not in x_denorm_dict:
-                        x_denorm.append(self.decode(v)['Geometric parameters'][key]) # pseudo code for showing the concept, this will not work.
+                        x_denorm.append(self.SIecode(v)['Geometric parameters'][key]) # pseudo code for showing the concept, this will not work.
                     else:
                         x_denorm.append(x_denorm_dict[key])
             self.swarm_data_xf = [
-                                    sort_as_desired(self.decode(v)['x_denorm_dict'], desired_x_denorm_dict) + [ self.decode(v)['Performance']['f1'], self.decode(v)['Performance']['f2'], self.decode(v)['Performance']['f3'] ]
+                                    sort_as_desired(self.SIecode(v)['x_denorm_dict'], desired_x_denorm_dict) + [ self.SIecode(v)['Performance']['f1'], self.SIecode(v)['Performance']['f2'], self.SIecode(v)['Performance']['f3'] ]
                                     for v in swarm_data_as_dict.values() # v = {name:data}
                                     ]
             self.number_of_free_variables = len(self.swarm_data_xf[0]) - 3
@@ -70,7 +70,7 @@ class Swarm_Data_Analyzer(object):
 
             ''' 3. Get the list of other attribute by individuals (not needed for optimization)
             '''
-                # self.swarm_data_project_names = [ self.decode(v)['Performance']['project_name'] for v in swarm_data_as_dict.values() ]
+                # self.swarm_data_project_names = [ self.SIecode(v)['Performance']['project_name'] for v in swarm_data_as_dict.values() ]
                 # self.prepare_data_for_post_processing(swarm_data_as_dict)
             self.swarm_data_project_names = self.get_metric_of_the_whole_swarm('project_name')
     
@@ -98,7 +98,7 @@ class Swarm_Data_Analyzer(object):
         return list(d.values())[0]
 
     def get_metric_of_the_whole_swarm(self, metric):
-        return [ self.decode(v)['Performance'][metric] for v in self.swarm_data_as_dict.values() ]
+        return [ self.SIecode(v)['Performance'][metric] for v in self.swarm_data_as_dict.values() ]
     def prepare_data_for_post_processing(self):
 
         ''' 3. Get the list of other attribute by individuals (not needed for optimization)
@@ -980,12 +980,12 @@ class acm_designer(object):
         output_dir = self.fea_config_dict['output_dir']
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
-        self.dir_csv_output_folder = output_dir + 'csv/'
-        if not os.path.isdir(self.dir_csv_output_folder):
-            os.makedirs(self.dir_csv_output_folder)
-        self.dir_jsonpickle_folder = output_dir + 'jsonpickle/'
-        if not os.path.isdir(self.dir_jsonpickle_folder):
-            os.makedirs(self.dir_jsonpickle_folder)
+        self.SIir_csv_output_folder = output_dir + 'csv/'
+        if not os.path.isdir(self.SIir_csv_output_folder):
+            os.makedirs(self.SIir_csv_output_folder)
+        self.SIir_jsonpickle_folder = output_dir + 'jsonpickle/'
+        if not os.path.isdir(self.SIir_jsonpickle_folder):
+            os.makedirs(self.SIir_jsonpickle_folder)
 
         # if fea_config_dict['bool_post_processing'] == False:
         #     self.fig_main, self.axeses = plt.subplots(2, 2, sharex=True, dpi=150, figsize=(16, 8), facecolor='w', edgecolor='k')
@@ -999,13 +999,13 @@ class acm_designer(object):
         #     os.rename(output_dir+'swarm_MOO_log.txt', output_dir+'swarm_MOO_log_backup.txt')
         # open(output_dir+'swarm_MOO_log.txt', 'a').close()
 
-        self.acm_template.build_x_denorm()
-        swarm_data_file = self.read_swarm_data_json(self.select_spec, self.acm_template.x_denorm_dict)
+        # self.acm_template.build_x_denorm()
+        swarm_data_file = self.read_swarm_data_json(self.select_spec, self.acm_template.SI['x_denorm_dict'])
         # Initialize logger if not already initialized
         if not hasattr(self, 'logger'):
             import utility
             self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix='acm_designer_')
-        self.logger.info('x_denorm_dict: %s, swarm_data_file: %s', self.acm_template.x_denorm_dict, swarm_data_file)
+        self.logger.info('x_denorm_dict: %s, swarm_data_file: %s', self.acm_template.SI['x_denorm_dict'], swarm_data_file)
 
     def init_logger(self, prefix='pygmo_'):
         # self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
@@ -1362,7 +1362,10 @@ class acm_designer(object):
 
     def build_acm_variant(self, template, x_denorm, counter, counter_loop=1):
         if 'SPMSM' in template.machine_type:
-            acm_variant = bearingless_spmsm_design.bearingless_spmsm_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+            if 'Closed' in template.machine_type:
+                acm_variant = bearingless_spmsm_closedSlot_design.bearingless_spmsm_closedSlot_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+            else:
+                acm_variant = bearingless_spmsm_design.bearingless_spmsm_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         elif 'PMVM' in template.machine_type:
             acm_variant = vernier_motor_design.vernier_motor_VShapePM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         elif 'Flux_Alternator' in template.machine_type:
@@ -1401,7 +1404,7 @@ class acm_designer(object):
                 "expected_project_file": self.expected_project_file,
                 "project_name": self.project_name,
                 "study_name": study_name,
-                "dir_csv_output_folder": self.dir_csv_output_folder,
+                "dir_csv_output_folder": self.SIir_csv_output_folder,
                 "output_dir": self.fea_config_dict['output_dir']
             }
 
@@ -1413,7 +1416,7 @@ class acm_designer(object):
             ################################################################
             # Load data for cost function evaluation
             ################################################################
-            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.SIir_csv_output_folder, self.fea_config_dict, femm_solver=None)
             if results_to_be_unpacked is not None:
                 if self.toolJd.fig_main is not None:
                     try:
@@ -1432,7 +1435,7 @@ class acm_designer(object):
 
         elif 'FEMM' in self.select_fea_config_dict:
             self.toolFEMM = self.build_femm_project(acm_variant)
-            # acm_variant.results_to_be_unpacked = results_to_be_unpacked = toolFEMM.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            # acm_variant.results_to_be_unpacked = results_to_be_unpacked = toolFEMM.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.SIir_csv_output_folder, self.fea_config_dict, femm_solver=None)
             return acm_variant
         else:
             raise Exception('[acm_designer.py] Wrong string of select_fea_config_dict:', self.select_fea_config_dict)
@@ -1607,8 +1610,8 @@ class acm_designer(object):
         original_study_name = im_variant.name + "Freq"
         tran2tss_study_name = im_variant.name + 'Tran2TSS'
 
-        self.dir_femm_temp         = self.fea_config_dict['output_dir'] + 'femm_temp/'
-        self.femm_output_file_path = self.dir_femm_temp + original_study_name + '.csv'
+        self.SIir_femm_temp         = self.fea_config_dict['output_dir'] + 'femm_temp/'
+        self.femm_output_file_path = self.SIir_femm_temp + original_study_name + '.csv'
 
         # self.jmag_control_state = False
 
@@ -1674,7 +1677,7 @@ class acm_designer(object):
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
             # Draw the model in JMAG Designer
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-            DRAW_SUCCESS = self.draw_jmag_induction(app,
+            DRAW_SUCCESS = self.SIraw_jmag_induction(app,
                                                 counter, 
                                                 im_variant,
                                                 im_variant.name)
@@ -1698,7 +1701,7 @@ class acm_designer(object):
         def rotating_static_FEA():
 
             # wait for femm to finish, and get your slip of breakdown
-            new_fname = self.dir_femm_temp + original_study_name + '.csv'
+            new_fname = self.SIir_femm_temp + original_study_name + '.csv'
             with open(new_fname, 'r') as f:
                 data = f.readlines()
                 freq = float(data[0][:-1])
@@ -1750,7 +1753,7 @@ class acm_designer(object):
             # Freq Sweeping for break-down Torque Slip
             # remember to export the B data using subroutine 
             # and check export table results only
-            study = im.add_study(app, model, self.dir_csv_output_folder, choose_study_type='frequency')
+            study = im.add_study(app, model, self.SIir_csv_output_folder, choose_study_type='frequency')
 
             # Freq Study: you can choose to not use JMAG to find the breakdown slip.
             # Option 1: you can set im.slip_freq_breakdown_torque by FEMM Solver
@@ -1780,7 +1783,7 @@ class acm_designer(object):
                 app.Save()
 
                 def check_csv_results(dir_csv_output_folder, study_name, returnBoolean=False, file_suffix='_torque.csv'): # '_iron_loss_loss.csv'
-                    # print self.dir_csv_output_folder + study_name + '_torque.csv'
+                    # print self.SIir_csv_output_folder + study_name + '_torque.csv'
                     if not os.path.exists(dir_csv_output_folder + study_name + file_suffix):
                         if returnBoolean == False:
                             print('Nothing is found when looking into:', dir_csv_output_folder + study_name + file_suffix)
@@ -1830,12 +1833,12 @@ class acm_designer(object):
                         raise e
 
                 # evaluation based on the csv results
-                print(':::ZZZ', self.dir_csv_output_folder)
-                slip_freq_breakdown_torque, breakdown_torque, breakdown_force = check_csv_results(self.dir_csv_output_folder, study.GetName())
+                print(':::ZZZ', self.SIir_csv_output_folder)
+                slip_freq_breakdown_torque, breakdown_torque, breakdown_force = check_csv_results(self.SIir_csv_output_folder, study.GetName())
 
             # this will be used for other duplicated studies
             original_study_name = study.GetName()
-            im.csv_previous_solve = self.dir_csv_output_folder + original_study_name + '_circuit_current.csv'
+            im.csv_previous_solve = self.SIir_csv_output_folder + original_study_name + '_circuit_current.csv'
             im.update_mechanical_parameters(slip_freq_breakdown_torque, syn_freq=im.DriveW_Freq)
 
 
@@ -1892,7 +1895,7 @@ class acm_designer(object):
         # debug for tia-iemdc-ecce-2019
         # data_femm_solver = rotating_static_FEA()
         # from show_results_iemdc19 import show_results_iemdc19
-        # show_results_iemdc19(   self.dir_csv_output_folder, 
+        # show_results_iemdc19(   self.SIir_csv_output_folder, 
         #                         im_variant, 
         #                         femm_solver_data=data_femm_solver, 
         #                         femm_rotor_current_function=self.femm_solver.get_rotor_current_function()
@@ -1912,7 +1915,7 @@ class acm_designer(object):
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
             # check for existing results
             if os.path.exists(self.femm_output_file_path):
-                # for file in os.listdir(self.dir_femm_temp):
+                # for file in os.listdir(self.SIir_femm_temp):
                 #     if original_study_name in file:
                 #         print('----------', original_study_name, file)
                 print('Remove legacy femm output files @ %s'%(self.femm_output_file_path))
@@ -1930,11 +1933,11 @@ class acm_designer(object):
             # self.femm_solver.__init__(im_variant, flag_read_from_jmag=False, freq=50.0)
             if im_variant.DriveW_poles == 4 and self.fea_config_dict['femm.use_fraction'] == True:
                 print('FEMM model only solves for a fraction of 2.\n'*3)
-                self.femm_solver.greedy_search_for_breakdown_slip( self.dir_femm_temp, original_study_name, 
+                self.femm_solver.greedy_search_for_breakdown_slip( self.SIir_femm_temp, original_study_name, 
                                                                     bool_run_in_JMAG_Script_Editor=self.bool_run_in_JMAG_Script_Editor, fraction=2)
             else:
                 # p >= 3 is not tested so do not use fraction for now
-                self.femm_solver.greedy_search_for_breakdown_slip( self.dir_femm_temp, original_study_name, 
+                self.femm_solver.greedy_search_for_breakdown_slip( self.SIir_femm_temp, original_study_name, 
                                                                     bool_run_in_JMAG_Script_Editor=self.bool_run_in_JMAG_Script_Editor, fraction=1) # 转子导条必须形成通路
 
             ################################################################
@@ -1950,7 +1953,7 @@ class acm_designer(object):
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
             # add or duplicate study for transient FEA denpending on jmag_run_list
             # FEMM+JMAG (注意，这里我们用50Hz作为滑差频率先设置起来，等拿到breakdown slip freq的时候，再更新变量slip和study properties的时间。)
-            study = im_variant.add_TranFEAwi2TSS_study( 50.0, app, model, self.dir_csv_output_folder, tran2tss_study_name, logger)
+            study = im_variant.add_TranFEAwi2TSS_study( 50.0, app, model, self.SIir_csv_output_folder, tran2tss_study_name, logger)
             app.SetCurrentStudy(tran2tss_study_name)
             study = app.GetCurrentStudy()
             self.mesh_study(im_variant, app, model, study)
@@ -2001,10 +2004,10 @@ class acm_designer(object):
                 # Export Circuit Voltage
                 ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                 app.GetDataManager().CreateGraphModel(ref1)
-                # app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + im_variant.name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
-                print('[acm_designer.py] WriteTable to:', self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
-                print('[acm_designer.py] WriteTable to (converter):', os.path.abspath(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv"))
-                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(os.path.abspath(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")) # must be absolute path to JMAG
+                # app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.SIir_csv_output_folder + im_variant.name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                print('[acm_designer.py] WriteTable to:', self.SIir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                print('[acm_designer.py] WriteTable to (converter):', os.path.abspath(self.SIir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv"))
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(os.path.abspath(self.SIir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")) # must be absolute path to JMAG
 
             # TranRef
             # transient_FEA_as_reference(im_variant, slip_freq_breakdown_torque)
@@ -2014,7 +2017,7 @@ class acm_designer(object):
 
             self.femm_solver.vals_results_rotor_current = []
 
-            new_fname = self.dir_femm_temp + original_study_name + '.csv'
+            new_fname = self.SIir_femm_temp + original_study_name + '.csv'
             try:
                 with open(new_fname, 'r') as f:
                     buf = f.readlines()
@@ -2036,15 +2039,15 @@ class acm_designer(object):
                         temp = el.split(',')
                         self.femm_solver.vals_results_rotor_current.append( float(temp[0])+ 1j*float(temp[1]) )
                         # print(self.femm_solver.vals_results_rotor_current)
-                self.dirty_backup_stator_slot_area = self.femm_solver.stator_slot_area
-                self.dirty_backup_rotor_slot_area = self.femm_solver.rotor_slot_area
-                self.dirty_backup_vals_results_rotor_current = self.femm_solver.vals_results_rotor_current
+                self.SIirty_backup_stator_slot_area = self.femm_solver.stator_slot_area
+                self.SIirty_backup_rotor_slot_area = self.femm_solver.rotor_slot_area
+                self.SIirty_backup_vals_results_rotor_current = self.femm_solver.vals_results_rotor_current
             except FileNotFoundError as error:
                 print(error)
                 print('Use dirty_backup to continue...') # 有些时候，不知道为什么femm的结果文件（.csv）没了，这时候曲线救国，凑活一下吧
-                self.femm_solver.stator_slot_area = self.dirty_backup_stator_slot_area           
-                self.femm_solver.rotor_slot_area = self.dirty_backup_rotor_slot_area            
-                self.femm_solver.vals_results_rotor_current = self.dirty_backup_vals_results_rotor_current 
+                self.femm_solver.stator_slot_area = self.SIirty_backup_stator_slot_area           
+                self.femm_solver.rotor_slot_area = self.SIirty_backup_rotor_slot_area            
+                self.femm_solver.vals_results_rotor_current = self.SIirty_backup_vals_results_rotor_current 
 
 
 
@@ -2084,7 +2087,7 @@ class acm_designer(object):
         ################################################################
         # Load data for cost function evaluation
         ################################################################
-        im_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, im_variant, self.project_name, tran2tss_study_name, self.dir_csv_output_folder, self.fea_config_dict, self.femm_solver)
+        im_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, im_variant, self.project_name, tran2tss_study_name, self.SIir_csv_output_folder, self.fea_config_dict, self.femm_solver)
         if results_to_be_unpacked is not None:
             if self.fig_main is not None:
                 try:
@@ -2176,7 +2179,7 @@ class acm_designer(object):
                 d = VanGogh_JMAG(im_variant, doNotRotateCopy=doNotRotateCopy) # 传递的是地址哦
                 d.doc, d.ass = doc, ass
                 d.draw_model()
-            self.d = d
+            self.SI = d
         except Exception as e:
             print('See log file to plotting error.')
             logger = logging.getLogger(__name__)
@@ -2230,8 +2233,8 @@ class acm_designer(object):
         app.Save()
 
             # if the jcf file already exists, it pops a msg window
-            # study.WriteAllSolidJcf(self.dir_jcf, im_variant.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
-            # study.WriteAllMeshJcf(self.dir_jcf, im_variant.model_name+study.GetName()+'Mesh', True)
+            # study.WriteAllSolidJcf(self.SIir_jcf, im_variant.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
+            # study.WriteAllMeshJcf(self.SIir_jcf, im_variant.model_name+study.GetName()+'Mesh', True)
 
             # # run
             # if self.fea_config_dict['JMAG_Scheduler'] == False:
@@ -2295,7 +2298,7 @@ class acm_designer(object):
 
     def build_refined_bounds(self, the_bounds):
 
-        de_config_dict = self.de_config_dict
+        de_config_dict = self.SIe_config_dict
         number_of_variants= self.fea_config_dict['local_sensitivity_analysis_number_of_variants'] # 故意不加1的
 
         print('-'*20, 'results_for_refining_bounds (a.k.a. results_for_refining_bounds):')
@@ -2349,25 +2352,25 @@ class acm_designer(object):
             上界 = bound[-1]
             if 上界 != number_of_variants:
                 上界 += 1
-            self.de_config_dict['narrow_bounds_normalized'][ind].append(下界/number_of_variants)
-            self.de_config_dict['narrow_bounds_normalized'][ind].append(上界/number_of_variants)
+            self.SIe_config_dict['narrow_bounds_normalized'][ind].append(下界/number_of_variants)
+            self.SIe_config_dict['narrow_bounds_normalized'][ind].append(上界/number_of_variants)
 
-        self.de_config_dict['bounds'] = []
-        for bnd1, bnd2 in zip(self.de_config_dict['original_bounds'], self.de_config_dict['narrow_bounds_normalized']):
+        self.SIe_config_dict['bounds'] = []
+        for bnd1, bnd2 in zip(self.SIe_config_dict['original_bounds'], self.SIe_config_dict['narrow_bounds_normalized']):
             diff = bnd1[1] - bnd1[0]
-            self.de_config_dict['bounds'].append( [ bnd1[0]+diff*bnd2[0] , bnd1[0]+diff*bnd2[1] ]) # 注意，都是乘以original_bounds的上限哦！
+            self.SIe_config_dict['bounds'].append( [ bnd1[0]+diff*bnd2[0] , bnd1[0]+diff*bnd2[1] ]) # 注意，都是乘以original_bounds的上限哦！
 
         print('-'*40)
         print('narrow_bounds_normalized:')
-        for el in self.de_config_dict['narrow_bounds_normalized']:
+        for el in self.SIe_config_dict['narrow_bounds_normalized']:
             print('\t', el)
 
         print('original_bounds:')
-        for el in self.de_config_dict['original_bounds']:
+        for el in self.SIe_config_dict['original_bounds']:
             print('\t', el)
 
         print('refined bounds:')
-        for el in self.de_config_dict['bounds']:
+        for el in self.SIe_config_dict['bounds']:
             print('\t', el)
 
         return de_config_dict['bounds']
@@ -2401,7 +2404,7 @@ class acm_designer(object):
     #    A 1e-2 will leads to：转子闭口槽极限，会导致edge过小，从而报错：small arc entity exists.png
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def init_swarm(self):
-        self.sw = population.swarm(self.fea_config_dict, de_config_dict=self.de_config_dict)
+        self.sw = population.swarm(self.fea_config_dict, de_config_dict=self.SIe_config_dict)
         # sw.show(which='all')
         # print sw.im.show(toString=True)
         # quit()
@@ -2427,7 +2430,7 @@ class acm_designer(object):
         # add initial_design of Pyrhonen09 to the initial generation
         if sw.fea_config_dict['local_sensitivity_analysis'] == False:
             if count_abort == 0:
-                utility.add_Pyrhonen_design_to_first_generation(sw, self.de_config_dict, logger)
+                utility.add_Pyrhonen_design_to_first_generation(sw, self.SIe_config_dict, logger)
 
         # write FEA config to disk
         sw.write_to_file_fea_config_dict()
@@ -2454,7 +2457,7 @@ class acm_designer(object):
 
     def get_de_config(self):
 
-        self.de_config_dict = { 'original_bounds': self.get_original_bounds(),
+        self.SIe_config_dict = { 'original_bounds': self.get_original_bounds(),
                                 'mut':        0.8,
                                 'crossp':     0.7,
                                 'popsize':    35, # 5~10 \times number of geometry parameters --JAC223
@@ -2467,7 +2470,7 @@ class acm_designer(object):
                                                             [],
                                                             [] ], # != []*7 （完全是两回事）
                                 'bounds':None}
-        return self.de_config_dict
+        return self.SIe_config_dict
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # 4. Post-processing
@@ -2482,10 +2485,10 @@ class acm_designer(object):
 
         # Final LaTeX Report
         print('According to Pyrhonen09, 300 MPa is the typical yield stress of iron core.')
-        initial_design = utility.Pyrhonen_design(self.sw.im, self.de_config_dict['bounds'])
+        initial_design = utility.Pyrhonen_design(self.sw.im, self.SIe_config_dict['bounds'])
         print (initial_design.design_parameters_denorm)
         print (swda.best_design_denorm)
-        print (self.de_config_dict['bounds'])
+        print (self.SIe_config_dict['bounds'])
 
         best_report_dir_prefix = '../release/OneReport/BestReport_TEX/contents/'
         file_name = 'final_report'
@@ -2508,8 +2511,8 @@ class acm_designer(object):
             result[2::4] = list3
             result[3::4] = list4
             return result
-        lower_bounds = [el[0] for el in self.de_config_dict['bounds']]
-        upper_bounds = [el[1] for el in self.de_config_dict['bounds']]
+        lower_bounds = [el[0] for el in self.SIe_config_dict['bounds']]
+        upper_bounds = [el[1] for el in self.SIe_config_dict['bounds']]
         design_data = combine_lists_alternating_4(  initial_design.design_parameters_denorm, 
                                                     swda.best_design_denorm,
                                                     lower_bounds,
@@ -2562,7 +2565,7 @@ class acm_designer(object):
         self.logger.debug('---------\nBegin Local Sensitivity Analysis')
 
         # de_config_dict['bounds'] 还没有被赋值
-        self.de_config_dict['bounds'] = the_bounds
+        self.SIe_config_dict['bounds'] = the_bounds
 
         self.init_swarm() # define app.sw
         self.sw.generate_pop(specified_initial_design_denorm=design_denorm)

@@ -30,8 +30,8 @@ class swarm(object):
 
     def __init__(self, fea_config_dict, de_config_dict=None):
         # directories part I
-        self.dir_parent             = fea_config_dict['dir_parent']
-        self.initial_design_file    = self.dir_parent + 'pop/' + r'initial_design.txt'
+        self.SIir_parent             = fea_config_dict['dir_parent']
+        self.initial_design_file    = self.SIir_parent + 'pop/' + r'initial_design.txt'
 
         # load initial design using the obsolete class bearingless_induction_motor_design
         self.im_list = []
@@ -66,30 +66,30 @@ class swarm(object):
 
         # csv output folder
         if fea_config_dict['flag_optimization'] == False:
-            self.dir_csv_output_folder  = self.dir_parent + 'csv/' + self.model_name_prefix + '/'
+            self.SIir_csv_output_folder  = self.SIir_parent + 'csv/' + self.model_name_prefix + '/'
         else:
-            self.dir_csv_output_folder  = self.dir_parent + 'csv_opti/' + self.model_name_prefix + '/'
-        if not os.path.exists(self.dir_csv_output_folder):
-            os.makedirs(self.dir_csv_output_folder)
+            self.SIir_csv_output_folder  = self.SIir_parent + 'csv_opti/' + self.model_name_prefix + '/'
+        if not os.path.exists(self.SIir_csv_output_folder):
+            os.makedirs(self.SIir_csv_output_folder)
 
         if fea_config_dict['local_sensitivity_analysis'] == True:
             self.run_folder         = fea_config_dict['run_folder'][:-1] + 'lsa/'
         else:
             self.run_folder         = fea_config_dict['run_folder']
 
-        self.dir_run                = self.dir_parent + 'pop/' + self.run_folder
+        self.SIir_run                = self.SIir_parent + 'pop/' + self.run_folder
 
         if fea_config_dict['flag_optimization'] == True:
-            self.dir_project_files  = fea_config_dict['dir_project_files'] + self.run_folder
+            self.SIir_project_files  = fea_config_dict['dir_project_files'] + self.run_folder
         else:
-            self.dir_project_files  = fea_config_dict['dir_project_files']
+            self.SIir_project_files  = fea_config_dict['dir_project_files']
 
-        self.dir_jcf                = self.dir_project_files + 'jcf/'
+        self.SIir_jcf                = self.SIir_project_files + 'jcf/'
         self.pc_name                = fea_config_dict['pc_name']
         self.fea_config_dict        = fea_config_dict
 
         # dict of optimization
-        self.de_config_dict = de_config_dict
+        self.SIe_config_dict = de_config_dict
 
         # swarm state control
         self.bool_first_time_call_de = True  # no use
@@ -104,39 +104,39 @@ class swarm(object):
         self.femm_solver = FEMM_Solver.FEMM_Solver(self.im, flag_read_from_jmag=False, freq=2.233) # eddy+static
 
     def write_to_file_fea_config_dict(self):
-        with open(self.dir_run + '../FEA_CONFIG-%s.txt'%(self.fea_config_dict['model_name_prefix']), 'w') as f:
+        with open(self.SIir_run + '../FEA_CONFIG-%s.txt'%(self.fea_config_dict['model_name_prefix']), 'w') as f:
             for key, val in self.fea_config_dict.items():
                 # print key, val
                 f.write('%s:%s\n' % (key, str(val)) )
 
     def generate_pop(self, specified_initial_design_denorm=None):
         # csv_output folder is used for optimziation
-        self.dir_csv_output_folder  = self.fea_config_dict['dir_parent'] + 'csv_opti/' + self.run_folder
+        self.SIir_csv_output_folder  = self.fea_config_dict['dir_parent'] + 'csv_opti/' + self.run_folder
 
         # check if it is a new run
-        if not os.path.exists(self.dir_run):
+        if not os.path.exists(self.SIir_run):
             logger = logging.getLogger(__name__)
             logger.debug('There is no run yet. Generate the run folder for pop as %s...' % self.run_folder)
-            os.makedirs(self.dir_run)
-        if not os.path.exists(self.dir_csv_output_folder):
+            os.makedirs(self.SIir_run)
+        if not os.path.exists(self.SIir_csv_output_folder):
             try:  
-                os.makedirs(self.dir_csv_output_folder)
+                os.makedirs(self.SIir_csv_output_folder)
             except OSError as e:
-                logging.getLogger(__name__).error("Creation of the directory %s failed" % self.dir_csv_output_folder, exc_info=True)
+                logging.getLogger(__name__).error("Creation of the directory %s failed" % self.SIir_csv_output_folder, exc_info=True)
                 raise e
             else:
-                logging.getLogger(__name__).info("Successfully created the directory %s " % self.dir_csv_output_folder)
+                logging.getLogger(__name__).info("Successfully created the directory %s " % self.SIir_csv_output_folder)
 
         # the run folder has been created. check the pop data files
         self.index_interrupt_beginning = 0 # 不出意外，就从第一个个体开始迭代。但是很多时候跑到第150个个体的时候跑断了，你总不会想要把这一代都删了，重新跑吧？
-        for file in os.listdir(self.dir_run):
+        for file in os.listdir(self.SIir_run):
             if 'ongoing' in file:
                 # remove gen and fit files
-                # os.remove(self.dir_run + file) 
+                # os.remove(self.SIir_run + file) 
                 if 'gen#' in file:
                     print(file)
                     self.ongoing_pop_denorm = []
-                    with open(self.dir_run + file, 'r') as f:
+                    with open(self.SIir_run + file, 'r') as f:
                         for row in self.csv_row_reader(f):
                             if len(row)>0: # there could be empty row, since we use append mode and write down f.write('\n')
                                 self.ongoing_pop_denorm.append([float(el) for el in row])
@@ -154,7 +154,7 @@ class swarm(object):
                 if 'fit#' in file:
                     print(file)
                     self.ongoing_fitness = []
-                    with open(self.dir_run + file, 'r') as f: 
+                    with open(self.SIir_run + file, 'r') as f: 
                         for row in self.csv_row_reader(f):
                             if len(row)>0: # there could be empty row, since we use append mode and write down f.write('\n')
                                 self.ongoing_fitness.append(float(row[0])) # not neccessary to be an array. a list is enough
@@ -164,7 +164,7 @@ class swarm(object):
                 if 'liv#' in file:
                     print(file)
                     self.ongoing_living_pop_denorm = []
-                    with open(self.dir_run + file, 'r') as f: 
+                    with open(self.SIir_run + file, 'r') as f: 
                         for row in self.csv_row_reader(f):
                             if len(row)>0: 
                                 self.ongoing_living_pop_denorm.append([float(el) for el in row])
@@ -173,7 +173,7 @@ class swarm(object):
                     file = file[:3] + '_fit' + file[3:8] + '.txt' # liv_fit#xxxx.txt has always no tag '-ongoing'.
                     print(file)
                     self.ongoing_living_fitness = []
-                    with open(self.dir_run + file, 'r') as f: 
+                    with open(self.SIir_run + file, 'r') as f: 
                         for row in self.csv_row_reader(f):
                             if len(row)>0: 
                                 self.ongoing_living_fitness.append(float(row[0]))
@@ -185,17 +185,17 @@ class swarm(object):
                         raise Exception('It seemed that Swarm failed to write living pop after writing the generation pop. Manually delete the extra lines in your gen# and fit# files to be consistent with liv# file.')
 
         # search for completed generation files
-        generations_complete = [file[4:8] for file in os.listdir(self.dir_run) if 'gen' in file and not 'ongoing' in file]
-        generations_complete_and_onging = [file[4:8] for file in os.listdir(self.dir_run) if 'gen' in file]
+        generations_complete = [file[4:8] for file in os.listdir(self.SIir_run) if 'gen' in file and not 'ongoing' in file]
+        generations_complete_and_onging = [file[4:8] for file in os.listdir(self.SIir_run) if 'gen' in file]
 
         # initialize for de-normalization
-        popsize = self.de_config_dict['popsize']
+        popsize = self.SIe_config_dict['popsize']
         # the least popsize is 4
         if popsize<=3:
             logger = logging.getLogger(__name__)
             logger.error('The popsize must be greater than 3 so the choice function can pick up three other individuals different from the individual under mutation among the population')
             raise Exception('Specify a popsize larger than 3.')
-        bounds = self.de_config_dict['bounds']
+        bounds = self.SIe_config_dict['bounds']
         dimensions = len(bounds)
         min_b, max_b = np.asarray(bounds).T 
         diff = np.fabs(min_b - max_b)
@@ -245,7 +245,7 @@ class swarm(object):
             self.number_current_generation = 0
             self.write_population_data(self.init_pop_denorm)
             logger = logging.getLogger(__name__)
-            logger.debug('Initial pop (de-normalized) is saved as %s', self.dir_run + 'gen#0000.txt')
+            logger.debug('Initial pop (de-normalized) is saved as %s', self.SIir_run + 'gen#0000.txt')
 
         else:
             # number_current_generation begins at 0.
@@ -296,11 +296,11 @@ class swarm(object):
                     raise Exception('Reducing popsize during a run---feature is not supported. If you are testing local sensitivity analysis, then delete the run folder (under pop/ and csv_opti/) and run again.')
 
         # # add a database using the swarm_data.txt file
-        # if os.path.exists(self.dir_run+'swarm_data.txt'):
-        #     self.database = utility.SwarmDataAnalyzer(dir_run=self.dir_run)
-        #     self.database.the_generation_that_i_am_worried_about = self.number_current_generation+1
+        # if os.path.exists(self.SIir_run+'swarm_data.txt'):
+        #     self.SIatabase = utility.SwarmDataAnalyzer(dir_run=self.SIir_run)
+        #     self.SIatabase.the_generation_that_i_am_worried_about = self.number_current_generation+1
         # else: 
-        #     self.database = None
+        #     self.SIatabase = None
 
         # pop: make sure the data type is array
         self.init_pop = np.asarray(self.init_pop)
@@ -310,7 +310,7 @@ class swarm(object):
         self.jmag_control_state = False # indicating that by default, the jmag designer is already opened but the project file is not yet loaded or created.
 
         # set self.bool_run_in_JMAG_Script_Editor
-        self.designer_init()
+        self.SIesigner_init()
 
         logger = logging.getLogger(__name__)
         logger.info('Swarm is generated.')
@@ -336,48 +336,48 @@ class swarm(object):
             print('[First run on this computer detected]', self.spec_input_dict['Steel'], 'is added to jmag material library.')
 
             if 'M15' in self.spec_input_dict['Steel']:
-                add_M1xSteel(self.app, self.dir_parent, steel_name="M-15 Steel")
+                add_M1xSteel(self.app, self.SIir_parent, steel_name="M-15 Steel")
             elif 'M19' in self.spec_input_dict['Steel']:
-                add_M1xSteel(self.app, self.dir_parent)
+                add_M1xSteel(self.app, self.SIir_parent)
             elif 'Arnon5' == self.spec_input_dict['Steel']:
-                add_Arnon5(self.app, self.dir_parent)        
+                add_Arnon5(self.app, self.SIir_parent)        
 
         # too avoid tons of the same material in JAMG's material library
-        if not os.path.exists(self.dir_parent + '.jmag_state.txt'):
-            with open(self.dir_parent + '.jmag_state.txt', 'w') as f:
+        if not os.path.exists(self.SIir_parent + '.jmag_state.txt'):
+            with open(self.SIir_parent + '.jmag_state.txt', 'w') as f:
                 f.write(self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['Steel'] + '\n')
             add_steel(self)
         else:
-            with open(self.dir_parent + '.jmag_state.txt', 'r') as f:
+            with open(self.SIir_parent + '.jmag_state.txt', 'r') as f:
                 for line in f.readlines():
                     if self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['Steel'] not in line:
                         add_steel(self)
 
     def get_gen_file(self, no_generation, ongoing=False):
         if ongoing == True:
-            return self.dir_run + 'gen#%04d-ongoing.txt'%(int(no_generation))
+            return self.SIir_run + 'gen#%04d-ongoing.txt'%(int(no_generation))
         else:
-            return self.dir_run + 'gen#%04d.txt'%(int(no_generation))
+            return self.SIir_run + 'gen#%04d.txt'%(int(no_generation))
 
     def get_fit_file(self, no_generation, ongoing=False):
         if ongoing == True:
-            return self.dir_run + 'fit#%04d-ongoing.txt'%(int(no_generation))
+            return self.SIir_run + 'fit#%04d-ongoing.txt'%(int(no_generation))
         else:
-            return self.dir_run + 'fit#%04d.txt'%(int(no_generation))
+            return self.SIir_run + 'fit#%04d.txt'%(int(no_generation))
 
     def get_liv_file(self, no_generation, ongoing=False):
         if ongoing == True:
-            return self.dir_run + 'liv#%04d-ongoing.txt'%(int(no_generation))
+            return self.SIir_run + 'liv#%04d-ongoing.txt'%(int(no_generation))
         else:
-            return self.dir_run + 'liv#%04d.txt'%(int(no_generation))
+            return self.SIir_run + 'liv#%04d.txt'%(int(no_generation))
 
     def rename_onging_files(self, no_generation):
-        os.rename(  self.dir_run + 'fit#%04d-ongoing.txt'%(int(no_generation)),
-                    self.dir_run + 'fit#%04d.txt'%(int(no_generation)))
-        os.rename(  self.dir_run + 'gen#%04d-ongoing.txt'%(int(no_generation)),
-                    self.dir_run + 'gen#%04d.txt'%(int(no_generation)))
-        os.rename(  self.dir_run + 'liv#%04d-ongoing.txt'%(int(no_generation)),
-                    self.dir_run + 'liv#%04d.txt'%(int(no_generation)))
+        os.rename(  self.SIir_run + 'fit#%04d-ongoing.txt'%(int(no_generation)),
+                    self.SIir_run + 'fit#%04d.txt'%(int(no_generation)))
+        os.rename(  self.SIir_run + 'gen#%04d-ongoing.txt'%(int(no_generation)),
+                    self.SIir_run + 'gen#%04d.txt'%(int(no_generation)))
+        os.rename(  self.SIir_run + 'liv#%04d-ongoing.txt'%(int(no_generation)),
+                    self.SIir_run + 'liv#%04d.txt'%(int(no_generation)))
 
     def whole_row_reader(self, reader):
         for row in reader:
@@ -427,10 +427,10 @@ class swarm(object):
             # Initialize JMAG Designer
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
             # every model is a new project, so as to avoid the situation of 100 models in one project (occupy RAM and slow). add individual_index to project_name
-            self.designer_init()
+            self.SIesigner_init()
             app = self.app
             if self.jmag_control_state == False: # initilize JMAG Designer
-                expected_project_file = self.dir_project_files + "%s.jproj"%(self.project_name)
+                expected_project_file = self.SIir_project_files + "%s.jproj"%(self.project_name)
                 if not os.path.exists(expected_project_file):
                     app.NewProject("Untitled")
                     app.SaveAs(expected_project_file)
@@ -466,7 +466,7 @@ class swarm(object):
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
             # Draw the model in JMAG Designer
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-            DRAW_SUCCESS = self.draw_jmag_model(individual_index, 
+            DRAW_SUCCESS = self.SIraw_jmag_model(individual_index, 
                                                 im_variant,
                                                 im_variant.individual_name)
             if DRAW_SUCCESS == 0:
@@ -492,7 +492,7 @@ class swarm(object):
         def exe_frequency():
             # Freq Sweeping for break-down Torque Slip
             if model.NumStudies() == 0:
-                study = im_variant.add_study(app, model, self.dir_csv_output_folder, choose_study_type='frequency')
+                study = im_variant.add_study(app, model, self.SIir_csv_output_folder, choose_study_type='frequency')
             else:
                 # there is already a study. then get the first study.
                 study = model.GetStudy(0)
@@ -518,17 +518,17 @@ class swarm(object):
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
             # Load Results for Tran2TSS
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-            results = utility.build_str_results(self.axeses, im_variant, self.project_name, tran2tss_study_name, self.dir_csv_output_folder, self.fea_config_dict, self.femm_solver)
+            results = utility.build_str_results(self.axeses, im_variant, self.project_name, tran2tss_study_name, self.SIir_csv_output_folder, self.fea_config_dict, self.femm_solver)
             if results is not None:
-                self.fig_main.savefig(self.dir_run + im_variant.individual_name + 'results.png', dpi=150)
+                self.fig_main.savefig(self.SIir_run + im_variant.individual_name + 'results.png', dpi=150)
                 utility.pyplot_clear(self.axeses)
                 # show()
             return results
 
         # this should be summoned even before initializing femm, and it will decide whether the femm results are reliable
         original_study_name = im_variant.individual_name + "Freq"
-        self.dir_femm_temp = self.dir_csv_output_folder + 'femm_temp/'
-        self.femm_output_file_path = self.dir_femm_temp + original_study_name + '.csv'
+        self.SIir_femm_temp = self.SIir_csv_output_folder + 'femm_temp/'
+        self.femm_output_file_path = self.SIir_femm_temp + original_study_name + '.csv'
         app = open_jmag() # will set self.jmag_control_state to True
 
         ################################################################
@@ -577,11 +577,11 @@ class swarm(object):
                 femm_tic = clock_time()
                 self.femm_solver.__init__(im_variant, flag_read_from_jmag=False, freq=50.0)
                 if im_variant.DriveW_poles == 4:
-                    self.femm_solver.greedy_search_for_breakdown_slip( self.dir_femm_temp, original_study_name, 
+                    self.femm_solver.greedy_search_for_breakdown_slip( self.SIir_femm_temp, original_study_name, 
                                                                         bool_run_in_JMAG_Script_Editor=self.bool_run_in_JMAG_Script_Editor, fraction=2)
                 else:
                     # p>=3 is not tested.
-                    self.femm_solver.greedy_search_for_breakdown_slip( self.dir_femm_temp, original_study_name, 
+                    self.femm_solver.greedy_search_for_breakdown_slip( self.SIir_femm_temp, original_study_name, 
                                                                         bool_run_in_JMAG_Script_Editor=self.bool_run_in_JMAG_Script_Editor, fraction=1) # 转子导条必须形成通路
 
                 # this is the only if path that no slip_freq_breakdown_torque is assigned!
@@ -647,12 +647,12 @@ class swarm(object):
 
                         # FEMM+JMAG
                         im_variant.update_mechanical_parameters(slip_freq_breakdown_torque)
-                        study = im_variant.add_TranFEAwi2TSS_study( slip_freq_breakdown_torque, app, model, self.dir_csv_output_folder, tran2tss_study_name, logger)
+                        study = im_variant.add_TranFEAwi2TSS_study( slip_freq_breakdown_torque, app, model, self.SIir_csv_output_folder, tran2tss_study_name, logger)
                         self.mesh_study(im_variant, app, model, study)
                     else:
 
                         # FEMM+JMAG
-                        study = im_variant.add_TranFEAwi2TSS_study( 50.0, app, model, self.dir_csv_output_folder, tran2tss_study_name, logger)
+                        study = im_variant.add_TranFEAwi2TSS_study( 50.0, app, model, self.SIir_csv_output_folder, tran2tss_study_name, logger)
                         self.mesh_study(im_variant, app, model, study)
 
                         if slip_freq_breakdown_torque is None:
@@ -673,9 +673,9 @@ class swarm(object):
                     im_variant.update_mechanical_parameters(slip_freq_breakdown_torque)
                     if False: 
                         # this is not a good option if the excitation is different for transient study from frequency study
-                        self.duplicate_TranFEAwi2TSS_from_frequency_study(im_variant, slip_freq_breakdown_torque, app, model, original_study_name, tran2tss_study_name, logger)
+                        self.SIuplicate_TranFEAwi2TSS_from_frequency_study(im_variant, slip_freq_breakdown_torque, app, model, original_study_name, tran2tss_study_name, logger)
                     else:
-                        study = im_variant.add_TranFEAwi2TSS_study( slip_freq_breakdown_torque, app, model, self.dir_csv_output_folder, tran2tss_study_name, logger)
+                        study = im_variant.add_TranFEAwi2TSS_study( slip_freq_breakdown_torque, app, model, self.SIir_csv_output_folder, tran2tss_study_name, logger)
                         self.mesh_study(im_variant, app, model, study)
                         self.run_study(im_variant, app, study, clock_time())
 
@@ -684,7 +684,7 @@ class swarm(object):
                     # Export Circuit Voltage
                     ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                     app.GetDataManager().CreateGraphModel(ref1)
-                    app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                    app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.SIir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
             else:
                 # if csv already exists, im_variant.slip_freq_breakdown_torque is still None till here
                 # print 'DEBUG::::::::::::', im_variant.slip_freq_breakdown_torque
@@ -701,7 +701,7 @@ class swarm(object):
                 str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, jmag_loss_list, femm_loss_list, power_factor, total_loss, cost_function = results_to_be_unpacked
 
                 # write design evaluation data to file
-                with open(self.dir_run + 'swarm_data.txt', 'a') as f:
+                with open(self.SIir_run + 'swarm_data.txt', 'a') as f:
                     f.write(str_results)
 
                 self.im = mylatch
@@ -749,11 +749,11 @@ class swarm(object):
         #     read also https://nathanrooy.github.io/posts/2017-08-27/simple-differential-evolution-with-python/
         #     Notes: In step #3, this implementation differs from most DE algorithms in that we cycle through each member of the swarm, generate a donor vector, then perform selection. In this setup, every member of the swarm becomes a target vector at some point which means that every individual has the possibility of being replaced. In most DE implementations, the target vector is randomly chosen. In my experience using DE (both in aerodynamic shape optimization, as well as in deep learning applications), I have found that the current implementation works much better. The standard DE implementation might be slightly more stochastic in nature, but whatever… If, you’re interested in the “standard” DE implementation swap out the lines in the above code with the following:
         # '''
-        bounds     = self.de_config_dict['bounds']
-        mut        = self.de_config_dict['mut']
-        crossp     = self.de_config_dict['crossp']
-        popsize    = self.de_config_dict['popsize']
-        iterations = self.de_config_dict['iterations']
+        bounds     = self.SIe_config_dict['bounds']
+        mut        = self.SIe_config_dict['mut']
+        crossp     = self.SIe_config_dict['crossp']
+        popsize    = self.SIe_config_dict['popsize']
+        iterations = self.SIe_config_dict['iterations']
         iterations -= self.number_current_generation # make this iterations the total number of iterations seen from the user
         logger = logging.getLogger(__name__)
         logger.debug('DE Configuration:\n\t' + '\n\t'.join('%.4f,%.4f'%tuple(el) for el in bounds) + '\tmut=%.4f, crossp=%.4f, popsize=%d, iterations=%d' % (mut,crossp,popsize,iterations) \
@@ -802,7 +802,7 @@ class swarm(object):
                 with open(self.get_fit_file(self.number_current_generation), 'w') as f:
                     f.write('\n'.join('%.16f'%(x) for x in fitness)) 
                 # write liv_fit#0000 
-                with open(self.dir_run+'liv_fit#%04d.txt'%(self.number_current_generation), 'w') as f:
+                with open(self.SIir_run+'liv_fit#%04d.txt'%(self.number_current_generation), 'w') as f:
                     f.write('\n'.join('%.16f'%(x) for x in fitness)) 
                 # write liv#0000 (liv_id#0000 is trivial so not needed)
                 self.write_population_data(pop_denorm, fname=self.get_liv_file(self.number_current_generation))
@@ -831,7 +831,7 @@ class swarm(object):
                     with open(self.get_fit_file(self.number_current_generation), 'w') as f:
                         f.write('\n'.join('%.16f'%(x) for x in fitness)) 
                     # write liv_fit#xxxx
-                    with open(self.dir_run+'liv_fit#%04d.txt'%(self.number_current_generation), 'w') as f:
+                    with open(self.SIir_run+'liv_fit#%04d.txt'%(self.number_current_generation), 'w') as f:
                         f.write('\n'.join('%.16f'%(x) for x in fitness)) 
                     # write liv#xxxx (those just born are also living)
                     self.write_population_data(pop_denorm, fname=self.get_liv_file(self.number_current_generation))
@@ -991,11 +991,11 @@ class swarm(object):
             f.write('\n' + ','.join('%.16f'%(y) for y in pop_j_denorm)) # convert 1d array to string
 
     def write_living_individual_fitness(self, fitness_j):
-        with open(self.dir_run + 'liv_fit#%04d.txt'%(self.number_current_generation), 'a') as f:
+        with open(self.SIir_run + 'liv_fit#%04d.txt'%(self.number_current_generation), 'a') as f:
             f.write('\n%.16f'%(fitness_j))
 
     def write_living_individual_id(self, str_id):
-        with open(self.dir_run + 'liv_id#%04d.txt'%(self.number_current_generation), 'a') as f:
+        with open(self.SIir_run + 'liv_id#%04d.txt'%(self.number_current_generation), 'a') as f:
             f.write(str_id+'\n')
 
     def pop_reader(self, fname):
@@ -1014,8 +1014,8 @@ class swarm(object):
         # else:
         if True:
             fname_last_gen = self.get_gen_file(no_current_generation)
-            fname_last_liv = self.dir_run + 'liv#%04d.txt'%(no_current_generation)
-            fname_last_liv_fit = self.dir_run + 'liv_fit#%04d.txt'%(no_current_generation)
+            fname_last_liv = self.SIir_run + 'liv#%04d.txt'%(no_current_generation)
+            fname_last_liv_fit = self.SIir_run + 'liv_fit#%04d.txt'%(no_current_generation)
 
             logger.debug('fname_last_gen=%s'% fname_last_gen)
             logger.debug('fname_last_liv=%s'% fname_last_liv)
@@ -1125,7 +1125,7 @@ class swarm(object):
                 d = VanGogh_JMAG(im_variant, doNotRotateCopy=doNotRotateCopy) # 传递的是地址哦
                 d.doc, d.ass = doc, ass
                 d.draw_model()
-            self.d = d
+            self.SI = d
         except Exception as e:
             print('See log file to plotting error.')
             logger = logging.getLogger(__name__)
@@ -1146,7 +1146,7 @@ class swarm(object):
         model.SetDescription(im_variant.model_name_prefix + '\n' + im_variant.show(toString=True))
 
         if doNotRotateCopy:
-            im_variant.pre_process_structural(self.app, self.d.listKeyPoints)
+            im_variant.pre_process_structural(self.app, self.SI.listKeyPoints)
         else:
             im_variant.pre_process(self.app)
 
@@ -1154,10 +1154,10 @@ class swarm(object):
         return True
 
     def check_csv_results(self, study_name, returnBoolean=False, file_suffix='_torque.csv'): # '_iron_loss_loss.csv'
-        # print self.dir_csv_output_folder + study_name + '_torque.csv'
-        if not os.path.exists(self.dir_csv_output_folder + study_name + file_suffix):
+        # print self.SIir_csv_output_folder + study_name + '_torque.csv'
+        if not os.path.exists(self.SIir_csv_output_folder + study_name + file_suffix):
             if returnBoolean == False:
-                print('Nothing is found when looking into:', self.dir_csv_output_folder + study_name + file_suffix)
+                print('Nothing is found when looking into:', self.SIir_csv_output_folder + study_name + file_suffix)
                 return None
             else:
                 return False
@@ -1173,7 +1173,7 @@ class swarm(object):
             l_ForCon_Y  = []
 
             self.fitness_in_physics_data = []
-            with open(self.dir_csv_output_folder + study_name + '_torque.csv', 'r') as f: 
+            with open(self.SIir_csv_output_folder + study_name + '_torque.csv', 'r') as f: 
                 for ind, row in enumerate(self.csv_row_reader(f)):
                     if ind >= 5:
                         try:
@@ -1183,7 +1183,7 @@ class swarm(object):
                         l_slip_freq.append(float(row[0]))
                         l_TorCon.append(float(row[1]))
 
-            with open(self.dir_csv_output_folder + study_name + '_force.csv', 'r') as f: 
+            with open(self.SIir_csv_output_folder + study_name + '_force.csv', 'r') as f: 
                 for ind, row in enumerate(self.csv_row_reader(f)):
                     if ind >= 5:
                         try:
@@ -1215,10 +1215,10 @@ class swarm(object):
         max_breakdown_force_amp = 0.0
         max_breakdown_force_amp_file = None
         # self.fitness_in_physics_data = []
-        for file in os.listdir(self.dir_csv_output_folder):
+        for file in os.listdir(self.SIir_csv_output_folder):
             if 'lock' not in file and self.model_name_prefix in file: # check model_name_prefix in file because there is D:/Users/horyc/OneDrive - UW-Madison/csv_opti/run#1/Freq_#32-0-0-FFVRC-RCR_force.csv
                 if '_torque' in file:
-                    l_slip_freq, l_TorCon = self.read_csv_results(self.dir_csv_output_folder + file)
+                    l_slip_freq, l_TorCon = self.read_csv_results(self.SIir_csv_output_folder + file)
                     figure(1)
                     plot(l_slip_freq, l_TorCon, label=file)
                     temp = max(l_TorCon)
@@ -1226,7 +1226,7 @@ class swarm(object):
                         max_breakdown_torque = temp
                         max_breakdown_torque_file = file
                 elif '_force' in file:
-                    l_slip_freq_2, l_ForCon_XY = self.read_csv_results(self.dir_csv_output_folder + file)
+                    l_slip_freq_2, l_ForCon_XY = self.read_csv_results(self.SIir_csv_output_folder + file)
                     l_ForCon_X = [el[0] for el in l_ForCon_XY]
                     l_ForCon_Y = [el[1] for el in l_ForCon_XY]
                     figure(2)
@@ -1288,8 +1288,8 @@ class swarm(object):
         else:
             raise Exception('not supported study_type.')
 
-        # im.csv_previous_solve = self.dir_csv_output_folder + study_name + '_circuit_current.csv'
-        im.csv_previous_solve = self.dir_csv_output_folder + im.get_individual_name()+ study_name + '_circuit_current.csv'
+        # im.csv_previous_solve = self.SIir_csv_output_folder + study_name + '_circuit_current.csv'
+        im.csv_previous_solve = self.SIir_csv_output_folder + im.get_individual_name()+ study_name + '_circuit_current.csv'
         bool_temp = os.path.exists(im.csv_previous_solve)
 
         if study_type == 'Freq':
@@ -1312,13 +1312,13 @@ class swarm(object):
         self.jmag_control_state = False # new one project one model convension
 
         # initialize JMAG Designer
-        self.designer_init()
+        self.SIesigner_init()
         app = self.app
         self.project_name = self.get_project_name(individual_index=individual_index)
         # self.project_name = self.get_project_name()
         im.model_name = im.get_individual_name() 
         if self.jmag_control_state == False: # initilize JMAG Designer
-            expected_project_file = self.dir_project_files + "%s.jproj"%(self.project_name)
+            expected_project_file = self.SIir_project_files + "%s.jproj"%(self.project_name)
             if not os.path.exists(expected_project_file):
                 app.NewProject("Untitled")
                 app.SaveAs(expected_project_file)
@@ -1336,7 +1336,7 @@ class swarm(object):
                 # app.SubmitAllModelsLocal() # we'd better do it one by one for easing the programing?
 
         # draw the model in JMAG Designer
-        DRAW_SUCCESS = self.draw_jmag_model( individual_index, 
+        DRAW_SUCCESS = self.SIraw_jmag_model( individual_index, 
                                         im,
                                         im.model_name)
         # print 'TEST VanGogh for JMAG.'
@@ -1362,7 +1362,7 @@ class swarm(object):
         # remember to export the B data using subroutine 
         # and check export table results only
         if model.NumStudies() == 0:
-            study = im.add_study(app, model, self.dir_csv_output_folder, choose_study_type='frequency')
+            study = im.add_study(app, model, self.SIir_csv_output_folder, choose_study_type='frequency')
         else:
             # there is already a study. then get the first study.
             study = model.GetStudy(0)
@@ -1395,7 +1395,7 @@ class swarm(object):
                 app.View().ShowMesh() # 3rn btn
                 app.View().Zoom(3)
                 app.View().Pan(-im.Radius_OuterRotor, 0)
-                app.ExportImageWithSize(self.dir_run + model.GetName() + '.png', 2000, 2000)
+                app.ExportImageWithSize(self.SIir_run + model.GetName() + '.png', 2000, 2000)
                 app.View().ShowModel() # 1st btn. close mesh view, and note that mesh data will be deleted because only ouput table results are selected.
 
                 # run
@@ -1408,7 +1408,7 @@ class swarm(object):
 
         # this will be used for other duplicated studies
         original_study_name = study.GetName()
-        im.csv_previous_solve = self.dir_csv_output_folder + original_study_name + '_circuit_current.csv'
+        im.csv_previous_solve = self.SIir_csv_output_folder + original_study_name + '_circuit_current.csv'
         im.update_mechanical_parameters(slip_freq_breakdown_torque, syn_freq=im.DriveW_Freq)
 
 
@@ -1442,8 +1442,8 @@ class swarm(object):
                 # model.CloseCadLink()
             else:
                 pass # if the jcf file already exists, it pops a msg window
-                # study.WriteAllSolidJcf(self.dir_jcf, im.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
-                # study.WriteAllMeshJcf(self.dir_jcf, im.model_name+study.GetName()+'Mesh', True)
+                # study.WriteAllSolidJcf(self.SIir_jcf, im.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
+                # study.WriteAllMeshJcf(self.SIir_jcf, im.model_name+study.GetName()+'Mesh', True)
         logger.debug('EC-Rotate spent %g sec.'%(clock_time() - tic))
 
 
@@ -1581,7 +1581,7 @@ class swarm(object):
                     cond.SetValue("UseFrequencyOrder", 1)
                     cond.SetValue("FrequencyOrder", "1-50") # Harmonics up to 50th orders 
                 # Check CSV reults for iron loss (You cannot check this for Freq study) # CSV and save space
-                study.GetStudyProperties().SetValue("CsvOutputPath", self.dir_csv_output_folder) # it's folder rather than file!
+                study.GetStudyProperties().SetValue("CsvOutputPath", self.SIir_csv_output_folder) # it's folder rather than file!
                 study.GetStudyProperties().SetValue("CsvResultTypes", "Torque;Force;LineCurrent;TerminalVoltage;JouleLoss;TotalDisplacementAngle;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss")
                 study.GetStudyProperties().SetValue("DeleteResultFiles", self.fea_config_dict['delete_results_after_calculation'])
                 # Terminal Voltage/Circuit Voltage: Check for outputing CSV results 
@@ -1628,8 +1628,8 @@ class swarm(object):
                 app.Save()
             else:
                 pass # if the jcf file already exists, it pops a msg window
-                # study.WriteAllSolidJcf(self.dir_jcf, im.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
-                # study.WriteAllMeshJcf(self.dir_jcf, im.model_name+study.GetName()+'Mesh', True)
+                # study.WriteAllSolidJcf(self.SIir_jcf, im.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
+                # study.WriteAllMeshJcf(self.SIir_jcf, im.model_name+study.GetName()+'Mesh', True)
         logger.debug('Tran2TSSProlong spent %g sec.'%(clock_time() - tic))
 
 
@@ -1661,8 +1661,8 @@ class swarm(object):
                     app.Save()
                 else:
                     pass # if the jcf file already exists, it pops a msg window
-                    # study.WriteAllSolidJcf(self.dir_jcf, im.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
-                    # study.WriteAllMeshJcf(self.dir_jcf, im.model_name+study.GetName()+'Mesh', True)
+                    # study.WriteAllSolidJcf(self.SIir_jcf, im.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
+                    # study.WriteAllMeshJcf(self.SIir_jcf, im.model_name+study.GetName()+'Mesh', True)
 
             # Rotating Static FEA (This can be done in FEMM)
             if run_list[4] == True:
@@ -1672,7 +1672,7 @@ class swarm(object):
 
                 # draw another model with MODEL_ROTATE as True
                 if True:
-                    DRAW_SUCCESS = self.draw_jmag_model( 1, # +1
+                    DRAW_SUCCESS = self.SIraw_jmag_model( 1, # +1
                                                     im,
                                                     im.model_name + 'MODEL_ROTATE')
                     self.jmag_control_state = True # indicating that the jmag project is already created
@@ -1693,7 +1693,7 @@ class swarm(object):
                         raise
 
                     if model.NumStudies() == 0:
-                        study = im.add_study(app, model, self.dir_csv_output_folder, choose_study_type='static')
+                        study = im.add_study(app, model, self.SIir_csv_output_folder, choose_study_type='static')
                     else:
                         # there is already a study. then get the first study.
                         study = model.GetStudy(0)
@@ -1729,16 +1729,16 @@ class swarm(object):
                 # set rotor current conditions
                 im.slip_freq_breakdown_torque = slip_freq_breakdown_torque
                 im.add_rotor_current_condition(app, model, study, total_number_of_cases, 
-                                              self.dir_csv_output_folder + original_study_name + '_circuit_current.csv')
-                print(self.dir_csv_output_folder + original_study_name + '_circuit_current.csv')
-                print(self.dir_csv_output_folder + original_study_name + '_circuit_current.csv')
-                print(self.dir_csv_output_folder + original_study_name + '_circuit_current.csv')
-                    # print self.dir_csv_output_folder + im.get_individual_name() + original_study_name + '_circuit_current.csv'
-                    # print self.dir_csv_output_folder + im.get_individual_name() + original_study_name + '_circuit_current.csv'
-                    # print self.dir_csv_output_folder + im.get_individual_name() + original_study_name + '_circuit_current.csv'
+                                              self.SIir_csv_output_folder + original_study_name + '_circuit_current.csv')
+                print(self.SIir_csv_output_folder + original_study_name + '_circuit_current.csv')
+                print(self.SIir_csv_output_folder + original_study_name + '_circuit_current.csv')
+                print(self.SIir_csv_output_folder + original_study_name + '_circuit_current.csv')
+                    # print self.SIir_csv_output_folder + im.get_individual_name() + original_study_name + '_circuit_current.csv'
+                    # print self.SIir_csv_output_folder + im.get_individual_name() + original_study_name + '_circuit_current.csv'
+                    # print self.SIir_csv_output_folder + im.get_individual_name() + original_study_name + '_circuit_current.csv'
                 # set stator current conditions
                 im.add_stator_current_condition(app, model, study, total_number_of_cases, 
-                                              self.dir_csv_output_folder + original_study_name + '_circuit_current.csv')
+                                              self.SIir_csv_output_folder + original_study_name + '_circuit_current.csv')
 
                 # https://www2.jmag-international.com/support/en/pdf/JMAG-Designer_Ver.17.1_ENv3.pdf
                 study.GetStudyProperties().SetValue("DirectSolverType", 1)
@@ -1818,7 +1818,7 @@ class swarm(object):
 
         ''' TranRef '''
         study_name = 'TranRef'
-        dm = utility.read_csv_results_4_comparison__transient(study_name, path_prefix=self.dir_csv_output_folder)
+        dm = utility.read_csv_results_4_comparison__transient(study_name, path_prefix=self.SIir_csv_output_folder)
         basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list = dm.unpack()
         end_time = time_list[-1]
 
@@ -1839,7 +1839,7 @@ class swarm(object):
 
         ''' Tran2TSS '''
         study_name = 'Tran2TSS'
-        dm = utility.read_csv_results_4_comparison__transient(study_name, path_prefix=self.dir_csv_output_folder)
+        dm = utility.read_csv_results_4_comparison__transient(study_name, path_prefix=self.SIir_csv_output_folder)
         basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list = dm.unpack()
 
         ax = axes[0]; ax.plot(time_list, TorCon_list, alpha=0.7, label=study_name); ax.set_xlabel('Time [s]'); ax.set_ylabel('Torque [Nm]')
@@ -2047,7 +2047,7 @@ class swarm(object):
         #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         study_name = 'TranRef'
         # dm = utility.read_csv_results_4_comparison__transient(study_name, path_prefix=r'D:\JMAG_Files\TimeStepSensitivity/'+'PS_Qr%d_NoEndRing_M15_17303l/'%(int(self.im.Qr)))
-        dm = utility.read_csv_results_4_comparison__transient(study_name, path_prefix=self.dir_csv_output_folder)
+        dm = utility.read_csv_results_4_comparison__transient(study_name, path_prefix=self.SIir_csv_output_folder)
         basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list = dm.unpack()
         sfv = utility.suspension_force_vector(ForConX_list, ForConY_list, range_ss=400) # samples in the tail that are in steady state
         add_plot( axeses,
@@ -2132,7 +2132,7 @@ class swarm(object):
         # Tran2TSS
         #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         study_name = im_variant.get_individual_name() + 'Tran2TSS'
-        dm = utility.read_csv_results_4_comparison__transient(study_name, self.dir_csv_output_folder)
+        dm = utility.read_csv_results_4_comparison__transient(study_name, self.SIir_csv_output_folder)
         basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list = dm.unpack()
         end_time = time_list[-1]
         sfv = utility.suspension_force_vector(ForConX_list, ForConY_list, range_ss=48) # samples in the tail that are in steady state
@@ -2231,7 +2231,7 @@ class swarm(object):
         # EddyCurrent
         #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         study_name = im_variant.get_individual_name() + 'Freq-FFVRC'
-        dm = utility.read_csv_results_4_comparison_eddycurrent(study_name, self.dir_csv_output_folder)
+        dm = utility.read_csv_results_4_comparison_eddycurrent(study_name, self.SIir_csv_output_folder)
         _, _, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list = dm.unpack()
 
         rotor_position_in_deg = 360./self.im.Qr / len(TorCon_list) * np.arange(0, len(TorCon_list))
@@ -2367,7 +2367,7 @@ class swarm(object):
     # ECCE19
     def read_csv_results_4_optimization(self, study_name, path_prefix=None):
         if path_prefix == None:
-            path_prefix = self.dir_csv_output_folder
+            path_prefix = self.SIir_csv_output_folder
         # print 'look into:', path_prefix
 
         # Torque
@@ -2629,7 +2629,7 @@ class swarm(object):
                 cond.SetValue("UseFrequencyOrder", 1)
                 cond.SetValue("FrequencyOrder", "1-50") # Harmonics up to 50th orders 
             # Check CSV reults for iron loss (You cannot check this for Freq study) # CSV and save space
-            study.GetStudyProperties().SetValue("CsvOutputPath", self.dir_csv_output_folder) # it's folder rather than file!
+            study.GetStudyProperties().SetValue("CsvOutputPath", self.SIir_csv_output_folder) # it's folder rather than file!
             study.GetStudyProperties().SetValue("CsvResultTypes", "Torque;Force;LineCurrent;TerminalVoltage;JouleLoss;TotalDisplacementAngle;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss")
             study.GetStudyProperties().SetValue("DeleteResultFiles", self.fea_config_dict['delete_results_after_calculation'])
             # Terminal Voltage/Circuit Voltage: Check for outputing CSV results 
@@ -2697,8 +2697,8 @@ class swarm(object):
             # study.CheckForCaseResults()
         app.Save()
         # if the jcf file already exists, it pops a msg window
-        # study.WriteAllSolidJcf(self.dir_jcf, im_variant.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
-        # study.WriteAllMeshJcf(self.dir_jcf, im_variant.model_name+study.GetName()+'Mesh', True)
+        # study.WriteAllSolidJcf(self.SIir_jcf, im_variant.model_name+study.GetName()+'Solid', True) # True : Outputs cases that do not have results 
+        # study.WriteAllMeshJcf(self.SIir_jcf, im_variant.model_name+study.GetName()+'Mesh', True)
 
         # # run
         # if self.fea_config_dict['designer.JMAG_Scheduler'] == False:
@@ -2726,7 +2726,7 @@ class swarm(object):
         app.View().ShowMesh() # 3rn btn
         app.View().Zoom(3)
         app.View().Pan(-im_variant.Radius_OuterRotor, 0)
-        app.ExportImageWithSize(self.dir_run + model.GetName() + '.png', 2000, 2000)
+        app.ExportImageWithSize(self.SIir_run + model.GetName() + '.png', 2000, 2000)
         app.View().ShowModel() # 1st btn. close mesh view, and note that mesh data will be deleted if only ouput table results are selected.
 
 class bearingless_induction_motor_design(object):
@@ -2777,14 +2777,14 @@ class bearingless_induction_motor_design(object):
             self.Width_StatorTeethHeadThickness  = spec_geometry_dict['Width_StatorTeethHeadThickness']
             self.Width_StatorTeethNeck           = spec_geometry_dict['Width_StatorTeethNeck']
 
-            self.DriveW_poles       = spec_geometry_dict['DriveW_poles']
-            self.DriveW_zQ          = spec_geometry_dict['DriveW_zQ'] # per slot
-            self.DriveW_Rs          = spec_geometry_dict['DriveW_Rs']
-            self.DriveW_CurrentAmp  = spec_geometry_dict['DriveW_CurrentAmp'] * self.fea_config_dict['TORQUE_CURRENT_RATIO']
-            self.spec_derive_dict['DriveW_CurrentAmpUsed'] = self.DriveW_CurrentAmp
-            self.spec_derive_dict['BeariW_CurrentAmpUsed'] = self.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (self.DriveW_CurrentAmp / self.fea_config_dict['TORQUE_CURRENT_RATIO'])
-            self.DriveW_Freq        = spec_geometry_dict['DriveW_Freq']
-            # print("IM template: self.DriveW_CurrentAmp = %g, while spec_geometry_dict['DriveW_CurrentAmp'] = %g, and TORQUE_CURRENT_RATIO = %g" % (self.DriveW_CurrentAmp, spec_geometry_dict['DriveW_CurrentAmp'], self.fea_config_dict['TORQUE_CURRENT_RATIO']))
+            self.SIriveW_poles       = spec_geometry_dict['DriveW_poles']
+            self.SIriveW_zQ          = spec_geometry_dict['DriveW_zQ'] # per slot
+            self.SIriveW_Rs          = spec_geometry_dict['DriveW_Rs']
+            self.SIriveW_CurrentAmp  = spec_geometry_dict['DriveW_CurrentAmp'] * self.fea_config_dict['TORQUE_CURRENT_RATIO']
+            self.spec_derive_dict['DriveW_CurrentAmpUsed'] = self.SIriveW_CurrentAmp
+            self.spec_derive_dict['BeariW_CurrentAmpUsed'] = self.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (self.SIriveW_CurrentAmp / self.fea_config_dict['TORQUE_CURRENT_RATIO'])
+            self.SIriveW_Freq        = spec_geometry_dict['DriveW_Freq']
+            # print("IM template: self.SIriveW_CurrentAmp = %g, while spec_geometry_dict['DriveW_CurrentAmp'] = %g, and TORQUE_CURRENT_RATIO = %g" % (self.SIriveW_CurrentAmp, spec_geometry_dict['DriveW_CurrentAmp'], self.fea_config_dict['TORQUE_CURRENT_RATIO']))
 
             self.stack_length       = spec_geometry_dict['stack_length']
 
@@ -2802,32 +2802,32 @@ class bearingless_induction_motor_design(object):
         #04 Material Condutivity Properties
         self.End_Ring_Resistance = fea_config_dict["End_Ring_Resistance"]
         self.Bar_Conductivity = spec_derive_dict["Bar_Conductivity"]
-        self.Copper_Loss = self.DriveW_CurrentAmp**2 / 2 * self.DriveW_Rs * 3
+        self.Copper_Loss = self.SIriveW_CurrentAmp**2 / 2 * self.SIriveW_Rs * 3
         # self.Resistance_per_Turn = 0.01 # TODO
 
 
         #05 Windings & Excitation
         if self.fea_config_dict is not None:
             if self.spec_input_dict['DPNV_or_SEPA'] == True:
-                self.wily = winding_layout.winding_layout_v2(spec_input_dict['DPNV_or_SEPA'], self.Qs, self.DriveW_poles/2, self.BeariW_poles/2, coil_pitch_y=spec_input_dict['coil_pitch_y'])
+                self.wily = winding_layout.winding_layout_v2(spec_input_dict['DPNV_or_SEPA'], self.Qs, self.SIriveW_poles/2, self.BeariW_poles/2, coil_pitch_y=spec_input_dict['coil_pitch_y'])
             else:
-                self.wily = winding_layout.winding_layout_v2(spec_input_dict['DPNV_or_SEPA'], self.Qs, self.DriveW_poles/2, self.BeariW_poles/2)
+                self.wily = winding_layout.winding_layout_v2(spec_input_dict['DPNV_or_SEPA'], self.Qs, self.SIriveW_poles/2, self.BeariW_poles/2)
 
-        if self.DriveW_poles == 2:
+        if self.SIriveW_poles == 2:
             # self.BeariW_Poles = 4
-            if int(self.DriveW_zQ) % 2 != 0:
-                print('zQ=', self.DriveW_zQ)
-                raise Exception('This zQ (=%g) does not suit for two layer winding.'%(self.DriveW_zQ))
-        # elif self.DriveW_poles == 4:
+            if int(self.SIriveW_zQ) % 2 != 0:
+                print('zQ=', self.SIriveW_zQ)
+                raise Exception('This zQ (=%g) does not suit for two layer winding.'%(self.SIriveW_zQ))
+        # elif self.SIriveW_poles == 4:
         #     self.BeariW_Poles = 2;
         # else:
         #     raise Exception('Not implemented error.')
 
-        self.BeariW_turns      = self.DriveW_zQ
-        self.BeariW_Rs         = self.DriveW_Rs * self.BeariW_turns / self.DriveW_zQ
-        # self.BeariW_CurrentAmp = 0.025 * self.DriveW_CurrentAmp/0.975 # extra 2.5% as bearing current
-        self.BeariW_CurrentAmp = self.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (self.DriveW_CurrentAmp / self.fea_config_dict['TORQUE_CURRENT_RATIO'])
-        self.BeariW_Freq       = self.DriveW_Freq
+        self.BeariW_turns      = self.SIriveW_zQ
+        self.BeariW_Rs         = self.SIriveW_Rs * self.BeariW_turns / self.SIriveW_zQ
+        # self.BeariW_CurrentAmp = 0.025 * self.SIriveW_CurrentAmp/0.975 # extra 2.5% as bearing current
+        self.BeariW_CurrentAmp = self.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * (self.SIriveW_CurrentAmp / self.fea_config_dict['TORQUE_CURRENT_RATIO'])
+        self.BeariW_Freq       = self.SIriveW_Freq
 
 
         self.fill_factor = spec_input_dict['WindingFill']
@@ -2836,14 +2836,14 @@ class bearingless_induction_motor_design(object):
         # self.fill_factor = 0.5
         # self.Js = 4e6
         # CurrentAmp_in_the_slot = self.coils.mm2_slot_area * self.fill_factor * self.Js*1e-6 * np.sqrt(2) #/2.2*2.8
-        # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / self.DriveW_zQ
+        # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / self.SIriveW_zQ
         # CurrentAmp_per_phase = CurrentAmp_per_conductor * self.wily.number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
         # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
-        # self.DriveW_CurrentAmp = self.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
+        # self.SIriveW_CurrentAmp = self.fea_config_dict['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
         # self.BeariW_CurrentAmp = self.fea_config_dict['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
         # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
         # print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
-        # print('---self.DriveW_CurrentAmp =', self.DriveW_CurrentAmp)
+        # print('---self.SIriveW_CurrentAmp =', self.SIriveW_CurrentAmp)
         # print('---self.BeariW_CurrentAmp =', self.BeariW_CurrentAmp)
         # print('---TORQUE_CURRENT_RATIO:', self.fea_config_dict['TORQUE_CURRENT_RATIO'])
         # print('---SUSPENSION_CURRENT_RATIO:', self.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
@@ -2851,7 +2851,7 @@ class bearingless_induction_motor_design(object):
 
 
         if self.fea_config_dict is not None:
-            self.dict_coil_connection = {'layer X phases': self.wily.layer_X_phases, 'layer X signs':self.wily.layer_X_signs,           # 这里的命名规则是按照seprate winding的情况来的。
+            self.SIict_coil_connection = {'layer X phases': self.wily.layer_X_phases, 'layer X signs':self.wily.layer_X_signs,           # 这里的命名规则是按照seprate winding的情况来的。
                                          'layer Y phases': self.wily.layer_Y_phases, 'layer Y signs':self.wily.layer_Y_signs}   # 这里的命名规则是按照seprate winding的情况来的。
 
         #06 Meshing & Solver Properties
@@ -2904,15 +2904,15 @@ class bearingless_induction_motor_design(object):
         if abs(self.Qs-self.Qr)<1:
             print('Warning: Must not use a same Qs and Qr, to avoid synchronous torques created by slot harmonics. - (7.111)')
 
-        self.no_slot_per_pole = self.Qr/self.DriveW_poles
+        self.no_slot_per_pole = self.Qr/self.SIriveW_poles
         if self.no_slot_per_pole.is_integer() == False:
             print('This slot-pole combination will not be applied with pole-specific rotor winding')
 
         self.RSH = []
         for pm in [-1, +1]:
             for v in [-1, +1]:
-                    self.RSH.append( (pm * self.Qr*(1-self.the_slip)/(0.5*self.DriveW_poles) + v)*self.DriveW_Freq )
-        # print self.Qr, ', '.join("%g" % (rsh/self.DriveW_Freq) for rsh in self.RSH), '\n'
+                    self.RSH.append( (pm * self.Qr*(1-self.the_slip)/(0.5*self.SIriveW_poles) + v)*self.SIriveW_Freq )
+        # print self.Qr, ', '.join("%g" % (rsh/self.SIriveW_Freq) for rsh in self.RSH), '\n'
 
         # write down the names for x_denorm variables
         if True:
@@ -2930,18 +2930,18 @@ class bearingless_induction_motor_design(object):
     def update_mechanical_parameters(self, slip_freq=None, syn_freq=None):
         # This function is first introduced to derive the new slip for different fundamental frequencies.
         if syn_freq is None:
-            syn_freq = self.DriveW_Freq
+            syn_freq = self.SIriveW_Freq
         else:
-            if syn_freq != self.DriveW_Freq:
+            if syn_freq != self.SIriveW_Freq:
                 raise Exception('I do not recommend to modify synchronous speed at instance level. Go update the initial design.')
 
         if syn_freq == 0.0: # lock rotor
             self.the_slip = 0. # this does not actually make sense
             if slip_freq == None:
-                self.DriveW_Freq = self.slip_freq_breakdown_torque
+                self.SIriveW_Freq = self.slip_freq_breakdown_torque
                 self.BeariW_Freq = self.slip_freq_breakdown_torque
             else:
-                self.DriveW_Freq = slip_freq
+                self.SIriveW_Freq = slip_freq
                 self.BeariW_Freq = slip_freq
         else:
             if slip_freq != None:
@@ -2952,18 +2952,18 @@ class bearingless_induction_motor_design(object):
                 # change syn_freq so update the slip
                 self.the_slip = self.slip_freq_breakdown_torque / syn_freq
 
-            self.DriveW_Freq = syn_freq
+            self.SIriveW_Freq = syn_freq
             self.BeariW_Freq = syn_freq
 
-        self.the_speed = self.DriveW_Freq*60. / (0.5*self.DriveW_poles) * (1 - self.the_slip) # rpm
+        self.the_speed = self.SIriveW_Freq*60. / (0.5*self.SIriveW_poles) * (1 - self.the_slip) # rpm
 
         self.Omega = + self.the_speed / 60. * 2*pi
-        self.omega = None # This variable name is devil! you can't tell its electrical or mechanical! #+ self.DriveW_Freq * (1-self.the_slip) * 2*pi
+        self.omega = None # This variable name is devil! you can't tell its electrical or mechanical! #+ self.SIriveW_Freq * (1-self.the_slip) * 2*pi
         # self.the_speed = + self.the_speed
 
         if self.fea_config_dict is not None:
             if self.fea_config_dict['flag_optimization'] == False: # or else it becomes annoying
-                print('[Update ID:%s]'%(self.ID), self.slip_freq_breakdown_torque, self.the_slip, self.the_speed, self.Omega, self.DriveW_Freq, self.BeariW_Freq)
+                print('[Update ID:%s]'%(self.ID), self.slip_freq_breakdown_torque, self.the_slip, self.the_speed, self.Omega, self.SIriveW_Freq, self.BeariW_Freq)
 
     def build_x_denorm(self):
         # x_denorm = [spec.delta,
@@ -3212,7 +3212,7 @@ class bearingless_induction_motor_design(object):
         self.number_current_generation = number_current_generation
         self.individual_index = individual_index
 
-        self.design_parameters = x_denorm
+        self.SIesign_parameters = x_denorm
 
         self.stator_yoke_diameter_Dsyi = stator_yoke_diameter_Dsyi # this is used for copper loss calculation in FEMM_Solver.py
         self.rotor_slot_height_h_sr = rotor_slot_height_h_sr       # this is used for copper loss calculation in FEMM_Solver.py
@@ -3615,8 +3615,8 @@ class bearingless_induction_motor_design(object):
 
         # Time step initialization
         if self.choose_study_type=='transient':
-            self.minimal_time_interval = 1 / 16. / self.DriveW_Freq
-            self.end_time = 0.2  #20 / self.DriveW_Freq
+            self.minimal_time_interval = 1 / 16. / self.SIriveW_Freq
+            self.end_time = 0.2  #20 / self.SIriveW_Freq
             self.no_divisiton = int(self.end_time/self.minimal_time_interval)
             self.no_steps = int(self.no_divisiton + 1)
             # print self.minimal_time_interval, end_time, no_divisiton, no_steps
@@ -3961,7 +3961,7 @@ class bearingless_induction_motor_design(object):
                 study.GetCircuit().CreateInstance("CS%s"%(Grouping), x-4, y+1)
                 study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("Amplitude", ampD+ampB)
                 # study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("Frequency", "freq") # this is not needed for freq analysis # "freq" is a variable | 这个本来是可以用的，字符串"freq"的意思是用定义好的变量freq去代入，但是2020/07/07我重新搞Qs=36，p=3的Separate Winding的时候又不能正常工作的，circuit中设置的频率不是freq，而是0。
-                study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("Frequency", self.DriveW_Freq) # this is not needed for freq analysis # "freq" is a variable
+                study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("Frequency", self.SIriveW_Freq) # this is not needed for freq analysis # "freq" is a variable
                 study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("PhaseU", phase) # initial phase for phase U
                 
                 # Commutating sequence is essencial for the direction of the field to be consistent with speed: UVW rather than UWV
@@ -4018,22 +4018,22 @@ class bearingless_induction_motor_design(object):
         # if self.fea_config_dict['DPNV_separate_winding_implementation'] == True or self.spec_input_dict['DPNV_or_SEPA'] == False:
         if self.spec_input_dict['DPNV_or_SEPA'] == False:
             # either a separate winding or a DPNV winding implemented as a separate winding
-            ampD =  0.5 * (self.DriveW_CurrentAmp/npb + self.BeariW_CurrentAmp) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
-            ampB = -0.5 * (self.DriveW_CurrentAmp/npb - self.BeariW_CurrentAmp) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
+            ampD =  0.5 * (self.SIriveW_CurrentAmp/npb + self.BeariW_CurrentAmp) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
+            ampB = -0.5 * (self.SIriveW_CurrentAmp/npb - self.BeariW_CurrentAmp) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
             if bool_3PhaseCurrentSource != True:
                 raise Exception('Logic Error Detected.')
         else:
             '[B]: DriveW_CurrentAmp is set.'
             # case: DPNV as an actual two layer winding
-            ampD = self.DriveW_CurrentAmp/npb
+            ampD = self.SIriveW_CurrentAmp/npb
             ampB = self.BeariW_CurrentAmp
             if bool_3PhaseCurrentSource != False:
                 raise Exception('Logic Error Detected.')
 
         Function = 'GroupAC' if self.spec_input_dict['DPNV_or_SEPA'] == True else 'Torque'
-        circuit(Function,  self.DriveW_zQ/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
-            Rs=self.DriveW_Rs,ampD= ampD,
-                              ampB=-ampB, freq=self.DriveW_Freq, phase=0,
+        circuit(Function,  self.SIriveW_zQ/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
+            Rs=self.SIriveW_Rs,ampD= ampD,
+                              ampB=-ampB, freq=self.SIriveW_Freq, phase=0,
                               CommutatingSequenceD=self.wily.CommutatingSequenceD,
                               CommutatingSequenceB=self.wily.CommutatingSequenceB)
         Function = 'GroupBD' if self.spec_input_dict['DPNV_or_SEPA'] == True else 'Suspension'
@@ -4078,11 +4078,11 @@ class bearingless_induction_motor_design(object):
                     condition = study.GetCondition(which_phase)
                     condition.RemoveSubCondition("delete")
             link_FEMCoils_2_CoilSet('Torque',
-                                    self.dict_coil_connection['layer X phases'], 
-                                    self.dict_coil_connection['layer X signs'])  
+                                    self.SIict_coil_connection['layer X phases'], 
+                                    self.SIict_coil_connection['layer X signs'])  
             link_FEMCoils_2_CoilSet('Suspension', 
-                                    self.dict_coil_connection['layer Y phases'], 
-                                    self.dict_coil_connection['layer Y signs'])  
+                                    self.SIict_coil_connection['layer Y phases'], 
+                                    self.SIict_coil_connection['layer Y signs'])  
         else: # DPNV Winding
             # 两个改变，一个是激励大小的改变（本来是200A 和 5A，现在是205A和195A），
             # 另一个绕组分组的改变，现在的A相是上层加下层为一相，以前是用俩单层绕组等效的。
@@ -4102,7 +4102,7 @@ class bearingless_induction_motor_design(object):
             count = 0 # count indicates which slot the current rightlayer is in.
             index = 0
             dict_dir = {'+':1, '-':0}
-            coil_pitch = self.wily.coil_pitch_y #self.dict_coil_connection[0]
+            coil_pitch = self.wily.coil_pitch_y #self.SIict_coil_connection[0]
             # select the part (via `Set') to assign the FEM Coil condition
             for UVW, UpDown in zip(self.wily.layer_X_phases, self.wily.layer_X_signs):
 
@@ -4182,7 +4182,7 @@ class bearingless_induction_motor_design(object):
 
             coil_pitch_y_Qr = self.spec_input_dict['Qr'] / self.spec_input_dict['ps']
 
-            wily_Qr = winding_layout.pole_specific_winding_with_neutral(self.Qr, self.DriveW_poles/2, self.BeariW_poles/2, coil_pitch_y_Qr)
+            wily_Qr = winding_layout.pole_specific_winding_with_neutral(self.Qr, self.SIriveW_poles/2, self.BeariW_poles/2, coil_pitch_y_Qr)
             for ind, pair in enumerate(wily_Qr.pairs):
                 X += -12
                 # Y += -12
@@ -4221,7 +4221,7 @@ class bearingless_induction_motor_design(object):
         else:
             # 下边的方法只适用于Qr是p的整数倍的情况，比如Qr=28，p=3就会出错哦。
             if self.spec_input_dict['PS_or_SC'] == True: # Chiba's conventional pole-specific winding
-                if self.DriveW_poles == 2:
+                if self.SIriveW_poles == 2:
                     for i in range(int(self.no_slot_per_pole)):
                         Y += -12
                         place_conductor(X,   Y, "Conductor%s1"%(rotor_phase_name_list[i]))
@@ -4239,7 +4239,7 @@ class bearingless_induction_motor_design(object):
                             study.GetCircuit().CreateWire(X-5,   Y, X-2, Y-9)
                         else:
                             raise Exception('With end ring is not implemented.')
-                elif self.DriveW_poles == 4: # poles = 4
+                elif self.SIriveW_poles == 4: # poles = 4
                     for i in range(int(self.no_slot_per_pole)):
                         Y += -12
                         place_conductor(X,   Y, "Conductor%s1"%(rotor_phase_name_list[i]))
@@ -4270,9 +4270,9 @@ class bearingless_induction_motor_design(object):
                                 #study.GetCircuit().GetInstance(u"Ground", ini_ground_no+i).RotateTo(90)
                             study.GetCircuit().CreateWire(X-7, Y, X-6, Y-9)
 
-                elif self.DriveW_poles == 6: # poles = 6
+                elif self.SIriveW_poles == 6: # poles = 6
                     for i in range(int(self.no_slot_per_pole)):
-                        # Y += -3*(self.DriveW_poles-1) # work for poles below 6
+                        # Y += -3*(self.SIriveW_poles-1) # work for poles below 6
                         X += 10 # tested for End_Ring_Resistance==0 only
                         place_conductor(X,   Y,  "Conductor%s1"%(rotor_phase_name_list[i]))
                         place_conductor(X, Y-3,  "Conductor%s2"%(rotor_phase_name_list[i]))
@@ -4298,15 +4298,15 @@ class bearingless_induction_motor_design(object):
 
                 for i in range(0, int(self.no_slot_per_pole)):
                     natural_i = i+1
-                    if self.DriveW_poles == 2:
+                    if self.SIriveW_poles == 2:
                         study.GetCondition("CdctCon %d"%(natural_i)                      ).SetLink("Conductor%s1"%(rotor_phase_name_list[i]))
                         study.GetCondition("CdctCon %d"%(natural_i+self.no_slot_per_pole)).SetLink("Conductor%s2"%(rotor_phase_name_list[i]))
-                    elif self.DriveW_poles == 4:
+                    elif self.SIriveW_poles == 4:
                         study.GetCondition("CdctCon %d"%(natural_i)                        ).SetLink("Conductor%s1"%(rotor_phase_name_list[i]))
                         study.GetCondition("CdctCon %d"%(natural_i+  self.no_slot_per_pole)).SetLink("Conductor%s2"%(rotor_phase_name_list[i]))
                         study.GetCondition("CdctCon %d"%(natural_i+2*self.no_slot_per_pole)).SetLink("Conductor%s3"%(rotor_phase_name_list[i]))
                         study.GetCondition("CdctCon %d"%(natural_i+3*self.no_slot_per_pole)).SetLink("Conductor%s4"%(rotor_phase_name_list[i]))
-                    elif self.DriveW_poles == 6:
+                    elif self.SIriveW_poles == 6:
                         study.GetCondition("CdctCon %d"%(natural_i)                        ).SetLink("Conductor%s1"%(rotor_phase_name_list[i]))
                         study.GetCondition("CdctCon %d"%(natural_i+  self.no_slot_per_pole)).SetLink("Conductor%s2"%(rotor_phase_name_list[i]))
                         study.GetCondition("CdctCon %d"%(natural_i+2*self.no_slot_per_pole)).SetLink("Conductor%s3"%(rotor_phase_name_list[i]))
@@ -4314,7 +4314,7 @@ class bearingless_induction_motor_design(object):
                         study.GetCondition("CdctCon %d"%(natural_i+4*self.no_slot_per_pole)).SetLink("Conductor%s5"%(rotor_phase_name_list[i]))
                         study.GetCondition("CdctCon %d"%(natural_i+5*self.no_slot_per_pole)).SetLink("Conductor%s6"%(rotor_phase_name_list[i]))
                     else:
-                        raise Exception('Not implemented for poles %d'%(self.DriveW_poles))
+                        raise Exception('Not implemented for poles %d'%(self.SIriveW_poles))
             else: # Caged rotor circuit
                 dyn_circuit = study.GetCircuit().CreateDynamicCircuit("Cage")
                 dyn_circuit.SetValue("AntiPeriodic", False)
@@ -4329,7 +4329,7 @@ class bearingless_induction_motor_design(object):
     def add_TranFEAwi2TSS_study(self, slip_freq_breakdown_torque, app, model, dir_csv_output_folder, tran2tss_study_name, logger):
         im_variant = self
         # logger.debug('Slip frequency: %g = ' % (self.the_slip))
-        self.the_slip = slip_freq_breakdown_torque / self.DriveW_Freq
+        self.the_slip = slip_freq_breakdown_torque / self.SIriveW_Freq
         # logger.debug('Slip frequency:    = %g???' % (self.the_slip))
         study_name = tran2tss_study_name
 
@@ -4605,8 +4605,8 @@ class bearingless_induction_motor_design(object):
 
         # Centrifugal Force
         study.CreateCondition(u"CentrifugalForce", u"Centrifugal_Force")
-        print(self.DriveW_Freq*60. / (0.5*self.DriveW_poles),'r/min')
-        study.GetCondition(u"Centrifugal_Force").SetValue(u"AngularVelocity", self.DriveW_Freq*60. / (0.5*self.DriveW_poles))
+        print(self.SIriveW_Freq*60. / (0.5*self.SIriveW_poles),'r/min')
+        study.GetCondition(u"Centrifugal_Force").SetValue(u"AngularVelocity", self.SIriveW_Freq*60. / (0.5*self.SIriveW_poles))
         study.GetCondition(u"Centrifugal_Force").SetXYZPoint(u"Axis", 0, 0, 1)
         study.GetCondition(u"Centrifugal_Force").ClearParts()
         study.GetCondition(u"Centrifugal_Force").AddSet(model.GetSetList().GetSet(u"Motion_Region"), 0)
@@ -4700,8 +4700,8 @@ class bearingless_induction_motor_design(object):
                         beginning_column = 1 + 2*3*2 # title + drive/bearing * 3 phase * real/imag
                         for i in range(0, int(self.no_slot_per_pole)):
                             natural_i = i+1
-                            current_phase_column = beginning_column + i * int(self.DriveW_poles) * 2
-                            for j in range(int(self.DriveW_poles)):
+                            current_phase_column = beginning_column + i * int(self.SIriveW_poles) * 2
+                            for j in range(int(self.SIriveW_poles)):
                                 natural_j = j+1
                                 re = float(row[current_phase_column+2*j])
                                 im = float(row[current_phase_column+2*j+1])
@@ -4732,7 +4732,7 @@ class bearingless_induction_motor_design(object):
             # ScriptComments
             amp, phase = dict_circuit_current_amp_and_phase[rotor_phase_name_list[i]+'1']
             for case_no in range(total_number_of_cases):
-                current_value = amp * sin(2*pi*(self.the_slip*self.DriveW_Freq)*t + phase)
+                current_value = amp * sin(2*pi*(self.the_slip*self.SIriveW_Freq)*t + phase)
                 study.GetDesignTable().SetValue(case_no, begin_parameters + count_parameters, current_value)
                 t += time_one_step
             count_parameters += 1
@@ -4806,7 +4806,7 @@ class bearingless_induction_motor_design(object):
             t = 0.0
             time_one_step = self.theta / (2*pi * self.the_speed) * 60 # sec
             for case_no in range(total_number_of_cases):
-                current_value = amp * sin(2*pi*self.DriveW_Freq*t + phase)
+                current_value = amp * sin(2*pi*self.SIriveW_Freq*t + phase)
                 study.GetDesignTable().SetValue(case_no, begin_parameters + count_parameters, current_value)
                 t += time_one_step 
             count_parameters += 1
@@ -4834,8 +4834,8 @@ class bearingless_induction_motor_design(object):
                 print(set_name_list)
                 for set_name in set_name_list:
                     condition.AddSet(model.GetSetList().GetSet(set_name), 0) # 0: group
-        create_stator_current_conditions(self.DriveW_zQ, ["Coil4A-","Coil4B-","Coil4C-","Coil4A+","Coil4B+","Coil4C+"])
-        create_stator_current_conditions(self.DriveW_zQ, ["Coil2A-","Coil2B-","Coil2C-","Coil2A+","Coil2B+","Coil2C+"])
+        create_stator_current_conditions(self.SIriveW_zQ, ["Coil4A-","Coil4B-","Coil4C-","Coil4A+","Coil4B+","Coil4C+"])
+        create_stator_current_conditions(self.SIriveW_zQ, ["Coil2A-","Coil2B-","Coil2C-","Coil2A+","Coil2B+","Coil2C+"])
 
     def add_rotor_current_condition_obsolete_slow_version(self, app, model, study, total_number_of_cases, eddy_current_circuit_current_csv_file): # r'D:\Users\horyc\OneDrive - UW-Madison\csv\Freq_#4_circuit_current.csv'
 
@@ -4855,8 +4855,8 @@ class bearingless_induction_motor_design(object):
                         beginning_column = 1 + 2*3*2 # title + drive/bearing * 3 phase * real/imag
                         for i in range(0, int(self.no_slot_per_pole)):
                             natural_i = i+1
-                            current_phase_column = beginning_column + i * int(self.DriveW_poles) * 2
-                            for j in range(int(self.DriveW_poles)):
+                            current_phase_column = beginning_column + i * int(self.SIriveW_poles) * 2
+                            for j in range(int(self.SIriveW_poles)):
                                 natural_j = j+1
                                 re = float(row[current_phase_column+2*j])
                                 im = float(row[current_phase_column+2*j+1])
@@ -4902,7 +4902,7 @@ class bearingless_induction_motor_design(object):
                 time_one_step = self.theta / (2*pi * self.the_speed) * 60 # sec
                 for case_no in range(total_number_of_cases):
                     t += time_one_step
-                    current_value = amp * sin(2*pi*(self.the_slip*self.DriveW_Freq)*t + phase)
+                    current_value = amp * sin(2*pi*(self.the_slip*self.SIriveW_Freq)*t + phase)
                     study.GetDesignTable().SetValue(case_no, begin_parameters + count_parameters, current_value)
                 count_parameters += 1
 
@@ -4914,11 +4914,11 @@ class bearingless_induction_motor_design(object):
 class VanGogh_JMAG(VanGogh):
     def __init__(self, im, child_index=1, doNotRotateCopy=False):
         super(VanGogh_JMAG, self).__init__(im, child_index)
-        self.doNotRotateCopy = doNotRotateCopy
+        self.SIoNotRotateCopy = doNotRotateCopy
 
         self.SketchName = None
-        self.dict_count_arc = {}
-        self.dict_count_region = {}
+        self.SIict_count_arc = {}
+        self.SIict_count_region = {}
 
         self.count = 0 # counter of region
 
@@ -4936,7 +4936,7 @@ class VanGogh_JMAG(VanGogh):
         # if self.count == 4: # debug
             # raise Exception
             # merge = True # When overlap occurs between regions because of copying, a boolean operation (sum) is executed and they are merged into 1 region.
-        if not self.doNotRotateCopy:
+        if not self.SIoNotRotateCopy:
             self.region_circular_pattern_360_origin(region, float(Q), merge=merge,
                                                     do_you_have_region_in_the_mirror=do_you_have_region_in_the_mirror)
         # print self.artist_list
@@ -4959,22 +4959,22 @@ class VanGogh_JMAG(VanGogh):
         SketchName = self.SketchName
         sketch = self.create_sketch(SketchName, "#D1B894")
 
-        if self.doNotRotateCopy:
+        if self.SIoNotRotateCopy:
             Rotor_Sector_Angle = 2*pi/self.im.Qr*0.5
             PA = [ self.im.Radius_Shaft*-cos(Rotor_Sector_Angle), self.im.Radius_Shaft*sin(Rotor_Sector_Angle) ]
             PB = [ PA[0], -PA[1] ]
-            self.draw_arc([0,0], PA, PB)
-            self.draw_line(PA, [0,0])
-            self.draw_line(PB, [0,0])
-            self.doc.GetSelection().Clear()
-            self.doc.GetSelection().Add(sketch.GetItem("Arc"))
-            self.doc.GetSelection().Add(sketch.GetItem("Line"))
-            self.doc.GetSelection().Add(sketch.GetItem("Line.2"))
+            self.SIraw_arc([0,0], PA, PB)
+            self.SIraw_line(PA, [0,0])
+            self.SIraw_line(PB, [0,0])
+            self.SIoc.GetSelection().Clear()
+            self.SIoc.GetSelection().Add(sketch.GetItem("Arc"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Line"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Line.2"))
         else:
             self.circle(0, 0, self.im.Radius_Shaft)
 
-            self.doc.GetSelection().Clear()
-            self.doc.GetSelection().Add(sketch.GetItem("Circle"))
+            self.SIoc.GetSelection().Clear()
+            self.SIoc.GetSelection().Add(sketch.GetItem("Circle"))
         sketch.CreateRegions()
 
         sketch.CloseSketch()
@@ -5008,19 +5008,19 @@ class VanGogh_JMAG(VanGogh):
         self.artist_list.append(art)
 
     def add_arc_using_shapely(self, p1, p2, angle, maxseg=1): # angle in rad
-        self.draw_arc_using_shapely(p1, p2, angle, maxseg)
+        self.SIraw_arc_using_shapely(p1, p2, angle, maxseg)
 
 
     # Utility wrap function for JMAG
     def create_sketch(self, SketchName, color):
         self.artist_list = []
 
-        try:self.dict_count_arc[SketchName]
-        except: self.dict_count_arc[SketchName] = 0
-        try:self.dict_count_region[SketchName]
-        except: self.dict_count_region[SketchName] = 0
+        try:self.SIict_count_arc[SketchName]
+        except: self.SIict_count_arc[SketchName] = 0
+        try:self.SIict_count_region[SketchName]
+        except: self.SIict_count_region[SketchName] = 0
         ref1 = self.ass.GetItem("XY Plane")
-        ref2 = self.doc.CreateReferenceFromItem(ref1)
+        ref2 = self.SIoc.CreateReferenceFromItem(ref1)
         self.sketch = self.ass.CreateSketch(ref2)
         self.sketch.OpenSketch()
         self.sketch.SetProperty("Name", SketchName)
@@ -5039,22 +5039,22 @@ class VanGogh_JMAG(VanGogh):
         return self.sketch.CreateLine(x1,y1,x2,y2)
     def create_region(self, l):
         SketchName = self.SketchName
-        self.doc.GetSelection().Clear()
+        self.SIoc.GetSelection().Clear()
         for art_name in l:
-            self.doc.GetSelection().Add(self.sketch.GetItem(art_name))
-            # self.doc.GetSelection().Add(el)
+            self.SIoc.GetSelection().Add(self.sketch.GetItem(art_name))
+            # self.SIoc.GetSelection().Add(el)
         self.sketch.CreateRegions() # this returns None
         # self.sketch.CreateRegionsWithCleanup(0.05, True) # mm. difference at stator outter radius is up to 0.09mm! This turns out to be neccessary for shapely to work with JMAG. Shapely has poor 
 
-        self.dict_count_region[SketchName] += 1
-        if self.dict_count_region[SketchName]==1:
+        self.SIict_count_region[SketchName] += 1
+        if self.SIict_count_region[SketchName]==1:
             return self.sketch.GetItem("Region")
         else:
-            return self.sketch.GetItem("Region.%d"%(self.dict_count_region[SketchName]))
+            return self.sketch.GetItem("Region.%d"%(self.SIict_count_region[SketchName]))
     def region_mirror_copy(self, region, edge4ref=None, symmetry_type=None, merge=True):
         mirror = self.sketch.CreateRegionMirrorCopy()
         mirror.SetProperty("Merge", merge)
-        ref2 = self.doc.CreateReferenceFromItem(region)
+        ref2 = self.SIoc.CreateReferenceFromItem(region)
         mirror.SetPropertyByReference("Region", ref2)
 
         # å¯¹ç§°è½´
@@ -5066,7 +5066,7 @@ class VanGogh_JMAG(VanGogh):
                 mirror.SetProperty("SymmetryType", symmetry_type)
         else:
             ref1 = self.sketch.GetItem(edge4ref.GetName()) # e.g., u"Line"
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             mirror.SetPropertyByReference("Symmetry", ref2)
 
         # print region
@@ -5077,7 +5077,7 @@ class VanGogh_JMAG(VanGogh):
         circular_pattern = self.sketch.CreateRegionCircularPattern()
         circular_pattern.SetProperty("Merge", merge)
 
-        ref2 = self.doc.CreateReferenceFromItem(region)
+        ref2 = self.SIoc.CreateReferenceFromItem(region)
         circular_pattern.SetPropertyByReference("Region", ref2)
         face_region_string = circular_pattern.GetProperty("Region")
         if isinstance(face_region_string, tuple): #type(face_region_string) == type(tuple()):
@@ -5127,19 +5127,19 @@ class TrimDrawer(object):
     def __init__(self, im):
         self.SketchName = None
         self.trim_a = self.trim_l
-        self.dict_count_arc = {}
-        self.dict_count_region = {}
+        self.SIict_count_arc = {}
+        self.SIict_count_region = {}
 
         self.im = im
 
     ''' Basic Functions '''
     def create_sketch(self, SketchName, color):
-        try:self.dict_count_arc[SketchName]
-        except: self.dict_count_arc[SketchName] = 0
-        try:self.dict_count_region[SketchName]
-        except: self.dict_count_region[SketchName] = 0
+        try:self.SIict_count_arc[SketchName]
+        except: self.SIict_count_arc[SketchName] = 0
+        try:self.SIict_count_region[SketchName]
+        except: self.SIict_count_region[SketchName] = 0
         ref1 = self.ass.GetItem("XY Plane")
-        ref2 = self.doc.CreateReferenceFromItem(ref1)
+        ref2 = self.SIoc.CreateReferenceFromItem(ref1)
         self.sketch = self.ass.CreateSketch(ref2)
         self.sketch.OpenSketch()
         self.sketch.SetProperty("Name", SketchName)
@@ -5161,44 +5161,44 @@ class TrimDrawer(object):
 
     def trim_l(self, who,x,y):
         # SketchName = self.SketchName
-        self.doc.GetSelection().Clear()
+        self.SIoc.GetSelection().Clear()
         ref1 = self.sketch.GetItem(who.GetName())
-        self.doc.GetSelection().Add(ref1)
-        self.doc.GetSketchManager().SketchTrim(x,y)
+        self.SIoc.GetSelection().Add(ref1)
+        self.SIoc.GetSketchManager().SketchTrim(x,y)
         # l1 trim 完以后还是l1，除非你切中间，这样会多生成一个Line，你自己捕捉一下吧
 
     def trim_c(self, who,x,y):
         SketchName = self.SketchName
-        self.doc.GetSelection().Clear()
+        self.SIoc.GetSelection().Clear()
         ref1 = self.sketch.GetItem(who.GetName())
-        self.doc.GetSelection().Add(ref1)
-        self.doc.GetSketchManager().SketchTrim(x,y)
+        self.SIoc.GetSelection().Add(ref1)
+        self.SIoc.GetSketchManager().SketchTrim(x,y)
 
         # print who 
-        self.dict_count_arc[SketchName] += 1
-        if self.dict_count_arc[SketchName]==1:
+        self.SIict_count_arc[SketchName] += 1
+        if self.SIict_count_arc[SketchName]==1:
             return self.sketch.GetItem("Arc")
         else:
-            return self.sketch.GetItem("Arc.%d"%(self.dict_count_arc[SketchName]))
+            return self.sketch.GetItem("Arc.%d"%(self.SIict_count_arc[SketchName]))
 
     def create_region(self, l):
         SketchName = self.SketchName
-        self.doc.GetSelection().Clear()
+        self.SIoc.GetSelection().Clear()
         for string in l:
-            self.doc.GetSelection().Add(self.sketch.GetItem(string))
-            # self.doc.GetSelection().Add(el)
+            self.SIoc.GetSelection().Add(self.sketch.GetItem(string))
+            # self.SIoc.GetSelection().Add(el)
         self.sketch.CreateRegions() # this returns None
 
-        self.dict_count_region[SketchName] += 1
-        if self.dict_count_region[SketchName]==1:
+        self.SIict_count_region[SketchName] += 1
+        if self.SIict_count_region[SketchName]==1:
             return self.sketch.GetItem("Region")
         else:
-            return self.sketch.GetItem("Region.%d"%(self.dict_count_region[SketchName]))
+            return self.sketch.GetItem("Region.%d"%(self.SIict_count_region[SketchName]))
 
     def region_mirror_copy(self, region, edge4ref=None, symmetry_type=None, merge=True):
         mirror = self.sketch.CreateRegionMirrorCopy()
         mirror.SetProperty("Merge", merge)
-        ref2 = self.doc.CreateReferenceFromItem(region)
+        ref2 = self.SIoc.CreateReferenceFromItem(region)
         mirror.SetPropertyByReference("Region", ref2)
 
         # å¯¹ç§°è½´
@@ -5209,7 +5209,7 @@ class TrimDrawer(object):
                 mirror.SetProperty("SymmetryType", symmetry_type)
         else:
             ref1 = self.sketch.GetItem(edge4ref.GetName()) # e.g., u"Line"
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             mirror.SetPropertyByReference("Symmetry", ref2)
 
         # print region
@@ -5224,14 +5224,14 @@ class TrimDrawer(object):
             # refarray[0] = u"faceregion(TRegionItem68)" # åœ¨å½•è¿™ä¸€æ­\å‰ï¼Œå¿…é¡»æŠŠGeometry Editorç»™å…³äº†ï¼Œé‡æ–°è·‘ä¸€éå‰é¢çš„ä»£ç ï¼Œè¿™ä¸ªæ•°å­—æ‰å¯¹ï¼
             # sketch.GetItem(u"Region Mirror Copy").SetProperty(u"Region", refarray)
             # ref1 = sketch.GetItem(u"Line")
-            # ref2 = self.doc.CreateReferenceFromItem(ref1)
+            # ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             # sketch.GetItem(u"Region Mirror Copy").SetPropertyByReference(u"Symmetry", ref2)
 
     def region_circular_pattern_360_origin(self, region, Q_float, merge=True, do_you_have_region_in_the_mirror=False):
         circular_pattern = self.sketch.CreateRegionCircularPattern()
         circular_pattern.SetProperty("Merge", merge)
 
-        ref2 = self.doc.CreateReferenceFromItem(region)
+        ref2 = self.SIoc.CreateReferenceFromItem(region)
         circular_pattern.SetPropertyByReference("Region", ref2)
         face_region_string = circular_pattern.GetProperty("Region")
         if isinstance(face_region_string, tuple): #type(face_region_string) == type(tuple()):
@@ -5286,14 +5286,14 @@ class TrimDrawer(object):
     def constraint_fixture_circle_center(self, c):
         sketch = self.ass.GetItem(self.SketchName) # ass is global
         ref1 = c.GetCenterVertex()
-        ref2 = self.doc.CreateReferenceFromItem(ref1)
+        ref2 = self.SIoc.CreateReferenceFromItem(ref1)
         constraint = sketch.CreateMonoConstraint("fixture", ref2)
         # constraint.SetProperty(u"Name", constraint_name)
 
     def constraint_radius_arc(self, arc, radius_value, constraint_name):
         sketch = self.ass.GetItem(self.SketchName)
         ref1 = arc
-        ref2 = self.doc.CreateReferenceFromItem(ref1)
+        ref2 = self.SIoc.CreateReferenceFromItem(ref1)
         constraint = sketch.CreateMonoConstraint("radius", ref2)
         constraint.SetProperty("Radius", radius_value)
         constraint.SetProperty("Name", constraint_name)
@@ -5305,7 +5305,7 @@ class TrimDrawer(object):
         var_list = [None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None]
         for ind, vtx_name in enumerate(vertex_name_list):
             var_list[ind]   = sketch.GetItem(vtx_name)
-            var_list[ind+1] = self.doc.CreateReferenceFromItem(ref1)
+            var_list[ind+1] = self.SIoc.CreateReferenceFromItem(ref1)
             sketch.GetItem("Relative Fixation").SetPropertyByReference("TargetList", var_list[ind+1])
 
 
@@ -5321,8 +5321,8 @@ class TrimDrawer(object):
 
         self.circle(0, 0, self.im.Radius_Shaft)
 
-        self.doc.GetSelection().Clear()
-        self.doc.GetSelection().Add(sketch.GetItem("Circle"))
+        self.SIoc.GetSelection().Clear()
+        self.SIoc.GetSelection().Add(sketch.GetItem("Circle"))
         sketch.CreateRegions()
 
         sketch.CloseSketch()
@@ -5347,18 +5347,18 @@ class TrimDrawer(object):
         l1=self.line(-5.5-self.im.Radius_OuterRotor, 0.5*self.im.Width_RotorSlotOpen, -self.im.Location_RotorBarCenter, 0.5*self.im.Width_RotorSlotOpen) # Line.1 # -5.5 is arbitrary float <0
 
         ref1 = sketch.GetItem("Line")
-        ref2 = self.doc.CreateReferenceFromItem(ref1)
+        ref2 = self.SIoc.CreateReferenceFromItem(ref1)
         sketch.CreateMonoConstraint("horizontality", ref2) # how to set constraint
 
         if self.im.use_drop_shape_rotor_bar == True:
             l2=self.line(0, 0, -self.im.Location_RotorBarCenter2+self.im.Radius_of_RotorSlot2, 0) # Line.2
             ref1 = sketch.GetItem("Line.2")
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             sketch.CreateMonoConstraint("horizontality", ref2)    
         else:
             l2=self.line(0, 0, -self.im.Location_RotorBarCenter+self.im.Radius_of_RotorSlot, 0) # Line.2
             ref1 = sketch.GetItem("Line.2")
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             sketch.CreateMonoConstraint("horizontality", ref2)
 
         R = self.im.Radius_OuterRotor
@@ -5382,7 +5382,7 @@ class TrimDrawer(object):
 
             # Constraint to fix c4's center
             ref1 = c4.GetCenterVertex()
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
                 # sketch.CreateMonoConstraint(u"distancefromxaxis", ref2)
                 # sketch.GetItem(u"Distance From X Axis").SetProperty(u"Distance", 0)
             # Constrants to avoid moving of circle center
@@ -5392,38 +5392,38 @@ class TrimDrawer(object):
 
                 # # Constraint to fix c3's center
                 # ref1 = c3.GetCenterVertex()
-                # ref2 = self.doc.CreateReferenceFromItem(ref1)
+                # ref2 = self.SIoc.CreateReferenceFromItem(ref1)
                 # sketch.CreateMonoConstraint(u"distancefromxaxis", ref2)
                 # sketch.GetItem(u"Distance From X Axis").SetProperty(u"Distance", 0)
 
             ref1 = c4
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             ref3 = l4
-            ref4 = self.doc.CreateReferenceFromItem(ref3)
+            ref4 = self.SIoc.CreateReferenceFromItem(ref3)
             sketch.CreateBiConstraint("tangency", ref2, ref4)
             # sketch.GetItem(u"Vertex.15").SetProperty(u"Y", 2.345385)
             # sketch.GetItem(u"Vertex.16").SetProperty(u"Y", 2.345385)
 
 
             ref1 = c3
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             ref3 = l4
-            ref4 = self.doc.CreateReferenceFromItem(ref3)
+            ref4 = self.SIoc.CreateReferenceFromItem(ref3)
             sketch.CreateBiConstraint("tangency", ref2, ref4)
             # sketch.GetItem(u"Vertex.7").SetProperty(u"Y", 2.993642)
             # sketch.GetItem(u"Vertex.8").SetProperty(u"Y", 2.993642)
 
             # we won't need this fixture constraint anymore
-            self.doc.GetSelection().Clear()
-            self.doc.GetSelection().Add(sketch.GetItem("Fixture")) # Fixture.1
-            self.doc.GetSelection().Delete()
+            self.SIoc.GetSelection().Clear()
+            self.SIoc.GetSelection().Add(sketch.GetItem("Fixture")) # Fixture.1
+            self.SIoc.GetSelection().Delete()
 
             if -self.im.Location_RotorBarCenter + self.im.Radius_of_RotorSlot > -self.im.Location_RotorBarCenter2 - self.im.Radius_of_RotorSlot2:
                 'Two circles have intersections.'
                 # delete c4
-                self.doc.GetSelection().Clear()
-                self.doc.GetSelection().Add(c4)
-                self.doc.GetSelection().Delete()
+                self.SIoc.GetSelection().Clear()
+                self.SIoc.GetSelection().Add(c4)
+                self.SIoc.GetSelection().Delete()
 
                 # raise Exception('Is c4 still there? If c4 is not deleted, you will get Unexpected Part Number error afterwards. So fix it here now.')
 
@@ -5442,7 +5442,7 @@ class TrimDrawer(object):
 
         # 上面说的“导致Line.3整根消失！”的原因是直接剪在了原点(0,0)上，所以把整根线都删掉了，稍微偏一点(-0.1,0.1)操作即可
         # ä¸Šé¢è¯´çš„â€œå¯¼è‡´Line.3æ•´æ ¹æ¶ˆå¤±ï¼â€çš„åŽŸå› æ˜¯ç›´æŽ\å‰ªåœ¨äº†åŽŸç‚¹(0,0)ä¸Šï¼Œæ‰€ä»\æŠŠæ•´æ ¹çº¿éƒ½åˆ æŽ‰äº†ï¼Œç¨å¾®åä¸€ç‚¹(-0.1,0.1)æ“ä½œå³å¯
-            # self.doc.GetSketchManager().SketchTrim(0,0) # BUG - delete the whole Line.3
+            # self.SIoc.GetSketchManager().SketchTrim(0,0) # BUG - delete the whole Line.3
         self.trim_l(l3,-EPS, EPS)
 
         if self.im.use_drop_shape_rotor_bar == True:
@@ -5466,14 +5466,14 @@ class TrimDrawer(object):
 
         # This is necessary if you want to do MODEL_ROTATE
         if self.im.MODEL_ROTATE:
-            self.doc.GetSelection().Clear()
-            self.doc.GetSelection().Add(sketch.GetItem("Horizontality"))
-            self.doc.GetSelection().Add(sketch.GetItem("Horizontality.2"))
-            self.doc.GetSelection().Add(sketch.GetItem("Tangency"))
-            self.doc.GetSelection().Add(sketch.GetItem("Tangency.2"))
-            self.doc.GetSelection().Add(sketch.GetItem("Coincident"))
-            self.doc.GetSelection().Add(sketch.GetItem("Coincident.2"))
-            self.doc.GetSelection().Delete()
+            self.SIoc.GetSelection().Clear()
+            self.SIoc.GetSelection().Add(sketch.GetItem("Horizontality"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Horizontality.2"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Tangency"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Tangency.2"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Coincident"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Coincident.2"))
+            self.SIoc.GetSelection().Delete()
 
             self.im.list_rotorCore_vertex_names = [ arc1.GetCenterVertex().GetName(),
                                                     arc2.GetCenterVertex().GetName(),
@@ -5593,9 +5593,9 @@ class TrimDrawer(object):
             raise e
 
 
-        self.doc.GetSelection().Clear()
-        self.doc.GetSelection().Add(sketch.GetItem(arc4.GetName())) # arc4 corresponds to u"Arc".
-        self.doc.GetSelection().Delete()
+        self.SIoc.GetSelection().Clear()
+        self.SIoc.GetSelection().Add(sketch.GetItem(arc4.GetName())) # arc4 corresponds to u"Arc".
+        self.SIoc.GetSelection().Delete()
 
             # self.trim_l(l2, l2_end_vertex.GetX()-1e-3, l2_end_vertex.GetY()+1e-3) # convert to float (it returns long int) # legacy 3
 
@@ -5609,9 +5609,9 @@ class TrimDrawer(object):
         ''' Constraints Stator Core '''
         if 0:
             ref1 = sketch.GetItem("Line.2")
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             ref3 = sketch.GetItem("Line")
-            ref4 = self.doc.CreateReferenceFromItem(ref3)
+            ref4 = self.SIoc.CreateReferenceFromItem(ref3)
             sketch.CreateBiConstraint("distance", ref2, ref4)
             sketch.GetItem("Distance").SetProperty("Distance", 0.5*self.im.Width_StatorTeethBody)
 
@@ -5632,7 +5632,7 @@ class TrimDrawer(object):
             c4=self.circle(-self.im.Location_RotorBarCenter2, 0., self.im.Radius_of_RotorSlot2) # Circle.4
             # Constraint to fix c4's center
             ref1 = c4.GetCenterVertex()
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
                 # sketch.CreateMonoConstraint(u"distancefromxaxis", ref2)
                 # sketch.GetItem(u"Distance From X Axis").SetProperty(u"Distance", 0)
             # Constrants to avoid moving of circle center
@@ -5643,33 +5643,33 @@ class TrimDrawer(object):
             l42 = self.line(-self.im.Location_RotorBarCenter-0.5*self.im.Radius_of_RotorSlot, -c3.GetRadius(), -self.im.Location_RotorBarCenter2+0.5*self.im.Radius_of_RotorSlot2, -c4.GetRadius())
 
             ref1 = c4
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             ref3 = l41
-            ref4 = self.doc.CreateReferenceFromItem(ref3)
+            ref4 = self.SIoc.CreateReferenceFromItem(ref3)
             sketch.CreateBiConstraint("tangency", ref2, ref4)
             ref1 = c3
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             ref3 = l41
-            ref4 = self.doc.CreateReferenceFromItem(ref3)
+            ref4 = self.SIoc.CreateReferenceFromItem(ref3)
             sketch.CreateBiConstraint("tangency", ref2, ref4)
 
             ref1 = c4
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             ref3 = l42
-            ref4 = self.doc.CreateReferenceFromItem(ref3)
+            ref4 = self.SIoc.CreateReferenceFromItem(ref3)
             sketch.CreateBiConstraint("tangency", ref2, ref4)
             ref1 = c3
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             ref3 = l42
-            ref4 = self.doc.CreateReferenceFromItem(ref3)
+            ref4 = self.SIoc.CreateReferenceFromItem(ref3)
             sketch.CreateBiConstraint("tangency", ref2, ref4)
 
             if -self.im.Location_RotorBarCenter + self.im.Radius_of_RotorSlot > -self.im.Location_RotorBarCenter2 - self.im.Radius_of_RotorSlot2:
                 'Two circles have intersections.'
                 # delete c4
-                self.doc.GetSelection().Clear()
-                self.doc.GetSelection().Add(c4)
-                self.doc.GetSelection().Delete()
+                self.SIoc.GetSelection().Clear()
+                self.SIoc.GetSelection().Add(c4)
+                self.SIoc.GetSelection().Delete()
             arc3 = self.trim_c(c3, c3.GetCenterVertex().GetX()+EPS+c3.GetRadius(), 0) # make sure it is float number
 
             if -self.im.Location_RotorBarCenter + self.im.Radius_of_RotorSlot > -self.im.Location_RotorBarCenter2 - self.im.Radius_of_RotorSlot2:
@@ -5690,13 +5690,13 @@ class TrimDrawer(object):
             region = self.create_region(["Circle"])
 
         if self.im.MODEL_ROTATE:
-            self.doc.GetSelection().Clear()
-            self.doc.GetSelection().Add(sketch.GetItem("Fixture"))
-            self.doc.GetSelection().Add(sketch.GetItem("Tangency"))
-            self.doc.GetSelection().Add(sketch.GetItem("Tangency.2"))
-            self.doc.GetSelection().Add(sketch.GetItem("Tangency.3"))
-            self.doc.GetSelection().Add(sketch.GetItem("Tangency.4"))
-            self.doc.GetSelection().Delete()
+            self.SIoc.GetSelection().Clear()
+            self.SIoc.GetSelection().Add(sketch.GetItem("Fixture"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Tangency"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Tangency.2"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Tangency.3"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Tangency.4"))
+            self.SIoc.GetSelection().Delete()
 
             self.im.list_rotorCage_vertex_names = [  arc3.GetCenterVertex().GetName(),
                                                 arc4.GetCenterVertex().GetName(),
@@ -5785,11 +5785,11 @@ class TrimDrawer(object):
         ''' Constraints Coil '''
         if 0:
             ref1 = sketch.GetItem("Line") # or l1
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             sketch.CreateMonoConstraint("horizontality", ref2)
 
             ref1 = sketch.GetItem("Line").GetEndVertex()
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             sketch.CreateMonoConstraint("distancefromxaxis", ref2)
             sketch.GetItem("Distance From X Axis").SetProperty("Distance", 0.5*self.im.Width_StatorTeethBody)
 
@@ -5820,10 +5820,10 @@ class TrimDrawer(object):
 
 
         if self.im.MODEL_ROTATE:
-            self.doc.GetSelection().Clear()
-            self.doc.GetSelection().Add(sketch.GetItem("Coincident"))
-            self.doc.GetSelection().Add(sketch.GetItem("Fixture"))
-            self.doc.GetSelection().Delete()
+            self.SIoc.GetSelection().Clear()
+            self.SIoc.GetSelection().Add(sketch.GetItem("Coincident"))
+            self.SIoc.GetSelection().Add(sketch.GetItem("Fixture"))
+            self.SIoc.GetSelection().Delete()
 
             self.im.list_rotorAirWithin_vertex_names = [ arc1.GetCenterVertex().GetName(),
                                                     arc2.GetCenterVertex().GetName(),
@@ -5841,31 +5841,31 @@ class TrimDrawer(object):
         ''' Constraint Air within Rotor Slots '''
         if 0:
             ref1 = sketch.GetItem("Vertex.2")
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             sketch.CreateMonoConstraint("distancefromyaxis", ref2)
             sketch.GetItem("Distance From Y Axis").SetProperty("Distance", self.im.Location_RotorBarCenter)
             sketch.GetItem("Distance From Y Axis").SetProperty("Name", "_Air_LocationBar")
 
             ref1 = sketch.GetItem("Arc.2")
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             sketch.CreateMonoConstraint("radius", ref2)
             sketch.GetItem("Radius/Diameter").SetProperty("Radius", self.im.Radius_of_RotorSlot)
             sketch.GetItem("Radius/Diameter").SetProperty("Name", "_Air_RadiusOfRotorSlot")
 
             ref1 = sketch.GetItem("Vertex")
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             sketch.CreateMonoConstraint("fixture", ref2)
 
             ref1 = sketch.GetItem("Arc")
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             sketch.CreateMonoConstraint("radius", ref2)
             sketch.GetItem("Radius/Diameter.2").SetProperty("Radius", self.im.Radius_OuterRotor)
             sketch.GetItem("Radius/Diameter.2").SetProperty("Name", "_Air_RadiusOuterRotor")
 
             ref1 = sketch.GetItem("Line")
-            ref2 = self.doc.CreateReferenceFromItem(ref1)
+            ref2 = self.SIoc.CreateReferenceFromItem(ref1)
             ref3 = sketch.GetItem("Line.2")
-            ref4 = self.doc.CreateReferenceFromItem(ref3)
+            ref4 = self.SIoc.CreateReferenceFromItem(ref3)
             sketch.CreateBiConstraint("distance", ref2, ref4)
             sketch.GetItem("Distance").SetProperty("Distance", 0.5*self.im.Width_RotorSlotOpen)
             sketch.GetItem("Distance").SetProperty("Name", "_Air_HalfSlotOpenRotor")

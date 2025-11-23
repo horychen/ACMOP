@@ -83,7 +83,7 @@ class tempClass(object):
     def __init__(self, arg):
         super(tempClass, self).__init__()
         self.arg = arg
-        self.digit = 100
+        self.SIigit = 100
 
 if __name__ == '__main__':
     import varname
