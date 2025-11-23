@@ -89,7 +89,7 @@ class Individual_Analyzer_FEMM_Edition(object):
         # Amplitude invariant Clarke transform
         def amplitude_invariant_Clarke_transform(u,v,w):
             alpha = 2/3 * (    u - 0.5*v - 0.5*w)
-            beta  = 2/3 * (np.sqrt(3)/2 * (v - w))
+            beta  = 2/3 * (math.sqrt(3)/2 * (v - w))
             gamma = 2/3 * (0.5*u + 0.5*v + 0.5*w)
             return alpha, beta, gamma
 
@@ -101,8 +101,8 @@ class Individual_Analyzer_FEMM_Edition(object):
         bearing_fluxLinkage_alpha, bearing_fluxLinkage_beta, bearing_fluxLinkage_gamma = amplitude_invariant_Clarke_transform(bearing_fluxLinkage_U, bearing_fluxLinkage_V, bearing_fluxLinkage_W)
 
         def Park_transform(alpha, beta, theta):
-            d =  np.cos(theta)*alpha + np.sin(theta)*beta
-            q = -np.sin(theta)*alpha + np.cos(theta)*beta
+            d =  math.cos(theta)*alpha + math.sin(theta)*beta
+            q = -math.sin(theta)*alpha + math.cos(theta)*beta
             return d, q
 
         rotor_position_elec_rad = self.p * rotor_position_mech_deg/180*np.pi
@@ -498,7 +498,7 @@ class Individual_Analyzer_FEMM_Edition(object):
 
     def get_power_factor_from_flux(self, flux, current, time, targetFreq=1e3, numPeriodicalExtension=1000):
         _, psi, i, phase_diff_psii_deg = utility.compute_power_factor_from_full_period(flux, current, time, targetFreq=targetFreq, numPeriodicalExtension=numPeriodicalExtension)
-        power_factor = np.cos((90 - phase_diff_psii_deg)/180*np.pi)
+        power_factor = math.cos((90 - phase_diff_psii_deg)/180*np.pi)
         self.psii_info = [power_factor, psi, i, phase_diff_psii_deg]
         print('[FEMM_SlidingMesh.py] psii_info = [power_factor, psi, i, phase_diff_psii_deg]:', self.psii_info)
         print('\t This power factor is internal displacement power factor of the fundamental emf and fundamental current, which is approximately the actual fundamental displacement power factor.')
@@ -661,7 +661,7 @@ class Individual_Analyzer_FEMM_Edition(object):
 
             # copper loss (cannot be calculated becasue PhaseResistance is unknown)
                 # PhaseResistance = 0.223*2.333 # phase resistance including end turns at 20 degC
-                # Iphase  = np.sqrt(MyIdCurrent**2+MyIqCurrent**2)/np.sqrt(2)
+                # Iphase  = math.sqrt(MyIdCurrent**2+MyIqCurrent**2)/math.sqrt(2)
                 # PhaseOhmic = 3*(PhaseResistance*(1+TemperatureRise*0.004))*Iphase**2
             PhaseOhmic = 0.0
 
@@ -918,7 +918,7 @@ class FEMM_SlidingMesh(object):
         self.set_block_label(self.GroupSummary['rotor_air_gap'], 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
         # Air region (Stator)
         R = GP['mm_r_si'].value-5*EPS
-        X, Y = R*np.cos(np.pi/SI['Qs']), R*np.sin(np.pi/SI['Qs'])
+        X, Y = R*math.cos(np.pi/SI['Qs']), R*math.sin(np.pi/SI['Qs'])
         self.set_block_label(self.GroupSummary['stator_air_gap'], 'Air', (X, Y), MESH_SIZE_AIR, automesh=self.bool_automesh)
 
         # # Air Gap Boundary for Rotor Motion #2
@@ -951,7 +951,7 @@ class FEMM_SlidingMesh(object):
             R = GP['mm_r_ro'].value - 0.5*GP['mm_d_rp'].value
             femm.mi_getmaterial('N40')
             for _ in range(2*SI['p']):
-                X, Y = R*np.cos(THETA), R*np.sin(THETA)
+                X, Y = R*math.cos(THETA), R*math.sin(THETA)
                 self.set_block_label(self.GroupSummary['magnet'], 'N40', (X, Y), MESH_SIZE_MAGNET, automesh=self.bool_automesh, magdir=THETA/np.pi*180 + _%2*180)
                 deg_alpha_rp = 360 / (2*SI['p'])
                 THETA += deg_alpha_rp / 180 * np.pi
@@ -961,7 +961,7 @@ class FEMM_SlidingMesh(object):
             THETA = 0
             femm.mi_getmaterial('N40')
             for _ in range(2*SI['pe']):
-                X, Y = R*np.cos(THETA), R*np.sin(THETA)
+                X, Y = R*math.cos(THETA), R*math.sin(THETA)
                 self.set_block_label(self.GroupSummary['magnet'], 'N40', (X, Y), MESH_SIZE_MAGNET, automesh=self.bool_automesh, magdir=THETA/np.pi*180 + 90 +_%2*180)
                 deg_alpha_rp = 360 / (2*SI['pe'])
                 THETA += deg_alpha_rp / 180 * np.pi
@@ -989,18 +989,18 @@ class FEMM_SlidingMesh(object):
         phase_shift_drive = -120 if wily.CommutatingSequenceD == 1 else 120
         phase_shift_beari = -120 if wily.CommutatingSequenceB == 1 else 120
         self.SIict_stator_current_function = []
-        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) \
-                                                                                                                                                         - ampB * np.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
-        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) \
-                                                                                                                                                         - ampB * np.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
-        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) \
-                                                                                                                                                         - ampB * np.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
-        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) \
-                                                                                                                                                         + ampB * np.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
-        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) \
-                                                                                                                                                         + ampB * np.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
-        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * np.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) \
-                                                                                                                                                         + ampB * np.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * math.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         - ampB * math.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * math.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         - ampB * math.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * math.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         - ampB * math.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * math.sin(omegaDrive*t + 0*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         + ampB * math.sin(omegaBeari*t + 0*phase_shift_beari/180*np.pi))
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * math.sin(omegaDrive*t + 1*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         + ampB * math.sin(omegaBeari*t + 1*phase_shift_beari/180*np.pi))
+        self.SIict_stator_current_function.append(lambda t, ampD=ampD, ampB=ampB, phase_shift_drive=phase_shift_drive, phase_shift_beari=phase_shift_beari: ampD * math.sin(omegaDrive*t + 2*phase_shift_drive/180*np.pi) \
+                                                                                                                                                         + ampB * math.sin(omegaBeari*t + 2*phase_shift_beari/180*np.pi))
 
         femm.mi_addcircprop('U-GrpAC', self.SIict_stator_current_function[0](0.0), SERIES_CONNECTED)
         femm.mi_addcircprop('V-GrpAC', self.SIict_stator_current_function[1](0.0), SERIES_CONNECTED)
@@ -1028,7 +1028,7 @@ class FEMM_SlidingMesh(object):
             # circuit_name = 'd' + phase
             circuit_name = phase + '-Grp' + ('AC' if AC_or_BD else 'BD')
             THETA += angle_per_slot
-            X = R*np.cos(THETA); Y = R*np.sin(THETA)
+            X = R*math.cos(THETA); Y = R*math.sin(THETA)
             count += 1
             if fraction == 4:
                 if not (count > Qs*0.5+EPS and count <= Qs*0.75+EPS): 
@@ -1048,7 +1048,7 @@ class FEMM_SlidingMesh(object):
                 # circuit_name = 'b' + phase
                 circuit_name = phase + '-Grp' + ('AC' if AC_or_BD else 'BD')
                 THETA += angle_per_slot
-                X = R*np.cos(THETA); Y = R*np.sin(THETA)
+                X = R*math.cos(THETA); Y = R*math.sin(THETA)
 
                 self.set_block_label(self.GroupSummary['coils'], 'Copper', (X, Y), MESH_SIZE_COPPER, turns=turnsDPNV*dict_dir[up_or_down], automesh=self.bool_automesh, incircuit=circuit_name)
 
@@ -1192,17 +1192,17 @@ class FEMM_SlidingMesh(object):
 
             # Show flux density plot by element
             plt.figure()
-            B = np.array([np.sqrt(el.femm_Bx_list[index]**2+el.femm_By_list[index]**2) for el in self.list_of_femm_triangle_element if el.group==10 and el.x>0 and el.y>0]); scaled_B = (B - B.min()) / B.ptp()
+            B = np.array([math.sqrt(el.femm_Bx_list[index]**2+el.femm_By_list[index]**2) for el in self.list_of_femm_triangle_element if el.group==10 and el.x>0 and el.y>0]); scaled_B = (B - B.min()) / B.ptp()
             plt.scatter( [el.x                                                         for el in self.list_of_femm_triangle_element if el.group==10 and el.x>0 and el.y>0], 
                          [el.y                                                         for el in self.list_of_femm_triangle_element if el.group==10 and el.x>0 and el.y>0], 
                          edgecolors=plt.cm.copper(scaled_B), color='white', marker='.')
 
-            B = np.array([np.sqrt(el.femm_Bx_list[index]**2+el.femm_By_list[index]**2) for el in self.list_of_femm_triangle_element if el.group==100 and el.x>0 and el.y>0]); scaled_B = (B - B.min()) / B.ptp()
+            B = np.array([math.sqrt(el.femm_Bx_list[index]**2+el.femm_By_list[index]**2) for el in self.list_of_femm_triangle_element if el.group==100 and el.x>0 and el.y>0]); scaled_B = (B - B.min()) / B.ptp()
             plt.scatter( [el.x                                                         for el in self.list_of_femm_triangle_element if el.group==100 and el.x>0 and el.y>0], 
                          [el.y                                                         for el in self.list_of_femm_triangle_element if el.group==100 and el.x>0 and el.y>0], 
                          edgecolors=plt.cm.copper(scaled_B), color='white', marker='.')
 
-            B = np.array([np.sqrt(el.femm_Bx_list[index]**2+el.femm_By_list[index]**2) for el in self.list_of_femm_triangle_element if el.group==101 and el.x>0 and el.y>0]); scaled_B = (B - B.min()) / B.ptp()
+            B = np.array([math.sqrt(el.femm_Bx_list[index]**2+el.femm_By_list[index]**2) for el in self.list_of_femm_triangle_element if el.group==101 and el.x>0 and el.y>0]); scaled_B = (B - B.min()) / B.ptp()
             plt.scatter( [el.x                                                         for el in self.list_of_femm_triangle_element if el.group==101 and el.x>0 and el.y>0], 
                          [el.y                                                         for el in self.list_of_femm_triangle_element if el.group==101 and el.x>0 and el.y>0], 
                          edgecolors=plt.cm.copper(scaled_B), color='white', marker='.')
@@ -1465,7 +1465,7 @@ class FEMM_SlidingMesh(object):
 
         # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
         # EX = acm_variant.template.d['EX']
-        # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+        # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
         # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
         # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
 
@@ -1520,7 +1520,7 @@ class FEMM_SlidingMesh(object):
 
         # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
         EX = acm_variant.template.d['EX']
-        CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+        CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
         CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
         CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
 
@@ -1573,7 +1573,7 @@ class FEMM_SlidingMesh(object):
         v1 = np.array([startxy[0] - centerxy[0], startxy[1] - centerxy[1]])
         v2 = np.array([endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]])
 
-        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (np.sqrt(v1.dot(v1))*np.sqrt(v2.dot(v2)))
+        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (math.sqrt(v1.dot(v1))*math.sqrt(v2.dot(v2)))
         angle = np.arccos(cos夹角)
         if angle == 0:
             angle = 360
@@ -1695,15 +1695,15 @@ class FEMM_SlidingMesh(object):
         R = im.Radius_OuterRotor + 0.25*im.Length_AirGap
         for i in range(number_of_points):
             THETA = i / 180.0 * np.pi
-            X = R*np.cos(THETA)
-            Y = R*np.sin(THETA)
+            X = R*math.cos(THETA)
+            Y = R*math.sin(THETA)
             B_vector_complex = femm.mo_getb(X, Y)
             B_X_complex = B_vector_complex[0]
             B_Y_complex = B_vector_complex[1]
             B_X_real = np.real(B_X_complex)
             B_Y_real = np.real(B_Y_complex)
             # Assume the magnitude is all due to radial component
-            B_magitude = np.sqrt(B_X_real**2 + B_Y_real**2)
+            B_magitude = math.sqrt(B_X_real**2 + B_Y_real**2)
             inner_product = B_X_real * X + B_Y_real *Y
             list_B_magitude.append( B_magitude * utility.copysign(1, inner_product) )
         return list_B_magitude
@@ -1729,14 +1729,14 @@ class FEMM_SlidingMesh(object):
             for i in range(self.rotor_slot_per_pole * int(4/fraction)):
                 THETA_BAR += angle_per_slot
                 THETA = THETA_BAR
-                X = R*np.cos(THETA); Y = R*np.sin(THETA)
+                X = R*math.cos(THETA); Y = R*math.sin(THETA)
                 femm.mo_selectblock(X, Y) # or you can select circuit rA rB ...
                 vals_results_rotor_current.append(femm.mo_blockintegral(7)) # integrate for current
                 femm.mo_clearblock()
             # the other half bar of rA
             THETA_BAR += angle_per_slot
             THETA = THETA_BAR - 2*EPS
-            X = R*np.cos(THETA); Y = R*np.sin(THETA)
+            X = R*math.cos(THETA); Y = R*math.sin(THETA)
             femm.mo_selectblock(X, Y)
             vals_results_rotor_current.append(femm.mo_blockintegral(7)) # integrate for current
             femm.mo_clearblock()

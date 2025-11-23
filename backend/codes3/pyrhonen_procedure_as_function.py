@@ -1487,7 +1487,7 @@ class desgin_specification(object):
             print('Pyrhonen TODO: set a proper Rs value')
             self.pmsm_template.DriveW_Rs         = spec_geometry_dict['DriveW_Rs']= 1.0 # TODO: Must be greater than zero to let JMAG work
             self.pmsm_template.DriveW_zQ         = spec_geometry_dict['DriveW_zQ']= self.get_zQ() # TODO:
-            self.pmsm_template.DriveW_CurrentAmp = spec_geometry_dict['DriveW_CurrentAmp']= np.sqrt(2)*self.get_stator_phase_current_rms() # TODO:
+            self.pmsm_template.DriveW_CurrentAmp = spec_geometry_dict['DriveW_CurrentAmp']= math.sqrt(2)*self.get_stator_phase_current_rms() # TODO:
             self.pmsm_template.DriveW_poles      = spec_geometry_dict['DriveW_poles']= self.p*2
 
             self.pmsm_template.Js                = spec_geometry_dict['Js']= 4e6 # Arms/mm^2 im_template.Js 
@@ -1598,7 +1598,7 @@ class desgin_specification(object):
         print('Pyrhonen TODO: set a proper Rs value')
         self.pmVM_template.DriveW_Rs         = spec_geometry_dict['DriveW_Rs']= 1.0 # TODO: Must be greater than zero to let JMAG work
         self.pmVM_template.DriveW_zQ         = spec_geometry_dict['DriveW_zQ']= self.get_zQ() # TODO:
-        self.pmVM_template.DriveW_CurrentAmp = spec_geometry_dict['DriveW_CurrentAmp']= np.sqrt(2)*self.get_stator_phase_current_rms() # TODO:
+        self.pmVM_template.DriveW_CurrentAmp = spec_geometry_dict['DriveW_CurrentAmp']= math.sqrt(2)*self.get_stator_phase_current_rms() # TODO:
         self.pmVM_template.DriveW_poles      = spec_geometry_dict['DriveW_poles']= self.p*2
 
         self.pmVM_template.Js                = spec_geometry_dict['Js']= 4e6 # Arms/mm^2 im_template.Js 
@@ -1663,7 +1663,7 @@ class desgin_specification(object):
 
     def get_stator_phase_current_rms(self):
         no_phase_m = self.m
-        stator_phase_voltage_rms = self.VoltageRating / np.sqrt(3)
+        stator_phase_voltage_rms = self.VoltageRating / math.sqrt(3)
         stator_phase_current_rms = self.mec_power / (no_phase_m*self.guess_efficiency*stator_phase_voltage_rms*self.guess_power_factor)
         return stator_phase_current_rms
 
@@ -1677,7 +1677,7 @@ class desgin_specification(object):
 
     def get_zQ(self):
         no_phase_m = self.m
-        stator_phase_voltage_rms = self.VoltageRating / np.sqrt(3)
+        stator_phase_voltage_rms = self.VoltageRating / math.sqrt(3)
         desired_emf_Em = 0.95 * stator_phase_voltage_rms 
         
         if self.SIPNV_or_SEPA:
@@ -1739,7 +1739,7 @@ class desgin_specification(object):
 # Public Access Utility Funcitons for Initial Design
 def get_stator_phase_current_rms(SI):
     no_phase_m = SI['m']
-    stator_phase_voltage_rms = SI['EX']['VoltageRating'] / np.sqrt(3)
+    stator_phase_voltage_rms = SI['EX']['VoltageRating'] / math.sqrt(3)
     stator_phase_current_rms = SI['mec_power'] / (no_phase_m*SI['guess_efficiency']*stator_phase_voltage_rms*SI['guess_power_factor'])
     return stator_phase_current_rms
 
@@ -1758,7 +1758,7 @@ def get_mm_template_stack_length(SI, rotor_outer_radius_r_or):
 
 def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specified_mm_stack_length=None):
 
-    stator_phase_voltage_rms = SI['EX']['VoltageRating'] / np.sqrt(3)
+    stator_phase_voltage_rms = SI['EX']['VoltageRating'] / math.sqrt(3)
     desired_emf_Em = 0.95 * stator_phase_voltage_rms 
 
     if SI['DPNV_or_SEPA'] is None:

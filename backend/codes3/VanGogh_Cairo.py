@@ -1,7 +1,7 @@
 # importing pycairo
 import cairo
 import logging
-from pylab import np
+from pylab import np; import math
 EPS=1e-4
 
 class VanGogh_Cairo:
@@ -45,7 +45,7 @@ class VanGogh_Cairo:
 
         v1 = np.array([startxy[0] - centerxy[0], startxy[1] - centerxy[1]])
         v2 = np.array([endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]])
-        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (np.sqrt(v1.dot(v1))*np.sqrt(v2.dot(v2)))
+        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (math.sqrt(v1.dot(v1))*math.sqrt(v2.dot(v2)))
         if 1.0 < cos夹角 < 1.0+EPS:
             cos夹角 = 1.0
             logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class VanGogh_Cairo:
             logger.debug('cos夹角=%s', cos夹角)
         angle_between = np.arccos(cos夹角)
 
-        radius = np.sqrt(v1.dot(v1))
+        radius = math.sqrt(v1.dot(v1))
         angle_start = np.arctan2(v1[1], v1[0])
         angle_end = angle_start + angle_between
 
@@ -99,7 +99,7 @@ class VanGogh_Cairo:
         if False:
             # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
             EX = acm_variant.template.d['EX']
-            CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+            CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
             CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
             CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
 
@@ -163,7 +163,7 @@ class VanGogh_Cairo:
         if False:
             # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
             EX = acm_variant.template.d['EX']
-            CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+            CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
             CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
             CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
 
@@ -226,7 +226,7 @@ class VanGogh_Cairo:
         if False:
             # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
             EX = acm_variant.template.d['EX']
-            CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+            CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
             CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
             CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
 

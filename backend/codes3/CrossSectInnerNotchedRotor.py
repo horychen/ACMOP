@@ -1,4 +1,4 @@
-from pylab import np, cos, sin
+from math import cos, sin; import numpy as np
 import logging
 EPS = 1e-3 # [mm]
 
@@ -162,7 +162,7 @@ class CrossSectInnerNotchedRotor(object):
             else:
                 if bool_draw_whole_model:
                     def iPark(P, theta):
-                        return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                        return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
                     def draw_fraction(list_segments, P2, P3, P4, P5):
                         list_segments += drawer.drawArc([0,0], P3, P2)
                         list_segments += drawer.drawLine(P3, P4)
@@ -348,7 +348,7 @@ class CrossSectInnerNotchedMagnet(object):
 
             if bool_draw_whole_model:
                 def iPark(P, theta):
-                    return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                    return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
                 def draw_fraction(list_segments, P3_extra, P4, P5, P6_extra):
                     list_segments += drawer.drawLine(P3_extra, P4)
                     list_segments += drawer.drawArc([0,0], P5, P4)

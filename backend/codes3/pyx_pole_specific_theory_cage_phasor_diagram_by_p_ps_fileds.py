@@ -1,6 +1,6 @@
 import PyX_classes, PyX_Utility
 import os, pyx
-from pylab import np
+from pylab import np; import math
 
 ''' TEC-ISMB-2021 鼠笼相量图
 '''
@@ -61,8 +61,8 @@ if __name__ == '__main__':
 
     def rotate_arrow_and_text(BarNo):
         alpha = p*(BarNo-1)*alpha_c / 180 * np.pi
-        x = x_ori* np.cos(alpha) + y_ori*-np.sin(alpha)
-        y = x_ori* np.sin(alpha) + y_ori* np.cos(alpha)
+        x = x_ori* math.cos(alpha) + y_ori*-math.sin(alpha)
+        y = x_ori* math.sin(alpha) + y_ori* math.cos(alpha)
         pu.pyx_arrow((x,y))
         pu.pyx_text(( np.sign(x)*(abs(x)-1), 
                       np.sign(y)*(abs(y)-1)

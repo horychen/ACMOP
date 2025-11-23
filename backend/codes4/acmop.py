@@ -1,8 +1,10 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
-import os, json, acm_designer, VanGogh_Cairo, bearingless_spmsm_closedSlot_design
+import os, json, acm_designer, VanGogh_Cairo
+import bearingless_spmsm_closedSlot_design, bearingless_spmsm_heart
 import utility
 import logging, collections
 from dataclasses import dataclass
+import builtins
 @dataclass
 class AC_Machine_Optiomization_Wrapper(object):
     ''' Inputs
@@ -126,10 +128,10 @@ class AC_Machine_Optiomization_Wrapper(object):
     def part_initialDesign(self):
         if 'ClosedStator' in self.select_spec:
             function = bearingless_spmsm_closedSlot_design.bearingless_spmsm_closedStator_template
-        # if 'PMSM' in self.select_spec:
+        # elif 'PMSM' in self.select_spec:
         #     function = bearingless_spmsm_design.bearingless_spmsm_template
-        #     if 'Heart' in self.select_spec:
-        #         function = bearingless_spmsm_heart.bearingless_spmsm_template
+        elif 'Heart' in self.select_spec:
+            function = bearingless_spmsm_heart.bearingless_spmsm_template
         # elif 'PMVM' in self.select_spec:
         #     function = vernier_motor_design.vernier_motor_VShapePM_template
         # elif 'IM' in self.select_spec:
@@ -146,7 +148,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         #     function = bearingless_consequentsinglePole_design.bearingless_consequentsinglePole_template
         acm_template = function(self.fea_config_dict, self.spec_input_dict)
 
-        self.ad = acm_designer.acm_designer(
+        builtins.ad = self.ad = acm_designer.acm_designer(
                     self.select_spec, 
                     self.spec_input_dict, 
                     self.select_fea_config_dict,
@@ -167,7 +169,7 @@ class AC_Machine_Optiomization_Wrapper(object):
     def part_evaluation(self, specify_counter=None, specify_x_denorm=None):
         if specify_x_denorm is None:
             # build x_denorm for the template design
-            x_denorm = self.ad.acm_template.build_x_denorm()
+            x_denorm = self.ad.acm_template.get_x_denorm()
         else:
             x_denorm = specify_x_denorm
         self.logger.info('x_denorm: %s', x_denorm)
@@ -638,8 +640,10 @@ class AC_Machine_Optiomization_Wrapper(object):
 
 def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
-        select_spec            = "ClosedStatorPMSM Q12p5ps4y1 Spindle", # "PMSM Q12p4ps5y1 Heart", # select_spec = "SliceIM Q12p4ps5y1-Qr10",
-        select_fea_config_dict = "#0301 JMAG Non-Bearingless",   # "#0213 JMAG Bearingless Sub-hamonics",     # select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
+        # select_spec            = "ClosedStatorPMSM Q12p5ps4y1 Spindle", # "PMSM Q12p4ps5y1 Heart", # select_spec = "SliceIM Q12p4ps5y1-Qr10",
+        # select_fea_config_dict = "#0301 JMAG Non-Bearingless",   # "#0213 JMAG Bearingless Sub-hamonics",     # select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
+        select_spec            = "PMSM Q12p4ps5y1 Heart",
+        select_fea_config_dict = "#0213 JMAG Bearingless Sub-hamonics",     # select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
         project_loc            = fr'../_default/',
         bool_show_GUI          = True    # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
     )
@@ -655,6 +659,21 @@ def main(number_which_part):
         mop.part_evaluation() # Module 3
     elif number_which_part == 31:
         mop.part_evaluation_geometry(bool_show_pdf=True)
+
+        # version 1: easier on eyes
+        with open(mop.ad.fea_config_dict['output_dir'] + 'DesignVisualization.json', 'w') as f:
+            def safe_serialize(obj, f, indent=4):
+                default = lambda o: f"<<non-serializable: {type(o).__qualname__}>>"
+                return json.dump(obj, f, indent=indent, default=default)
+            safe_serialize(mop.ad.visualize_dict, f, indent=4)
+
+        # version 2: recoverable
+        import jsonpickle
+        with open(mop.ad.fea_config_dict['output_dir'] + 'DesignVisualizationPickle.json', 'w') as f:
+            json_string = jsonpickle.encode(mop.ad.visualize_dict, indent=4)
+            # recreated_obj = jsonpickle.decode(json_string)
+            f.write(json_string)
+
     elif number_which_part == 4:
         mop.part_optimization() # Module 4
     elif number_which_part == 5:
@@ -701,7 +720,7 @@ if __name__ == '__main__':
 
         Example 4 (show element |B| in the air gap):
             >>> import utility, acmop
-            >>> from pylab import np, plt
+            >>> from pylab import np; import math, plt
             >>> mop = acmop.main(5)
             >>> var = mop.reproduced_design_variant
             >>> z = var.analyzer.z 

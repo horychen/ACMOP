@@ -1,4 +1,4 @@
-from pylab import np, cos, sin
+from math import cos, sin; import numpy as np
 EPS = 1e-3 # [mm]
 
 # class ExceptionBadDesign(Exception):
@@ -171,7 +171,7 @@ class CrossSectConsequentPoleRotor(object):
                     # list_segments += drawer.drawArc([0,0], P1p5, [-P1p5[0], P1p5[1]])
                     # list_segments += drawer.drawArc([0,0], [-P1p5[0], P1p5[1]], P1p5)
                     def iPark(P, theta):
-                        return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                        return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
                     if 0:
                         def draw_fraction(list_segments, P1, P2, P3_extra, P4_extra, P5, P6_extra):
                             if (i % 2) == 0:
@@ -244,7 +244,7 @@ class CrossSectConsequentPoleRotor(object):
                 print(F'{alpha_rm=}, {alpha_rp=}, {s=}')
                 if bool_draw_whole_model:
                     def iPark(P, theta):
-                        return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                        return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
                     
                     if 0:
                         def draw_fraction(list_segments, P1, P2, P3_extra, P4_extra, P5, P6_extra):
@@ -402,7 +402,7 @@ class CrossSectConsequentPoleMagnet(object):
 
             if bool_draw_whole_model:
                 def iPark(P, theta):
-                    return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                    return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
                 
                 
                 if 0:

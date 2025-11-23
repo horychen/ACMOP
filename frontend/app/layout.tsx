@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
-import { ProjectProvider } from "@/context/ProjectContext";
+import { ClientProviders } from "@/components/ClientProviders";
+import { LayoutClient } from "@/components/LayoutClient";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,16 +17,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ProjectProvider>
-          <div className="flex h-screen overflow-hidden">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto p-8">
-              {children}
-            </main>
-          </div>
-        </ProjectProvider>
+        <ClientProviders>
+          <LayoutClient>
+            {children}
+          </LayoutClient>
+        </ClientProviders>
       </body>
     </html>
   );

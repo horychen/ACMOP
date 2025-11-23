@@ -2,7 +2,7 @@ import sys
 print(sys.version)
 import PyX_classes, PyX_Utility
 import os, pyx
-from pylab import np
+from pylab import np; import math
 
 ''' TEC-ISMB-2021 鼠笼磁场时域图
 '''
@@ -26,9 +26,9 @@ if __name__ == '__main__':
     freq = 0.2
     period = 1/freq
     def fblue(t):
-        return  - hat_B_delta_ps*np.sin(2*np.pi*(freq) * t )
+        return  - hat_B_delta_ps*math.sin(2*np.pi*(freq) * t )
     def fgreen(t):
-        return  - hat_B_delta_p*np.sin(2*np.pi*(freq*3/4) * t )
+        return  - hat_B_delta_p*math.sin(2*np.pi*(freq*3/4) * t )
     graph.draw( pu, [(t, fblue(t)) for t in np.arange( 0, 4*period+.01, period/40)], settings=['blue'] )
     PyX_Utility.global_settings['linestyle'] = pyx.style.linestyle.dashdotted
     PyX_Utility.global_settings['linewidth'] = pyx.style.linewidth.THick

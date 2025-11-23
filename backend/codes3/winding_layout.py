@@ -1267,7 +1267,7 @@ class pole_specific_winding_with_neutral():
             # self.pairs=[(0, 14), (1, 15), (2, 16), (3, 17), (4, 18), (5, 19), (6, 20), (7, 21), (8, 22), (9, 23), (10, 24), (11, 25), (12, 26), (13, 27)]
             self.pairs=[(1, 15), (2, 16), (3, 17), (4, 18), (5, 19), (6, 20), (7, 21), (8, 22), (9, 23), (10, 24), (11, 25), (12, 26), (13, 27), (14, 28)]
 
-from pylab import np, plt, fft, linspace
+from pylab import np; import math, plt, fft, linspace
 import scipy.integrate as integrate
 
 def nextpow2(L):

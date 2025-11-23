@@ -1462,7 +1462,7 @@ class FEMM_Solver(object):
         for item in zip(data[0], data[1]):
             item = item[0] + 1j * item[1]
             item *= -1j # -1j is added to be consistent with JMAG (whose Current Source uses sine function)
-            amp = np.sqrt(item.imag**2 + item.real**2)
+            amp = math.sqrt(item.imag**2 + item.real**2)
             phase = np.arctan2(item.real, -item.imag) # atan2(y, x), y=a, x=-b
             print('\tDEBUG:', amp , self.im.slip_freq_breakdown_torque, phase)
             dict_rotor_current_function.append(lambda t, amp=amp, phase=phase: amp * sin(2*pi*self.im.slip_freq_breakdown_torque*t + phase))
@@ -1481,7 +1481,7 @@ class FEMM_Solver(object):
             # self.SIict_stator_current_from_EC_FEA = OrderedDict(self.SIict_stator_current_from_EC_FEA)
             # dict_stator_current_function = []
             # for key, item in self.SIict_stator_current_from_EC_FEA.items():
-            #     amp = np.sqrt(item.imag**2 + item.real**2)
+            #     amp = math.sqrt(item.imag**2 + item.real**2)
             #     phase = np.arctan2(item.real, -item.imag) # atan2(y, x), y=a, x=-b
             #     dict_stator_current_function.append(lambda t, amp=amp, phase=phase: amp * sin(2*pi*self.im.DriveW_Freq*t + phase))
             #     print('\t', key, item, amp, phase/pi*180)
@@ -1560,7 +1560,7 @@ class FEMM_Solver(object):
         self.SIict_rotor_current_from_EC_FEA = OrderedDict(self.SIict_rotor_current_from_EC_FEA)
         dict_rotor_current_function = []
         for key, item in self.SIict_rotor_current_from_EC_FEA.items():
-            amp = np.sqrt(item[1]**2 + item[0]**2)
+            amp = math.sqrt(item[1]**2 + item[0]**2)
             phase = np.arctan2(item[0], -item[1]) # atan2(y, x), y=a, x=-b
 
             if '1' in key:
@@ -1573,7 +1573,7 @@ class FEMM_Solver(object):
         self.SIict_stator_current_function_wrong = []
         dict_stator_current_function = []
         for key, item in self.SIict_stator_current_from_EC_FEA.items():
-            amp = np.sqrt(item[1]**2 + item[0]**2)
+            amp = math.sqrt(item[1]**2 + item[0]**2)
             phase = np.arctan2(item[0], -item[1]) # atan2(y, x), y=a, x=-b
             self.SIict_stator_current_function_wrong.append(lambda t, amp=amp, phase=phase: amp * sin(2*pi*self.im.DriveW_Freq*t + phase))
             # dict_stator_current_function.append(lambda t, amp=amp, phase=phase: amp * sin(2*pi*self.im.slip_freq_breakdown_torque*t + phase))
@@ -1632,8 +1632,8 @@ class FEMM_Solver(object):
                 theta = self.im.DriveW_Freq*2*pi * t[i]
 
                 # turn into stationary dq frame
-                temp = np.dot( np.array([ [np.cos(theta), -np.sin(theta)], 
-                                          [np.sin(theta),  np.cos(theta)] ]), np.array([ [ialbe[0][i]], 
+                temp = np.dot( np.array([ [math.cos(theta), -math.sin(theta)], 
+                                          [math.sin(theta),  math.cos(theta)] ]), np.array([ [ialbe[0][i]], 
                                                                                          [ialbe[1][i]] ]) )
                 ids.append(temp[0])
                 iqs.append(temp[1])
@@ -1688,8 +1688,8 @@ class FEMM_Solver(object):
         # print 'ialbe', ialbe
 
         # turn into stationary dq frame
-        idq = np.dot( np.array([ [np.cos(theta), -np.sin(theta)], 
-                                 [np.sin(theta),  np.cos(theta)] ]), ialbe )
+        idq = np.dot( np.array([ [math.cos(theta), -math.sin(theta)], 
+                                 [math.sin(theta),  math.cos(theta)] ]), ialbe )
         # print 'idq', idq
 
         iabc_stationary = 1.5 * np.dot(np.array([ [ 2/3.,          0], 

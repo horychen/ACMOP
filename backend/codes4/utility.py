@@ -13,6 +13,31 @@ def my_execfile(filename, g=None, l=None):
     # g=globals(), l=locals()
     exec(compile(open(filename, "rb").read(), filename, 'exec'), g, l)
 
+def json_dump_ignoring_unserializable(obj, *args, **kwargs):
+    """
+    Dumps a Python object to a JSON string, ignoring objects that cannot be serialized.
+
+    Args:
+        obj: The Python object to serialize.
+        *args: Additional positional arguments for json.dumps().
+        **kwargs: Additional keyword arguments for json.dumps().
+    """
+    def default_serializer(o):
+        """
+        Custom serializer to handle non-serializable objects.
+        Returns a string representation indicating the object type, or raises TypeError.
+        """
+        try:
+            # Attempt to get a basic string representation
+            return str(o)
+        except Exception:
+            # If even str() fails, return a generic message
+            return f"<<unserializable: {type(o).__qualname__}>>"
+
+    # Pass the custom default_serializer to json.dumps
+    return json.dumps(obj, default=default_serializer, *args, **kwargs)
+
+
 class ExceptionReTry(Exception):
     """Exception for requiring a second attemp."""
     def __init__(self, message, payload=None):
@@ -456,7 +481,7 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
         windage_loss_radial = c_W*np.pi*rho_Air* Omega**3 * R**5 * (1.+L/R)
 
     else: # shrouded cylinder by air gap from <Loss measurement of a 30 kW High Speed Permanent Magnet Synchronous Machine with Active Magnetic Bearings>
-        Tay = R*(Omega)*(delta/nu_Air)*np.sqrt(delta/R) # Taylor number 
+        Tay = R*(Omega)*(delta/nu_Air)*math.sqrt(delta/R) # Taylor number 
         if Rey <= 170:
             c_W = 8. / Rey
         elif Rey>170 and Tay<41.3:
@@ -500,7 +525,7 @@ class suspension_force_vector(object):
                 angle += 360
             self.force_ang.append(angle)
         # print('-'*40+'\nsfv:', self.force_ang)
-        self.force_abs = np.sqrt(np.array(force_x)**2 + np.array(force_y)**2 )
+        self.force_abs = math.sqrt(np.array(force_x)**2 + np.array(force_y)**2 )
 
         if range_ss == None:
             range_ss = len(force_x)
@@ -514,7 +539,7 @@ class suspension_force_vector(object):
         # if self.ss_avg_force_angle < 0:
         #     self.ss_avg_force_angle += 360
         # print('sfv:', self.ss_avg_force_angle)
-        self.ss_avg_force_magnitude = np.sqrt(self.ss_avg_force_vector[0]**2 + self.ss_avg_force_vector[1]**2)
+        self.ss_avg_force_magnitude = math.sqrt(self.ss_avg_force_vector[0]**2 + self.ss_avg_force_vector[1]**2)
 
         self.force_err_ang_old_way = self.force_ang - self.ss_avg_force_angle # This can be wrong for the case "3 deg - 354 deg"
         # self.force_err_ang_new_way = self.compute_angle_error(np.ones(len(self.force_ang))*self.ss_avg_force_angle, np.array(self.force_ang))
@@ -596,7 +621,7 @@ def read_csv_results_4_comparison__transient(study_name, path_prefix):
                 # time_list.append(float(row[0]))
                 ForConX_list.append(float(row[1]))
                 ForConY_list.append(float(row[2]))
-    ForConAbs_list = np.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
+    ForConAbs_list = math.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
 
     # Current
     key_list = []
@@ -652,7 +677,7 @@ def read_csv_results_4_comparison_eddycurrent(study_name, path_prefix):
             else:
                 ForConX_list.append(float(row[1]))
                 ForConY_list.append(float(row[2]))
-    ForConAbs_list = np.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
+    ForConAbs_list = math.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
 
     dm = data_manager()
     dm.basic_info     = None
@@ -728,7 +753,7 @@ def collect_jmag_Tran2TSSProlong_results(im_variant, path_prefix, fea_config_dic
         number_of_repeat = int(end_time / time_list[-1]) + 2
         femm_force_x = femm_solver_data[2].tolist()
         femm_force_y = femm_solver_data[3].tolist()        
-        femm_force_abs = np.sqrt(np.array(femm_force_x)**2 + np.array(femm_force_y)**2 )
+        femm_force_abs = math.sqrt(np.array(femm_force_x)**2 + np.array(femm_force_y)**2 )
 
         # 延拓
         femm_torque  = number_of_repeat * femm_solver_data[1].tolist()
@@ -803,7 +828,7 @@ def get_copper_loss_Bolognani(stator_slot_area, rotor_slot_area=None, STATOR_SLO
     # Area_conductor_Sc        = Area_S_slot * STATOR_SLOT_FILL_FACTOR / zQ
 
     if False: # code for reference
-        CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+        CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
         CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
         CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
 
@@ -920,7 +945,7 @@ def check_csv_results_4_general_purpose(study_name, path_prefix, returnBoolean=F
         # self.fitness_in_physics_data.append(l_slip_freq)
         # self.fitness_in_physics_data.append(l_TorCon)
 
-        breakdown_force = max(np.sqrt(np.array(l_ForCon_X)**2 + np.array(l_ForCon_Y)**2))
+        breakdown_force = max(math.sqrt(np.array(l_ForCon_X)**2 + np.array(l_ForCon_Y)**2))
 
         index, breakdown_torque = get_index_and_max(l_TorCon)
         slip_freq_breakdown_torque = l_slip_freq[index]

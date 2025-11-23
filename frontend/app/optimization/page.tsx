@@ -95,3 +95,4 @@ export default function OptimizationPage() {
         </div>
     )
 }
+export const dynamic = 'force-dynamic'

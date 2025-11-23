@@ -7,7 +7,7 @@
 
 import os, sys, femm
 from time import time
-from pylab import np
+from pylab import np; import math
 
 id_solver = int(sys.argv[1])
 number_of_parallel_solve = int(sys.argv[2])

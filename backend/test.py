@@ -17,10 +17,10 @@ import numpy as np
 def main():
     fig, axeses = plt.subplots(2, 2)
     time_list = np.linspace(0, 10, 100)
-    torque = np.sin(time_list)
-    force_x = np.cos(time_list)
-    force_y = np.sin(time_list)
-    force_abs = np.sqrt(force_x**2 + force_y**2)
+    torque = math.sin(time_list)
+    force_x = math.cos(time_list)
+    force_y = math.sin(time_list)
+    force_abs = math.sqrt(force_x**2 + force_y**2)
     sfv = type('sfv', (object,), {
         'force_abs': force_abs,
         'force_x': force_x,

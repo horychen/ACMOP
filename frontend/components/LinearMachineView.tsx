@@ -1,0 +1,340 @@
+"use client";
+
+import React, { useEffect, useRef, useMemo } from 'react';
+import * as d3 from 'd3';
+import { MachineGeometry } from '../types';
+import { useTheme } from '@/context/ThemeContext';
+
+interface LinearMachineViewProps {
+    geometry: MachineGeometry;
+}
+
+const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry }) => {
+    const svgRef = useRef<SVGSVGElement>(null);
+    const { theme } = useTheme();
+
+    // Calculate coil distribution (distributed winding)
+    const coilDistribution = useMemo(() => {
+        const slots = geometry.slots;
+        const poles = geometry.poles;
+        const slotsPerPole = slots / poles;
+        const phases = 3; // 3-phase winding
+        const slotsPerPolePerPhase = slotsPerPole / phases;
+        
+        // Generate coil sides for each slot (2 conductors per slot)
+        // Each coil has two sides: one in top layer, one in bottom layer
+        const coils: Array<{ slot: number; topConductor: number | null; bottomConductor: number | null }> = [];
+        
+        // Calculate total number of coils
+        const totalCoils = slots; // Each slot contributes to coils
+        
+        // Assign conductors to slots
+        // For a typical distributed winding, conductors are numbered sequentially
+        // Each slot has 2 conductors (top and bottom layers)
+        for (let slot = 0; slot < slots; slot++) {
+            // Top conductor: slot number + 1 (1-indexed)
+            // Bottom conductor: connects to another slot's top conductor
+            // For simplicity, we'll number them sequentially
+            const topConductor = slot * 2 + 1;
+            const bottomConductor = slot * 2 + 2;
+            
+            coils.push({
+                slot,
+                topConductor,
+                bottomConductor: bottomConductor <= totalCoils * 2 ? bottomConductor : null
+            });
+        }
+        
+        return coils;
+    }, [geometry.slots, geometry.poles]);
+
+    // Color schemes based on theme
+    const colors = useMemo(() => theme === 'dark' ? {
+        statorYoke: "#334155",      // Slate 700
+        statorTeeth: "#475569",     // Slate 600
+        slotBackground: "#0f172a",  // Slate 950
+        conductor: "#b87333",       // Copper
+        conductorStroke: "#d97706",  // Amber 600
+        text: "#e2e8f0",             // Slate 200
+        textSecondary: "#94a3b8",    // Slate 400
+        border: "#475569",            // Slate 600
+        background: "#0f172a"        // Slate 950
+    } : {
+        statorYoke: "#64748b",       // Slate 500
+        statorTeeth: "#94a3b8",      // Slate 400
+        slotBackground: "#f8fafc",   // Slate 50
+        conductor: "#d97706",        // Amber 600 (brighter copper)
+        conductorStroke: "#f59e0b",  // Amber 500
+        text: "#1e293b",             // Slate 800
+        textSecondary: "#475569",    // Slate 600
+        border: "#cbd5e1",           // Slate 300
+        background: "#f8fafc"        // Slate 50
+    }, [theme]);
+
+    useEffect(() => {
+        if (!svgRef.current) return;
+
+        const drawSVG = () => {
+            if (!svgRef.current) return;
+
+            const svg = d3.select(svgRef.current);
+            svg.selectAll("*").remove();
+
+            // Get actual container dimensions
+            const container = svgRef.current.parentElement;
+            const containerWidth = container?.clientWidth || 800;
+            const containerHeight = 350; // Fixed height for consistency
+            
+            // Use container width for SVG, ensure minimum width
+            const width = Math.max(containerWidth, 600);
+            const height = containerHeight;
+            
+            // Update SVG dimensions
+            svg.attr("width", width).attr("height", height);
+            
+            const margin = { top: 40, right: 20, bottom: 60, left: 60 };
+            const innerWidth = width - margin.left - margin.right;
+            const innerHeight = height - margin.top - margin.bottom;
+
+        const g = svg.append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+        // Calculate dimensions
+        const slotWidth = innerWidth / geometry.slots;
+        const statorYokeHeight = 40;
+        const slotDepth = 80;
+        const toothHeight = 20;
+        const airGapHeight = 10;
+        const rotorHeight = 60;
+        const totalHeight = statorYokeHeight + slotDepth + toothHeight + airGapHeight + rotorHeight;
+
+        // Scale to fit
+        const scaleY = innerHeight / totalHeight;
+        const scaledYoke = statorYokeHeight * scaleY;
+        const scaledSlot = slotDepth * scaleY;
+        const scaledTooth = toothHeight * scaleY;
+        const scaledAirGap = airGapHeight * scaleY;
+        const scaledRotor = rotorHeight * scaleY;
+
+        // Draw Stator Yoke (top)
+        g.append("rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", innerWidth)
+            .attr("height", scaledYoke)
+            .attr("fill", colors.statorYoke)
+            .attr("stroke", colors.border)
+            .attr("stroke-width", 1);
+
+        // Draw Slots and Teeth
+        for (let i = 0; i < geometry.slots; i++) {
+            const x = i * slotWidth;
+            const slotX = x;
+            const toothX = x + slotWidth * 0.6; // Tooth takes 60% of slot pitch
+            const toothW = slotWidth * 0.4;     // Tooth width
+
+            // Slot (rectangular opening)
+            g.append("rect")
+                .attr("x", slotX)
+                .attr("y", scaledYoke)
+                .attr("width", slotWidth)
+                .attr("height", scaledSlot)
+                .attr("fill", colors.slotBackground)
+                .attr("stroke", colors.border)
+                .attr("stroke-width", 0.5);
+
+            // Tooth
+            g.append("rect")
+                .attr("x", toothX)
+                .attr("y", scaledYoke)
+                .attr("width", toothW)
+                .attr("height", scaledSlot)
+                .attr("fill", colors.statorTeeth)
+                .attr("stroke", colors.border)
+                .attr("stroke-width", 0.5);
+
+            // Conductors in slot (2 per slot - always show both)
+            const coil = coilDistribution[i];
+            const conductorRadius = Math.min(slotWidth * 0.15, scaledSlot * 0.15);
+            const topY = scaledYoke + scaledSlot * 0.3;
+            const bottomY = scaledYoke + scaledSlot * 0.7;
+
+            // Top conductor (always present)
+            g.append("circle")
+                .attr("cx", slotX + slotWidth / 2)
+                .attr("cy", topY)
+                .attr("r", conductorRadius)
+                .attr("fill", colors.conductor)
+                .attr("stroke", colors.conductorStroke)
+                .attr("stroke-width", 1.5);
+
+            // Top conductor label
+            g.append("text")
+                .attr("x", slotX + slotWidth / 2)
+                .attr("y", topY - conductorRadius - 3)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "9px")
+                .attr("font-weight", "bold")
+                .attr("fill", colors.text)
+                .text(coil.topConductor !== null ? `${coil.topConductor}` : '');
+
+            // Bottom conductor (always present)
+            g.append("circle")
+                .attr("cx", slotX + slotWidth / 2)
+                .attr("cy", bottomY)
+                .attr("r", conductorRadius)
+                .attr("fill", colors.conductor)
+                .attr("stroke", colors.conductorStroke)
+                .attr("stroke-width", 1.5);
+
+            // Bottom conductor label
+            g.append("text")
+                .attr("x", slotX + slotWidth / 2)
+                .attr("y", bottomY + conductorRadius + 12)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "9px")
+                .attr("font-weight", "bold")
+                .attr("fill", colors.text)
+                .text(coil.bottomConductor !== null ? `${coil.bottomConductor}` : '');
+
+            // Slot number
+            g.append("text")
+                .attr("x", slotX + slotWidth / 2)
+                .attr("y", scaledYoke + scaledSlot + 15)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "9px")
+                .attr("fill", colors.textSecondary)
+                .text(`S${i + 1}`);
+        }
+
+        // Air gap line
+        const airGapY = scaledYoke + scaledSlot;
+        g.append("line")
+            .attr("x1", 0)
+            .attr("y1", airGapY)
+            .attr("x2", innerWidth)
+            .attr("y2", airGapY)
+            .attr("stroke", colors.border)
+            .attr("stroke-width", 2)
+            .attr("stroke-dasharray", "4,4");
+
+        // Rotor (simplified as a rectangle)
+        g.append("rect")
+            .attr("x", 0)
+            .attr("y", airGapY)
+            .attr("width", innerWidth)
+            .attr("height", scaledRotor)
+            .attr("fill", theme === 'dark' ? "#cbd5e1" : "#e2e8f0")
+            .attr("stroke", colors.border)
+            .attr("stroke-width", 1);
+
+        // Rotor poles indication
+        const poleWidth = innerWidth / geometry.poles;
+        for (let i = 0; i < geometry.poles; i++) {
+            const poleX = i * poleWidth;
+            g.append("rect")
+                .attr("x", poleX)
+                .attr("y", airGapY)
+                .attr("width", poleWidth)
+                .attr("height", scaledRotor)
+                .attr("fill", i % 2 === 0 
+                    ? (theme === 'dark' ? "#ef4444" : "#dc2626")
+                    : (theme === 'dark' ? "#3b82f6" : "#2563eb"))
+                .attr("opacity", 0.3)
+                .attr("stroke", colors.border)
+                .attr("stroke-width", 0.5);
+
+            // Pole label
+            g.append("text")
+                .attr("x", poleX + poleWidth / 2)
+                .attr("y", airGapY + scaledRotor / 2)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "10px")
+                .attr("font-weight", "bold")
+                .attr("fill", colors.text)
+                .text(i % 2 === 0 ? "N" : "S");
+        }
+
+        // Title
+        g.append("text")
+            .attr("x", innerWidth / 2)
+            .attr("y", -10)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "14px")
+            .attr("font-weight", "bold")
+            .attr("fill", colors.text)
+            .text(`Linear Machine View - ${geometry.slots} Slots, ${geometry.poles} Poles`);
+
+        // Legend
+        const legendY = innerHeight + 20;
+        const legendItems = [
+            { label: "Conductor", color: colors.conductor },
+            { label: "Stator Yoke", color: colors.statorYoke },
+            { label: "Stator Teeth", color: colors.statorTeeth }
+        ];
+
+        legendItems.forEach((item, i) => {
+            const x = 20 + i * 150;
+            g.append("rect")
+                .attr("x", x)
+                .attr("y", legendY)
+                .attr("width", 12)
+                .attr("height", 12)
+                .attr("fill", item.color)
+                .attr("stroke", colors.border);
+
+            g.append("text")
+                .attr("x", x + 18)
+                .attr("y", legendY + 9)
+                .attr("font-size", "10px")
+                .attr("fill", colors.textSecondary)
+                .text(item.label);
+        });
+        };
+
+        // Initial draw
+        drawSVG();
+
+        // Set up ResizeObserver to redraw when container size changes
+        const container = svgRef.current.parentElement;
+        if (container && typeof ResizeObserver !== 'undefined') {
+            const resizeObserver = new ResizeObserver(() => {
+                drawSVG();
+            });
+            resizeObserver.observe(container);
+
+            return () => {
+                resizeObserver.disconnect();
+            };
+        }
+
+        // Fallback: listen to window resize if ResizeObserver is not available
+        const handleResize = () => {
+            drawSVG();
+        };
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [geometry, colors, coilDistribution, theme]);
+
+    return (
+        <div className={`w-full rounded-lg border overflow-hidden ${
+            theme === 'dark' 
+                ? 'bg-slate-900 border-slate-700' 
+                : 'bg-white border-slate-200'
+        }`}>
+            <svg 
+                ref={svgRef} 
+                width="100%" 
+                height="350" 
+                className="w-full"
+                style={{ minHeight: '350px', display: 'block' }}
+            />
+        </div>
+    );
+};
+
+export default LinearMachineView;
+

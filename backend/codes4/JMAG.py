@@ -1,6 +1,6 @@
 import win32com.client, os, logging, utility, numpy
 import pythoncom  # 用于 COM 初始化
-from pylab import np, plt, mpl
+from pylab import np, plt, mpl; import math
 logger = logging.getLogger(__name__)
 logger.debug('The mpl backend is %s', mpl.rcParams['backend'])
 mpl.use('Agg') # ('pdf') #   # https://github.com/matplotlib/matplotlib/issues/21950
@@ -337,10 +337,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Angle_StatorSlotSpan = 360/Q
         # R = self.mm_r_si + self.mm_d_stt + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
         # THETA = 0.25*(Angle_StatorSlotSpan)/180.*np.pi
-        R = np.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
+        R = math.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
         THETA = np.arctan(acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0])
-        X = R*np.cos(THETA)
-        Y = R*np.sin(THETA)
+        X = R*math.cos(THETA)
+        Y = R*math.sin(THETA)
         countXL = 0
         wily = acm_variant.template.d['EX']['wily']
         # try:
@@ -357,22 +357,22 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             # print(X, Y, THETA)
             THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*np.cos(THETA)
-            Y = R*np.sin(THETA)
+            X = R*math.cos(THETA)
+            Y = R*math.sin(THETA)
 
         # Create Set for 2 poles Winding
         # THETA = 0.75*(Angle_StatorSlotSpan)/180.*np.pi # 这里这个角度的选择，决定了悬浮绕组产生悬浮力的方向！！！！！
         THETA = np.arctan(-acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0]) + (2*np.pi)/Q
-        X = R*np.cos(THETA)
-        Y = R*np.sin(THETA)
+        X = R*math.cos(THETA)
+        Y = R*math.sin(THETA)
         countYL = 0
         for UVW, UpDown in zip(wily.layer_Y_phases,wily.layer_Y_signs):
             countYL += 1 
             add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
 
             THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*np.cos(THETA)
-            Y = R*np.sin(THETA)
+            X = R*math.cos(THETA)
+            Y = R*math.sin(THETA)
 
         # Create Set for Magnets
         GP = acm_variant.template.d['GP']
@@ -393,8 +393,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             if s==1:
                       # v---This negative sign means we walk CCW to assign sets.
                 THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*np.pi
-                X = R*np.cos(THETA)
-                Y = R*np.sin(THETA)
+                X = R*math.cos(THETA)
+                Y = R*math.sin(THETA)
 
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
@@ -406,8 +406,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*np.pi # initial position
                 # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*np.pi # initial position
                 for s in range(s):
-                    X = R*np.cos(THETA)
-                    Y = R*np.sin(THETA)
+                    X = R*math.cos(THETA)
+                    Y = R*math.sin(THETA)
                     add_part_to_set("Magnet %d s%d"%(natural_ind, s), X, Y)
                     list_xy_magnets.append([X,Y])
                     THETA -= alpha_notch + alpha_rs
@@ -539,10 +539,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Angle_StatorSlotSpan = 360/Q
         # R = self.mm_r_si + self.mm_d_stt + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
         # THETA = 0.25*(Angle_StatorSlotSpan)/180.*np.pi
-        R = np.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
+        R = math.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
         THETA = np.arctan(acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0])
-        X = R*np.cos(THETA)
-        Y = R*np.sin(THETA)
+        X = R*math.cos(THETA)
+        Y = R*math.sin(THETA)
         countXL = 0
         wily = acm_variant.template.d['EX']['wily']
         # try:
@@ -559,22 +559,22 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             # print(X, Y, THETA)
             THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*np.cos(THETA)
-            Y = R*np.sin(THETA)
+            X = R*math.cos(THETA)
+            Y = R*math.sin(THETA)
 
         # Create Set for 2 poles Winding
         # THETA = 0.75*(Angle_StatorSlotSpan)/180.*np.pi # 这里这个角度的选择，决定了悬浮绕组产生悬浮力的方向！！！！！
         THETA = np.arctan(-acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0]) + (2*np.pi)/Q
-        X = R*np.cos(THETA)
-        Y = R*np.sin(THETA)
+        X = R*math.cos(THETA)
+        Y = R*math.sin(THETA)
         countYL = 0
         for UVW, UpDown in zip(wily.layer_Y_phases,wily.layer_Y_signs):
             countYL += 1 
             add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
 
             THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*np.cos(THETA)
-            Y = R*np.sin(THETA)
+            X = R*math.cos(THETA)
+            Y = R*math.sin(THETA)
 
         # Create Set for Magnets
         GP = acm_variant.template.d['GP']
@@ -595,8 +595,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             if s==1:
                       # v---This negative sign means we walk CCW to assign sets.
                 THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*2*ind) /180.*np.pi
-                X = R*np.cos(THETA)
-                Y = R*np.sin(THETA)
+                X = R*math.cos(THETA)
+                Y = R*math.sin(THETA)
 
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
@@ -608,8 +608,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*np.pi # initial position
                 # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*np.pi # initial position
                 for s in range(s):
-                    X = R*np.cos(THETA)
-                    Y = R*np.sin(THETA)
+                    X = R*math.cos(THETA)
+                    Y = R*math.sin(THETA)
                     add_part_to_set("Magnet %d s%d"%(natural_ind, s), X, Y)
                     list_xy_magnets.append([X,Y])
                     THETA -= alpha_notch + alpha_rs
@@ -755,8 +755,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             counterMagnet += 1
                     # v---This negative sign means we walk CCW to assign sets.
             # THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*np.pi
-            # X = R*np.cos(THETA)
-            # Y = R*np.sin(THETA)
+            # X = R*math.cos(THETA)
+            # Y = R*math.sin(THETA)
             X = magnet['X']
             Y = magnet['Y']
             add_part_to_set("Magnet %d"%(counterMagnet), X, Y)
@@ -861,10 +861,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Angle_StatorSlotSpan = 360/Q
         # R = self.mm_r_si + self.mm_d_stt + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
         # THETA = 0.25*(Angle_StatorSlotSpan)/180.*np.pi
-        R = np.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
+        R = math.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
         THETA = np.arctan(acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0])
-        X = R*np.cos(THETA)
-        Y = R*np.sin(THETA)
+        X = R*math.cos(THETA)
+        Y = R*math.sin(THETA)
         countXL = 0
         wily = acm_variant.template.d['EX']['wily']
         # try:
@@ -881,22 +881,22 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             # print(X, Y, THETA)
             THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*np.cos(THETA)
-            Y = R*np.sin(THETA)
+            X = R*math.cos(THETA)
+            Y = R*math.sin(THETA)
 
         # Create Set for 2 poles Winding
         # THETA = 0.75*(Angle_StatorSlotSpan)/180.*np.pi # 这里这个角度的选择，决定了悬浮绕组产生悬浮力的方向！！！！！
         THETA = np.arctan(-acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0]) + (2*np.pi)/Q
-        X = R*np.cos(THETA)
-        Y = R*np.sin(THETA)
+        X = R*math.cos(THETA)
+        Y = R*math.sin(THETA)
         countYL = 0
         for UVW, UpDown in zip(wily.layer_Y_phases,wily.layer_Y_signs):
             countYL += 1 
             add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
 
             THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*np.cos(THETA)
-            Y = R*np.sin(THETA)
+            X = R*math.cos(THETA)
+            Y = R*math.sin(THETA)
 
         # Create Set for Magnets
         GP = acm_variant.template.d['GP']
@@ -916,8 +916,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             if s==1:
                       # v---This negative sign means we walk CCW to assign sets.
                 THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*np.pi
-                X = R*np.cos(THETA)
-                Y = R*np.sin(THETA)
+                X = R*math.cos(THETA)
+                Y = R*math.sin(THETA)
 
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
@@ -925,8 +925,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*np.pi # initial position
                 # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*np.pi # initial position
                 for s in range(s):
-                    X = R*np.cos(THETA)
-                    Y = R*np.sin(THETA)
+                    X = R*math.cos(THETA)
+                    Y = R*math.sin(THETA)
                     add_part_to_set("Magnet %d s%d"%(natural_ind, s), X, Y)
                     list_xy_magnets.append([X,Y])
                     THETA -= alpha_notch + alpha_rs
@@ -1007,12 +1007,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # Create Sets for Coils
         wily = acm_variant.template.d['EX']['wily']
         Angle_StatorSlotSpan = 360/Qs
-        R = np.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2) # switch coil naming for intuitive concentric winding (cf. PMSM)
+        R = math.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2) # switch coil naming for intuitive concentric winding (cf. PMSM)
 
         # Coils belonging to Layer X
         THETA = np.arctan(-acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0]) + (2*np.pi)/Qs
-        X = R*np.cos(THETA)
-        Y = R*np.sin(THETA)
+        X = R*math.cos(THETA)
+        Y = R*math.sin(THETA)
         countXL = 0
         for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
             countXL += 1 
@@ -1020,21 +1020,21 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             # print(X, Y, THETA)
             THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*np.cos(THETA)
-            Y = R*np.sin(THETA)
+            X = R*math.cos(THETA)
+            Y = R*math.sin(THETA)
 
         # Coils belonging to Layer Y
         THETA = np.arctan(acm_variant.coils.PCoil[1]/acm_variant.coils.PCoil[0]) # switch coil naming for intuitive concentric winding (cf. PMSM)
-        X = R*np.cos(THETA)
-        Y = R*np.sin(THETA)
+        X = R*math.cos(THETA)
+        Y = R*math.sin(THETA)
         countYL = 0
         for UVW, UpDown in zip(wily.layer_Y_phases,wily.layer_Y_signs):
             countYL += 1 
             add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
 
             THETA += Angle_StatorSlotSpan/180.*np.pi
-            X = R*np.cos(THETA)
-            Y = R*np.sin(THETA)
+            X = R*math.cos(THETA)
+            Y = R*math.sin(THETA)
 
         # Create Set for Magnets
         GP = acm_variant.template.d['GP']
@@ -1045,8 +1045,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             natural_ind = ind + 1
                   # v---This negative sign means we walk CCW to assign sets.
             THETA = -(deg_pole_span*ind) /180*np.pi
-            X = R*np.cos(THETA)
-            Y = R*np.sin(THETA)
+            X = R*math.cos(THETA)
+            Y = R*math.sin(THETA)
             add_part_to_set("Magnet %d"%(natural_ind), X, Y)
             list_xy_magnets.append([X,Y])
 
@@ -1572,7 +1572,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 func = app.FunctionFactory().Composite()        
                 f1 = app.FunctionFactory().Sin(ampD, freq, -90 + 0*phase_shift_drive) # "freq" variable cannot be used here. So pay extra attension here when you create new case of a different freq.
                 if 'CPPM' in acm_variant.template.name or 'CSPPM' in acm_variant.template.name: 
-                    dcB = ampB/np.sqrt(2)
+                    dcB = ampB/math.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
                     f2 = app.FunctionFactory().Sin(ampB, freq, -90 + 0*phase_shift_beari)
@@ -1583,7 +1583,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 func = app.FunctionFactory().Composite()        
                 f1 = app.FunctionFactory().Sin(ampD, freq, -90 + 1*phase_shift_drive)
                 if 'CPPM' in acm_variant.template.name or 'CSPPM' in acm_variant.template.name: 
-                    dcB = -0.5*ampB/np.sqrt(2)
+                    dcB = -0.5*ampB/math.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
                     f2 = app.FunctionFactory().Sin(ampB, freq, -90 + 1*phase_shift_beari)
@@ -1594,7 +1594,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 func = app.FunctionFactory().Composite()
                 f1 = app.FunctionFactory().Sin(ampD, freq, -90 + 2*phase_shift_drive)
                 if 'CPPM' in acm_variant.template.name or 'CSPPM' in acm_variant.template.name: 
-                    dcB = -0.5*ampB/np.sqrt(2)
+                    dcB = -0.5*ampB/math.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
                     f2 = app.FunctionFactory().Sin(ampB, freq, -90 + 2*phase_shift_beari)
@@ -2225,7 +2225,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
             # EX = acm_variant.template.d['EX']
-            # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+            # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
             # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
             # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
             #     # try:
@@ -2324,7 +2324,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
             # EX = acm_variant.template.d['EX']
-            # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+            # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
             # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
             # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
             #     # try:
@@ -2425,7 +2425,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
                 # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
                 # EX = acm_variant.template.d['EX']
-                # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+                # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
                 # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
                 # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
                 #     # try:
@@ -2552,7 +2552,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     def calculate_excitation_current(acm_variant):
         # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
         EX = acm_variant.template.d['EX']
-        CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * np.sqrt(2) #/2.2*2.8
+        CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
         CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
         CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
 
@@ -2712,7 +2712,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     # time_list.append(float(row[0]))
                     ForConX_list.append(float(row[1]))
                     ForConY_list.append(float(row[2]))
-        ForConAbs_list = np.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
+        ForConAbs_list = math.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
 
         # Current
         key_list = []
@@ -3239,7 +3239,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         elif acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'Cost':
             f1 = Cost
         elif acm_variant.template.fea_config_dict["moo.fitness_OA"] == 'TorqueDensityOverSquireRootCopperLoss':
-            f1 = -TRV / np.sqrt(rated_stator_copper_loss_along_stack + stator_copper_loss_in_end_turn)
+            f1 = -TRV / math.sqrt(rated_stator_copper_loss_along_stack + stator_copper_loss_in_end_turn)
         else:
             raise 
 

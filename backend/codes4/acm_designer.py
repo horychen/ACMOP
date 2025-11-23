@@ -1,12 +1,12 @@
 from time import time as clock_time
-from pylab import np # plt, mpl
+from pylab import np; import math # plt, mpl
 import os, logging, win32com.client, json
 import utility, utility_json
 import population #, FEMM_Solver, pyrhonen_procedure_as_function
 
 # BPMSM codes
 import JMAG
-import bearingless_spmsm_closedSlot_design
+import bearingless_spmsm_closedSlot_design, bearingless_spmsm_heart
 
 class Swarm_Data_Analyzer(object):
     def __init__(self, fname, desired_x_denorm_dict):
@@ -54,11 +54,11 @@ class Swarm_Data_Analyzer(object):
                 x_denorm = []
                 for key in desired_x_denorm_dict.keys():
                     if key not in x_denorm_dict:
-                        x_denorm.append(self.SIecode(v)['Geometric parameters'][key]) # pseudo code for showing the concept, this will not work.
+                        x_denorm.append(self.decode(v)['Geometric parameters'][key]) # pseudo code for showing the concept, this will not work.
                     else:
                         x_denorm.append(x_denorm_dict[key])
             self.swarm_data_xf = [
-                                    sort_as_desired(self.SIecode(v)['x_denorm_dict'], desired_x_denorm_dict) + [ self.SIecode(v)['Performance']['f1'], self.SIecode(v)['Performance']['f2'], self.SIecode(v)['Performance']['f3'] ]
+                                    sort_as_desired(self.decode(v)['x_denorm_dict'], desired_x_denorm_dict) + [ self.decode(v)['Performance']['f1'], self.decode(v)['Performance']['f2'], self.decode(v)['Performance']['f3'] ]
                                     for v in swarm_data_as_dict.values() # v = {name:data}
                                     ]
             self.number_of_free_variables = len(self.swarm_data_xf[0]) - 3
@@ -70,7 +70,7 @@ class Swarm_Data_Analyzer(object):
 
             ''' 3. Get the list of other attribute by individuals (not needed for optimization)
             '''
-                # self.swarm_data_project_names = [ self.SIecode(v)['Performance']['project_name'] for v in swarm_data_as_dict.values() ]
+                # self.swarm_data_project_names = [ self.decode(v)['Performance']['project_name'] for v in swarm_data_as_dict.values() ]
                 # self.prepare_data_for_post_processing(swarm_data_as_dict)
             self.swarm_data_project_names = self.get_metric_of_the_whole_swarm('project_name')
     
@@ -98,7 +98,7 @@ class Swarm_Data_Analyzer(object):
         return list(d.values())[0]
 
     def get_metric_of_the_whole_swarm(self, metric):
-        return [ self.SIecode(v)['Performance'][metric] for v in self.swarm_data_as_dict.values() ]
+        return [ self.decode(v)['Performance'][metric] for v in self.swarm_data_as_dict.values() ]
     def prepare_data_for_post_processing(self):
 
         ''' 3. Get the list of other attribute by individuals (not needed for optimization)
@@ -960,6 +960,8 @@ class acm_designer(object):
             # print('[acm_designer.py] DEBUG: spec is None.')
             self.spec = None
 
+        self.visualize_dict = spec_input_dict
+
         self.fea_config_dict        = fea_config_dict
         self.spec_input_dict        = spec_input_dict
         self.select_spec            = select_spec
@@ -980,12 +982,13 @@ class acm_designer(object):
         output_dir = self.fea_config_dict['output_dir']
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
-        self.SIir_csv_output_folder = output_dir + 'csv/'
-        if not os.path.isdir(self.SIir_csv_output_folder):
-            os.makedirs(self.SIir_csv_output_folder)
-        self.SIir_jsonpickle_folder = output_dir + 'jsonpickle/'
-        if not os.path.isdir(self.SIir_jsonpickle_folder):
-            os.makedirs(self.SIir_jsonpickle_folder)
+        self.dir_csv_output_folder = output_dir + 'csv/'
+        if not os.path.isdir(self.dir_csv_output_folder):
+            os.makedirs(self.dir_csv_output_folder)
+        self.dir_jsonpickle_folder = output_dir + 'jsonpickle/'
+        if not os.path.isdir(self.dir_jsonpickle_folder):
+            os.makedirs(self.dir_jsonpickle_folder)
+
 
         # if fea_config_dict['bool_post_processing'] == False:
         #     self.fig_main, self.axeses = plt.subplots(2, 2, sharex=True, dpi=150, figsize=(16, 8), facecolor='w', edgecolor='k')
@@ -1006,6 +1009,11 @@ class acm_designer(object):
             import utility
             self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix='acm_designer_')
         self.logger.info('x_denorm_dict: %s, swarm_data_file: %s', self.acm_template.SI['x_denorm_dict'], swarm_data_file)
+
+        self.visualize_dict['output_dir'] = output_dir
+        self.visualize_dict['swarm_data_file'] = swarm_data_file
+        self.visualize_dict['select_spec'] = self.select_spec
+        self.visualize_dict['select_fea_config_dict'] = self.select_fea_config_dict
 
     def init_logger(self, prefix='pygmo_'):
         # self.logger = utility.myLogger(self.fea_config_dict['output_dir']+'../', prefix=prefix+self.fea_config_dict['run_folder'][:-1])
@@ -1365,19 +1373,19 @@ class acm_designer(object):
             if 'Closed' in template.machine_type:
                 acm_variant = bearingless_spmsm_closedSlot_design.bearingless_spmsm_closedSlot_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
             else:
-                acm_variant = bearingless_spmsm_design.bearingless_spmsm_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-        elif 'PMVM' in template.machine_type:
-            acm_variant = vernier_motor_design.vernier_motor_VShapePM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-        elif 'Flux_Alternator' in template.machine_type:
-            acm_variant = flux_alternator_design.flux_alternator_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-        elif 'FSPM' in template.machine_type:
-            acm_variant = flux_switching_pm_design.FSPM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-        elif 'CPPM' in template.machine_type:
-            acm_variant = bearingless_consequentPole_design.bearingless_consequentPole_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-        elif 'VCPPM' in template.machine_type:
-            acm_variant = bearingless_VShapeconsequentPole_design.bearingless_VconsequentPole_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-        elif 'CSPPM' in template.machine_type:
-            acm_variant = bearingless_consequentsinglePole_design.bearingless_consequentsinglePole_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+                acm_variant = bearingless_spmsm_heart.bearingless_spmsm_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        # elif 'PMVM' in template.machine_type:
+        #     acm_variant = vernier_motor_design.vernier_motor_VShapePM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        # elif 'Flux_Alternator' in template.machine_type:
+        #     acm_variant = flux_alternator_design.flux_alternator_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        # elif 'FSPM' in template.machine_type:
+        #     acm_variant = flux_switching_pm_design.FSPM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        # elif 'CPPM' in template.machine_type:
+        #     acm_variant = bearingless_consequentPole_design.bearingless_consequentPole_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        # elif 'VCPPM' in template.machine_type:
+        #     acm_variant = bearingless_VShapeconsequentPole_design.bearingless_VconsequentPole_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        # elif 'CSPPM' in template.machine_type:
+        #     acm_variant = bearingless_consequentsinglePole_design.bearingless_consequentsinglePole_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         else:
             raise Exception('Not supported machine_type:', template.machine_type)
         return acm_variant
@@ -1522,7 +1530,7 @@ class acm_designer(object):
             THE_mm2_magnet_area = acm_variant.rotorMagnet.draw(None, bool_re_evaluate=True)
             THE_mm2_slot_area = acm_variant.coils.draw(None, bool_re_evaluate=True)
 
-            CurrentAmp_in_the_slot = THE_mm2_slot_area * acm_variant.fill_factor * acm_variant.Js*1e-6 * np.sqrt(2) #/2.2*2.8
+            CurrentAmp_in_the_slot = THE_mm2_slot_area * acm_variant.fill_factor * acm_variant.Js*1e-6 * math.sqrt(2) #/2.2*2.8
             CurrentAmp_per_conductor = CurrentAmp_in_the_slot / acm_variant.template.d['EX']['DriveW_zQ']
             CurrentAmp_per_phase = CurrentAmp_per_conductor * acm_variant.template.d['EX']['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
             variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
@@ -1822,7 +1830,7 @@ class acm_designer(object):
                                     l_ForCon_X.append(float(row[1]))
                                     l_ForCon_Y.append(float(row[2]))
 
-                        breakdown_force = max(np.sqrt(np.array(l_ForCon_X)**2 + np.array(l_ForCon_Y)**2))
+                        breakdown_force = max(math.sqrt(np.array(l_ForCon_X)**2 + np.array(l_ForCon_Y)**2))
 
                         index, breakdown_torque = utility.get_index_and_max(l_TorCon)
                         slip_freq_breakdown_torque = l_slip_freq[index]
@@ -2060,7 +2068,7 @@ class acm_designer(object):
                 print('[A]: DriveW_CurrentAmp is updated.')
 
                 # 槽深变化，电密不变，所以电流也会变化。
-                CurrentAmp_in_the_slot = THE_mm2_slot_area * im_variant.fill_factor * im_variant.Js*1e-6 * np.sqrt(2)
+                CurrentAmp_in_the_slot = THE_mm2_slot_area * im_variant.fill_factor * im_variant.Js*1e-6 * math.sqrt(2)
                 CurrentAmp_per_conductor = CurrentAmp_in_the_slot / im_variant.DriveW_zQ
                 CurrentAmp_per_phase = CurrentAmp_per_conductor * im_variant.wily.number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
                 variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
@@ -2155,7 +2163,7 @@ class acm_designer(object):
                     print('[A]: DriveW_CurrentAmp is updated.')
 
                     # 槽深变化，电密不变，所以电流也会变化。
-                    CurrentAmp_in_the_slot = d.mm2_slot_area * im_variant.fill_factor * im_variant.Js*1e-6 * np.sqrt(2)
+                    CurrentAmp_in_the_slot = d.mm2_slot_area * im_variant.fill_factor * im_variant.Js*1e-6 * math.sqrt(2)
                     CurrentAmp_per_conductor = CurrentAmp_in_the_slot / im_variant.DriveW_zQ
                     CurrentAmp_per_phase = CurrentAmp_per_conductor * im_variant.wily.number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
                     variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor

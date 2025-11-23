@@ -302,9 +302,9 @@ def my_3d_plot_non_dominated_fronts(pop, paretoPoints, fea_config_dict, az=180, 
             # gammas = np.linspace(-np.pi / 4, np.pi / 4, 30)
             gammas = np.linspace(0, (np.pi / 2.0), 30)
 
-            x_frame = np.outer(np.cos(thetas), np.cos(gammas))
-            y_frame = np.outer(np.cos(thetas), np.sin(gammas))
-            z_frame = np.outer(np.sin(thetas), np.ones(np.size(gammas)))
+            x_frame = np.outer(math.cos(thetas), math.cos(gammas))
+            y_frame = np.outer(math.cos(thetas), math.sin(gammas))
+            z_frame = np.outer(math.sin(thetas), np.ones(np.size(gammas)))
 
             ax.set_autoscalex_on(False)
             ax.set_autoscaley_on(False)
@@ -589,9 +589,9 @@ def pyx_draw_model(im):
         else:
             vg.tikz.draw_arc(path[:2], path[2:4], path[4:6], relangle=sign*path[6], untrack=True, bool_stroke=True)
     def rotate(_, x, y):
-        return np.cos(_)*x + np.sin(_)*y, -np.sin(_)*x + np.cos(_)*y
+        return math.cos(_)*x + math.sin(_)*y, -math.sin(_)*x + math.cos(_)*y
     def is_at_stator(im, path):
-        return np.sqrt(path[0]**2 + path[1]**2) > im.Radius_OuterRotor + 0.5*im.Length_AirGap
+        return math.sqrt(path[0]**2 + path[1]**2) > im.Radius_OuterRotor + 0.5*im.Length_AirGap
 
     for path in (vg.tikz.track_path): # track_path is passed by reference and is changed by mirror
         path_mirror = deepcopy(path)
@@ -649,7 +649,7 @@ def pyx_draw_model(im):
 
     # # Rotate Copy
     # for path in (vg.tikz.track_path):
-    #     # if np.sqrt(path[0]**2 + path[1]**2) > im.Radius_OuterRotor + 0.5*im.Length_AirGap:
+    #     # if math.sqrt(path[0]**2 + path[1]**2) > im.Radius_OuterRotor + 0.5*im.Length_AirGap:
     #     if is_at_stator(im, path):
     #         Q = im.Qs
     #     else:

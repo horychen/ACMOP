@@ -1,4 +1,4 @@
-from pylab import np, cos, sin
+from math import cos, sin; import numpy as np
 EPS = 1e-3 # [mm]
 
 class ExceptionBadDesign(Exception):
@@ -49,7 +49,7 @@ class CrossSectInnerSalientPoleRotorV1(object):
         P3 = [P2[0] - mm_d_rsp, P2[1]]
         P0 = [P1[0] - mm_d_rsp, P1[1]]
         def iPark(P, theta):
-            return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+            return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
         P4 = iPark(P0, alpha_rp)
 
         list_segments = []
@@ -130,7 +130,7 @@ class CrossSectInnerSalientPoleRotorV2(object):
         mm_r_groove = mm_r_ro * (1-split_ratio_rotor_salient)
 
         def iPark(P, theta):
-            return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+            return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
 
         # print(P1, deg_alpha_rsp)
         if False: # Option provided by Shi Zhou with some approximation
@@ -236,7 +236,7 @@ class CrossSectInnerSalientPoleRotorV2(object):
         a = -(y2-y1)/(x2-x1)
         b = 1
         c = y1-(y2-y1)/(x2-x1)*x1
-        Delta = np.sqrt(r**2*(a**2+b**2)-c**2)
+        Delta = math.sqrt(r**2*(a**2+b**2)-c**2)
         if Delta < 0:
             raise Exception('No intersection for given line and circle')
         x_solutions = (a*c + b*Delta)/(a**2+b**2), (a*c - b*Delta)/(a**2+b**2)

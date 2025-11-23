@@ -19,7 +19,7 @@ angle_between_arrow_and_label = 4 # deg
 PLOT_SPACING = 35 # 35
 
 
-from pylab import np
+from pylab import np; import math
 def limit_to_360_deg(PHI):
     while PHI < 0:
         PHI += 360
@@ -95,8 +95,8 @@ def belong_to_band(LB, UB, PHI):
         else:
             return False
 def angular_location(PHI, radius_bias=0):
-    X = (RADIUS+radius_bias) * np.cos(PHI/180*np.pi)
-    Y = (RADIUS+radius_bias) * np.sin(PHI/180*np.pi)
+    X = (RADIUS+radius_bias) * math.cos(PHI/180*np.pi)
+    Y = (RADIUS+radius_bias) * math.sin(PHI/180*np.pi)
     return X, Y
 def phase_angle_of_slot_i_at_frequency_h(slot_number, h, Q):
     # - \alpha_{i,h}^e
@@ -222,15 +222,15 @@ def draw_connection_star(m, phase_belt, connection_star_raw_dict):
                 else:
                     radius = RADIUS
 
-                # X = (radius) * np.cos(4*factor_reverse/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
-                # Y = (radius) * np.sin(4*factor_reverse/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
-                X = (radius) * np.cos(4/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
-                Y = (radius) * np.sin(4/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
+                # X = (radius) * math.cos(4*factor_reverse/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
+                # Y = (radius) * math.sin(4*factor_reverse/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
+                X = (radius) * math.cos(4/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
+                Y = (radius) * math.sin(4/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
 
                 # X += -(PHI_ori//360)*distance_between_label_layers # 水平移动
 
                 angle = PHI/180*np.pi
-                X, Y = X*np.cos(angle) + Y*-np.sin(angle), X*np.sin(angle) + Y*np.cos(angle) # Park Trans.
+                X, Y = X*math.cos(angle) + Y*-math.sin(angle), X*math.sin(angle) + Y*math.cos(angle) # Park Trans.
 
                 u.pyx_text((X,Y), r'\textbf{'+label+'}', scale=0.8) # T2 
 
@@ -308,11 +308,11 @@ def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequenc
                 else:
                     # Option 2 (looks better)
                     # distance_between_label_layers = 1.25
-                    X = (RADIUS) * np.cos(4*factor_reverse/180*np.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
-                    Y = (RADIUS) * np.sin(4*factor_reverse/180*np.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
+                    X = (RADIUS) * math.cos(4*factor_reverse/180*np.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
+                    Y = (RADIUS) * math.sin(4*factor_reverse/180*np.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
                     X += -(PHI_ori//360)*distance_between_label_layers # 水平移动
                     angle = PHI/180*np.pi
-                    X, Y = X*np.cos(angle) + Y*-np.sin(angle), X*np.sin(angle) + Y*np.cos(angle) # Park Trans.
+                    X, Y = X*math.cos(angle) + Y*-math.sin(angle), X*math.sin(angle) + Y*math.cos(angle) # Park Trans.
                     u.pyx_text((X,Y), r'\textbf{'+label+'}', scale=1)
 
                     # Draw 辅助线
@@ -334,7 +334,7 @@ def winding_distribution_factor_verPyrhonen(h, Q, p, m=3):
     q=Q/(2*p*m)
     if q%0 != 0:
         raise Exception('The formula is only valid for integral slot winding.')
-    winding_distribution_factor_kw_at_h = np.sin(h*q*alpha_u/2) / (q*np.sin(h*alpha_u/2))
+    winding_distribution_factor_kw_at_h = math.sin(h*q*alpha_u/2) / (q*math.sin(h*alpha_u/2))
     return winding_distribution_factor_kw_at_h
 
 def winding_distribution_factor(Q, connection_star_raw_dict, h, bool_double_layer_winding, phase_Aa_dpnv_grouping_dict=None, Aa='Aa'):
@@ -540,16 +540,16 @@ def winding_short_pitch_factor(h, coil_pitch_y, Q, npp):
     y_Q = Q / (2*npp)
 
     # h: harmonic order
-    # k_ph = np.sin(h*npp * coil_pitch_y/y_Q * np.pi*0.5) # if you use this, h*npp = v*npp = n, 此时h=3，是指极对数为3个npp的谐波。
+    # k_ph = math.sin(h*npp * coil_pitch_y/y_Q * np.pi*0.5) # if you use this, h*npp = v*npp = n, 此时h=3，是指极对数为3个npp的谐波。
                                                           # 此时，h的意义是相对于npp这个磁场为三次的谐波磁场，如果npp为2，那么h=3所对应的是气隙中6对极的谐波。
 
-    k_ph = np.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)   # if you use this, h/npp = n,         此时h=3，是指极对数为3的谐波。   <- 这是我们要的，
+    k_ph = math.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)   # if you use this, h/npp = n,         此时h=3，是指极对数为3的谐波。   <- 这是我们要的，
                                                           # 我们要计算气隙中某个极对数的谐波所对应分布绕组和短距绕组，并相乘，所以净极对数(h)要对得上。
                                                           # 换句话说，我们要的是h=3次谐波的短距系数，而不是相对于ps为3次的谐波的短距系数。
     # coil_pitch_y / (Q/2) * np.pi is the short pitch radian for 1 pole pair field 
     # coil_pitch_y / (Q/4) * np.pi is the short pitch radian for 2 pole pair field
     # coil_pitch_y / (Q/(2*npp)) * np.pi is the short pitch radian for npp pole pair field
-    # Bb "k_ph = np.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)", you are trying to use the short pitch radian for npp pole pair field to calculate the pitch factor for a h pole pair field.
+    # Bb "k_ph = math.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)", you are trying to use the short pitch radian for npp pole pair field to calculate the pitch factor for a h pole pair field.
     # That is why you first need to convert the short pitch radian to mechanical radian first (divided Bb npp) and then convert it to h pole pair field's (multiplied Bb h).
 
     # Slack Conversation
@@ -571,18 +571,18 @@ def winding_short_pitch_factor(h, coil_pitch_y, Q, npp):
         #     # 长距
         #     # print('[Warning] Over-pitch winding detected!')
         #     the_angle = h* 0.5* (-np.pi + coil_pitch_y/y_Q*np.pi)
-        #     k_ph = np.cos(the_angle)
+        #     k_ph = math.cos(the_angle)
         # elif abs(coil_pitch_y - y_Q)<1e-3: # EPS
         #     k_ph = 1.0
         # else:
         #     # 短距
         #     the_angle = h* 0.5* (np.pi - coil_pitch_y/y_Q*np.pi)
-        #     k_ph = np.cos(the_angle)
-        #     # k_ph = np.sin(h * coil_pitch_y/y_Q * np.pi*0.5) # this is only valid for short pitching
+        #     k_ph = math.cos(the_angle)
+        #     # k_ph = math.sin(h * coil_pitch_y/y_Q * np.pi*0.5) # this is only valid for short pitching
     return k_ph
 def winding_short_pitch_factor_v2(h, coil_pitch_y, Q):
     y_Q = Q / (2) 
-    k_ph = np.sin(h * coil_pitch_y/y_Q * np.pi*0.5)
+    k_ph = math.sin(h * coil_pitch_y/y_Q * np.pi*0.5)
     # Here, coil_pitch_y/y_Q * np.pi is the short pitch radian (elec.) for 1 pole pair field
     return k_ph
 
@@ -834,7 +834,7 @@ class Winding_Derivation(object):
 
         # print(v, p, alpha_u, coil_pitch_y)
         gamma =            coil_pitch_y*alpha_u/p
-        radii = np.sin(v*p*coil_pitch_y*alpha_u/p/2)
+        radii = math.sin(v*p*coil_pitch_y*alpha_u/p/2)
         print(f'Coil span [mech.deg] = {gamma/np.pi*180} | [elec.deg] = {v*p*gamma / np.pi*180}', end=' | ')
         # print('\t radii:', radii)
         ELS_angles = -0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!

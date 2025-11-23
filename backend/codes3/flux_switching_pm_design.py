@@ -2,13 +2,13 @@ import inner_rotor_motor, pyrhonen_procedure_as_function
 import logging
 from collections import OrderedDict
 from utility import acmop_parameter
-from pylab import np
+from pylab import np; import math
 from pprint import pprint
 
 import CrossSectInnerSalientPoleRotor, CrossSectInnerNotchedRotor, CrossSectStator, Location2D
 
 def derive_mm_d_pm(GP,SI):
-    GP       ['mm_d_pm'].value = GP['mm_r_si'].value * np.sin(0.5*GP['deg_alpha_pm_at_airgap'].value/180*np.pi) * 2
+    GP       ['mm_d_pm'].value = GP['mm_r_si'].value * math.sin(0.5*GP['deg_alpha_pm_at_airgap'].value/180*np.pi) * 2
     return GP['mm_d_pm'].value
 
 def derive_deg_alpha_pm_at_airgap(GP,SI):
@@ -97,7 +97,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         # (6.2)
         RotorActiveVolumn_Vr = required_torque / (2*Pa_TangentialStress)
         RotorActiveCrossSectArea_Sr = RotorActiveVolumn_Vr / (mm_stack_length*1e-3)
-        RotorOuterRadius_r_or = np.sqrt(RotorActiveCrossSectArea_Sr/np.pi)
+        RotorOuterRadius_r_or = math.sqrt(RotorActiveCrossSectArea_Sr/np.pi)
         mm_r_ro = RotorOuterRadius_r_or*1e3
 
         # print(mm_r_ro)
@@ -197,7 +197,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         # (6.2)
         RotorActiveVolumn_Vr = required_torque / (2*Pa_TangentialStress)
         RotorActiveCrossSectArea_Sr = RotorActiveVolumn_Vr / (mm_stack_length*1e-3)
-        RotorOuterRadius_r_or = np.sqrt(RotorActiveCrossSectArea_Sr/np.pi)
+        RotorOuterRadius_r_or = math.sqrt(RotorActiveCrossSectArea_Sr/np.pi)
         mm_r_ro = RotorOuterRadius_r_or*1e3
 
         aspect_ratio__rotor_axial_to_diameter_ratio = 2*mm_r_ro/mm_stack_length
@@ -248,7 +248,7 @@ class FSPM_template(inner_rotor_motor.template_machine_as_numbers):
         # stator slot depth
         stator_inner_radius_r_is_eff = mm_r_si*1e-3
         temp = (2*np.pi*stator_inner_radius_r_is_eff - Qs*mm_stator_tooth_width_w_UCoreWidth*3*1e-3) # mm_stator_tooth_width_w_UCoreWidth * 3 = stator non-slot part width
-        stator_tooth_depth_d_st = ( np.sqrt(temp**2 + 4*np.pi*stator_slot_area*Qs) - temp ) / (2*np.pi)
+        stator_tooth_depth_d_st = ( math.sqrt(temp**2 + 4*np.pi*stator_slot_area*Qs) - temp ) / (2*np.pi)
         mm_d_st = stator_tooth_depth_d_st * 1e3
 
         mm_d_sy = guess_air_gap_flux_density_Bg * mm_stator_tooth_width_w_UCoreWidth / guess_stator_yoke_flux_density_Bys
@@ -364,7 +364,7 @@ class FSPM_design_variant(inner_rotor_motor.variant_machine_as_objects):
         self.shaft = CrossSectInnerNotchedRotor.CrossSectShaft(name = 'Shaft',
                                                       notched_rotor = self.rotorCore
                                                     )
-        self.stator_core = CrossSectStator.CrossSectInnerRotorStator_PMAtToothBody( name = 'StatorCore',
+        self.statorCore = CrossSectStator.CrossSectInnerRotorStator_PMAtToothBody( name = 'StatorCore',
                                             deg_alpha_st = GP['deg_alpha_st'].value, #40,
                                             deg_alpha_sto = GP['deg_alpha_sto'].value, #20,
                                             mm_r_si = GP['mm_r_si'].value,
@@ -384,12 +384,12 @@ class FSPM_design_variant(inner_rotor_motor.variant_machine_as_objects):
                                             )
 
         self.statorMagnet = CrossSectStator.CrossSectStatorMagnetAtToothBody(name = 'StatorPM',
-                                                                stator_core = self.stator_core,
+                                                                stator_core = self.statorCore,
                                                                 mm_d_air_pm = GP['mm_d_air_pm'].value
                                                                 )
 
         self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
-                                                               stator_core = self.stator_core)
+                                                               stator_core = self.statorCore)
 
 
         #03 Mechanical Parameters

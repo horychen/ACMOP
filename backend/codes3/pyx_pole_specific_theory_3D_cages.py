@@ -1,6 +1,6 @@
 import PyX_classes, PyX_Utility
 import os, pyx
-from pylab import np
+from pylab import np; import math
 
 ''' TEC-ISMB-2021 三维鼠笼转子 示意图
 '''

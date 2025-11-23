@@ -715,7 +715,7 @@ class swarm(object):
             return w[0] + w[1]*x + w[2] * x**2 + w[3] * x**3 + w[4] * x**4 + w[5] * x**5 + w[6] * x**6
         def rmse(y, individual_denorm):
             y_pred = fmodel(x, individual_denorm)
-            return np.sqrt(sum((y - y_pred)**2) / len(y))
+            return math.sqrt(sum((y - y_pred)**2) / len(y))
 
         try:
             self.weights
@@ -729,7 +729,7 @@ class swarm(object):
 
         return rmse(y, individual_denorm)
         # plt.scatter(x, y)
-        # plt.plot(x, np.cos(x), label='cos(x)')
+        # plt.plot(x, math.cos(x), label='cos(x)')
         # plt.legend()
         # plt.show()
 
@@ -1197,7 +1197,7 @@ class swarm(object):
             # self.fitness_in_physics_data.append(l_slip_freq)
             # self.fitness_in_physics_data.append(l_TorCon)
 
-            breakdown_force = max(np.sqrt(np.array(l_ForCon_X)**2 + np.array(l_ForCon_Y)**2))
+            breakdown_force = max(math.sqrt(np.array(l_ForCon_X)**2 + np.array(l_ForCon_Y)**2))
 
             index, breakdown_torque = utility.get_index_and_max(l_TorCon)
             slip_freq_breakdown_torque = l_slip_freq[index]
@@ -1233,7 +1233,7 @@ class swarm(object):
                     plot(l_slip_freq_2, l_ForCon_X, label=file)
                     figure(3)
                     plot(l_slip_freq_2, l_ForCon_Y, label=file)
-                    temp = max(np.sqrt(np.array(l_ForCon_X)**2 + np.array(l_ForCon_Y)**2))
+                    temp = max(math.sqrt(np.array(l_ForCon_X)**2 + np.array(l_ForCon_Y)**2))
                     if temp > max_breakdown_force_amp:
                         max_breakdown_force_amp = temp
                         max_breakdown_force_amp_file = file
@@ -1794,7 +1794,7 @@ class swarm(object):
                                 dict_circuit_current_complex["%s%d"%(rotor_phase_name_list[i], natural_j)] = (re, im)
         dict_circuit_current_amp_and_phase = {}
         for key, item in dict_circuit_current_complex.items():
-            amp = np.sqrt(item[1]**2 + item[0]**2)
+            amp = math.sqrt(item[1]**2 + item[0]**2)
             phase = np.arctan2(item[0], -item[1]) # atan2(y, x), y=a, x=-b
             dict_circuit_current_amp_and_phase[key] = (amp, phase)
 
@@ -1864,7 +1864,7 @@ class swarm(object):
         # print number_of_repeat, end_time, time_list[-1]
         femm_force_x = femm_solver_data[2].tolist()
         femm_force_y = femm_solver_data[3].tolist()    
-        femm_force_abs = np.sqrt(np.array(femm_force_x)**2 + np.array(femm_force_y)**2 )
+        femm_force_abs = math.sqrt(np.array(femm_force_x)**2 + np.array(femm_force_y)**2 )
 
         # # Vector plot
         # ax = figure().gca()
@@ -2104,7 +2104,7 @@ class swarm(object):
                 print('\tcheck time step', time_list[1], '=',  1./Fs)
                 break
 
-        # basefreqFFT(np.sin(2*pi*1500*np.arange(0,0.1,1./Fs)), Fs)
+        # basefreqFFT(math.sin(2*pi*1500*np.arange(0,0.1,1./Fs)), Fs)
         fig, axes = subplots(2,1)
         basefreqFFT(TorCon_list[int(len(TorCon_list)/2):], Fs, base_freq=500., ax=axes[1], ax_time_domain=axes[0])
         fig, axes = subplots(2,1)
@@ -2194,7 +2194,7 @@ class swarm(object):
         number_of_repeat = int(end_time / time_list[-1]) + 2
         femm_force_x = femm_solver_data[2].tolist()
         femm_force_y = femm_solver_data[3].tolist()    
-        femm_force_abs = np.sqrt(np.array(femm_force_x)**2 + np.array(femm_force_y)**2 )
+        femm_force_abs = math.sqrt(np.array(femm_force_x)**2 + np.array(femm_force_y)**2 )
 
         # 延拓
         femm_torque  = number_of_repeat * femm_solver_data[1].tolist()
@@ -2409,7 +2409,7 @@ class swarm(object):
                     # time_list.append(float(row[0]))
                     ForConX_list.append(float(row[1]))
                     ForConY_list.append(float(row[2]))
-        ForConAbs_list = np.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
+        ForConAbs_list = math.sqrt(np.array(ForConX_list)**2 + np.array(ForConY_list)**2 )
 
         # Current
         key_list = []
@@ -2835,7 +2835,7 @@ class bearingless_induction_motor_design(object):
         # 临时这么处理吧，好困了
         # self.fill_factor = 0.5
         # self.Js = 4e6
-        # CurrentAmp_in_the_slot = self.coils.mm2_slot_area * self.fill_factor * self.Js*1e-6 * np.sqrt(2) #/2.2*2.8
+        # CurrentAmp_in_the_slot = self.coils.mm2_slot_area * self.fill_factor * self.Js*1e-6 * math.sqrt(2) #/2.2*2.8
         # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / self.SIriveW_zQ
         # CurrentAmp_per_phase = CurrentAmp_per_conductor * self.wily.number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
         # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
@@ -3032,7 +3032,7 @@ class bearingless_induction_motor_design(object):
     def get_stator_yoke_diameter_Dsyi(stator_tooth_width_b_ds, area_stator_slot_Sus, stator_inner_radius_r_is, Qs, Width_StatorTeethHeadThickness, Width_StatorTeethNeck):
         stator_inner_radius_r_is_eff = stator_inner_radius_r_is + ( Width_StatorTeethHeadThickness + Width_StatorTeethNeck )*1e-3
         temp = (2*pi*stator_inner_radius_r_is_eff - Qs*stator_tooth_width_b_ds)
-        stator_tooth_height_h_ds = ( np.sqrt(temp**2 + 4*pi*area_stator_slot_Sus*Qs) - temp ) / (2*pi)
+        stator_tooth_height_h_ds = ( math.sqrt(temp**2 + 4*pi*area_stator_slot_Sus*Qs) - temp ) / (2*pi)
         stator_yoke_diameter_Dsyi = 2*stator_inner_radius_r_is + 2*stator_tooth_height_h_ds
         return stator_yoke_diameter_Dsyi
 
@@ -3061,7 +3061,7 @@ class bearingless_induction_motor_design(object):
                 thermal_penalty += 0.1
                 # raise Exception('There is not enough space for rotor slot or the required rotor current density will not be fulfilled.')
             else:
-                rotor_tooth_height_h_dr = ( -np.sqrt(operand_in_sqrt) + temp ) / (2*pi)
+                rotor_tooth_height_h_dr = ( -math.sqrt(operand_in_sqrt) + temp ) / (2*pi)
                 break
         return rotor_tooth_height_h_dr, new__rotor_tooth_width_b_dr, thermal_penalty, new__area_rotor_slot_Sur
 
@@ -4708,7 +4708,7 @@ class bearingless_induction_motor_design(object):
                                 dict_circuit_current_complex["%s%d"%(rotor_phase_name_list[i], natural_j)] = (re, im)
         dict_circuit_current_amp_and_phase = {}
         for key, item in dict_circuit_current_complex.items():
-            amp = np.sqrt(item[1]**2 + item[0]**2)
+            amp = math.sqrt(item[1]**2 + item[0]**2)
             phase = np.arctan2(item[0], -item[1]) # atan2(y, x), y=a, x=-b
             dict_circuit_current_amp_and_phase[key] = (amp, phase)
 
@@ -4779,7 +4779,7 @@ class bearingless_induction_motor_design(object):
                             dict_circuit_current_complex[phase] = (re, im)
         dict_circuit_current_amp_and_phase = {}
         for key, item in dict_circuit_current_complex.items():
-            amp = np.sqrt(item[1]**2 + item[0]**2)
+            amp = math.sqrt(item[1]**2 + item[0]**2)
             phase = np.arctan2(item[0], -item[1]) # atan2(y, x), y=a, x=-b
             dict_circuit_current_amp_and_phase[key] = (amp, phase)
 
@@ -4863,7 +4863,7 @@ class bearingless_induction_motor_design(object):
                                 dict_circuit_current_complex["%s%d"%(rotor_phase_name_list[i], natural_j)] = (re, im)
         dict_circuit_current_amp_and_phase = {}
         for key, item in dict_circuit_current_complex.items():
-            amp = np.sqrt(item[1]**2 + item[0]**2)
+            amp = math.sqrt(item[1]**2 + item[0]**2)
             phase = np.arctan2(item[0], -item[1]) # atan2(y, x), y=a, x=-b
             dict_circuit_current_amp_and_phase[key] = (amp, phase)
 

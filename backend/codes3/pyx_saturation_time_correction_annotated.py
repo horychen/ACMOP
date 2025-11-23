@@ -1,6 +1,6 @@
 import PyX_classes, PyX_Utility
 import os, pyx
-from pylab import np
+from pylab import np; import math
 
 ''' IMIFE saturation time based correction 示意图
 '''
@@ -50,10 +50,10 @@ if __name__ == '__main__':
     PyX_Utility.global_settings['linestyle'] = pyx.style.linestyle.solid
     graph = PyX_classes.function_as_graph()
     def f1(t):
-        return  psi_mu_max*np.sin(2*np.pi*(2/x) * t )
+        return  psi_mu_max*math.sin(2*np.pi*(2/x) * t )
     list_of_saturated_time = []
     def f2(t):
-        val  =  psi_mu_min*np.sin(2*np.pi*(1/x) *(t-pt1[0]))
+        val  =  psi_mu_min*math.sin(2*np.pi*(1/x) *(t-pt1[0]))
         if abs(val) > ell_limit: 
             list_of_saturated_time.append(t)
             return np.sign(val)*ell_limit

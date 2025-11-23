@@ -701,7 +701,7 @@ if __name__ == '__main__':
 
         Example 4 (show element |B| in the air gap):
             >>> import utility, acmop
-            >>> from pylab import np, plt
+            >>> from pylab import np; import math, plt
             >>> mop = acmop.main(5)
             >>> var = mop.reproduced_design_variant
             >>> z = var.analyzer.z 

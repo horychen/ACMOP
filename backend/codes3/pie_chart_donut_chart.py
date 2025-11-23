@@ -1,4 +1,4 @@
-from pylab import np
+from pylab import np; import math
 import matplotlib.pyplot as plt
 
 def Get_FRW(raw):

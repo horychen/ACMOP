@@ -2,7 +2,7 @@ import inner_rotor_motor, pyrhonen_procedure_as_function
 import logging
 from collections import OrderedDict
 from utility import acmop_parameter
-from pylab import np
+from pylab import np; import math
 from pprint import pprint
 
 import CrossSectInnerNotchedRotor
@@ -206,7 +206,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
         #                                               notched_rotor = self.rotorCore
         #                                             )
 
-        # self.stator_core = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
+        # self.statorCore = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
         #                                     deg_alpha_st = GP['deg_alpha_st'].value, #40,
         #                                     deg_alpha_sto = GP['deg_alpha_sto'].value, #20,
         #                                     mm_r_si = GP['mm_r_si'].value,
@@ -223,7 +223,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
         #                                     )
 
         # self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
-        #                                             stator_core = self.stator_core)
+        #                                             stator_core = self.statorCore)
 
         # self.sleeve = CrossSectInnerNotchedRotor.CrossSectSleeve(
         #                     name = 'Sleeve',

@@ -2,7 +2,7 @@ import inner_rotor_motor, pyrhonen_procedure_as_function
 import logging
 from collections import OrderedDict
 from utility import acmop_parameter
-from pylab import np
+from pylab import np; import math
 # from pprint import pprintk
 
 import CrossSectInnerNotchedRotor
@@ -84,12 +84,12 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         Q = SI['Qs']
         p = SI['p']
         # select the linear current density if needed
-        # A = sigma_Tangential/(0.5*air_gap_flux_density_Bg*PF*np.sqrt(2))
+        # A = sigma_Tangential/(0.5*air_gap_flux_density_Bg*PF*math.sqrt(2))
 
         sleeve_length = 1.25
         stator_outer_diameter_Dse = 0.100 # this is related to the stator current density and should be determined by Js and power.
         delta_0 = SI['minimum_mechanical_air_gap_length_mm']
-        B_max = np.pi * air_gap_flux_density_Bg / (4 * np.sin(np.pi * alpha_pm / 2))
+        B_max = np.pi * air_gap_flux_density_Bg / (4 * math.sin(np.pi * alpha_pm / 2))
 
         rotor_outer_radius_r_or = SI['mm_PM_inner_radius'] + SI['mm_d_pm']
         # print(rotor_outer_radius_r_or)
@@ -255,7 +255,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
                                                       notched_rotor = self.rotorCore
                                                     )
 
-        self.stator_core = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
+        self.statorCore = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
                                             deg_alpha_st = GP['deg_alpha_st'].value, #40,
                                             deg_alpha_sto = GP['deg_alpha_sto'].value, #20,
                                             mm_r_si = GP['mm_r_si'].value,
@@ -272,7 +272,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
                                             )
 
         self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
-                                                    stator_core = self.stator_core)
+                                                    stator_core = self.statorCore)
 
         self.sleeve = CrossSectInnerNotchedRotor.CrossSectSleeve(
                             name = 'Sleeve',

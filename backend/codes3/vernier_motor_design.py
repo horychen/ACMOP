@@ -2,7 +2,7 @@ import inner_rotor_motor, pyrhonen_procedure_as_function
 import logging
 from collections import OrderedDict
 from utility import acmop_parameter
-from pylab import np
+from pylab import np; import math
 from pprint import pprint
 
 import CrossSectVShapeConsequentPoleRotor
@@ -12,7 +12,7 @@ import Location2D
 # import pint
 
 def derive_mm_w_pm(GP,SD):
-    GP["mm_w_pm"].value          = ( GP['mm_r_so'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(GP['deg_alpha_vspm'].value) - GP['mm_d_pm'].value * np.tan(GP['deg_alpha_vspm'].value)
+    GP["mm_w_pm"].value          = ( GP['mm_r_so'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / math.cos(GP['deg_alpha_vspm'].value) - GP['mm_d_pm'].value * np.tan(GP['deg_alpha_vspm'].value)
     return GP["mm_w_pm"].value
 
 def derive_mm_parallelogram(GP,SD):
@@ -127,7 +127,7 @@ class vernier_motor_VShapePM_template(inner_rotor_motor.template_machine_as_numb
         GP["deg_alpha_vspm"].value       = 20.3
         GP["mm_d_bg_air"].value          = 1.5
         GP["mm_d_bg_magnet"].value       = 1.5
-        GP["mm_w_pm"].value              = ( GP['mm_r_so'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / np.cos(GP['deg_alpha_vspm'].value) - GP['mm_d_pm'].value * np.tan(GP['deg_alpha_vspm'].value)
+        GP["mm_w_pm"].value              = ( GP['mm_r_so'].value - GP["mm_d_bg_air"].value - (GP['mm_r_ri'].value + GP['mm_d_ri'].value) ) / math.cos(GP['deg_alpha_vspm'].value) - GP['mm_d_pm'].value * np.tan(GP['deg_alpha_vspm'].value)
 
     def get_template_neighbor_bounds(self, GP, SD):
         ''' The bounds are determined around the template design.
@@ -191,7 +191,7 @@ class vernier_motor_VShapePM_design_variant(inner_rotor_motor.variant_machine_as
                                                       notched_rotor = self.rotorCore
                                                     )
 
-        self.stator_core = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
+        self.statorCore = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
                                             deg_alpha_st = GP['deg_alpha_st'].value, #40,
                                             deg_alpha_sto = GP['deg_alpha_sto'].value, #20,
                                             mm_r_si = GP['mm_r_si'].value,
@@ -208,7 +208,7 @@ class vernier_motor_VShapePM_design_variant(inner_rotor_motor.variant_machine_as
                                             )
 
         self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
-                                                    stator_core = self.stator_core)
+                                                    stator_core = self.statorCore)
 
         #03 Mechanical Parameters
         self.update_mechanical_parameters()

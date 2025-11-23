@@ -1,5 +1,5 @@
 from time import time as clock_time
-from pylab import np # plt, mpl
+from pylab import np; import math # plt, mpl
 import os, logging, win32com.client, json
 import utility, utility_json
 import population, FEMM_Solver, pyrhonen_procedure_as_function
@@ -1522,7 +1522,7 @@ class acm_designer(object):
             THE_mm2_magnet_area = acm_variant.rotorMagnet.draw(None, bool_re_evaluate=True)
             THE_mm2_slot_area = acm_variant.coils.draw(None, bool_re_evaluate=True)
 
-            CurrentAmp_in_the_slot = THE_mm2_slot_area * acm_variant.fill_factor * acm_variant.Js*1e-6 * np.sqrt(2) #/2.2*2.8
+            CurrentAmp_in_the_slot = THE_mm2_slot_area * acm_variant.fill_factor * acm_variant.Js*1e-6 * math.sqrt(2) #/2.2*2.8
             CurrentAmp_per_conductor = CurrentAmp_in_the_slot / acm_variant.template.d['EX']['DriveW_zQ']
             CurrentAmp_per_phase = CurrentAmp_per_conductor * acm_variant.template.d['EX']['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
             variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
@@ -1822,7 +1822,7 @@ class acm_designer(object):
                                     l_ForCon_X.append(float(row[1]))
                                     l_ForCon_Y.append(float(row[2]))
 
-                        breakdown_force = max(np.sqrt(np.array(l_ForCon_X)**2 + np.array(l_ForCon_Y)**2))
+                        breakdown_force = max(math.sqrt(np.array(l_ForCon_X)**2 + np.array(l_ForCon_Y)**2))
 
                         index, breakdown_torque = utility.get_index_and_max(l_TorCon)
                         slip_freq_breakdown_torque = l_slip_freq[index]
@@ -2060,7 +2060,7 @@ class acm_designer(object):
                 print('[A]: DriveW_CurrentAmp is updated.')
 
                 # 槽深变化，电密不变，所以电流也会变化。
-                CurrentAmp_in_the_slot = THE_mm2_slot_area * im_variant.fill_factor * im_variant.Js*1e-6 * np.sqrt(2)
+                CurrentAmp_in_the_slot = THE_mm2_slot_area * im_variant.fill_factor * im_variant.Js*1e-6 * math.sqrt(2)
                 CurrentAmp_per_conductor = CurrentAmp_in_the_slot / im_variant.DriveW_zQ
                 CurrentAmp_per_phase = CurrentAmp_per_conductor * im_variant.wily.number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
                 variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
@@ -2155,7 +2155,7 @@ class acm_designer(object):
                     print('[A]: DriveW_CurrentAmp is updated.')
 
                     # 槽深变化，电密不变，所以电流也会变化。
-                    CurrentAmp_in_the_slot = d.mm2_slot_area * im_variant.fill_factor * im_variant.Js*1e-6 * np.sqrt(2)
+                    CurrentAmp_in_the_slot = d.mm2_slot_area * im_variant.fill_factor * im_variant.Js*1e-6 * math.sqrt(2)
                     CurrentAmp_per_conductor = CurrentAmp_in_the_slot / im_variant.DriveW_zQ
                     CurrentAmp_per_phase = CurrentAmp_per_conductor * im_variant.wily.number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
                     variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor

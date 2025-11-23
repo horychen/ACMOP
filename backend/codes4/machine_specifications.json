@@ -19,6 +19,14 @@
         "safety_factor_to_critical_speed": 1.0,
         "bool_skew_stator": false,
         "bool_skew_rotor": false,
+        "GeometricComponentsObjects": {
+            "rotorCore": null,
+            "shaft": null,
+            "rotorMagnet": null,
+            "sleeve": null,
+            "statorCore": null,
+            "coils": null
+        },
         "EX-user": {
             "ExcitationFreqSimulated": 833.33,
             "VoltageRating": 12,
@@ -81,85 +89,93 @@
     },
 
     "PMSM Q12p4ps5y1 Heart": {
-        
-            "minimum_mechanical_air_gap_length_mm": 0.75,
-            "guess_air_gap_flux_density_Bg": 0.9,
-            "guess_stator_tooth_flux_density_Bst": 1.5,
-            "guess_stator_yoke_flux_density_Bsy": 1.2,
-            "machine_type": "PMSM",
-            "DPNV_or_SEPA": true,
-            "m": 3,
-            "Qs": 12,
-            "p": 4,
-            "number_of_rotor_pole_pairs": 4,
-            "ps": 5,
-            "coil_pitch_y": 1,
-            "mec_power": 75,
+        "machine_type": "PMSM",
+        "DPNV_or_SEPA": true,
+        "m":   3,
+        "Qs": 12,
+        "p":   4,
+        "ps":  5,
+        "coil_pitch_y": 1,
+        "no_segmented_magnets": 1,
+        "mec_power": 75,
+        "guess_air_gap_flux_density_Bg": 0.9,
+        "guess_stator_tooth_flux_density_Bst": 1.5,
+        "guess_stator_yoke_flux_density_Bsy": 1.2,
+        "guess_efficiency": 0.90,
+        "guess_power_factor": 0.80,
+        "safety_factor_to_yield": null,
+        "safety_factor_to_critical_speed": 1.0,
+        "bool_skew_stator": false,
+        "bool_skew_rotor": false,
+        "GeometricComponentsObjects": {
+            "rotorCore": null,
+            "shaft": null,
+            "rotorMagnet": null,
+            "sleeve": null,
+            "statorCore": null,
+            "coils": null
+        },
+        "EX-user": {
             "ExcitationFreqSimulated": 113.33,
             "VoltageRating": 36,
-            "TangentialStress": 6000,
+            "mm_stack_length": 10,
             "Steel": "M19Gauge29",
             "lamination_stacking_factor_kFe": 0.95,
             "Coil": "Cu",
-            "space_factor_kCu": 0.5,
             "Js": 4e6,
             "Temperature": 75,
-            "WindingFill": 0.3882,  
+            "WindingFill": 0.3882,
             "AWG": 26,
-            "guess_efficiency": 0.95,
-            "guess_power_factor": 0.8,
-            "no_segmented_magnets": 1,
-            "tip_speed": 20,
-            "mm_radius_shaft": 15,
-            "mm_PM_inner_radius": 20,
-            "mm_PM_outer_radius": 24,
-            "mm_d_pm": 4,
-            "mm_stack_length": 10,
-            "safety_factor_to_yield": "None",
-            "safety_factor_to_critical_speed": 1.5,
-            "bool_skew_stator": false,
-            "bool_skew_rotor": false
-        
-    },
-
-    "IM #6024": 
-    {
-            "PS_or_SC":                             true,
-            "DPNV_or_SEPA":                         false,
-            "m":                                    3,
-            "p":                                  3,
-            "number_of_rotor_pole_pairs":                                  3,
-            "ps":                                 2,
-            "mec_power":                            50e3,
-            "ExcitationFreqSimulated":            1500,
-            "VoltageRating":                      1000,
-            "TangentialStress":                     12000,
-            "Qs":                                 36,
-            "Qr":                                 24,
-            "Js":                                   4e6,
-            "Jr":                                   6.5e6,
-            "Steel":                                "M19Gauge29",
-            "lamination_stacking_factor_kFe":       0.95,
-            "Coil":                                 "Cu",
-            "space_factor_kCu":                     0.5,
-            "Conductor":                            "Cu",
-            "space_factor_kAl":                     1.0,
-            "Temperature":                          75,
-            "WindingFill":                          0.3882,
-            "AWG":                                  25,
-            "stator_tooth_flux_density_B_ds":       1.4,
-            "rotor_tooth_flux_density_B_dr":       1.5,
-            "stator_yoke_flux_density_Bys":         1.2,
-            "rotor_yoke_flux_density_Byr":       1.4,
-            "guess_air_gap_flux_density_Bg":           0.8,
-            "guess_efficiency":                     0.95,
-            "guess_power_factor":                 0.5,
-            "use_drop_shape_rotor_bar":             true,
-            "tip_speed":                            150,
-            "safety_factor_to_yield":               "None",
-            "safety_factor_to_critical_speed":      1.5,
-            "bool_skew_stator":                     false,
-            "bool_skew_rotor":                      false
+            "end_winding_length_factor_kov": 1.8
+        },
+        "GP-user": {
+            "mm_r_so":{
+                "type":   "fixed",
+                "value":  25,
+                "bounds": null},
+            "split_ratio":{
+                "type": "free",
+                "value": 0.70,
+                "bounds": [0.3,0.7]},
+            "mm_d_stt":{
+                "type":   "free",
+                "value":  0.75,
+                "bounds": [0.5,1.5]},
+            "mm_d_pm":{
+                "type":   "free",
+                "value":  2,
+                "bounds": [1,3]},
+            "mm_w_st":{
+                "type": "free",
+                "value": null,
+                "bounds": null},
+            "mm_d_sy":{
+                "type":   "free",
+                "value":  null,
+                "bounds": null},
+            "mm_d_mech_air_gap":{
+                "type":   "fixed",
+                "value":  0.5,
+                "bounds": null},
+            "mm_d_sleeve":{
+                "type":   "fixed",
+                "value":  1.0,
+                "bounds": null},
+            "mm_r_ri":{
+                "type":   "fixed",
+                "value":  15,
+                "bounds": null},
+            "mm_d_st":{
+                "type":   "derived",
+                "value":  null,
+                "bounds": null},
+            "mm_d_ri":{
+                "type":   "derived",
+                "value":  null,
+                "bounds": null}
         }
+
+    }
+
 }
 

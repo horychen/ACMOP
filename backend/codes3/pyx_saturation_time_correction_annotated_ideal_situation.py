@@ -1,6 +1,6 @@
 import PyX_classes, PyX_Utility
 import os, pyx
-from pylab import np
+from pylab import np; import math
 
 ''' SlessInv saturation time based correction 示意图 (Ideal Situation Only)
 '''
@@ -56,11 +56,11 @@ if __name__ == '__main__':
     PyX_Utility.global_settings['linestyle'] = pyx.style.linestyle.solid
     graph = PyX_classes.function_as_graph()
     def f1(t):
-        return  psi_mu_max*np.sin(2*np.pi*(freq1/x) * t ) - BIAS
+        return  psi_mu_max*math.sin(2*np.pi*(freq1/x) * t ) - BIAS
     list_of_saturated_time_before_t2 = []
     list_of_saturated_time_after_t2 = []
     def f2(t):
-        val  =  psi_mu_min*np.sin(2*np.pi*(freq2/x) *(t-pt1[0])) - BIAS
+        val  =  psi_mu_min*math.sin(2*np.pi*(freq2/x) *(t-pt1[0])) - BIAS
         if abs(val) > ell_limit: 
             if t<pt2[0]:
                 list_of_saturated_time_before_t2.append(t)
@@ -160,8 +160,8 @@ if __name__ == '__main__':
     # 线段相等符号
     def rotate_by_pivot(p, pivot, angle):
         result = [None]*2
-        result[0] = (p[0]-pivot[0])* np.cos(angle) + (p[1]-pivot[1])*np.sin(angle) + pivot[0]
-        result[1] = (p[0]-pivot[0])*-np.sin(angle) + (p[1]-pivot[1])*np.cos(angle) + pivot[1]
+        result[0] = (p[0]-pivot[0])* math.cos(angle) + (p[1]-pivot[1])*math.sin(angle) + pivot[0]
+        result[1] = (p[0]-pivot[0])*-math.sin(angle) + (p[1]-pivot[1])*math.cos(angle) + pivot[1]
         return result
     if True:
         PyX_Utility.global_settings['linestyle'] = pyx.style.linestyle.solid

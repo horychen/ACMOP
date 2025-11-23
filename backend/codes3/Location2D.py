@@ -1,4 +1,4 @@
-from pylab import np
+from pylab import np; import math
 class Location2D(object):
     # LOCATION2D Indicates a cross section's location
     def __init__(self, anchor_xy, deg_theta):
@@ -19,8 +19,8 @@ class Location2D(object):
         for point in points:
 
             # 旋转方向和eMach是反一下的，我是Park变换。
-            cosT = np.cos( self.theta + (deg_addTheta*np.pi/180) )
-            sinT = np.sin( self.theta + (deg_addTheta*np.pi/180) )
+            cosT = math.cos( self.theta + (deg_addTheta*np.pi/180) )
+            sinT = math.sin( self.theta + (deg_addTheta*np.pi/180) )
             
             transCoords.append( [ points[0]*cosT + points[1]*sinT, 
                                   points[0]*-sinT + points[1]*cosT ] )

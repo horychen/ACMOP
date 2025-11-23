@@ -2,7 +2,7 @@ import inner_rotor_motor, pyrhonen_procedure_as_function
 import logging
 from collections import OrderedDict
 from utility import acmop_parameter
-from pylab import np
+from pylab import np; import math
 from pprint import pprint
 
 import CrossSectInnerNotchedRotor

@@ -1,5 +1,5 @@
 #%% 基本性能计算：电磁负荷、转子外径
-from pylab import np, plt
+from pylab import np; import math, plt
 from dataclasses import dataclass
 
 @dataclass
@@ -22,7 +22,7 @@ class UserInput_FSPM():
         #     # (6.2)
         #     self.RotorActiveVolumn_Vr = self.required_torque / (2*self.Pa_TangentialStress)
         #     self.RotorActiveCrossSectArea_Sr = self.RotorActiveVolumn_Vr / (self.mm_stack_length*1e-3)
-        #     self.RotorOuterRadius_r_or = np.sqrt(self.RotorActiveCrossSectArea_Sr/np.pi)
+        #     self.RotorOuterRadius_r_or = math.sqrt(self.RotorActiveCrossSectArea_Sr/np.pi)
         #     self.mm_r_ro = self.RotorOuterRadius_r_or*1e3
 
 
@@ -59,7 +59,7 @@ guess_linear_current_density_A = slice.Pa_TangentialStress*2/slice.guess_air_gap
 # (6.2)
 RotorActiveVolumn_Vr = required_torque / (2*slice.Pa_TangentialStress)
 RotorActiveCrossSectArea_Sr = RotorActiveVolumn_Vr / (slice.mm_stack_length*1e-3)
-RotorOuterRadius_r_or = np.sqrt(RotorActiveCrossSectArea_Sr/np.pi)
+RotorOuterRadius_r_or = math.sqrt(RotorActiveCrossSectArea_Sr/np.pi)
 mm_r_ro = RotorOuterRadius_r_or*1e3
 
 aspect_ratio__rotor_axial_to_diameter_ratio = 2*mm_r_ro/slice.mm_stack_length
@@ -88,7 +88,7 @@ stator_slot_area = mmf_per_slot / fea_config_dict['Js'] / fea_config_dict['Windi
 # stator slot depth
 stator_inner_radius_r_is_eff = mm_r_si
 temp = (2*np.pi*stator_inner_radius_r_is_eff - slice.Qs*mm_stator_tooth_width_w_UCoreWidth*3) # mm_stator_tooth_width_w_UCoreWidth * 3 = stator non-slot part width
-stator_tooth_depth_d_st = ( np.sqrt(temp**2 + 4*np.pi*stator_slot_area*slice.Qs) - temp ) / (2*np.pi)
+stator_tooth_depth_d_st = ( math.sqrt(temp**2 + 4*np.pi*stator_slot_area*slice.Qs) - temp ) / (2*np.pi)
 print(stator_tooth_depth_d_st)
 
 mm_d_sy = slice.guess_air_gap_flux_density_B * mm_stator_tooth_width_w_UCoreWidth / slice.guess_stator_yoke_flux_density_Bsy
@@ -99,7 +99,7 @@ mm_d_sy = slice.guess_air_gap_flux_density_B * mm_stator_tooth_width_w_UCoreWidt
 
 # %%
 
-from pylab import np
+from pylab import np; import math
 
 Qs = 24
 g = 3

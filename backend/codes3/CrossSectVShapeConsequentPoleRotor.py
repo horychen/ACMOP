@@ -1,4 +1,4 @@
-from pylab import np, cos, sin
+from math import cos, sin; import numpy as np
 from utility import EPS
 
 # pole_slot_combinations = {

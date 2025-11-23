@@ -131,7 +131,7 @@ class inductance(passive_components):
     def draw(self, pu, label=None):
         graph = function_as_graph()
         def f1(t):
-            return  np.abs(np.sin(2*np.pi* ( (0.5)*t) ))
+            return  np.abs(math.sin(2*np.pi* ( (0.5)*t) ))
         if self.bool_vertical:
             graph.draw( pu, [ (-f1(t)+self.location[0], 
                                     t+self.location[1]) \
@@ -174,7 +174,7 @@ class resistance(passive_components):
 
 ## 电路：简单连接
 def distance(p1, p2):
-    return np.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
+    return math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
 def easy_connect(pu, obj1, obj2):
     dict_of_distances = {(p1,p2): distance(p1,p2) for p1 in obj1.anchors for p2 in obj2.anchors}
 

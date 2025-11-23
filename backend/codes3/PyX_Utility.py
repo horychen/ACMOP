@@ -240,7 +240,7 @@ if __name__ == '__main__':
 
 
 # Used in main_post_processing_pm.py
-from pylab import np
+from pylab import np; import math
 import os
 from copy import deepcopy
 # def pyx_draw_path(tool_tikz, path, sign=1, bool_exclude_path=False):
@@ -252,9 +252,9 @@ from copy import deepcopy
 #             p = tool_tikz.draw_arc(path[:2], path[2:4], path[4:6], relangle=sign*path[6], untrack=True, ccw=sign)
 #         return p
 def rotate(_, x, y):
-    return np.cos(_)*x + np.sin(_)*y, -np.sin(_)*x + np.cos(_)*y
+    return math.cos(_)*x + math.sin(_)*y, -math.sin(_)*x + math.cos(_)*y
 def is_at_stator(path, mm_rotor_outer_radius, mm_air_gap_length):
-    return np.sqrt(path[0]**2 + path[1]**2) > mm_rotor_outer_radius + 0.5*mm_air_gap_length
+    return math.sqrt(path[0]**2 + path[1]**2) > mm_rotor_outer_radius + 0.5*mm_air_gap_length
 
 def pyx_script_pmsm(ad, best_chromosome, best_idx, Q, p, proj_name):
     if proj_name is None:
@@ -331,7 +331,7 @@ def pyx_script_pmsm(ad, best_chromosome, best_idx, Q, p, proj_name):
                 # 按照Eric的要求，把不必要的线给删了。
                 if abs(path[1] + path[3]) < EPS: # 镜像对称线
                     bool_exclude_path = True
-                if abs(path[0] - path[2]) + np.cos(2*np.pi/Q/2) < EPS: # 旋转对称线（特别情况，tan(90°) = ∞
+                if abs(path[0] - path[2]) + math.cos(2*np.pi/Q/2) < EPS: # 旋转对称线（特别情况，tan(90°) = ∞
                     bool_exclude_path = True                
                 else:
                     if abs( abs((path[1] - path[3])/(path[0] - path[2])) - abs(np.tan(2*np.pi/Q/2)) ) < EPS: # 旋转对称线
@@ -339,12 +339,12 @@ def pyx_script_pmsm(ad, best_chromosome, best_idx, Q, p, proj_name):
 
             if not is_at_stator(path, mm_rotor_outer_radius, mm_air_gap_length):
                 # 按照Eric的要求，把不必要的线给删了。
-                if  (abs(np.sqrt(path[0]**2+path[1]**2) - mm_rotor_inner_radius)<EPS or abs(np.sqrt(path[2]**2+path[3]**2) - mm_rotor_inner_radius)<EPS) \
+                if  (abs(math.sqrt(path[0]**2+path[1]**2) - mm_rotor_inner_radius)<EPS or abs(math.sqrt(path[2]**2+path[3]**2) - mm_rotor_inner_radius)<EPS) \
                     and (len(path)==4): # 转子铁芯内径到外径的直线(len(path)==4)
                     bool_exclude_path = True
 
             #     # 特别的是，画永磁体的时候，边界要闭合哦。
-            #     if abs(np.sqrt(path[0]**2+path[1]**2) - mm_rotor_outer_steel_radius) < EPS or abs(np.sqrt(path[2]**2+path[3]**2) - mm_rotor_outer_steel_radius) < EPS:
+            #     if abs(math.sqrt(path[0]**2+path[1]**2) - mm_rotor_outer_steel_radius) < EPS or abs(math.sqrt(path[2]**2+path[3]**2) - mm_rotor_outer_steel_radius) < EPS:
             #         bool_exclude_path = False
 
             # A trick that makes sure models with different outer diameters have the same scale.

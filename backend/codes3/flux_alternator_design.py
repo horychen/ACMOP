@@ -2,7 +2,7 @@ import inner_rotor_motor, pyrhonen_procedure_as_function
 import logging
 from collections import OrderedDict
 from utility import acmop_parameter
-from pylab import np
+from pylab import np; import math
 from pprint import pprint
 
 import CrossSectInnerSalientPoleRotor, CrossSectInnerNotchedRotor, CrossSectStator, Location2D
@@ -180,7 +180,7 @@ class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_object
                                                       notched_rotor = self.rotorCore
                                                     )
 
-        self.stator_core = CrossSectStator.CrossSectInnerRotorStator_PMAtYoke( name = 'StatorCore',
+        self.statorCore = CrossSectStator.CrossSectInnerRotorStator_PMAtYoke( name = 'StatorCore',
                                             deg_alpha_st = GP['deg_alpha_st'].value, #40,
                                             deg_alpha_sto = GP['deg_alpha_sto'].value, #20,
                                             mm_r_si = GP['mm_r_si'].value,
@@ -199,11 +199,11 @@ class flux_alternator_design_variant(inner_rotor_motor.variant_machine_as_object
                                             )
 
         self.statorMagnet = CrossSectStator.CrossSectStatorMagnetAtYoke(name = 'StatorPM',
-                                                                stator_core = self.stator_core
+                                                                stator_core = self.statorCore
                                                                 )
 
         self.coils = CrossSectStator.CrossSectToroidalWiniding(name = 'Coils',
-                                                               stator_core = self.stator_core)
+                                                               stator_core = self.statorCore)
 
         #03 Mechanical Parameters
         self.update_mechanical_parameters()

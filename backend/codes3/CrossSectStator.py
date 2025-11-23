@@ -1,4 +1,4 @@
-from pylab import np, cos, sin, arctan
+from math import cos, sin; import numpy as np, arctan
 import logging
 class CrossSectInnerRotorStator:
     # CrossSectInnerRotorStator Describes the inner rotor motor stator.
@@ -81,7 +81,7 @@ class CrossSectInnerRotorStator:
         # Radius_InnerStatorYoke = r_si+d_sp+d_st
         # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
         # Option 2
-        Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        Radius_InnerStatorYoke = math.sqrt(P5[0]**2 + P5[1]**2)
         # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
         P6 = [ Radius_InnerStatorYoke *  cos(alpha_slot_span*0.5),
                Radius_InnerStatorYoke * -sin(alpha_slot_span*0.5) ]
@@ -97,7 +97,7 @@ class CrossSectInnerRotorStator:
             P4_Mirror = [P4[0], -P4[1]]
             P5_Mirror = [P5[0], -P5[1]]
             def iPark(P, theta):
-                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
             def draw_fraction(list_segments, P2, P3, P4, P5,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
@@ -134,7 +134,7 @@ class CrossSectInnerRotorStator:
 
         # DEBUG
         # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
-        #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
+        #     print(ind+1, point, math.sqrt(point[0]**2+point[1]**2))
 
         self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
@@ -200,7 +200,7 @@ class CrossSectInnerRotorClosedSlotStator:
         # Radius_InnerStatorYoke = r_si+d_sp+d_st
         # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
         # Option 2
-        Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        Radius_InnerStatorYoke = math.sqrt(P5[0]**2 + P5[1]**2)
         # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
         P6 = [ Radius_InnerStatorYoke *  cos(alpha_slot_span*0.5),
                Radius_InnerStatorYoke * -sin(alpha_slot_span*0.5) ]
@@ -216,7 +216,7 @@ class CrossSectInnerRotorClosedSlotStator:
             P4_Mirror = [P4[0], -P4[1]]
             P5_Mirror = [P5[0], -P5[1]]
             def iPark(P, theta):
-                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
             def draw_fraction(list_segments, P2, P3, P4, P5,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
@@ -253,7 +253,7 @@ class CrossSectInnerRotorClosedSlotStator:
 
         # DEBUG
         # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
-        #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
+        #     print(ind+1, point, math.sqrt(point[0]**2+point[1]**2))
 
         self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
@@ -276,25 +276,25 @@ class CrossSectInnerRotorStatorWinding(object):
         self.type = 'Cynlinder'
         self.name = name
         self.color = color
-        self.stator_core = stator_core
+        self.statorCore = stator_core
 
     def draw(self, drawer, bool_re_evaluate=False, bool_draw_whole_model=False):
 
         if False == bool_re_evaluate:
             drawer.getSketch(self.name, self.color)
 
-        alpha_st = self.stator_core.deg_alpha_st * np.pi/180
-        alpha_so = self.stator_core.deg_alpha_sto * np.pi/180
-        r_si     = self.stator_core.mm_r_si
-        d_so     = self.stator_core.mm_d_sto
-        d_sp     = self.stator_core.mm_d_stt
-        d_st     = self.stator_core.mm_d_st
-        d_sy     = self.stator_core.mm_d_sy
-        w_st     = self.stator_core.mm_w_st
-        r_st     = self.stator_core.mm_r_st
-        r_sf     = self.stator_core.mm_r_sf
-        r_sb     = self.stator_core.mm_r_sb
-        Q        = self.stator_core.Q
+        alpha_st = self.statorCore.deg_alpha_st * np.pi/180
+        alpha_so = self.statorCore.deg_alpha_sto * np.pi/180
+        r_si     = self.statorCore.mm_r_si
+        d_so     = self.statorCore.mm_d_sto
+        d_sp     = self.statorCore.mm_d_stt
+        d_st     = self.statorCore.mm_d_st
+        d_sy     = self.statorCore.mm_d_sy
+        w_st     = self.statorCore.mm_w_st
+        r_st     = self.statorCore.mm_r_st
+        r_sf     = self.statorCore.mm_r_sf
+        r_sb     = self.statorCore.mm_r_sb
+        Q        = self.statorCore.Q
 
         alpha_slot_span = 360/Q * np.pi/180
 
@@ -358,7 +358,7 @@ class CrossSectInnerRotorStatorWinding(object):
             P4_Shrink_Mirror = [P4_Shrink[0], -P4_Shrink[1]]
             POpen_Shrink_Mirror = [POpen_Shrink[0], -POpen_Shrink[1]]
             def iPark(P, theta):
-                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
             def draw_fraction(list_segments, P6_Shrink, P5_Shrink, P4_Shrink, POpen_Shrink,
                                             P6_Shrink_Mirror, P5_Shrink_Mirror, P4_Shrink_Mirror,  POpen_Shrink_Mirror):
                 list_segments += drawer.drawArc([0,0], P6_Shrink, P5_Shrink)
@@ -505,7 +505,7 @@ class CrossSectInnerRotorStator_PMAtYoke:
         # Radius_InnerStatorYoke = r_si+d_sp+d_st
         # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
         # Option 2
-        r_sy = Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        r_sy = Radius_InnerStatorYoke = math.sqrt(P5[0]**2 + P5[1]**2)
         # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
         P6 = [ r_sy *  cos(alpha_slot_span*0.5),
                r_sy * -sin(alpha_slot_span*0.5) ]
@@ -521,7 +521,7 @@ class CrossSectInnerRotorStator_PMAtYoke:
 
         # Draw slot for inserting PM
         P0 = [r_sy, 0]
-        # print('||DEBUG', P0, np.sqrt(P5[0]**2 + P5[1]**2))
+        # print('||DEBUG', P0, math.sqrt(P5[0]**2 + P5[1]**2))
         logger = logging.getLogger(__name__)
         logger.debug('mm_d_pm=%s, r_sy=%s, P5=%s', mm_d_pm, r_sy, P5)
         alpha_pm_depth = 2*np.arcsin(0.5*mm_d_pm / r_sy)
@@ -535,7 +535,7 @@ class CrossSectInnerRotorStator_PMAtYoke:
             P4_Mirror = [P4[0], -P4[1]]
             P5_Mirror = [P5[0], -P5[1]]
             def iPark(P, theta):
-                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
             def draw_fraction(list_segments, i, P0, P2, P3, P4, P5,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
@@ -580,7 +580,7 @@ class CrossSectInnerRotorStator_PMAtYoke:
 
             # DEBUG
             # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
-            #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
+            #     print(ind+1, point, math.sqrt(point[0]**2+point[1]**2))
 
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
@@ -603,26 +603,26 @@ class CrossSectStatorMagnetAtYoke:
 
         self.name = name
         self.color = color
-        self.stator_core = stator_core
+        self.statorCore = stator_core
     def draw(self, drawer, bool_draw_whole_model=False):
 
         drawer.getSketch(self.name, self.color)
 
-        alpha_st = self.stator_core.deg_alpha_st * np.pi/180
-        alpha_so = -self.stator_core.deg_alpha_sto * np.pi/180
-        r_si = self.stator_core.mm_r_si
-        d_so = self.stator_core.mm_d_sto
-        d_sp = self.stator_core.mm_d_stt
-        d_st = self.stator_core.mm_d_st
-        d_sy = self.stator_core.mm_d_sy
-        w_st = self.stator_core.mm_w_st
-        r_st = self.stator_core.mm_r_st
-        r_sf = self.stator_core.mm_r_sf
-        r_sb = self.stator_core.mm_r_sb
-        Q    = self.stator_core.Q
-        mm_d_pm = self.stator_core.mm_d_pm
+        alpha_st = self.statorCore.deg_alpha_st * np.pi/180
+        alpha_so = -self.statorCore.deg_alpha_sto * np.pi/180
+        r_si = self.statorCore.mm_r_si
+        d_so = self.statorCore.mm_d_sto
+        d_sp = self.statorCore.mm_d_stt
+        d_st = self.statorCore.mm_d_st
+        d_sy = self.statorCore.mm_d_sy
+        w_st = self.statorCore.mm_w_st
+        r_st = self.statorCore.mm_r_st
+        r_sf = self.statorCore.mm_r_sf
+        r_sb = self.statorCore.mm_r_sb
+        Q    = self.statorCore.Q
+        mm_d_pm = self.statorCore.mm_d_pm
 
-        alpha_slot_span = self.stator_core.alpha_slot_span
+        alpha_slot_span = self.statorCore.alpha_slot_span
         P1 = [r_si, 0]
         P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
         P3_temp = [ d_so*cos(alpha_st*0.5), 
@@ -646,7 +646,7 @@ class CrossSectStatorMagnetAtYoke:
         # Radius_InnerStatorYoke = r_si+d_sp+d_st
         # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
         # Option 2
-        Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        Radius_InnerStatorYoke = math.sqrt(P5[0]**2 + P5[1]**2)
         # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
         P6 = [ Radius_InnerStatorYoke *  cos(alpha_slot_span*0.5),
                Radius_InnerStatorYoke * -sin(alpha_slot_span*0.5) ]
@@ -658,10 +658,10 @@ class CrossSectStatorMagnetAtYoke:
         # Draw slot for inserting PM
         r_sy = Radius_InnerStatorYoke
         P0 = [r_sy, 0]
-        # print('||DEBUG', P0, np.sqrt(P5[0]**2 + P5[1]**2))
+        # print('||DEBUG', P0, math.sqrt(P5[0]**2 + P5[1]**2))
         alpha_pm_depth = 2*np.arcsin(0.5*mm_d_pm / r_sy)
         # print('magnet angle', alpha_pm_depth/np.pi*180)
-        mm_w_pm = d_sy - self.stator_core.mm_difference_pm_yoke
+        mm_w_pm = d_sy - self.statorCore.mm_difference_pm_yoke
 
         self.maly=[]
         list_segments = []
@@ -671,7 +671,7 @@ class CrossSectStatorMagnetAtYoke:
             P4_Mirror = [P4[0], -P4[1]]
             P5_Mirror = [P5[0], -P5[1]]
             def iPark(P, theta):
-                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
             def draw_fraction(list_segments, i, P0, P2, P3, P4, P5,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
@@ -723,7 +723,7 @@ class CrossSectStatorMagnetAtYoke:
 
             # DEBUG
             # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
-            #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
+            #     print(ind+1, point, math.sqrt(point[0]**2+point[1]**2))
 
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
@@ -745,27 +745,27 @@ class CrossSectToroidalWiniding:
         self.type = 'Toroidal'
         self.name = name
         self.color = color
-        self.stator_core = stator_core
+        self.statorCore = stator_core
 
     def draw(self, drawer, bool_draw_whole_model=True):
 
         drawer.getSketch(self.name, self.color)
 
-        alpha_st = self.stator_core.deg_alpha_st * np.pi/180
-        alpha_so = -self.stator_core.deg_alpha_sto * np.pi/180
-        r_si = self.stator_core.mm_r_si
-        d_so = self.stator_core.mm_d_sto
-        d_sp = self.stator_core.mm_d_stt
-        d_st = self.stator_core.mm_d_st
-        d_sy = self.stator_core.mm_d_sy
-        w_st = self.stator_core.mm_w_st
-        r_st = self.stator_core.mm_r_st
-        r_sf = self.stator_core.mm_r_sf
-        r_sb = self.stator_core.mm_r_sb
-        Q    = self.stator_core.Q
-        mm_d_pm = self.stator_core.mm_d_pm
+        alpha_st = self.statorCore.deg_alpha_st * np.pi/180
+        alpha_so = -self.statorCore.deg_alpha_sto * np.pi/180
+        r_si = self.statorCore.mm_r_si
+        d_so = self.statorCore.mm_d_sto
+        d_sp = self.statorCore.mm_d_stt
+        d_st = self.statorCore.mm_d_st
+        d_sy = self.statorCore.mm_d_sy
+        w_st = self.statorCore.mm_w_st
+        r_st = self.statorCore.mm_r_st
+        r_sf = self.statorCore.mm_r_sf
+        r_sb = self.statorCore.mm_r_sb
+        Q    = self.statorCore.Q
+        mm_d_pm = self.statorCore.mm_d_pm
 
-        alpha_slot_span = self.stator_core.alpha_slot_span
+        alpha_slot_span = self.statorCore.alpha_slot_span
         P1 = [r_si, 0]
         P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
         P3_temp = [ d_so*cos(alpha_st*0.5), 
@@ -789,7 +789,7 @@ class CrossSectToroidalWiniding:
         # Radius_InnerStatorYoke = r_si+d_sp+d_st
         # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
         # Option 2
-        Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        Radius_InnerStatorYoke = math.sqrt(P5[0]**2 + P5[1]**2)
         # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
         P6 = [ Radius_InnerStatorYoke *  cos(alpha_slot_span*0.5),
                Radius_InnerStatorYoke * -sin(alpha_slot_span*0.5) ]
@@ -801,10 +801,10 @@ class CrossSectToroidalWiniding:
         # Draw slot for inserting PM
         r_sy = Radius_InnerStatorYoke
         P0 = [r_sy, 0]
-        # print('||DEBUG', P0, np.sqrt(P5[0]**2 + P5[1]**2))
+        # print('||DEBUG', P0, math.sqrt(P5[0]**2 + P5[1]**2))
         alpha_pm_depth = 2*np.arcsin(0.5*mm_d_pm / r_sy)
         # print('magnet angle', alpha_pm_depth/np.pi*180)
-        mm_w_pm = d_sy - self.stator_core.mm_difference_pm_yoke
+        mm_w_pm = d_sy - self.statorCore.mm_difference_pm_yoke
 
         self.wily = list()
         list_segments = []
@@ -814,7 +814,7 @@ class CrossSectToroidalWiniding:
             P4_Mirror = [P4[0], -P4[1]]
             P5_Mirror = [P5[0], -P5[1]]
             def iPark(P, theta):
-                return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+                return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
             def draw_fraction(list_segments, i, P0, P2, P3, P4, P5,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
@@ -850,7 +850,7 @@ class CrossSectToroidalWiniding:
                     coil['LayerX-Phase'] = 'B' if i%2==0 else 'M'
                     coil['LayerX-X'] = 0.5*(P53[0] + P56[0])
                     coil['LayerX-Y'] = 0.5*(P53[1] + P56[1])
-                    coil['LayerX-R'] = np.sqrt(coil['LayerX-X']**2 + coil['LayerX-Y']**2)
+                    coil['LayerX-R'] = math.sqrt(coil['LayerX-X']**2 + coil['LayerX-Y']**2)
                     coil['LayerX-Theta'] = np.arctan2(coil['LayerX-Y'], coil['LayerX-X'])
                     coil['LayerX-Direction'] = '+'
                     coil['LayerX-Purpose'] = 'SuspensionOnly' if i%2==0 else 'DualPurpose'
@@ -861,7 +861,7 @@ class CrossSectToroidalWiniding:
                     coil['LayerY-Phase'] = 'B' if i%2==0 else 'M'
                     coil['LayerY-X'] = 0.5*(P57[0] + P510[0])
                     coil['LayerY-Y'] = 0.5*(P57[1] + P510[1])
-                    coil['LayerY-R'] = np.sqrt(coil['LayerY-X']**2 + coil['LayerY-Y']**2)
+                    coil['LayerY-R'] = math.sqrt(coil['LayerY-X']**2 + coil['LayerY-Y']**2)
                     coil['LayerY-Theta'] = np.arctan2(coil['LayerY-Y'], coil['LayerY-X'])
                     coil['LayerY-Direction'] = '-'
                     coil['LayerY-Purpose'] = 'SuspensionOnly' if i%2==0 else 'DualPurpose'
@@ -886,7 +886,7 @@ class CrossSectToroidalWiniding:
 
             # DEBUG
             # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
-            #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
+            #     print(ind+1, point, math.sqrt(point[0]**2+point[1]**2))
 
             # self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
@@ -1004,7 +1004,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         # Radius_InnerStatorYoke = r_si+d_sp+d_st
         # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
         # Option 2
-        r_sy = Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        r_sy = Radius_InnerStatorYoke = math.sqrt(P5[0]**2 + P5[1]**2)
         # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
         P6 = [ r_sy *  cos(alpha_slot_span*0.5),
                r_sy * -sin(alpha_slot_span*0.5) ]
@@ -1019,11 +1019,11 @@ class CrossSectInnerRotorStator_PMAtToothBody:
             P8 = [   r_sy+d_sy, 0]
 
         r_so = r_sy + d_sy
-        P_PM = [np.sqrt((r_so)**2 - P1[1]**2) - self.mm_difference_pm_yoke, P1[1]]
+        P_PM = [math.sqrt((r_so)**2 - P1[1]**2) - self.mm_difference_pm_yoke, P1[1]]
 
         斜边 = r_so
         高 = np.abs(P5[1])
-        底边 = np.sqrt(斜边**2 - 高**2)
+        底边 = math.sqrt(斜边**2 - 高**2)
         P5_OuterEdge = [底边, -高]
 
         P1_Mirror = [P1[0], -P1[1]]
@@ -1033,7 +1033,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         P5_Mirror = [P5[0], -P5[1]]
         P_PM_Mirror = [P_PM[0], -P_PM[1]]
         def iPark(P, theta):
-            return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+            return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
 
         list_segments = []
         if bool_draw_whole_model:
@@ -1083,7 +1083,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
 
             # DEBUG
             # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
-            #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
+            #     print(ind+1, point, math.sqrt(point[0]**2+point[1]**2))
 
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
@@ -1133,31 +1133,31 @@ class CrossSectStatorMagnetAtToothBody:
                 ):
         self.name = name
         self.color = color
-        self.stator_core = stator_core
+        self.statorCore = stator_core
         self.mm_d_air_pm = mm_d_air_pm
     def draw(self, drawer, bool_draw_whole_model=False):
 
         drawer.getSketch(self.name, self.color)
 
-        alpha_st = self.stator_core.deg_alpha_st * np.pi/180
-        alpha_so = -self.stator_core.deg_alpha_sto * np.pi/180
-        r_si = self.stator_core.mm_r_si
-        d_sto = self.stator_core.mm_d_sto
-        d_stt = self.stator_core.mm_d_stt
-        d_st = self.stator_core.mm_d_st
-        d_sy = self.stator_core.mm_d_sy
-        w_st = self.stator_core.mm_w_st
-        r_st = self.stator_core.mm_r_st
-        r_sf = self.stator_core.mm_r_sf
-        r_sb = self.stator_core.mm_r_sb
-        Q    = self.stator_core.Q
-        mm_d_pm = self.stator_core.mm_d_pm
+        alpha_st = self.statorCore.deg_alpha_st * np.pi/180
+        alpha_so = -self.statorCore.deg_alpha_sto * np.pi/180
+        r_si = self.statorCore.mm_r_si
+        d_sto = self.statorCore.mm_d_sto
+        d_stt = self.statorCore.mm_d_stt
+        d_st = self.statorCore.mm_d_st
+        d_sy = self.statorCore.mm_d_sy
+        w_st = self.statorCore.mm_w_st
+        r_st = self.statorCore.mm_r_st
+        r_sf = self.statorCore.mm_r_sf
+        r_sb = self.statorCore.mm_r_sb
+        Q    = self.statorCore.Q
+        mm_d_pm = self.statorCore.mm_d_pm
 
         mm_d_air_pm = self.mm_d_air_pm
 
-        alpha_slot_span = self.stator_core.alpha_slot_span
+        alpha_slot_span = self.statorCore.alpha_slot_span
 
-        alpha_pm_at_airgap = self.stator_core.deg_alpha_pm_at_airgap/180*np.pi
+        alpha_pm_at_airgap = self.statorCore.deg_alpha_pm_at_airgap/180*np.pi
 
         P0 = [r_si + mm_d_air_pm, 0]
         P1 = [r_si* cos(alpha_pm_at_airgap/2) + mm_d_air_pm, 
@@ -1188,7 +1188,7 @@ class CrossSectStatorMagnetAtToothBody:
         # Radius_InnerStatorYoke = r_si+d_sp+d_st
         # print('Radius_InnerStatorYoke #1:', Radius_InnerStatorYoke)
         # Option 2
-        r_sy = Radius_InnerStatorYoke = np.sqrt(P5[0]**2 + P5[1]**2)
+        r_sy = Radius_InnerStatorYoke = math.sqrt(P5[0]**2 + P5[1]**2)
         # print('Radius_InnerStatorYoke #2:', Radius_InnerStatorYoke)
         P6 = [ r_sy *  cos(alpha_slot_span*0.5),
                r_sy * -sin(alpha_slot_span*0.5) ]
@@ -1203,7 +1203,7 @@ class CrossSectStatorMagnetAtToothBody:
             P8 = [   r_sy+d_sy, 0]
 
         r_so = r_sy + d_sy
-        P_PM = [np.sqrt((r_so)**2 - P1[1]**2) - self.stator_core.mm_difference_pm_yoke, P1[1]]
+        P_PM = [math.sqrt((r_so)**2 - P1[1]**2) - self.statorCore.mm_difference_pm_yoke, P1[1]]
 
         P1_Mirror = [P1[0], -P1[1]]
         P2_Mirror = [P2[0], -P2[1]] # = iPark(P2, alpha_st)
@@ -1212,10 +1212,10 @@ class CrossSectStatorMagnetAtToothBody:
         P5_Mirror = [P5[0], -P5[1]]
         P_PM_Mirror = [P_PM[0], -P_PM[1]]
         def iPark(P, theta):
-            return [P[0]*np.cos(theta)+P[1]*-np.sin(theta), P[0]*np.sin(theta)+P[1]*np.cos(theta)]
+            return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
 
-        self.mm2_magnet_area = np.sqrt( (         P1[0]-P_PM[0])**2 + (         P1[1]-P_PM[1])**2 ) \
-                             * np.sqrt( (P_PM_Mirror[0]-P_PM[0])**2 + (P_PM_Mirror[1]-P_PM[1])**2 ) * Q # Note Q = 2*pe
+        self.mm2_magnet_area = math.sqrt( (         P1[0]-P_PM[0])**2 + (         P1[1]-P_PM[1])**2 ) \
+                             * math.sqrt( (P_PM_Mirror[0]-P_PM[0])**2 + (P_PM_Mirror[1]-P_PM[1])**2 ) * Q # Note Q = 2*pe
 
         list_segments = []
         if bool_draw_whole_model:
@@ -1266,7 +1266,7 @@ class CrossSectStatorMagnetAtToothBody:
 
             # DEBUG
             # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
-            #     print(ind+1, point, np.sqrt(point[0]**2+point[1]**2))
+            #     print(ind+1, point, math.sqrt(point[0]**2+point[1]**2))
 
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 

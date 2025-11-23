@@ -3,7 +3,7 @@ import inner_rotor_motor, pyrhonen_procedure_as_function
 import logging
 from collections import OrderedDict
 from utility import acmop_parameter
-from pylab import np
+from pylab import np; import math
 from pprint import pprint
 
 import CrossSectInnerNotchedRotor
@@ -74,7 +74,7 @@ class bearingless_spmsm_closedStator_template(inner_rotor_motor.template_machine
 
             # THERMAL Properties
             EX['DriveW_zQ']         =            pyrhonen_procedure_as_function.get_zQ(SI, wily, GP['mm_r_si'].value*2*1e-3, GP['mm_r_ro'].value*2*1e-3, specified_mm_stack_length=EX['mm_stack_length']) # TODO:
-            EX['DriveW_CurrentAmp'] = np.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SI) # TODO:
+            EX['DriveW_CurrentAmp'] = math.sqrt(2)*pyrhonen_procedure_as_function.get_stator_phase_current_rms(SI) # TODO:
             logger = logging.getLogger(__name__)
             logger.info('DriveW_CurrentAmp is initialized as: %s A (considering the specified voltage). This will be overwritten by Js-constraint later.', EX['DriveW_CurrentAmp'])
             EX['DriveW_Freq']       = EX['ExcitationFreqSimulated']
@@ -266,7 +266,7 @@ class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_
 
 
         # 修改定子截面为闭口槽
-        self.stator_core = CrossSectStator.CrossSectInnerRotorClosedSlotStator( name = 'StatorCore',
+        self.statorCore = CrossSectStator.CrossSectInnerRotorClosedSlotStator( name = 'StatorCore',
                                             mm_d_stt = SI['GP']['mm_d_stt'].value,
                                             mm_r_si = SI['GP']['mm_r_si'].value,
                                             mm_d_st = SI['GP']['mm_d_st'].value,
@@ -277,7 +277,7 @@ class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_
                                             )
 
         self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
-                                                    stator_core = self.stator_core)
+                                                    stator_core = self.statorCore)
 
         # Parts
         print('[bearingless_spmsm_closedSlot_design.py] Building parts for variant:', self.name)
@@ -306,7 +306,7 @@ class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_
                                                       notched_rotor = self.rotorCore
                                                     )
 
-        # self.stator_core = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
+        # self.statorCore = CrossSectStator.CrossSectInnerRotorStator( name = 'StatorCore',
         #                                     deg_alpha_st = GP['deg_alpha_st'].value, #40,
         #                                     deg_alpha_sto = GP['deg_alpha_sto'].value, #20,
         #                                     mm_r_si = GP['mm_r_si'].value,
@@ -323,7 +323,7 @@ class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_
         #                                     )
 
         # self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
-        #                                             stator_core = self.stator_core)
+        #                                             stator_core = self.statorCore)
 
         self.sleeve = CrossSectInnerNotchedRotor.CrossSectSleeve(
                             name = 'Sleeve',
@@ -403,7 +403,7 @@ class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_
 #         SI = self.template.SI
 
 #         # 修改定子截面为闭口槽
-#         self.stator_core = CrossSectStator.CrossSectInnerRotorClosedSlotStator( name = 'StatorCore',
+#         self.statorCore = CrossSectStator.CrossSectInnerRotorClosedSlotStator( name = 'StatorCore',
 #                                             # deg_alpha_st = SI['GP']['deg_alpha_st'].value, #40,
 #                                             # deg_alpha_sto = SI['GP']['deg_alpha_sto'].value, #20,
 #                                             mm_r_si = SI['GP']['mm_r_si'].value,
@@ -417,7 +417,7 @@ class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_
 #                                             )
 
 #         self.coils = CrossSectStator.CrossSectInnerRotorStatorWinding(name = 'Coils',
-#                                                     stator_core = self.stator_core)
+#                                                     stator_core = self.statorCore)
 
 def add_carbon_fiber_material(app):
     app.GetMaterialLibrary().CreateCustomMaterial(u"CarbonFiber", u"Custom Materials")

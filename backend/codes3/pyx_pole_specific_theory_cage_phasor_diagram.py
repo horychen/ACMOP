@@ -1,6 +1,6 @@
 import PyX_classes, PyX_Utility
 import os, pyx
-from pylab import np
+from pylab import np; import math
 
 ''' TEC-ISMB-2021 鼠笼相量图
 '''
@@ -13,25 +13,25 @@ if __name__ == '__main__':
     alpha_c = 2*np.pi / Q_r_prime
     for i in range(Q_r_prime):
         radius = 10
-        x = radius *  np.cos(i*alpha_c)
-        y = radius * -np.sin(i*alpha_c)
+        x = radius *  math.cos(i*alpha_c)
+        y = radius * -math.sin(i*alpha_c)
         pu.pyx_arrow((x,y))
         radius = 9
-        x = radius *  np.cos(i*alpha_c+15/180*np.pi)
-        y = radius * -np.sin(i*alpha_c+15/180*np.pi)
+        x = radius *  math.cos(i*alpha_c+15/180*np.pi)
+        y = radius * -math.sin(i*alpha_c+15/180*np.pi)
         pu.pyx_text((x,y), r'$\bar U_{r%d,n}$'%(i+1), settings=['blue'], scale=1.5)
         radius = 11
-        x = radius *  np.cos(i*alpha_c+0/180*np.pi)
-        y = radius * -np.sin(i*alpha_c+0/180*np.pi)
+        x = radius *  math.cos(i*alpha_c+0/180*np.pi)
+        y = radius * -math.sin(i*alpha_c+0/180*np.pi)
         pu.pyx_text((x,y), str(i+1), settings=[], scale=1.5)
 
     radius = 3
-    x = radius *  np.cos(i*alpha_c)
-    y = radius * -np.sin(i*alpha_c)
+    x = radius *  math.cos(i*alpha_c)
+    y = radius * -math.sin(i*alpha_c)
     pu.pyx_arc((x,y), (radius,0), settings=['earrow'])
     radius = 5
-    x = radius * np.cos(0.5*alpha_c)
-    y = radius * np.sin(0.5*alpha_c)
+    x = radius * math.cos(0.5*alpha_c)
+    y = radius * math.sin(0.5*alpha_c)
     pu.pyx_text((x,y), r'$n\alpha_c$', scale=1.5)
 
 

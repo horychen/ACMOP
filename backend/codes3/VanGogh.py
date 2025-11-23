@@ -592,7 +592,7 @@ class VanGogh_pyPlotter(VanGogh):
 
         # turn Polar into Cartesian
         def xy(radius, phi, center):
-            return radius*np.cos(phi) + center[0], radius*np.sin(phi) + center[1]
+            return radius*math.cos(phi) + center[0], radius*math.sin(phi) + center[1]
 
         # get list of points
         # phis = np.arange(rotation, rotation+angle_span, 2*radius*np.pi / (360./maxseg))
@@ -820,7 +820,7 @@ class VanGogh_TikZPlotter():
                     # print '[%g,%g,%g,%g,%g],'%(startxy[0], startxy[1], endxy[0], endxy[1], 0.5*kwarg['relangle'])
         else:
             # PyX: Option 2: use pyx.arc. 
-            radius = np.sqrt((startxy[0] - centerxy[0])**2 + (startxy[1] - centerxy[1])**2)
+            radius = math.sqrt((startxy[0] - centerxy[0])**2 + (startxy[1] - centerxy[1])**2)
             angle_start = np.arctan2( (startxy[1] - centerxy[1]), (startxy[0] - centerxy[0]) ) / np.pi*180
             angle_end   = np.arctan2(   (endxy[1] - centerxy[1]),   (endxy[0] - centerxy[0]) ) / np.pi*180
             if ccw == 1:
@@ -832,10 +832,10 @@ class VanGogh_TikZPlotter():
                 # See PyX_Utility.py
                 # Or
                 # See pyx_fill_example.py
-                # from pylab import np
+                # from pylab import np; import math
                 # upArc = path.path(path.arc(0,0,1,240,300))
-                # right = path.line(0,0,1*np.cos(240/180*np.pi),1*np.sin(240/180*np.pi))
-                # left  = path.line(1*np.cos(300/180*np.pi),1*np.sin(300/180*np.pi),0,0)
+                # right = path.line(0,0,1*math.cos(240/180*np.pi),1*math.sin(240/180*np.pi))
+                # left  = path.line(1*math.cos(300/180*np.pi),1*math.sin(300/180*np.pi),0,0)
                 # p = right<<upArc<<left
                 # c.fill(p,[color.gray(0.9)])
                 # c.stroke(p, [style.linewidth.thin]) # comment this for no outline/
@@ -1645,8 +1645,8 @@ if __name__ == '!__main__':
     # verts = np.zeros((npoints, 2))
     # for i in np.arange(npoints):
     #     angle = s * i
-    #     x = npoints * np.cos(angle)
-    #     y = npoints * np.sin(angle)
+    #     x = npoints * math.cos(angle)
+    #     y = npoints * math.sin(angle)
     #     verts[i] = [x, y]
 
     # # Plot the Bezier curves
