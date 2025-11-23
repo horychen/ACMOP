@@ -1,0 +1,1118 @@
+{
+    "machine_type": "PMSM",
+    "DPNV_or_SEPA": true,
+    "m": 3,
+    "Qs": 12,
+    "p": 4,
+    "ps": 5,
+    "coil_pitch_y": 1,
+    "no_segmented_magnets": 1,
+    "mec_power": 75,
+    "guess_air_gap_flux_density_Bg": 0.9,
+    "guess_stator_tooth_flux_density_Bst": 1.5,
+    "guess_stator_yoke_flux_density_Bsy": 1.2,
+    "guess_efficiency": 0.9,
+    "guess_power_factor": 0.8,
+    "safety_factor_to_yield": null,
+    "safety_factor_to_critical_speed": 1.0,
+    "bool_skew_stator": false,
+    "bool_skew_rotor": false,
+    "GeometricComponentsObjects": {
+        "rotorCore": {
+            "py/object": "CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor",
+            "name": "NotchedRotor",
+            "color": "#FE840E",
+            "mm_d_pm": 2,
+            "deg_alpha_rm": 42.75,
+            "deg_alpha_rs": 42.75,
+            "mm_d_ri": 0.4984999999999964,
+            "mm_r_ri": 15,
+            "mm_d_rp": 2,
+            "mm_d_rs": 0,
+            "p": 4,
+            "s": 1,
+            "location": {
+                "py/object": "Location2D.Location2D",
+                "anchor_xy": [
+                    0,
+                    0
+                ],
+                "theta": 0.0
+            },
+            "P1": [
+                15,
+                0
+            ],
+            "P2": [
+                17.498499999999996,
+                0
+            ],
+            "P3": [
+                17.485009290658287,
+                -0.6869878860600619
+            ],
+            "P4": [
+                15.48655121817684,
+                -0.6084682545419247
+            ],
+            "P5": [
+                10.959094448219705,
+                -10.959094448219705
+            ],
+            "P6": [
+                10.606601717798213,
+                -10.606601717798213
+            ],
+            "P1p5": [
+                15.498499999999996,
+                0
+            ],
+            "P7": null,
+            "P8": null,
+            "P9": null,
+            "P10": null,
+            "alpha_rm": 0.7461282552275759,
+            "alpha_rs": 0.7461282552275759,
+            "alpha_rp": 0.7853981633974483,
+            "alpha_P3": 0.039269908169872414,
+            "alpha_P5": 0.7853981633974483,
+            "alpha_notch": null
+        },
+        "shaft": {
+            "py/object": "CrossSectInnerNotchedRotor.CrossSectShaft",
+            "name": "Shaft",
+            "color": "#0EE0E2",
+            "notched_rotor": {
+                "py/id": 2
+            },
+            "P1": [
+                15,
+                0
+            ],
+            "NP1": [
+                -15,
+                0
+            ]
+        },
+        "rotorMagnet": {
+            "py/object": "CrossSectInnerNotchedRotor.CrossSectInnerNotchedMagnet",
+            "name": "RotorMagnet",
+            "color": "#0BA0E2",
+            "notched_rotor": {
+                "py/id": 2
+            },
+            "P1": [
+                15,
+                0
+            ],
+            "P2": [
+                17.498499999999996,
+                0
+            ],
+            "P4": [
+                15.48655121817684,
+                -0.6084682545419247
+            ],
+            "P3_extra": [
+                17.485009290658287,
+                -0.6869878860600619
+            ],
+            "P5": [
+                10.959094448219705,
+                -10.959094448219705
+            ],
+            "alpha_notch": null,
+            "P6_extra": [
+                12.3733080105928,
+                -12.3733080105928
+            ],
+            "mm2_magnet_area": 196.95995230195456,
+            "alpha_rm": 0.7461282552275759,
+            "alpha_rs": 0.7461282552275759,
+            "alpha_rp": 0.7853981633974483,
+            "alpha_P3": 0.039269908169872414,
+            "alpha_P5": 0.7853981633974483,
+            "s": 1,
+            "p": 4
+        },
+        "sleeve": {
+            "py/object": "CrossSectInnerNotchedRotor.CrossSectSleeve",
+            "name": "Sleeve",
+            "color": "#11E322",
+            "notched_magnet": {
+                "py/id": 15
+            },
+            "d_sleeve": 1.0,
+            "P1": [
+                17.498499999999996,
+                0
+            ],
+            "P2": [
+                18.498499999999996,
+                0
+            ],
+            "P3": [
+                12.3733080105928,
+                -12.3733080105928
+            ],
+            "P4": [
+                13.080414791779347,
+                -13.080414791779347
+            ]
+        },
+        "statorCore": {
+            "py/object": "CrossSectStator.CrossSectInnerRotorStator",
+            "name": "StatorCore",
+            "color": "#BAFD01",
+            "deg_alpha_st": 28.0,
+            "deg_alpha_sto": 14.0,
+            "mm_r_si": 17.499999999999996,
+            "mm_d_sto": 1,
+            "mm_d_stt": 1.5,
+            "mm_d_st": 2.3458245527042494,
+            "mm_d_sy": 5.154175447295754,
+            "mm_w_st": 5.497787143782138,
+            "mm_r_st": 0.0,
+            "mm_r_sf": 0.0,
+            "mm_r_sb": 0.0,
+            "Q": 12,
+            "location": {
+                "py/object": "Location2D.Location2D",
+                "anchor_xy": [
+                    0,
+                    0
+                ],
+                "theta": 0.0
+            },
+            "P1": [
+                17.499999999999996,
+                0
+            ],
+            "P2": [
+                16.980175209829934,
+                -4.2336331729941845
+            ],
+            "P3": [
+                17.980175209829934,
+                -4.2336331729941845
+            ],
+            "P4": [
+                18.804215254832194,
+                -2.72056770728759
+            ],
+            "P5": [
+                21.150039807536444,
+                -2.72056770728759
+            ],
+            "P6": [
+                20.597689878445177,
+                -5.519134368876094
+            ],
+            "P7": [
+                25.59703439666031,
+                -6.858704695216799
+            ],
+            "P8": [
+                26.5,
+                0
+            ],
+            "P2_Mirror": [
+                16.980175209829934,
+                4.2336331729941845
+            ],
+            "P3_Mirror": [
+                17.980175209829934,
+                4.2336331729941845
+            ],
+            "P4_Mirror": [
+                18.804215254832194,
+                2.72056770728759
+            ],
+            "P5_Mirror": [
+                21.150039807536444,
+                2.72056770728759
+            ],
+            "alpha_st": 0.4886921905584123,
+            "alpha_so": -0.24434609527920614,
+            "alpha_slot_span": 0.5235987755982988,
+            "innerCoord": {
+                "py/tuple": [
+                    19.325019903768222,
+                    -1.360283853643795
+                ]
+            }
+        },
+        "coils": {
+            "py/object": "CrossSectStator.CrossSectInnerRotorStatorWinding",
+            "type": "Cynlinder",
+            "name": "Coils",
+            "color": "#3D9970",
+            "statorCore": {
+                "py/id": 27
+            },
+            "P1": [
+                17.499999999999996,
+                0
+            ],
+            "POpen": [
+                18.352590699492296,
+                -4.917561856947893
+            ],
+            "P4": [
+                18.804215254832194,
+                -2.72056770728759
+            ],
+            "P5": [
+                21.150039807536444,
+                -2.72056770728759
+            ],
+            "P6": [
+                20.618483218892333,
+                -5.524705927656855
+            ],
+            "mm2_slot_area": 11.830370066360743,
+            "PCoil": [
+                19.73133224518832,
+                -3.970850799794982
+            ],
+            "P6_Shrink": [
+                20.529768121521933,
+                -5.369320414870668
+            ],
+            "P5_Shrink": [
+                21.008169051301632,
+                -2.845596016538329
+            ],
+            "P4_Shrink": [
+                18.896926953867805,
+                -2.845596016538329
+            ],
+            "POpen_Shrink": [
+                18.490464854061898,
+                -4.8228907512326025
+            ],
+            "P6_Shrink_Mirror": [
+                20.529768121521933,
+                5.369320414870668
+            ],
+            "P5_Shrink_Mirror": [
+                21.008169051301632,
+                2.845596016538329
+            ],
+            "P4_Shrink_Mirror": [
+                18.896926953867805,
+                2.845596016538329
+            ],
+            "POpen_Shrink_Mirror": [
+                18.490464854061898,
+                4.8228907512326025
+            ],
+            "alpha_slot_span": 0.5235987755982988,
+            "Q": 12,
+            "innerCoord": {
+                "py/tuple": [
+                    19.485536959192316,
+                    -5.221133892302374
+                ]
+            }
+        }
+    },
+    "EX-user": {
+        "ExcitationFreqSimulated": 113.33,
+        "VoltageRating": 36,
+        "mm_stack_length": 10,
+        "Steel": "M19Gauge29",
+        "lamination_stacking_factor_kFe": 0.95,
+        "Coil": "Cu",
+        "Js": 4000000.0,
+        "Temperature": 75,
+        "WindingFill": 0.3882,
+        "AWG": 26,
+        "end_winding_length_factor_kov": 1.8,
+        "stator_slot_area": 1.003855001951089e-05,
+        "end_winding_length_Lew": 0.023993758616273224,
+        "wily": {
+            "py/object": "winding_layout.winding_layout_v2",
+            "layer_X_phases": [
+                "U",
+                "V",
+                "W",
+                "U",
+                "V",
+                "W",
+                "U",
+                "V",
+                "W",
+                "U",
+                "V",
+                "W"
+            ],
+            "layer_X_signs": [
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+",
+                "+"
+            ],
+            "coil_pitch_y": 1,
+            "layer_Y_phases": [
+                "W",
+                "U",
+                "V",
+                "W",
+                "U",
+                "V",
+                "W",
+                "U",
+                "V",
+                "W",
+                "U",
+                "V"
+            ],
+            "layer_Y_signs": [
+                "-",
+                "-",
+                "-",
+                "-",
+                "-",
+                "-",
+                "-",
+                "-",
+                "-",
+                "-",
+                "-",
+                "-"
+            ],
+            "grouping_AC": [
+                0,
+                0,
+                1,
+                1,
+                0,
+                0,
+                1,
+                1,
+                0,
+                0,
+                1,
+                1
+            ],
+            "number_parallel_branch": 2,
+            "number_winding_layer": 2,
+            "bool_3PhaseCurrentSource": false,
+            "CommutatingSequenceD": 1,
+            "CommutatingSequenceB": 0,
+            "kd1": 1.0,
+            "kp1": 0.866,
+            "SIistributed_or_concentrated": false,
+            "deg_winding_U_phase_phase_axis_angle": 15.0,
+            "SIict_coil_connection": {
+                "layer X phases": {
+                    "py/id": 59
+                },
+                "layer X signs": {
+                    "py/id": 60
+                },
+                "layer Y phases": {
+                    "py/id": 61
+                },
+                "layer Y signs": {
+                    "py/id": 62
+                }
+            },
+            "SIPNV_or_SEPA": true,
+            "Qs": 12,
+            "p": 4,
+            "m": 3,
+            "SPP": 0.5,
+            "ps": 5,
+            "pr": null,
+            "list_layer_motor_phases": [
+                {
+                    "py/id": 59
+                },
+                {
+                    "py/id": 61
+                }
+            ],
+            "list_layer_motor_signs": [
+                {
+                    "py/id": 60
+                },
+                {
+                    "py/id": 62
+                }
+            ],
+            "list_layer_suspension_phases": [
+                {
+                    "py/id": 59
+                },
+                {
+                    "py/id": 61
+                }
+            ],
+            "list_layer_suspension_signs": [
+                [
+                    "+",
+                    "+",
+                    "-",
+                    "-",
+                    "+",
+                    "+",
+                    "-",
+                    "-",
+                    "+",
+                    "+",
+                    "-",
+                    "-"
+                ],
+                [
+                    "+",
+                    "-",
+                    "-",
+                    "+",
+                    "+",
+                    "-",
+                    "-",
+                    "+",
+                    "+",
+                    "-",
+                    "-",
+                    "+"
+                ]
+            ],
+            "ox_distribution_three_phase": [
+                "U+W-",
+                "V+U-",
+                "W+V-",
+                "U+W-",
+                "V+U-",
+                "W+V-",
+                "U+W-",
+                "V+U-",
+                "W+V-",
+                "U+W-",
+                "V+U-",
+                "W+V-"
+            ],
+            "ox_distribution_phase_U": [
+                "x",
+                "o",
+                "",
+                "x",
+                "o",
+                "",
+                "x",
+                "o",
+                "",
+                "x",
+                "o",
+                ""
+            ]
+        },
+        "DriveW_zQ": 442.0,
+        "DriveW_CurrentAmp": 2.362547977221429,
+        "DriveW_Freq": 113.33,
+        "DriveW_Rs": 1.0,
+        "DriveW_poles": 8,
+        "BeariW_zQ": 442.0,
+        "BeariW_CurrentAmp": 0.12434463038007522,
+        "BeariW_Freq": 113.33,
+        "BeariW_Rs": 1.0,
+        "BeariW_poles": 10,
+        "slot_current_utilizing_ratio": 1.0,
+        "the_speed": 1699.95,
+        "Omega": 178.0183477156656
+    },
+    "GP-user": {
+        "mm_r_so": {
+            "type": "fixed",
+            "value": 25,
+            "bounds": null
+        },
+        "split_ratio": {
+            "type": "free",
+            "value": 0.7,
+            "bounds": [
+                0.3,
+                0.7
+            ]
+        },
+        "mm_d_stt": {
+            "type": "free",
+            "value": 0.75,
+            "bounds": [
+                0.5,
+                1.5
+            ]
+        },
+        "mm_d_pm": {
+            "type": "free",
+            "value": 2,
+            "bounds": [
+                1,
+                3
+            ]
+        },
+        "mm_w_st": {
+            "type": "free",
+            "value": null,
+            "bounds": null
+        },
+        "mm_d_sy": {
+            "type": "free",
+            "value": null,
+            "bounds": null
+        },
+        "mm_d_mech_air_gap": {
+            "type": "fixed",
+            "value": 0.5,
+            "bounds": null
+        },
+        "mm_d_sleeve": {
+            "type": "fixed",
+            "value": 1.0,
+            "bounds": null
+        },
+        "mm_r_ri": {
+            "type": "fixed",
+            "value": 15,
+            "bounds": null
+        },
+        "mm_d_st": {
+            "type": "derived",
+            "value": null,
+            "bounds": null
+        },
+        "mm_d_ri": {
+            "type": "derived",
+            "value": null,
+            "bounds": null
+        }
+    },
+    "GP": {
+        "py/reduce": [
+            {
+                "py/type": "collections.OrderedDict"
+            },
+            {
+                "py/tuple": []
+            },
+            null,
+            null,
+            {
+                "py/tuple": [
+                    {
+                        "py/tuple": [
+                            "mm_r_ro",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "rotor_outer_radius",
+                                        15.999999999999996,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_mech_air_gap",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "mechanical_air_gap_length",
+                                        0.5,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_sleeve",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "sleeve_length",
+                                        1.0,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "split_ratio",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "free",
+                                        "split_ratio_r_is_slash_r_os",
+                                        0.7,
+                                        {
+                                            "py/id": 76
+                                        },
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_w_st",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "free",
+                                        "stator_tooth_width",
+                                        5.497787143782138,
+                                        [
+                                            2.7816184953659624,
+                                            5.563236990731925
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_r_si",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "derived",
+                                        "stator_inner_radius",
+                                        17.499999999999996,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_r_so",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "stator_outer_radius",
+                                        25.0,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_sy",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "free",
+                                        "stator_yoke_depth",
+                                        5.154175447295754,
+                                        [
+                                            1.5000000000000009,
+                                            3.3750000000000018
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_st",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "derived",
+                                        "stator_tooth_depth",
+                                        2.3458245527042494,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_stt",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "free",
+                                        "stator_tooth_tip_depth",
+                                        1.5,
+                                        {
+                                            "py/id": 78
+                                        },
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_pm",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "free",
+                                        "magnet_depth",
+                                        2,
+                                        {
+                                            "py/id": 80
+                                        },
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_ri",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "derived",
+                                        "rotor_iron (back iron) depth",
+                                        0.4984999999999964,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "deg_alpha_rm",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "magnet_pole_span_angle",
+                                        42.75,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_rp",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "inter_polar_iron_thickness",
+                                        2,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "deg_alpha_rs",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "magnet_segment_span_angle",
+                                        42.75,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_rs",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "inter_segment_iron_thickness",
+                                        0,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_r_ri",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "rotor_inner_radius",
+                                        15,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "deg_alpha_st",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "stator_tooth_span_angle",
+                                        28.0,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_sto",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "fixed",
+                                        "stator_tooth_open_depth",
+                                        1,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "deg_alpha_sto",
+                            {
+                                "py/object": "utility.acmop_parameter",
+                                "py/state": {
+                                    "py/tuple": [
+                                        "derived",
+                                        "stator_tooth_open_angle",
+                                        14.0,
+                                        [
+                                            null,
+                                            null
+                                        ],
+                                        null
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "x_denorm_dict": {
+        "py/reduce": [
+            {
+                "py/type": "collections.OrderedDict"
+            },
+            {
+                "py/tuple": []
+            },
+            null,
+            null,
+            {
+                "py/tuple": [
+                    {
+                        "py/tuple": [
+                            "split_ratio",
+                            0.7
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_stt",
+                            0.75
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_pm",
+                            2
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_w_st",
+                            null
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_sy",
+                            null
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "bounds_denorm_dict": {
+        "py/reduce": [
+            {
+                "py/type": "collections.OrderedDict"
+            },
+            {
+                "py/tuple": []
+            },
+            null,
+            null,
+            {
+                "py/tuple": [
+                    {
+                        "py/tuple": [
+                            "split_ratio",
+                            {
+                                "py/id": 76
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_stt",
+                            {
+                                "py/id": 78
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_pm",
+                            {
+                                "py/id": 80
+                            }
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_w_st",
+                            null
+                        ]
+                    },
+                    {
+                        "py/tuple": [
+                            "mm_d_sy",
+                            null
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "EX": {
+        "py/id": 57
+    },
+    "output_dir": "C:\\_Codes\\ACMOP\\backend\\_default\\PMSM_Q12p4ps5y1_Heart/",
+    "swarm_data_file": "C:\\_Codes\\ACMOP\\backend\\_default\\PMSM_Q12p4ps5y1_Heart/PMSM Q12p4ps5y1 Heart.json",
+    "select_spec": "PMSM Q12p4ps5y1 Heart",
+    "select_fea_config_dict": "#0213 JMAG Bearingless Sub-hamonics"
+}

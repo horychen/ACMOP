@@ -3,6 +3,7 @@ from pylab import np; import math # plt, mpl
 import os, logging, win32com.client, json
 import utility, utility_json
 import population #, FEMM_Solver, pyrhonen_procedure_as_function
+import builtins
 
 # BPMSM codes
 import JMAG
@@ -1188,17 +1189,27 @@ class acm_designer(object):
             spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
             spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
 
-            GP = acm_variant.template.d['GP']
-            EX = acm_variant.template.d['EX']
+
+            GP = acm_variant.template.SI['GP']
+            EX = acm_variant.template.SI['EX']
 
             # Save to disk
             self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
+
+
+            number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
+            individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
 
             # save object (acm_variant) to disk
             # utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
 
             # this is for optimization
             acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
+
+            builtins.ad.visualize_dict['FEA_Evaluated_Performance'] = spec_performance_dict
+            builtins.ad.visualize_dict[f'results_for_optimization+{number_current_generation}-{individual_index}'] = acm_variant.results_for_optimization
+                #= int(acm_variant.counter//popsize), 
+                #= acm_variant.counter
 
             # this is for comparison to FEMM
             def compare_with_FEMM(acm_variant):
@@ -1412,7 +1423,7 @@ class acm_designer(object):
                 "expected_project_file": self.expected_project_file,
                 "project_name": self.project_name,
                 "study_name": study_name,
-                "dir_csv_output_folder": self.SIir_csv_output_folder,
+                "dir_csv_output_folder": self.dir_csv_output_folder,
                 "output_dir": self.fea_config_dict['output_dir']
             }
 
@@ -1424,7 +1435,7 @@ class acm_designer(object):
             ################################################################
             # Load data for cost function evaluation
             ################################################################
-            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.SIir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
             if results_to_be_unpacked is not None:
                 if self.toolJd.fig_main is not None:
                     try:
@@ -1443,7 +1454,7 @@ class acm_designer(object):
 
         elif 'FEMM' in self.select_fea_config_dict:
             self.toolFEMM = self.build_femm_project(acm_variant)
-            # acm_variant.results_to_be_unpacked = results_to_be_unpacked = toolFEMM.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.SIir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            # acm_variant.results_to_be_unpacked = results_to_be_unpacked = toolFEMM.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
             return acm_variant
         else:
             raise Exception('[acm_designer.py] Wrong string of select_fea_config_dict:', self.select_fea_config_dict)
@@ -1761,7 +1772,7 @@ class acm_designer(object):
             # Freq Sweeping for break-down Torque Slip
             # remember to export the B data using subroutine 
             # and check export table results only
-            study = im.add_study(app, model, self.SIir_csv_output_folder, choose_study_type='frequency')
+            study = im.add_study(app, model, self.dir_csv_output_folder, choose_study_type='frequency')
 
             # Freq Study: you can choose to not use JMAG to find the breakdown slip.
             # Option 1: you can set im.slip_freq_breakdown_torque by FEMM Solver
@@ -1791,7 +1802,7 @@ class acm_designer(object):
                 app.Save()
 
                 def check_csv_results(dir_csv_output_folder, study_name, returnBoolean=False, file_suffix='_torque.csv'): # '_iron_loss_loss.csv'
-                    # print self.SIir_csv_output_folder + study_name + '_torque.csv'
+                    # print self.dir_csv_output_folder + study_name + '_torque.csv'
                     if not os.path.exists(dir_csv_output_folder + study_name + file_suffix):
                         if returnBoolean == False:
                             print('Nothing is found when looking into:', dir_csv_output_folder + study_name + file_suffix)
@@ -1841,12 +1852,12 @@ class acm_designer(object):
                         raise e
 
                 # evaluation based on the csv results
-                print(':::ZZZ', self.SIir_csv_output_folder)
-                slip_freq_breakdown_torque, breakdown_torque, breakdown_force = check_csv_results(self.SIir_csv_output_folder, study.GetName())
+                print(':::ZZZ', self.dir_csv_output_folder)
+                slip_freq_breakdown_torque, breakdown_torque, breakdown_force = check_csv_results(self.dir_csv_output_folder, study.GetName())
 
             # this will be used for other duplicated studies
             original_study_name = study.GetName()
-            im.csv_previous_solve = self.SIir_csv_output_folder + original_study_name + '_circuit_current.csv'
+            im.csv_previous_solve = self.dir_csv_output_folder + original_study_name + '_circuit_current.csv'
             im.update_mechanical_parameters(slip_freq_breakdown_torque, syn_freq=im.DriveW_Freq)
 
 
@@ -1903,7 +1914,7 @@ class acm_designer(object):
         # debug for tia-iemdc-ecce-2019
         # data_femm_solver = rotating_static_FEA()
         # from show_results_iemdc19 import show_results_iemdc19
-        # show_results_iemdc19(   self.SIir_csv_output_folder, 
+        # show_results_iemdc19(   self.dir_csv_output_folder, 
         #                         im_variant, 
         #                         femm_solver_data=data_femm_solver, 
         #                         femm_rotor_current_function=self.femm_solver.get_rotor_current_function()
@@ -1961,7 +1972,7 @@ class acm_designer(object):
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
             # add or duplicate study for transient FEA denpending on jmag_run_list
             # FEMM+JMAG (注意，这里我们用50Hz作为滑差频率先设置起来，等拿到breakdown slip freq的时候，再更新变量slip和study properties的时间。)
-            study = im_variant.add_TranFEAwi2TSS_study( 50.0, app, model, self.SIir_csv_output_folder, tran2tss_study_name, logger)
+            study = im_variant.add_TranFEAwi2TSS_study( 50.0, app, model, self.dir_csv_output_folder, tran2tss_study_name, logger)
             app.SetCurrentStudy(tran2tss_study_name)
             study = app.GetCurrentStudy()
             self.mesh_study(im_variant, app, model, study)
@@ -2012,10 +2023,10 @@ class acm_designer(object):
                 # Export Circuit Voltage
                 ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                 app.GetDataManager().CreateGraphModel(ref1)
-                # app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.SIir_csv_output_folder + im_variant.name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
-                print('[acm_designer.py] WriteTable to:', self.SIir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
-                print('[acm_designer.py] WriteTable to (converter):', os.path.abspath(self.SIir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv"))
-                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(os.path.abspath(self.SIir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")) # must be absolute path to JMAG
+                # app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + im_variant.name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                print('[acm_designer.py] WriteTable to:', self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                print('[acm_designer.py] WriteTable to (converter):', os.path.abspath(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv"))
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(os.path.abspath(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")) # must be absolute path to JMAG
 
             # TranRef
             # transient_FEA_as_reference(im_variant, slip_freq_breakdown_torque)
@@ -2095,7 +2106,7 @@ class acm_designer(object):
         ################################################################
         # Load data for cost function evaluation
         ################################################################
-        im_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, im_variant, self.project_name, tran2tss_study_name, self.SIir_csv_output_folder, self.fea_config_dict, self.femm_solver)
+        im_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, im_variant, self.project_name, tran2tss_study_name, self.dir_csv_output_folder, self.fea_config_dict, self.femm_solver)
         if results_to_be_unpacked is not None:
             if self.fig_main is not None:
                 try:

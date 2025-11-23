@@ -1,0 +1,201 @@
+{
+    "machine_type": "PMSM",
+    "DPNV_or_SEPA": true,
+    "m": 3,
+    "Qs": 12,
+    "p": 4,
+    "ps": 5,
+    "coil_pitch_y": 1,
+    "no_segmented_magnets": 1,
+    "mec_power": 75,
+    "guess_air_gap_flux_density_Bg": 0.9,
+    "guess_stator_tooth_flux_density_Bst": 1.5,
+    "guess_stator_yoke_flux_density_Bsy": 1.2,
+    "guess_efficiency": 0.9,
+    "guess_power_factor": 0.8,
+    "safety_factor_to_yield": null,
+    "safety_factor_to_critical_speed": 1.0,
+    "bool_skew_stator": false,
+    "bool_skew_rotor": false,
+    "GeometricComponentsObjects": {
+        "rotorCore": "<<non-serializable: CrossSectInnerNotchedRotor>>",
+        "shaft": "<<non-serializable: CrossSectShaft>>",
+        "rotorMagnet": "<<non-serializable: CrossSectInnerNotchedMagnet>>",
+        "sleeve": "<<non-serializable: CrossSectSleeve>>",
+        "statorCore": "<<non-serializable: CrossSectInnerRotorStator>>",
+        "coils": "<<non-serializable: CrossSectInnerRotorStatorWinding>>"
+    },
+    "EX-user": {
+        "ExcitationFreqSimulated": 113.33,
+        "VoltageRating": 36,
+        "mm_stack_length": 10,
+        "Steel": "M19Gauge29",
+        "lamination_stacking_factor_kFe": 0.95,
+        "Coil": "Cu",
+        "Js": 4000000.0,
+        "Temperature": 75,
+        "WindingFill": 0.3882,
+        "AWG": 26,
+        "end_winding_length_factor_kov": 1.8,
+        "stator_slot_area": 1.003855001951089e-05,
+        "end_winding_length_Lew": 0.023993758616273224,
+        "wily": "<<non-serializable: winding_layout_v2>>",
+        "DriveW_zQ": 442.0,
+        "DriveW_CurrentAmp": 2.362547977221429,
+        "DriveW_Freq": 113.33,
+        "DriveW_Rs": 1.0,
+        "DriveW_poles": 8,
+        "BeariW_zQ": 442.0,
+        "BeariW_CurrentAmp": 0.12434463038007522,
+        "BeariW_Freq": 113.33,
+        "BeariW_Rs": 1.0,
+        "BeariW_poles": 10,
+        "slot_current_utilizing_ratio": 1.0,
+        "the_speed": 1699.95,
+        "Omega": 178.0183477156656
+    },
+    "GP-user": {
+        "mm_r_so": {
+            "type": "fixed",
+            "value": 25,
+            "bounds": null
+        },
+        "split_ratio": {
+            "type": "free",
+            "value": 0.7,
+            "bounds": [
+                0.3,
+                0.7
+            ]
+        },
+        "mm_d_stt": {
+            "type": "free",
+            "value": 0.75,
+            "bounds": [
+                0.5,
+                1.5
+            ]
+        },
+        "mm_d_pm": {
+            "type": "free",
+            "value": 2,
+            "bounds": [
+                1,
+                3
+            ]
+        },
+        "mm_w_st": {
+            "type": "free",
+            "value": null,
+            "bounds": null
+        },
+        "mm_d_sy": {
+            "type": "free",
+            "value": null,
+            "bounds": null
+        },
+        "mm_d_mech_air_gap": {
+            "type": "fixed",
+            "value": 0.5,
+            "bounds": null
+        },
+        "mm_d_sleeve": {
+            "type": "fixed",
+            "value": 1.0,
+            "bounds": null
+        },
+        "mm_r_ri": {
+            "type": "fixed",
+            "value": 15,
+            "bounds": null
+        },
+        "mm_d_st": {
+            "type": "derived",
+            "value": null,
+            "bounds": null
+        },
+        "mm_d_ri": {
+            "type": "derived",
+            "value": null,
+            "bounds": null
+        }
+    },
+    "GP": {
+        "mm_r_ro": "<<non-serializable: acmop_parameter>>",
+        "mm_d_mech_air_gap": "<<non-serializable: acmop_parameter>>",
+        "mm_d_sleeve": "<<non-serializable: acmop_parameter>>",
+        "split_ratio": "<<non-serializable: acmop_parameter>>",
+        "mm_w_st": "<<non-serializable: acmop_parameter>>",
+        "mm_r_si": "<<non-serializable: acmop_parameter>>",
+        "mm_r_so": "<<non-serializable: acmop_parameter>>",
+        "mm_d_sy": "<<non-serializable: acmop_parameter>>",
+        "mm_d_st": "<<non-serializable: acmop_parameter>>",
+        "mm_d_stt": "<<non-serializable: acmop_parameter>>",
+        "mm_d_pm": "<<non-serializable: acmop_parameter>>",
+        "mm_d_ri": "<<non-serializable: acmop_parameter>>",
+        "deg_alpha_rm": "<<non-serializable: acmop_parameter>>",
+        "mm_d_rp": "<<non-serializable: acmop_parameter>>",
+        "deg_alpha_rs": "<<non-serializable: acmop_parameter>>",
+        "mm_d_rs": "<<non-serializable: acmop_parameter>>",
+        "mm_r_ri": "<<non-serializable: acmop_parameter>>",
+        "deg_alpha_st": "<<non-serializable: acmop_parameter>>",
+        "mm_d_sto": "<<non-serializable: acmop_parameter>>",
+        "deg_alpha_sto": "<<non-serializable: acmop_parameter>>"
+    },
+    "x_denorm_dict": {
+        "split_ratio": 0.7,
+        "mm_d_stt": 0.75,
+        "mm_d_pm": 2,
+        "mm_w_st": null,
+        "mm_d_sy": null
+    },
+    "bounds_denorm_dict": {
+        "split_ratio": [
+            0.3,
+            0.7
+        ],
+        "mm_d_stt": [
+            0.5,
+            1.5
+        ],
+        "mm_d_pm": [
+            1,
+            3
+        ],
+        "mm_w_st": null,
+        "mm_d_sy": null
+    },
+    "EX": {
+        "ExcitationFreqSimulated": 113.33,
+        "VoltageRating": 36,
+        "mm_stack_length": 10,
+        "Steel": "M19Gauge29",
+        "lamination_stacking_factor_kFe": 0.95,
+        "Coil": "Cu",
+        "Js": 4000000.0,
+        "Temperature": 75,
+        "WindingFill": 0.3882,
+        "AWG": 26,
+        "end_winding_length_factor_kov": 1.8,
+        "stator_slot_area": 1.003855001951089e-05,
+        "end_winding_length_Lew": 0.023993758616273224,
+        "wily": "<<non-serializable: winding_layout_v2>>",
+        "DriveW_zQ": 442.0,
+        "DriveW_CurrentAmp": 2.362547977221429,
+        "DriveW_Freq": 113.33,
+        "DriveW_Rs": 1.0,
+        "DriveW_poles": 8,
+        "BeariW_zQ": 442.0,
+        "BeariW_CurrentAmp": 0.12434463038007522,
+        "BeariW_Freq": 113.33,
+        "BeariW_Rs": 1.0,
+        "BeariW_poles": 10,
+        "slot_current_utilizing_ratio": 1.0,
+        "the_speed": 1699.95,
+        "Omega": 178.0183477156656
+    },
+    "output_dir": "C:\\_Codes\\ACMOP\\backend\\_default\\PMSM_Q12p4ps5y1_Heart/",
+    "swarm_data_file": "C:\\_Codes\\ACMOP\\backend\\_default\\PMSM_Q12p4ps5y1_Heart/PMSM Q12p4ps5y1 Heart.json",
+    "select_spec": "PMSM Q12p4ps5y1 Heart",
+    "select_fea_config_dict": "#0213 JMAG Bearingless Sub-hamonics"
+}

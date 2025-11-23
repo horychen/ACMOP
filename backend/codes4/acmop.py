@@ -661,7 +661,7 @@ def main(number_which_part):
         mop.part_evaluation_geometry(bool_show_pdf=True)
 
         # version 1: easier on eyes
-        with open(mop.ad.fea_config_dict['output_dir'] + 'DesignVisualization.json', 'w') as f:
+        with open('../DesignVisualization.json', 'w') as f:
             def safe_serialize(obj, f, indent=4):
                 default = lambda o: f"<<non-serializable: {type(o).__qualname__}>>"
                 return json.dump(obj, f, indent=indent, default=default)
@@ -669,7 +669,7 @@ def main(number_which_part):
 
         # version 2: recoverable
         import jsonpickle
-        with open(mop.ad.fea_config_dict['output_dir'] + 'DesignVisualizationPickle.json', 'w') as f:
+        with open('../DesignVisualizationPickle.json', 'w') as f:
             json_string = jsonpickle.encode(mop.ad.visualize_dict, indent=4)
             # recreated_obj = jsonpickle.decode(json_string)
             f.write(json_string)
