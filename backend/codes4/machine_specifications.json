@@ -155,26 +155,26 @@
             },
             "split_ratio": {
                 "type": "free",
-                "value": 0.70,
+                "value": 0.50,
                 "bounds": [
                     0.3,
-                    0.7
+                    0.6
                 ]
             },
             "mm_d_stt": {
                 "type": "free",
-                "value": 1.5,
+                "value": 3,
                 "bounds": [
-                    0.75,
-                    3.5
+                    2,
+                    6
                 ]
             },
             "mm_d_pm": {
                 "type": "free",
-                "value": 2,
+                "value": 4,
                 "bounds": [
-                    1,
-                    4
+                    3,
+                    6
                 ]
             },
             "mm_w_st": {
@@ -199,7 +199,7 @@
             },
             "mm_r_ri": {
                 "type": "fixed",
-                "value": 15,
+                "value": 25,
                 "bounds": null
             },
             "mm_d_st": {

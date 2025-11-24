@@ -69,7 +69,8 @@ export default function ParameterTable({ data }: ParameterTableProps) {
                 }
             });
 
-            return renderSection(`Geometry: ${compName}`, scalarData, false);
+            const section = renderSection(`Geometry: ${compName}`, scalarData, false);
+            return section ? <React.Fragment key={compName}>{section}</React.Fragment> : null;
         });
     };
 

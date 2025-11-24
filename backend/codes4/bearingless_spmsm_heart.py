@@ -2,7 +2,8 @@ import inner_rotor_motor, pyrhonen_procedure_as_function
 import logging
 from collections import OrderedDict
 from utility import acmop_parameter
-from pylab import np; import math
+import numpy as np
+import math
 # from pprint import pprintk
 
 import winding_layout
@@ -224,19 +225,6 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
 
         #03 Mechanical Parameters
         self.update_mechanical_parameters()
-
-        if True:
-            ''' This was moved from JMAG.preProcess()
-            '''
-            # Implementation of id=0 control:
-            #   After rotate the rotor by half the inter-pole notch span, The d-axis initial position is at pole pitch angle divided by 2.
-            #   The U-phase current is sin(omega_syn*t) = 0 at t=0 and requires the d-axis to be at the winding phase axis (to obtain id=0 control)
-            deg_pole_span = 180/SI['p']
-            wily = self.template.SI['EX']['wily']
-            #                                                              inter-pole notch (0.5 for half)         rotate to x-axis    winding placing bias (half adjacent slot angle)      reverse north and south pole to make torque positive.
-            print('[bearingless_spmsm_design.py] [PMSM JMAG] InitialRotationAngle :',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5, - deg_pole_span*0.5, + wily.deg_winding_U_phase_phase_axis_angle,  + deg_pole_span)
-            print('[bearingless_spmsm_design.py] [PMSM JMAG] InitialRotationAngle =',(deg_pole_span-GP['deg_alpha_rm'].value)*0.5  - deg_pole_span*0.5  + wily.deg_winding_U_phase_phase_axis_angle   + deg_pole_span, 'deg')
-            self.InitialRotationAngle = (deg_pole_span-GP['deg_alpha_rm'].value)*0.5 - deg_pole_span*0.5 + wily.deg_winding_U_phase_phase_axis_angle     + deg_pole_span
 
         self.boolCustomizedCircuit = False
 

@@ -6,13 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface GeometryDetailsProps {
     data: GeometricComponentsObjects;
     onComponentSelect?: (componentKey: string | null) => void;
+    visibility?: Record<string, boolean>;
+    onVisibilityChange?: (visibility: Record<string, boolean>) => void;
 }
 
-export default function GeometryDetails({ data, onComponentSelect }: GeometryDetailsProps) {
+export default function GeometryDetails({ data, onComponentSelect, visibility = {}, onVisibilityChange }: GeometryDetailsProps) {
     const renderComponentDetails = (name: string, component: GeometricComponent) => {
         // Separate points and other parameters
         const parameters: Record<string, any> = {};
@@ -87,13 +90,26 @@ export default function GeometryDetails({ data, onComponentSelect }: GeometryDet
                     <div className="px-4 pt-2">
                         <TabsList className="w-full justify-start overflow-x-auto h-auto flex-wrap gap-1 bg-transparent p-0">
                             {Object.keys(data).map(key => (
-                                <TabsTrigger
-                                    key={key}
-                                    value={key}
-                                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border text-xs px-2 py-1 h-auto"
-                                >
-                                    {data[key as keyof GeometricComponentsObjects].name || key}
-                                </TabsTrigger>
+                                <div key={key} className="flex items-center gap-1">
+                                    {onVisibilityChange && (
+                                        <Checkbox
+                                            checked={visibility[key] !== false}
+                                            onCheckedChange={(checked: boolean) => {
+                                                onVisibilityChange({
+                                                    ...visibility,
+                                                    [key]: checked === true
+                                                });
+                                            }}
+                                            className="h-3 w-3"
+                                        />
+                                    )}
+                                    <TabsTrigger
+                                        value={key}
+                                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border text-xs px-2 py-1 h-auto"
+                                    >
+                                        {data[key as keyof GeometricComponentsObjects].name || key}
+                                    </TabsTrigger>
+                                </div>
                             ))}
                         </TabsList>
                     </div>

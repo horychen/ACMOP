@@ -31,8 +31,8 @@ class swarm(object):
 
     def __init__(self, fea_config_dict, de_config_dict=None):
         # directories part I
-        self.SIir_parent             = fea_config_dict['dir_parent']
-        self.initial_design_file    = self.SIir_parent + 'pop/' + r'initial_design.txt'
+        self.dir_parent             = fea_config_dict['dir_parent']
+        self.initial_design_file    = self.dir_parent + 'pop/' + r'initial_design.txt'
 
         # load initial design using the obsolete class bearingless_induction_motor_design
         self.im_list = []
@@ -67,9 +67,9 @@ class swarm(object):
 
         # csv output folder
         if fea_config_dict['flag_optimization'] == False:
-            self.SIir_csv_output_folder  = self.SIir_parent + 'csv/' + self.model_name_prefix + '/'
+            self.SIir_csv_output_folder  = self.dir_parent + 'csv/' + self.model_name_prefix + '/'
         else:
-            self.SIir_csv_output_folder  = self.SIir_parent + 'csv_opti/' + self.model_name_prefix + '/'
+            self.SIir_csv_output_folder  = self.dir_parent + 'csv_opti/' + self.model_name_prefix + '/'
         if not os.path.exists(self.SIir_csv_output_folder):
             os.makedirs(self.SIir_csv_output_folder)
 
@@ -78,7 +78,7 @@ class swarm(object):
         else:
             self.run_folder         = fea_config_dict['run_folder']
 
-        self.SIir_run                = self.SIir_parent + 'pop/' + self.run_folder
+        self.SIir_run                = self.dir_parent + 'pop/' + self.run_folder
 
         if fea_config_dict['flag_optimization'] == True:
             self.SIir_project_files  = fea_config_dict['dir_project_files'] + self.run_folder
@@ -337,19 +337,19 @@ class swarm(object):
             print('[First run on this computer detected]', self.spec_input_dict['Steel'], 'is added to jmag material library.')
 
             if 'M15' in self.spec_input_dict['Steel']:
-                add_M1xSteel(self.app, self.SIir_parent, steel_name="M-15 Steel")
+                add_M1xSteel(self.app, self.dir_parent, steel_name="M-15 Steel")
             elif 'M19' in self.spec_input_dict['Steel']:
-                add_M1xSteel(self.app, self.SIir_parent)
+                add_M1xSteel(self.app, self.dir_parent)
             elif 'Arnon5' == self.spec_input_dict['Steel']:
-                add_Arnon5(self.app, self.SIir_parent)        
+                add_Arnon5(self.app, self.dir_parent)        
 
         # too avoid tons of the same material in JAMG's material library
-        if not os.path.exists(self.SIir_parent + '.jmag_state.txt'):
-            with open(self.SIir_parent + '.jmag_state.txt', 'w') as f:
+        if not os.path.exists(self.dir_parent + '.jmag_state.txt'):
+            with open(self.dir_parent + '.jmag_state.txt', 'w') as f:
                 f.write(self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['Steel'] + '\n')
             add_steel(self)
         else:
-            with open(self.SIir_parent + '.jmag_state.txt', 'r') as f:
+            with open(self.dir_parent + '.jmag_state.txt', 'r') as f:
                 for line in f.readlines():
                     if self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['Steel'] not in line:
                         add_steel(self)

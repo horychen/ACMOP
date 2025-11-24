@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Play, RotateCcw, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import CrossSectionViewer from './CrossSectionViewer';
-import { GeometricComponentsObjects, GeometricComponent } from '@/lib/DesignData';
+import { GeometricComponentsObjects, GeometricComponent, getPoints } from '@/lib/DesignData';
 
 const DEFAULT_CODE = `// Define points
 const P1 = [10, 0];
@@ -336,6 +336,7 @@ function PlaygroundPreview({ geometry, variableNames }: { geometry: GeometricCom
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const svgRef = useRef<SVGSVGElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const extractTuple = (obj: any): number[] | null => {
         if (!obj) return null;
@@ -455,12 +456,22 @@ function PlaygroundPreview({ geometry, variableNames }: { geometry: GeometricCom
         );
     };
 
-    const handleWheel = (e: React.WheelEvent) => {
-        e.preventDefault();
-        const zoomSensitivity = 0.001;
-        const newScale = Math.max(0.1, scale * (1 - e.deltaY * zoomSensitivity));
-        setScale(newScale);
-    };
+    // Wheel event handling with non-passive listener
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const zoomSensitivity = 0.001;
+            setScale(s => Math.max(0.1, s * (1 - e.deltaY * zoomSensitivity)));
+        };
+
+        container.addEventListener('wheel', handleWheel, { passive: false });
+        return () => {
+            container.removeEventListener('wheel', handleWheel);
+        };
+    }, []);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         setIsDragging(true);
@@ -473,14 +484,79 @@ function PlaygroundPreview({ geometry, variableNames }: { geometry: GeometricCom
         }
     };
 
+
     const handleMouseUp = () => {
         setIsDragging(false);
     };
 
+    // Auto-scale logic
+    const handleAutoScale = useCallback(() => {
+        if (!geometry || Object.keys(geometry).length === 0 || !svgRef.current) return;
+
+        const viewWidth = svgRef.current.clientWidth;
+        const viewHeight = svgRef.current.clientHeight;
+
+        if (viewWidth === 0 || viewHeight === 0) return;
+
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        let hasPoints = false;
+
+        Object.values(geometry).forEach(comp => {
+            const points = getPoints(comp);
+            points.forEach(p => {
+                hasPoints = true;
+                minX = Math.min(minX, p[0]);
+                maxX = Math.max(maxX, p[0]);
+                minY = Math.min(minY, p[1]);
+                maxY = Math.max(maxY, p[1]);
+            });
+        });
+
+        if (!hasPoints) return;
+
+        const padding = 0.1;
+        const geomWidth = maxX - minX;
+        const geomHeight = maxY - minY;
+        const safeGeomWidth = geomWidth || 1;
+        const safeGeomHeight = geomHeight || 1;
+
+        const scaleX = viewWidth / (safeGeomWidth * (1 + padding));
+        const scaleY = viewHeight / (safeGeomHeight * (1 + padding));
+        const newScale = Math.min(scaleX, scaleY);
+
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        const newOffsetX = viewWidth / 2 - centerX * newScale;
+        const newOffsetY = viewHeight / 2 - (-centerY) * newScale;
+
+        setScale(newScale);
+        setOffset({ x: newOffsetX, y: newOffsetY });
+    }, [geometry]);
+
+    // Trigger auto-scale when geometry changes or container resizes
+    useEffect(() => {
+        handleAutoScale();
+
+        const currentSvg = svgRef.current;
+        if (!currentSvg) return;
+
+        const resizeObserver = new ResizeObserver(() => {
+            handleAutoScale();
+        });
+
+        resizeObserver.observe(currentSvg);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, [handleAutoScale]);
+
+
     return (
         <div
+            ref={containerRef}
             className="w-full h-full relative"
-            onWheel={handleWheel}
         >
             <div className="absolute top-2 left-2 bg-white/80 dark:bg-slate-800/80 p-2 rounded text-xs font-mono pointer-events-none z-10">
                 Scale: {scale.toFixed(2)} px/mm
@@ -492,7 +568,7 @@ function PlaygroundPreview({ geometry, variableNames }: { geometry: GeometricCom
                 <Button variant="outline" size="icon" onClick={(e) => { e.preventDefault(); setScale((s: number) => s / 1.2); }}>
                     <ZoomOut className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" onClick={(e) => { e.preventDefault(); setScale(10); setOffset({ x: 400, y: 300 }); }}>
+                <Button variant="outline" size="icon" onClick={(e) => { e.preventDefault(); handleAutoScale(); }}>
                     <Maximize className="h-4 w-4" />
                 </Button>
             </div>

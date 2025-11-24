@@ -439,11 +439,11 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     rho_0_Air = 1.29#;     %[kg/m^3] Air density at 0
     Shaft = [mm_stack_length,                               #1;         %End position of the sections mm (Absolut)
              # [Imthiaz Ahmed] poses question on this value. See https://seversongroup.slack.com/archives/D01HSGBLSES/p1616609258033500?thread_ts=1616560325.030600&cid=D01HSGBLSES
-             # im_variant.template.SI['GP']['mm_r_ro'].value+im_variant.template.SI['EX-user']['mm_d_mech_air_gap'], #1;         %Inner Radius in mm
+             # im_variant.template.SI['GP']['mm_r_ro'].value+im_variant.template.SI['GP']['mm_d_mech_air_gap'].value, #1;         %Inner Radius in mm
              im_variant.template.SI['GP']['mm_r_ro'].value+im_variant.template.SI['GP']['mm_d_sleeve'].value, #1;         %Inner Radius in mm 
              #
              1,                                                     #0;         %Shrouded (1) or free surface (0)
-             im_variant.template.SI['EX-user']['mm_d_mech_air_gap']]                              #0];        %Airgap in mm
+             im_variant.template.SI['GP']['mm_d_mech_air_gap'].value]                              #0];        %Airgap in mm
     Num_shaft_section = 1
     T_Air = TEMPERATURE_OF_AIR #20:(120-20)/((SpeedMax-SpeedMin)/SpeedStep):120         #; % Air temperature []
     
@@ -458,7 +458,7 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     
     logger = logging.getLogger(__name__)
     logger.debug('DEBUG windage: L, R, delta = %s, %s, %s', L, R, delta)
-    logger.debug('\tRadius version old: %s', im_variant.template.SI['GP']['mm_r_ro'].value+im_variant.template.SI['EX-user']['mm_d_mech_air_gap'])
+    logger.debug('\tRadius version old: %s', im_variant.template.SI['GP']['mm_r_ro'].value+im_variant.template.SI['GP']['mm_d_mech_air_gap'].value)
     logger.debug('\tRadius version new: %s', im_variant.template.SI['GP']['mm_r_ro'].value+im_variant.template.SI['GP']['mm_d_sleeve'].value)
 
     Omega = 2*math.pi*im_variant.template.SI['EX']['the_speed']/60.

@@ -3,7 +3,8 @@ import inner_rotor_motor, pyrhonen_procedure_as_function
 import logging
 from collections import OrderedDict
 from utility import acmop_parameter
-from pylab import np; import math
+import numpy as np
+import math
 from pprint import pprint
 
 import CrossSectInnerNotchedRotor
@@ -108,38 +109,6 @@ class bearingless_spmsm_closedStator_template(inner_rotor_motor.template_machine
         GP['mm_d_sy'].bounds = [el * (GP['mm_r_so'].value - GP['mm_r_si'].value) for el in [0.2, 0.45]]
         # tooth_split_ratio_at_middle_slot = [0.25, 0.50]
         GP['mm_w_st'].bounds = [el / Q * math.pi * (GP['mm_r_so'].value + GP['mm_r_si'].value) for el in [0.25, 0.50]]
-
-    """ Obsolete feature """
-    def build_design_parameters_list(self):
-        GP = self.SI['GP']
-        SI = self.SI
-        # obsolete feature
-        design_parameters = [
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0, #'mm_r_st',
-            0.0, #'mm_r_sf',
-            0.0, #'mm_r_sb',
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
-            ]
-        return design_parameters
 
 class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_objects):
     ''' A variant of bearingless_spmsm_design_variant with closed slots.

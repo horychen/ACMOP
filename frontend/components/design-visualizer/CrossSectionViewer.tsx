@@ -1,26 +1,126 @@
-import React, { useState, useRef, useEffect } from 'react';
+'use client';
+
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { GeometricComponentsObjects, GeometricComponent, getPoints } from '@/lib/DesignData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, Maximize, MousePointer2 } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize, Settings } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface CrossSectionViewerProps {
     geometry: GeometricComponentsObjects;
     selectedComponent?: string | null;
+    visibility?: Record<string, boolean>;
+    onVisibilityChange?: (visibility: Record<string, boolean>) => void;
 }
 
-const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({ geometry, selectedComponent }) => {
+const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({
+    geometry,
+    selectedComponent,
+    visibility: externalVisibility,
+    onVisibilityChange
+}) => {
     const [scale, setScale] = useState(10);
     const [offset, setOffset] = useState({ x: 400, y: 300 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [internalVisibility, setInternalVisibility] = useState<Record<string, boolean>>({});
+    const [isMounted, setIsMounted] = useState(false);
     const svgRef = useRef<SVGSVGElement>(null);
+
+    // Track mounting to prevent hydration mismatch
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    // Use external visibility if provided, otherwise use internal
+    const visibility = externalVisibility || internalVisibility;
+    const setVisibility = onVisibilityChange || setInternalVisibility;
+
+    // Auto-scale logic
+    const handleAutoScale = useCallback(() => {
+        if (!geometry || Object.keys(geometry).length === 0 || !svgRef.current) return;
+
+        const viewWidth = svgRef.current.clientWidth;
+        const viewHeight = svgRef.current.clientHeight;
+
+        if (viewWidth === 0 || viewHeight === 0) return;
+
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        let hasPoints = false;
+
+        Object.values(geometry).forEach(comp => {
+            const points = getPoints(comp);
+            points.forEach(p => {
+                hasPoints = true;
+                minX = Math.min(minX, p[0]);
+                maxX = Math.max(maxX, p[0]);
+                minY = Math.min(minY, p[1]);
+                maxY = Math.max(maxY, p[1]);
+            });
+        });
+
+        if (!hasPoints) return;
+
+        const padding = 0.1;
+        const geomWidth = maxX - minX;
+        const geomHeight = maxY - minY;
+        const safeGeomWidth = geomWidth || 1;
+        const safeGeomHeight = geomHeight || 1;
+
+        const scaleX = viewWidth / (safeGeomWidth * (1 + padding));
+        const scaleY = viewHeight / (safeGeomHeight * (1 + padding));
+        const newScale = Math.min(scaleX, scaleY);
+
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        const newOffsetX = viewWidth / 2 - centerX * newScale;
+        const newOffsetY = viewHeight / 2 - (-centerY) * newScale;
+
+        setScale(newScale);
+        setOffset({ x: newOffsetX, y: newOffsetY });
+    }, [geometry]);
+
+    // Trigger auto-scale when geometry changes or container resizes
+    useEffect(() => {
+        handleAutoScale();
+
+        const currentSvg = svgRef.current;
+        if (!currentSvg) return;
+
+        const resizeObserver = new ResizeObserver(() => {
+            handleAutoScale();
+        });
+
+        resizeObserver.observe(currentSvg);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, [handleAutoScale]);
+
+    // Initialize internal visibility state when geometry changes (only if not controlled by parent)
+    useEffect(() => {
+        if (externalVisibility || !geometry) return;
+        const initialVisibility: Record<string, boolean> = {};
+        Object.keys(geometry).forEach(key => {
+            // Default all to visible except sleeve
+            initialVisibility[key] = key.toLowerCase().includes('sleeve') ? false : true;
+        });
+        setInternalVisibility(initialVisibility);
+    }, [geometry, externalVisibility]);
 
     if (!geometry) return <div className="p-4 text-red-500">No geometry data available</div>;
 
@@ -35,13 +135,24 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({ geometry, selec
     const renderPathFromRegions = (component: GeometricComponent) => {
         if (!component.list_region) return null;
 
+        // Check if list_region is empty or contains only empty/invalid regions
+        const hasValidRegions = component.list_region.some(region =>
+            Array.isArray(region) && region.length > 0
+        );
+
+        if (!hasValidRegions) return null;
+
         let pathData = "";
 
         component.list_region.forEach(region => {
             // Skip if region is not an array (e.g., {"py/id": 232} references)
             if (!Array.isArray(region)) return;
 
+            // Skip empty regions
+            if (region.length === 0) return;
+
             let currentPen: { x: number, y: number } | null = null;
+            let regionPath = ""; // Separate path for each region to close individually
 
             region.forEach((segment: any) => {
                 const moveTo = extractTuple(segment.move_to);
@@ -55,9 +166,9 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({ geometry, selec
                         const endY = -lineTo[1];
 
                         if (!currentPen || Math.abs(currentPen.x - startX) > 1e-6 || Math.abs(currentPen.y - startY) > 1e-6) {
-                            pathData += `M ${startX} ${startY} `;
+                            regionPath += `M ${startX} ${startY} `;
                         }
-                        pathData += `L ${endX} ${endY} `;
+                        regionPath += `L ${endX} ${endY} `;
                         currentPen = { x: endX, y: endY };
                     }
                 } else if (segment.arc) {
@@ -75,34 +186,40 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({ geometry, selec
                         const endY = cy - r * Math.sin(endAngle);
 
                         if (!currentPen || Math.abs(currentPen.x - startX) > 1e-6 || Math.abs(currentPen.y - startY) > 1e-6) {
-                            pathData += `M ${startX} ${startY} `;
+                            regionPath += `M ${startX} ${startY} `;
                         }
 
                         let delta = endAngle - startAngle;
                         const largeArc = Math.abs(delta) > Math.PI ? 1 : 0;
                         const sweep = delta > 0 ? 0 : 1;
 
-                        pathData += `A ${r} ${r} 0 ${largeArc} ${sweep} ${endX} ${endY} `;
+                        regionPath += `A ${r} ${r} 0 ${largeArc} ${sweep} ${endX} ${endY} `;
                         currentPen = { x: endX, y: endY };
                     }
                 }
             });
+
+            // Close each region individually and add to main path
+            if (regionPath) {
+                pathData += regionPath + 'Z ';
+            }
         });
 
-        // Close the path to ensure proper filling
-        if (pathData) {
-            pathData += 'Z';
-        }
+        // Return null if no valid path data was generated
+        if (!pathData) return null;
 
         return pathData;
     };
 
     const renderComponent = (component: GeometricComponent, componentKey: string) => {
+        // Skip if component is hidden
+        if (visibility[componentKey] === false) return null;
+
         const isSelected = selectedComponent === componentKey;
         const isDimmed = selectedComponent && !isSelected;
         const fillOpacity = 0; // No fill, only outlines
         const strokeOpacity = isDimmed ? 0.3 : 1;
-        const strokeWidth = isSelected ? 0.5 / scale : 0.2 / scale; // Thicker stroke for selected component
+        const strokeWidth = isSelected ? 4.0 / scale : 1.5 / scale; // Thicker stroke for selected component
 
         // Prefer list_region if available
         if (component.list_region) {
@@ -236,13 +353,46 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({ geometry, selec
             <CardHeader className="flex flex-row items-center justify-between py-2">
                 <CardTitle className="text-lg">Cross Section</CardTitle>
                 <div className="flex gap-2">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <Settings className="h-4 w-4" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64">
+                            <div className="space-y-2">
+                                <h4 className="font-medium text-sm mb-3">Component Visibility</h4>
+                                {Object.entries(geometry).map(([key, component]) => (
+                                    <div key={key} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={`visibility-${key}`}
+                                            checked={visibility[key] !== false}
+                                            onCheckedChange={(checked: boolean) => {
+                                                const newVisibility = {
+                                                    ...visibility,
+                                                    [key]: checked === true
+                                                };
+                                                setVisibility(newVisibility);
+                                            }}
+                                        />
+                                        <label
+                                            htmlFor={`visibility-${key}`}
+                                            className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                        >
+                                            {component.name || key}
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                     <Button variant="outline" size="icon" onClick={() => setScale(s => s * 1.2)}>
                         <ZoomIn className="h-4 w-4" />
                     </Button>
                     <Button variant="outline" size="icon" onClick={() => setScale(s => s / 1.2)}>
                         <ZoomOut className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => { setScale(10); setOffset({ x: 400, y: 300 }); }}>
+                    <Button variant="outline" size="icon" onClick={handleAutoScale}>
                         <Maximize className="h-4 w-4" />
                     </Button>
                 </div>
@@ -255,7 +405,7 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({ geometry, selec
                 <svg
                     ref={svgRef}
                     className="w-full h-full cursor-move bg-slate-50"
-
+                    onWheel={handleWheel}
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
@@ -266,11 +416,11 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({ geometry, selec
                         <line x1="-1000" y1="0" x2="1000" y2="0" stroke="#ddd" strokeWidth={1 / scale} />
                         <line x1="0" y1="-1000" x2="0" y2="1000" stroke="#ddd" strokeWidth={1 / scale} />
 
-                        {/* Components */}
-                        {Object.entries(geometry).map(([key, comp]) => renderComponent(comp, key))}
+                        {/* Components - only render after mount to prevent hydration mismatch */}
+                        {isMounted && Object.entries(geometry).map(([key, comp]) => renderComponent(comp, key))}
 
                         {/* Points Overlay */}
-                        {Object.values(geometry).map(comp => renderPoints(comp))}
+                        {isMounted && Object.values(geometry).map(comp => renderPoints(comp))}
                     </g>
                 </svg>
             </CardContent>

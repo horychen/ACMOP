@@ -1,9 +1,10 @@
 from time import time as clock_time
-from pylab import np; import math # plt, mpl
+import numpy as np
+import math  # plt, mpl
 import os, logging, win32com.client, json
 import utility, utility_json
 import population #, FEMM_Solver, pyrhonen_procedure_as_function
-import builtins
+import builtins, jsonpickle
 
 # BPMSM codes
 import JMAG
@@ -983,9 +984,11 @@ class acm_designer(object):
         output_dir = self.fea_config_dict['output_dir']
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
+
         self.dir_csv_output_folder = output_dir + 'csv/'
         if not os.path.isdir(self.dir_csv_output_folder):
             os.makedirs(self.dir_csv_output_folder)
+
         self.dir_jsonpickle_folder = output_dir + 'jsonpickle/'
         if not os.path.isdir(self.dir_jsonpickle_folder):
             os.makedirs(self.dir_jsonpickle_folder)
@@ -1041,31 +1044,7 @@ class acm_designer(object):
         # wily is not json serilizable, so is recordtype type object: acmop_parameters
         wily = EX['wily']
         EX['wily'] = None
-        # EX['wily'] = {
-        #     # 'layer_X_phases': wily.layer_X_phases,
-        #     # 'layer_X_signs': wily.layer_X_signs,
-        #     'coil_pitch_y': wily.coil_pitch_y,
-        #     # 'layer_Y_phases': wily.layer_Y_phases,
-        #     # 'layer_Y_signs': wily.layer_Y_signs,
-        #     #
-        #     'grouping_AC': wily.grouping_AC,
-        #     'number_parallel_branch': wily.number_parallel_branch,
-        #     'number_winding_layer': wily.number_winding_layer,
-        #     #
-        #     'bool_3PhaseCurrentSource': wily.bool_3PhaseCurrentSource,
-        #     'CommutatingSequenceD': wily.CommutatingSequenceD,
-        #     'CommutatingSequenceB': wily.CommutatingSequenceB,
-        #     #
-        #     'deg_winding_U_phase_phase_axis_angle': wily.deg_winding_U_phase_phase_axis_angle,
-        #     #
-        #     'Qs': wily.Qs,
-        #     'p': wily.p,
-        #     'ps': wily.ps,
-        #     'pr': wily.pr,
-        #     'SPP': wily.SPP,
-        #     #
-        #     'dict_coil_connection': wily.dict_coil_connection,
-        # }
+
         list_of_GP_as_dict = [{key: val._asdict()} for key, val in GP.items()] # see _asdict in https://www.python.org/dev/peps/pep-0557/
         for parameter_key_val_pair in list_of_GP_as_dict:
             # print('DEBUG', parameter_key_val_pair)
@@ -1079,7 +1058,7 @@ class acm_designer(object):
         with open(self.fea_config_dict['output_dir'] + self.select_spec + '.json', 'a') as f:
             big_dict[self.select_spec+f'-gen{number_current_generation}-ind{individual_index}'] = {
                 'Spec inputs'  :         acm_variant.template.spec_input_dict,
-                'x_denorm_dict':         acm_variant.template.get_x_denorm_dict_from_geometric_parameters(GP),
+                'x_denorm_dict':         acm_variant.template.x_denorm_dict,
                 'Geometric parameters':  list_of_GP_as_dict,
                 'Excitations'  :         EX,
                 'Performance'  :         spec_performance_dict
@@ -1157,16 +1136,16 @@ class acm_designer(object):
             # spec_performance_dict['cost_function'] = cost_function
             spec_performance_dict['f1'] = f1
             spec_performance_dict['f2'] = f2
-            spec_performance_dict['f3'] = f3
+            spec_performance_dict['f3'] = float(f3)
             spec_performance_dict['TRV'] = TRV
             spec_performance_dict['FRW'] = FRW
             spec_performance_dict['torque_average'] = torque_average
             spec_performance_dict['ss_avg_force_magnitude'] = ss_avg_force_magnitude
             spec_performance_dict['rotor_weight'] = rotor_weight
-            spec_performance_dict['normalized_torque_ripple'] = normalized_torque_ripple
-            spec_performance_dict['normalized_force_error_magnitude'] = normalized_force_error_magnitude
-            spec_performance_dict['force_error_angle'] = force_error_angle
-            spec_performance_dict['coil_flux_linkage_peak2peak_value'] = coil_flux_linkage_peak2peak_value
+            spec_performance_dict['normalized_torque_ripple'] = float(normalized_torque_ripple)
+            spec_performance_dict['normalized_force_error_magnitude'] = float(normalized_force_error_magnitude)
+            spec_performance_dict['force_error_angle'] = float(force_error_angle)
+            spec_performance_dict['coil_flux_linkage_peak2peak_value'] = float(coil_flux_linkage_peak2peak_value)
             spec_performance_dict['mm2_slot_area'] = mm2_slot_area
             spec_performance_dict['Cost'] = Cost
             spec_performance_dict['Cost_Fe'] = Cost_Fe
@@ -1194,7 +1173,15 @@ class acm_designer(object):
             EX = acm_variant.template.SI['EX']
 
             # Save to disk
-            self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
+            # self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
+
+            number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
+            individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
+            builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
+            with open(self.fea_config_dict['output_dir'] + self.select_spec + '.json', 'a') as f:
+                json_string = jsonpickle.encode(builtins.ad.visualize_dict, indent=4)
+                f.write(json_string)
+                    # f.write(f',\n"{acm_variant.counter}":')
 
 
             number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
@@ -1254,7 +1241,7 @@ class acm_designer(object):
                                         [ circuit_current_GroupBDW[index], terminal_voltage_GroupBDW[index], coil_fluxLinkage_GroupBDW[index] ] )
                     acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
                 acm_variant.analyzer.get_ss_data()
-            
+
             # compare_with_FEMM(acm_variant)
             # acm_variant.analyzer.save_time_domain_data(counter) # TODO
 
@@ -1660,7 +1647,7 @@ class acm_designer(object):
                         population.add_Arnon5(self.app, self.fea_config_dict['dir.parent'])
 
                 # too avoid tons of the same material in JAMG's material library
-                fname = self.fea_config_dict['dir.parent'] + '.jmag_state.txt'
+                fname = self.fea_config_dict['dir.parent'] + '/BH/.jmag_state.txt'
                 if not os.path.exists(fname):
                     with open(fname, 'w') as f:
                         f.write(self.fea_config_dict['pc_name'] + '/' + im_template.spec_input_dict['Steel'] + '\n')

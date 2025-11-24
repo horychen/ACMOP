@@ -1102,21 +1102,24 @@ class winding_layout_v2(object):
                 deg_winding_V_phase_phase_axis_angle = 360/Qs * (尾 - 头) + 360/Qs*0.5
                 相邻的属于同一相的线圈的个数 = phase_W_starting_slot_number - phase_V_starting_slot_number
 
-
-                if q<1:
-                    # fractional slot and q<1
-                    self.deg_winding_U_phase_phase_axis_angle = deg_winding_V_phase_phase_axis_angle - 360/Qs*相邻的属于同一相的线圈的个数
+                if True:
+                    # The winding axis is defined in JMAG.preProcess where the upper/lower coils are assigned to phase connections.
+                    self.deg_winding_U_phase_phase_axis_angle = None
                 else:
-                    # fractional slot and q>1
-                    self.deg_winding_U_phase_phase_axis_angle = deg_winding_V_phase_phase_axis_angle - 360/Qs*相邻的属于同一相的线圈的个数
-                    msg = '[winding_layout.py] [Warning] This case (q=%g) is not thought thorough, so you must inspect the initial excitation angle and initial rotor position manually to make sure it is id=0 control.'%(q)
+                    if q<1:
+                        # fractional slot and q<1
+                        self.deg_winding_U_phase_phase_axis_angle = deg_winding_V_phase_phase_axis_angle - 360/Qs*相邻的属于同一相的线圈的个数
+                    else:
+                        # fractional slot and q>1
+                        self.deg_winding_U_phase_phase_axis_angle = deg_winding_V_phase_phase_axis_angle - 360/Qs*相邻的属于同一相的线圈的个数
+                        msg = '[winding_layout.py] [Warning] This case (q=%g) is not thought thorough, so you must inspect the initial excitation angle and initial rotor position manually to make sure it is id=0 control.'%(q)
+                        logger = logging.getLogger(__name__)
+                        logger.warning(msg)
+                        if q>2:
+                            raise Exception(msg)
                     logger = logging.getLogger(__name__)
-                    logger.warning(msg)
-                    if q>2:
-                        raise Exception(msg)
-                logger = logging.getLogger(__name__)
-                logger.info('[wily] self.deg_winding_U_phase_phase_axis_angle=%s, deg_winding_V_phase_phase_axis_angle=%s', self.deg_winding_U_phase_phase_axis_angle, deg_winding_V_phase_phase_axis_angle)
-                logger.info('[wily] q = SPP = %s', SPP)
+                    logger.info('[wily] self.deg_winding_U_phase_phase_axis_angle=%s, deg_winding_V_phase_phase_axis_angle=%s', self.deg_winding_U_phase_phase_axis_angle, deg_winding_V_phase_phase_axis_angle)
+                    logger.info('[wily] q = SPP = %s', SPP)
 
                 # print(self.deg_winding_U_phase_phase_axis_angle, deg_winding_V_phase_phase_axis_angle, 尾, 头, 相邻的属于同一相的线圈的个数)
                 # quit()

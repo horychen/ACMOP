@@ -23,25 +23,25 @@ class VanGogh(object):
 
         if self.child_index == JMAG: # for being consistent with obselete codes
             self.plot_sketch_shaft() # Shaft if any
-            self.SIraw_rotor_eMach(fraction)
-            # self.SIraw_stator_without_non_accurate_shapely(fraction)
+            self.draw_rotor_eMach(fraction)
+            # self.draw_stator_without_non_accurate_shapely(fraction)
 
         elif self.child_index == FEMM: # for easy selecting of objects
             # utility.blockPrint()
-            self.SIraw_stator_without_non_accurate_shapely(fraction)
-            self.SIraw_rotor_without_non_accurate_shapely(fraction)
-            # self.SIraw_rotor_eMach(fraction)
+            self.draw_stator_without_non_accurate_shapely(fraction)
+            self.draw_rotor_without_non_accurate_shapely(fraction)
+            # self.draw_rotor_eMach(fraction)
             # utility.enablePrint()
 
-            # self.SIraw_stator(fraction)
+            # self.draw_stator(fraction)
             # try:
-            #     self.SIraw_rotor(fraction)
+            #     self.draw_rotor(fraction)
             # except Exception as e:
             #     raise e
 
         elif self.child_index == CUSTOM: 
-            self.SIraw_rotor_without_non_accurate_shapely()
-            self.SIraw_stator_without_non_accurate_shapely()
+            self.draw_rotor_without_non_accurate_shapely()
+            self.draw_stator_without_non_accurate_shapely()
 
     def draw_rotor_without_non_accurate_shapely(self, fraction=1):
         # Shapely is very poor in accuracy, use your high school geometry knowledge to derive the coordinates!
@@ -70,51 +70,51 @@ class VanGogh(object):
         # print('::', im.Radius_OuterRotor, im.Width_RotorSlotOpen)
         # quit()
         P4 = (-sqrt(im.Radius_OuterRotor**2 - (0.5*im.Width_RotorSlotOpen)**2), 0.5*im.Width_RotorSlotOpen)
-        self.SIraw_arc(P3, P4, P3_angle - self.get_postive_angle(P4), center=(0,0))
+        self.draw_arc(P3, P4, P3_angle - self.get_postive_angle(P4), center=(0,0))
 
         # P5
         P5 = (-im.Location_RotorBarCenter-sqrt(im.Radius_of_RotorSlot**2 - (0.5*im.Width_RotorSlotOpen)**2), 0.5*im.Width_RotorSlotOpen)
-        self.SIraw_line(P4, P5)
+        self.draw_line(P4, P5)
 
         if im.use_drop_shape_rotor_bar == True:
             # P6
             P6 = (-im.Location_RotorBarCenter, im.Radius_of_RotorSlot)
-            self.SIraw_arc(P6, P5, 0.5*pi - self.get_postive_angle(P5, (-im.Location_RotorBarCenter, 0)), center=(-im.Location_RotorBarCenter, 0))
+            self.draw_arc(P6, P5, 0.5*pi - self.get_postive_angle(P5, (-im.Location_RotorBarCenter, 0)), center=(-im.Location_RotorBarCenter, 0))
 
             # P7
             P7 = (-im.Location_RotorBarCenter2, im.Radius_of_RotorSlot2)
-            self.SIraw_line(P6, P7)
+            self.draw_line(P6, P7)
 
             # P8
             P8 = (-im.Location_RotorBarCenter2+im.Radius_of_RotorSlot2, 0)
-            self.SIraw_arc(P8, P7, 0.5*pi, center=(-im.Location_RotorBarCenter2, 0))
+            self.draw_arc(P8, P7, 0.5*pi, center=(-im.Location_RotorBarCenter2, 0))
 
         else:
             P6 = P7 = None
             P8 = (-im.Location_RotorBarCenter+im.Radius_of_RotorSlot, 0)
-            self.SIraw_arc(P8, P5, pi - self.get_postive_angle(P5, (-im.Location_RotorBarCenter, 0)), center=(-im.Location_RotorBarCenter, 0))
+            self.draw_arc(P8, P5, pi - self.get_postive_angle(P5, (-im.Location_RotorBarCenter, 0)), center=(-im.Location_RotorBarCenter, 0))
 
         if self.child_index == FEMM:
             self.some_solver_related_operations_rotor_before_mirror_rotation(im, P6, P8) # call this before mirror_and_copyrotate
 
         if self.child_index == JMAG:
-            self.SIraw_line(P8, P1)
-            self.SIraw_arc(P2, P1, P2_angle)
-            self.SIraw_line(P2, P3)
+            self.draw_line(P8, P1)
+            self.draw_arc(P2, P1, P2_angle)
+            self.draw_line(P2, P3)
 
             self.mirror_and_copyrotate(im.Qr, im.Radius_OuterRotor, fraction,
                                         symmetry_type=2) 
             self.init_sketch_cage()
 
         if self.child_index == CUSTOM:
-            # self.SIraw_line(P8, P1, ls='-.')
-            self.SIraw_arc(P2, P1, P2_angle)
-            # self.SIraw_line(P2, P3, ls='-.')
+            # self.draw_line(P8, P1, ls='-.')
+            self.draw_arc(P2, P1, P2_angle)
+            # self.draw_line(P2, P3, ls='-.')
 
         # 导条
         # P_Bar
         P_Bar = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
-        self.SIraw_arc(P5, P_Bar, self.get_postive_angle(P5, (-im.Location_RotorBarCenter, 0)), center=(-im.Location_RotorBarCenter, 0), ls=':')
+        self.draw_arc(P5, P_Bar, self.get_postive_angle(P5, (-im.Location_RotorBarCenter, 0)), center=(-im.Location_RotorBarCenter, 0), ls=':')
 
         if self.child_index == JMAG:
             self.add_line(P_Bar, P8)
@@ -122,8 +122,8 @@ class VanGogh(object):
             if im.use_drop_shape_rotor_bar == True:
 
                 # draw the outline of rotor core for coil to form a region in JMAG
-                self.SIraw_arc(P6, P5, 0.5*pi - self.get_postive_angle(P5, (-im.Location_RotorBarCenter, 0)), center=(-im.Location_RotorBarCenter, 0))
-                self.SIraw_arc(P8, P7, 0.5*pi, center=(-im.Location_RotorBarCenter2, 0))
+                self.draw_arc(P6, P5, 0.5*pi - self.get_postive_angle(P5, (-im.Location_RotorBarCenter, 0)), center=(-im.Location_RotorBarCenter, 0))
+                self.draw_arc(P8, P7, 0.5*pi, center=(-im.Location_RotorBarCenter2, 0))
 
             else:
                 raise Exception('Not implemented error')
@@ -140,7 +140,7 @@ class VanGogh(object):
             self.some_solver_related_operations_fraction(im, fraction)
 
         if self.child_index == CUSTOM:
-            # self.SIraw_line(P8, P_Bar, ls='-.')
+            # self.draw_line(P8, P_Bar, ls='-.')
             self.mirror_and_copyrotate(im.Qr, im.Radius_OuterRotor, fraction)
 
             # self.Pr_list = [P1,P2,P3,P4,P5,P6,P7,P8,P_Bar]
@@ -176,12 +176,12 @@ class VanGogh(object):
         P2_angle = im.Angle_StatorSlotOpen*0.5/180*pi
         P2_rot = (-Radius_InnerStator*cos(P2_angle), -Radius_InnerStator*sin(P2_angle))
         P2 = self.park_transform(P2_rot, Stator_Sector_Angle)
-        self.SIraw_arc(P2, P1, self.get_postive_angle(P2))
+        self.draw_arc(P2, P1, self.get_postive_angle(P2))
 
         # P3
         P3_rot = (P2_rot[0]-im.Width_StatorTeethHeadThickness, P2_rot[1])
         P3 = self.park_transform(P3_rot, Stator_Sector_Angle)
-        self.SIraw_line(P2, P3)
+        self.draw_line(P2, P3)
 
         # P4 (P4 is better to compute using intersection, error from shapely will not really cause a problem while modeling)
         c = (origin, im.Radius_OuterRotor+im.Length_AirGap+im.Width_StatorTeethHeadThickness+im.Width_StatorTeethNeck)
@@ -191,18 +191,18 @@ class VanGogh(object):
             P4 = intersections[0]
         else:
             P4 = intersections[1]
-        self.SIraw_line(P3, P4)
+        self.draw_line(P3, P4)
 
         # P5
         P5 = (-sqrt(im.Radius_InnerStatorYoke**2 - (0.5*im.Width_StatorTeethBody)**2), 0.5*im.Width_StatorTeethBody)
-        self.SIraw_line(P4, P5)
+        self.draw_line(P4, P5)
 
         # P6
         # k = -tan(Stator_Sector_Angle)
         # l_sector = LineString([(0,0), (-im.Radius_OuterStatorYoke, -im.Radius_OuterStatorYoke*k)])
         # P6 = self.get_node_at_intersection(c,l_sector)
         P6 = ( -im.Radius_InnerStatorYoke*cos(Stator_Sector_Angle), im.Radius_InnerStatorYoke*sin(Stator_Sector_Angle) )
-        self.SIraw_arc(P6, P5, Stator_Sector_Angle - self.get_postive_angle(P5))
+        self.draw_arc(P6, P5, Stator_Sector_Angle - self.get_postive_angle(P5))
 
 
         # P7
@@ -214,18 +214,18 @@ class VanGogh(object):
         P8 = (-im.Radius_OuterStatorYoke, 0)
 
         if self.child_index == JMAG:
-            self.SIraw_line(P6, P7)
-            self.SIraw_arc(P7, P8, Stator_Sector_Angle)
-            self.SIraw_line(P8, P1)
+            self.draw_line(P6, P7)
+            self.draw_arc(P7, P8, Stator_Sector_Angle)
+            self.draw_line(P8, P1)
             self.mirror_and_copyrotate(im.Qs, None, fraction,
                                         symmetry_type=2,  # 2: x-axis
                                         )
             self.init_sketch_coil()
 
         if self.child_index == CUSTOM:
-            # self.SIraw_line(P6, P7, ls='-.')
-            self.SIraw_arc(P7, P8, Stator_Sector_Angle)
-            # self.SIraw_line(P8, P1, ls='-.')
+            # self.draw_line(P6, P7, ls='-.')
+            self.draw_arc(P7, P8, Stator_Sector_Angle)
+            # self.draw_line(P8, P1, ls='-.')
 
         # P_Coil
         # l = LineString([(P3[0], P3[1]), (P3[0], im.Radius_OuterStatorYoke)])
@@ -261,13 +261,13 @@ class VanGogh(object):
                 print('sP'+str(ind+1), P) 
 
         else:
-            self.SIraw_line(P4, P_Coil)
-            self.SIraw_line(P6, P_Coil)
+            self.draw_line(P4, P_Coil)
+            self.draw_line(P6, P_Coil)
 
         if self.child_index == JMAG:
             # draw the outline of stator core for coil to form a region in JMAG
-            self.SIraw_line(P4, P5)
-            self.SIraw_arc(P6, P5, Stator_Sector_Angle - self.get_postive_angle(P5))
+            self.draw_line(P4, P5)
+            self.draw_arc(P6, P5, Stator_Sector_Angle - self.get_postive_angle(P5))
             self.mirror_and_copyrotate(im.Qs, None, fraction,
                                         edge4ref=self.artist_list[1], #'Line.2' 
                                         # symmetry_type=2,
@@ -382,9 +382,9 @@ class VanGogh(object):
             self.init_sketch_cage()
 
         if self.child_index == CUSTOM:
-            # self.SIraw_line(P8, P1, ls='-.')
-            self.SIraw_arc(P2, P1, P2_angle)
-            # self.SIraw_line(P2, P3, ls='-.')
+            # self.draw_line(P8, P1, ls='-.')
+            self.draw_arc(P2, P1, P2_angle)
+            # self.draw_line(P2, P3, ls='-.')
 
         # P_Bar
         P_Bar = (-im.Location_RotorBarCenter-im.Radius_of_RotorSlot, 0)
@@ -408,7 +408,7 @@ class VanGogh(object):
             self.some_solver_related_operations_fraction(im, fraction)
 
         if self.child_index == CUSTOM:
-            # self.SIraw_line(P8, P_Bar, ls='-.')
+            # self.draw_line(P8, P_Bar, ls='-.')
             self.mirror_and_copyrotate(im.Qr, im.Radius_OuterRotor, fraction)
 
             # self.Pr_list = [P1,P2,P3,P4,P5,P6,P7,P8,P_Bar]
@@ -425,16 +425,16 @@ class VanGogh(object):
 
 
     def drawLine(self, PA, PB):
-        self.SIraw_line(PA, PB)
+        self.draw_line(PA, PB)
 
     def drawArc(self, CenterPAPB, PA, PB, **kwarg):
 
         if self.child_index == JMAG: # plot arc using center and two points
-            self.SIraw_arc(CenterPAPB, PA, PB)
+            self.draw_arc(CenterPAPB, PA, PB)
 
         elif self.child_index == FEMM or self.child_index == CUSTOM: # plot arc using arc angle and two points
             angle = abs(self.get_postive_angle(PA) - self.get_postive_angle(PB))
-            self.SIraw_arc(PA, PB, angle, **kwarg) # angle in rad       
+            self.draw_arc(PA, PB, angle, **kwarg) # angle in rad       
 
 
     @staticmethod
@@ -542,8 +542,8 @@ class VanGogh_pyPlotter(VanGogh):
     def __init__(self, im, child_index=2):
         super(VanGogh_pyPlotter, self).__init__(im, child_index)
 
-        self.add_line = self.SIraw_line
-        self.add_arc  = self.SIraw_arc
+        self.add_line = self.draw_line
+        self.add_arc  = self.draw_arc
 
         self.fig = plt.figure(figsize=(8, 8), facecolor='w', edgecolor='k')
         self.ax = self.fig.add_subplot(111, aspect='equal')
@@ -623,8 +623,8 @@ class VanGogh_TikZPlotter():
         The idea here is to incorporate this class with VanGogh_pyPlotter, 
         such that what you see in Matplotlib is what you get in TikZ."""
     def __init__(self):
-        self.add_line = self.SIraw_line
-        self.add_arc  = self.SIraw_arc
+        self.add_line = self.draw_line
+        self.add_arc  = self.draw_arc
         self.file = open('VanGogh_TikZ.tex', 'w')
         self.c = pyx.canvas.canvas()
 
@@ -658,11 +658,11 @@ class VanGogh_TikZPlotter():
                 # 如果自动添加的线在染色区域内部，那么fill了以后，那根线也看不见了。
                 # 此外，如果自动添加的线在染色区域外部，那么你只能额外画一个图形把多涂色的地方给覆盖掉了。
 
-                    # 路径 = self.SIraw_line([0,0], [0,0], untrack=True)
+                    # 路径 = self.draw_line([0,0], [0,0], untrack=True)
                     # 路径 = pyx.path.path(pyx.path.moveto(0,0))
                     # 路径 = pyx.path.path(路径列表[0])
 
-                # 路径 = self.SIraw_arc([0,-0.1], [0,0.1], [0,0], relangle=2, untrack=True)
+                # 路径 = self.draw_arc([0,-0.1], [0,0.1], [0,0], relangle=2, untrack=True)
                 # 路径 = 路径 + 路径列表[0]
 
                 路径 = 路径列表[0]
@@ -697,7 +697,7 @@ class VanGogh_TikZPlotter():
                         # self.c.stroke(路径, [pyx.style.linewidth.THICK, pyx.trafo.mirror(0), pyx.trafo.rotate(i*360/self.iRotateCopy)])
 
     def drawLine(self, p1, p2):
-        self.SIraw_line(p1, p2)
+        self.draw_line(p1, p2)
         # return [str(p1)+','+str(p2)] # easy to read for human
         return [ (p1[0], p1[1], p2[0], p2[1]) ] # This is segment
                 # Consistent with : self.track_path.append([p1[0], p1[1], p2[0], p2[1]])
@@ -729,7 +729,7 @@ class VanGogh_TikZPlotter():
         angle_between_points = atan2(endxy[1], endxy[0]) - atan2(startxy[1], startxy[0])
 
         relangle = -0.5 * angle_between_points # simple math: https://pyx-project.org/manual/connector.html?highlight=relangle
-        self.SIraw_arc(startxy, endxy, centerxy=centerxy, relangle=relangle)
+        self.draw_arc(startxy, endxy, centerxy=centerxy, relangle=relangle)
         # return [str(startxy)+','+str(endxy)] # easy to read for human
         return [ (startxy[0], startxy[1], endxy[0], endxy[1], centerxy[0], centerxy[1], relangle) ] # This is segment
                                                                                                     # Consistent with: self.track_path.append([startxy[0], startxy[1], endxy[0], endxy[1], centerxy[0], centerxy[1], kwarg['relangle']])
@@ -2038,9 +2038,9 @@ if __name__ == '__main__':
             else:
                 self.list_labels = list_labels
 
-            self.SIraw_vertical_line()
-            self.SIraw_arrow()
-            self.SIraw_end_turns()
+            self.draw_vertical_line()
+            self.draw_arrow()
+            self.draw_end_turns()
 
         def draw_vertical_line(self):
             for x in self.list_slot_location:

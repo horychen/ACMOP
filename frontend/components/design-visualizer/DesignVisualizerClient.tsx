@@ -20,6 +20,18 @@ type TabValue = 'geometry' | 'winding' | 'performance' | 'excitation';
 export default function DesignVisualizerClient({ data }: DesignVisualizerClientProps) {
     const [activeTab, setActiveTab] = useState<TabValue>('geometry');
     const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
+    const [visibility, setVisibility] = useState<Record<string, boolean>>({});
+
+    // Initialize visibility state
+    React.useEffect(() => {
+        if (!data.GeometricComponentsObjects) return;
+        const initialVisibility: Record<string, boolean> = {};
+        Object.keys(data.GeometricComponentsObjects).forEach(key => {
+            // Default all to visible except sleeve
+            initialVisibility[key] = key.toLowerCase().includes('sleeve') ? false : true;
+        });
+        setVisibility(initialVisibility);
+    }, [data.GeometricComponentsObjects]);
 
     return (
         <div className="container mx-auto p-4 space-y-6">
@@ -74,6 +86,8 @@ export default function DesignVisualizerClient({ data }: DesignVisualizerClientP
                                         <CrossSectionViewer
                                             geometry={data.GeometricComponentsObjects}
                                             selectedComponent={selectedComponent}
+                                            visibility={visibility}
+                                            onVisibilityChange={setVisibility}
                                         />
                                     </CardContent>
                                 </Card>
@@ -84,6 +98,8 @@ export default function DesignVisualizerClient({ data }: DesignVisualizerClientP
                                 <GeometryDetails
                                     data={data.GeometricComponentsObjects}
                                     onComponentSelect={setSelectedComponent}
+                                    visibility={visibility}
+                                    onVisibilityChange={setVisibility}
                                 />
                             </div>
 

@@ -268,7 +268,7 @@ class AC_Machine_Optiomization_Wrapper(object):
                                                             height_in_points=acm_variant.template.SI['GP']['mm_r_so'].value*2.1,
                                                             filename=filename)
         if 'PMSM' in acm_variant.template.name:
-            print(acm_variant.template.SI['GP']['mm_r_ro'])
+            # print(acm_variant.template.SI['GP']['mm_r_ro'])
             lw = 0.1 if acm_variant.template.SI['GP']['mm_r_ro'].value < 15 else 0.5
             saved_filename = toolCairo.draw_spmsm(acm_variant, bool_draw_whole_model=True, lw=lw)
             return saved_filename
@@ -660,11 +660,11 @@ def main(number_which_part):
         mop.part_evaluation_geometry(bool_show_pdf=True)
 
         # version 1: easier on eyes
-        with open('../DesignVisualization.json', 'w') as f:
-            def safe_serialize(obj, f, indent=4):
-                default = lambda o: f"<<non-serializable: {type(o).__qualname__}>>"
-                return json.dump(obj, f, indent=indent, default=default)
-            safe_serialize(mop.ad.visualize_dict, f, indent=4)
+        # with open('../DesignVisualization.json', 'w') as f:
+        #     def safe_serialize(obj, f, indent=4):
+        #         default = lambda o: f"<<non-serializable: {type(o).__qualname__}>>"
+        #         return json.dump(obj, f, indent=indent, default=default)
+        #     safe_serialize(mop.ad.visualize_dict, f, indent=4)
 
         # version 2: recoverable
         import jsonpickle
@@ -692,7 +692,7 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # mop = main(1)
-    mop = main(31)
+    # mop = main(31)
     mop = main(3)
     # mop = main(4)
     # mop = main(5)
