@@ -381,20 +381,27 @@ class CrossSectSleeve(object):
     def __init__(self, 
                     name = 'Sleeve',
                     color = '#11E322',
-                    rotorMagnet = None,
-                    d_sleeve = None
+                    mm_r_ri=5,
+                    mm_d_ri=5,
+                    mm_d_pm=3,
+                    p=4,
+                    d_sleeve=1
                     ):
         self.name = name
         self.color = color
-        self.rotorMagnet = rotorMagnet
+
+        self.mm_r_ri = mm_r_ri
+        self.mm_d_ri = mm_d_ri
+        self.mm_d_pm = mm_d_pm
+        self.p = p
         self.d_sleeve = d_sleeve
 
     def draw(self, drawer):
         """Calculate all point coordinates."""
-        r_ri  = self.rotorMagnet.rotorCore.mm_r_ri
-        d_ri  = self.rotorMagnet.rotorCore.mm_d_ri
-        d_pm  = self.rotorMagnet.rotorCore.mm_d_pm
-        p     = self.rotorMagnet.rotorCore.p
+        r_ri  = self.mm_r_ri
+        d_ri  = self.mm_d_ri
+        d_pm  = self.mm_d_pm
+        p     = self.p
 
         r_or = r_ri + d_ri + d_pm 
         d_sleeve = self.d_sleeve

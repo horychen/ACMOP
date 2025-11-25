@@ -382,7 +382,7 @@ class Modern_Machine_Designer(object):
                     CrossSectInnerNotchedRotor.CrossSectShaft(
                         name="shaft",
                         color="#0EE0E2",
-                        notched_rotor=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
+                        rotorCore=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
                             mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
                             deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
                             deg_alpha_rs=self.deg_alpha_rs.value if hasattr(self, "deg_alpha_rs") and self.deg_alpha_rs.value is not None else 10,
@@ -394,8 +394,7 @@ class Modern_Machine_Designer(object):
                             s=self.s.value if hasattr(self, "s") and self.s.value is not None else 4
                         )
                     ).draw(drawer, **kwargs)
-                ),
-                _calculate_points=lambda: None,
+                )
             ),
             "rotorMagnet": Geometry(
                 GP={
@@ -407,7 +406,7 @@ class Modern_Machine_Designer(object):
                     CrossSectInnerNotchedRotor.CrossSectInnerNotchedMagnet(
                         name="rotorMagnet",
                         color="#1C96E0",
-                        notched_rotor=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
+                        rotorCore=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
                             mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
                             deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
                             deg_alpha_rs=self.deg_alpha_rs.value if hasattr(self, "deg_alpha_rs") and self.deg_alpha_rs.value is not None else 10,
@@ -420,7 +419,23 @@ class Modern_Machine_Designer(object):
                         )
                     ).draw(drawer, **kwargs)
                 ),
-                _calculate_points=lambda: None,
+            ),
+            "sleeve": Geometry(
+                GP={
+                    'mm_r_ri': self.mm_r_ri,
+                    'mm_d_ri': self.mm_d_ri,
+                    'mm_d_pm': self.mm_d_pm,
+                    'p': self.p,
+                },
+                draw_function=lambda drawer, **kwargs: (
+                    CrossSectInnerNotchedRotor.CrossSectSleeve(
+                        mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 5,
+                        mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 5,
+                        mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 3,
+                        p=self.p.value if hasattr(self, "p") and self.p.value is not None else 4,
+                        d_sleeve=self.d_sleeve.value if hasattr(self, "d_sleeve") and self.d_sleeve.value is not None else 1
+                    ).draw(drawer, **kwargs)
+                )
             ),
             "statorCore": Geometry(
                 GP={
@@ -451,7 +466,6 @@ class Modern_Machine_Designer(object):
                         Q=self.Q.value if hasattr(self, "Q") and self.Q.value is not None else 6,
                     ).draw(drawer, **kwargs)
                 ),
-                _calculate_points=lambda: None,
             ),
             "coils": None
         }
@@ -466,8 +480,7 @@ class Modern_Machine_Designer(object):
                     CrossSectStator.CrossSectInnerRotorStatorWinding(
                         stator_core=self.machineGeometry['statorCore'],
                     ).draw(drawer, **kwargs)
-                ),
-                _calculate_points=lambda: None
+                )
             )
 
         ''' Excitations Consiering Thermal Capability Limit (Simple) '''

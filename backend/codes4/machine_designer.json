@@ -302,6 +302,20 @@
       "mm_r_ri": 34.724999999999994,
       "_needs_rebuild": true
     },
+    "sleeve": {
+      "color": null,
+      "GP": {
+        "mm_r_ri": "rotor_inner_radius",
+        "mm_d_ri": "rotor_iron (back iron) depth",
+        "mm_d_pm": "magnet_depth",
+        "p": "pole_pair_number_p"
+      },
+      "mm_r_ri": 34.724999999999994,
+      "mm_d_ri": 4,
+      "mm_d_pm": 3,
+      "p": 4,
+      "_needs_rebuild": true
+    },
     "statorCore": {
       "color": null,
       "GP": {
