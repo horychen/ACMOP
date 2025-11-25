@@ -1,8 +1,7 @@
 from dataclasses import dataclass, fields
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
-import json, math
-EPS = 1e-3
+import json, math, base64, pickle
 
 class Parameter(object):
     def __init__(self, name, type, value=None, bounds=None, calc=None, calc_bounds=None, unit='mm', comment=None, args=None) -> None:
@@ -115,31 +114,43 @@ class Geometry(object):
             if isinstance(gp, Parameter):
                 exec(f"self.{name} = {gp.value}")
     def to_dict(self) -> Dict[str, Any]:
+        # INSERT_YOUR_CODE
         """
-        将 Geometry 对象转换为字典（用于 JSON 序列化）
-        注意：draw_function 和 _calculate_points 是 lambda 函数，无法序列化
+        扩展序列化方法：将所有当前成员变量都存入字典（不局限于定义时的变量）
+        排除不能序列化的 draw_function/_calculate_points 属性
         """
-        # 序列化 GP 列表，将 Parameter 对象转换为名称
-        gp_list = []
-        if self.GP:
-            if isinstance(self.GP, list):
-                for gp in self.GP:
-                    if isinstance(gp, Parameter):
-                        gp_list.append(gp.name)
-                    elif gp is not None:
-                        gp_list.append(str(gp))
-                    else:
-                        gp_list.append(None)
-            elif isinstance(self.GP, dict):
-                gp_list = {k: (v.name if isinstance(v, Parameter) else str(v) if v is not None else None) 
-                          for k, v in self.GP.items()}
-        
-        return {
-            'color': self.color,
-            'GP': gp_list,
-            # draw_function 和 _calculate_points 无法序列化，标记为需要重建
-            '_needs_rebuild': True
-        }
+        result = {}
+        # 收集所有实例属性
+        for k, v in self.__dict__.items():
+            if k in ['draw_function', '_calculate_points']:
+                # 无法序列化，略去
+                continue
+            elif k == 'GP':
+                # 单独处理 GP
+                if isinstance(v, list):
+                    result['GP'] = [
+                        gp.name if isinstance(gp, Parameter) else str(gp) if gp is not None else None
+                        for gp in v
+                    ]
+                elif isinstance(v, dict):
+                    result['GP'] = {kk: (vv.name if isinstance(vv, Parameter) else str(vv) if vv is not None else None)
+                                    for kk, vv in v.items()}
+                else:
+                    result['GP'] = v
+            else:
+                # 其它属性，直接存储基础类型，否则转为字符串
+                if isinstance(v, (int, float, str, bool, type(None))):
+                    result[k] = v
+                else:
+                    try:
+                        # 尝试用 .to_dict()
+                        result[k] = v.to_dict()
+                    except Exception:
+                        result[k] = str(v)
+        # 必须保证 _needs_rebuild 存在
+        result['_needs_rebuild'] = True
+        return result
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Geometry':
         return cls(
@@ -150,8 +161,6 @@ class Geometry(object):
         )
     def draw(self, drawer, *args, **kwargs):
         self.components_make_region = self.draw_function(drawer, *args, **kwargs)
-    def _calculate_points(self, *args, **kwargs):
-        return self._calculate_points(self.GP, *args, **kwargs)
 
 @dataclass
 class Modern_Machine_Designer(object):
@@ -160,6 +169,9 @@ class Modern_Machine_Designer(object):
     bool_PermanentMagnet: bool = True
     bool_StatorSlotClosed: bool = False
     bool_RotorNotched: bool = True
+
+    select_FEA_tool: str = 'JMAG'
+    name: str = 'SuperCoolName'
 
     def __post_init__(self):
 
@@ -262,7 +274,6 @@ class Modern_Machine_Designer(object):
                 ),
                 _calculate_points=lambda: (
                     CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor.calculate_points 
-                    if CrossSectInnerNotchedRotor else None
                 )
             ),
             "shaft": Geometry(
@@ -371,7 +382,7 @@ class Modern_Machine_Designer(object):
         return [{'move_to': (p1[0], p1[1]), 'line_to': (p2[0], p2[1])}]
 
     def drawArc(self, centerxy, startxy, endxy):
-
+        EPS = 1e-3
         v1 = [startxy[0] - centerxy[0], startxy[1] - centerxy[1]]
         v2 = [endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]]
         cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])*math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]))
@@ -478,6 +489,172 @@ class Modern_Machine_Designer(object):
             # builtins.ad.visualize_dict['GeometricComponentsObjects']['coils'] = acm_variant.coils
 
         draw_spmsm(lw, width_in_points, height_in_points, bool_draw_whole_model=bool_draw_whole_model)
+
+    def FEA_evaluate(self, project_loc=fr'../_default/'):
+
+        import os
+        def get_pc_name():
+            import platform, socket
+            n1 = platform.node()
+            n2 = socket.gethostname()
+            n3 = os.environ["COMPUTERNAME"]
+            if n1 == n2 == n3:
+                return n1
+            else:
+                raise Exception(f"Computer names are not equal to each other. {n1,n2,n3}")
+        dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
+        dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
+        pc_name = get_pc_name()
+        # os.chdir(dir_codes)
+        self.path2SwarmData = project_loc + self.name.replace(' ', '_')+'/'
+        if not os.path.isdir(path2SwarmData): os.makedirs(path2SwarmData)
+
+        self.project_name = self.name+'proj'
+        self.expected_project_file = self.path2SwarmData + "temp/%s.jproj"%(self.project_name)
+
+        self.path2FEACsv    = self.path2SwarmData + 'csv/'
+        if not os.path.isdir(self.dir_csv_output_folder): os.makedirs(self.dir_csv_output_folder)
+
+        if 'JMAG' in self.select_FEA_tool:
+
+            # study name
+            study_name = self.project_name + "-Transient" # Change here and there 
+
+            # Leave the solving task to JMAG
+            self.toolJd = self.build_jmag_project(acm_variant, self.project_meta_data, bool_re_evaluate=bool_re_evaluate)
+            import rich
+            rich.print(self.project_meta_data)
+
+            ################################################################
+            # Load data for cost function evaluation
+            ################################################################
+            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            if results_to_be_unpacked is not None:
+                if self.toolJd.fig_main is not None:
+                    try:
+                        if False:
+                            self.toolJd.fig_main.savefig(self.fea_config_dict['output_dir'] + acm_variant.name + 'results.png', dpi=150)
+                    except Exception as e:
+                        logger = logging.getLogger(__name__)
+                        logger.error('Exception in saving figure: %s', e)
+                        logger.info('Ignore error and continue.')
+                    finally:
+                        utility.pyplot_clear(self.toolJd.axeses)
+                # show()
+                return acm_variant 
+            else:
+                raise Exception('[acm_designer] results_to_be_unpacked is None.')
+
+        elif 'FEMM' in self.select_FEA_tool:
+            self.toolFEMM = self.build_femm_project(acm_variant)
+            # acm_variant.results_to_be_unpacked = results_to_be_unpacked = toolFEMM.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            return acm_variant
+        else:
+            raise Exception('[acm_designer.py] Wrong string of select_FEA_tool:', self.select_FEA_tool)
+
+
+        if 'JMAG' in self.select_FEA_tool:
+
+            cost_function, f1, f2, f3, FRW, \
+            normalized_torque_ripple, \
+            normalized_force_error_magnitude, \
+            force_error_angle, \
+            project_name, individual_name, \
+            number_current_generation, individual_index,\
+            power_factor, \
+            rated_ratio, \
+            rated_stack_length_mm, \
+            rated_total_loss, \
+            rated_stator_copper_loss_along_stack, \
+            rated_magnet_Joule_loss, \
+            rated_rotor_copper_loss_along_stack, \
+            stator_copper_loss_in_end_turn, \
+            rotor_copper_loss_in_end_turn, \
+            rated_iron_loss, \
+            rated_windage_loss, \
+            str_results, \
+            mm2_slot_area, \
+            coil_flux_linkage_peak2peak_value, \
+            TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
+            ss_avg_force_magnitude, rotor_weight, torque_average = acm_variant.results_to_be_unpacked
+
+            # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
+
+            spec_performance_dict = dict()
+            spec_performance_dict['x_denorm_dict'] = self.acm_template.SI['x_denorm_dict']
+            spec_performance_dict['project_name'] = project_name
+            spec_performance_dict['individual_name'] = individual_name
+            spec_performance_dict['number_current_generation'] = number_current_generation
+            spec_performance_dict['individual_index'] = individual_index
+            # spec_performance_dict['cost_function'] = cost_function
+            spec_performance_dict['f1'] = f1
+            spec_performance_dict['f2'] = f2
+            spec_performance_dict['f3'] = float(f3)
+            spec_performance_dict['TRV'] = TRV
+            spec_performance_dict['FRW'] = FRW
+            spec_performance_dict['torque_average'] = torque_average
+            spec_performance_dict['ss_avg_force_magnitude'] = ss_avg_force_magnitude
+            spec_performance_dict['rotor_weight'] = rotor_weight
+            spec_performance_dict['normalized_torque_ripple'] = float(normalized_torque_ripple)
+            spec_performance_dict['normalized_force_error_magnitude'] = float(normalized_force_error_magnitude)
+            spec_performance_dict['force_error_angle'] = float(force_error_angle)
+            spec_performance_dict['coil_flux_linkage_peak2peak_value'] = float(coil_flux_linkage_peak2peak_value)
+            spec_performance_dict['mm2_slot_area'] = mm2_slot_area
+            spec_performance_dict['Cost'] = Cost
+            spec_performance_dict['Cost_Fe'] = Cost_Fe
+            spec_performance_dict['Cost_Cu'] = Cost_Cu
+            spec_performance_dict['Cost_PM'] = Cost_PM
+            spec_performance_dict['power_factor'] = power_factor
+            spec_performance_dict['rated_ratio'] = rated_ratio
+            spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
+            spec_performance_dict['rated_total_loss'] = rated_total_loss
+            spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
+            spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
+            spec_performance_dict['rated_magnet_Joule_loss'] = rated_magnet_Joule_loss
+            spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
+            spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
+            spec_performance_dict['rated_iron_loss'] = rated_iron_loss
+            spec_performance_dict['rated_windage_loss'] = rated_windage_loss
+            # spec_performance_dict['str_results'] = str_results
+            spec_performance_dict['select_FEA_tool'] = self.select_FEA_tool
+            spec_performance_dict['moo.fitness_OA'] = self.fea_config_dict['moo.fitness_OA']
+            spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
+            spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
+
+            GP = acm_variant.template.SI['GP']
+            EX = acm_variant.template.SI['EX']
+
+            # Save to disk
+            # self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
+
+            number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
+            individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
+            builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
+            json_file_path = self.fea_config_dict['output_dir'] + self.select_spec + '.json'
+
+            # Read the possibly-existing current json data
+            try:
+                if os.path.getsize(json_file_path) > 0:
+                    with open(json_file_path, 'r') as rf:
+                        loaded_json = json.load(rf)
+                else:
+                    loaded_json = {}
+            except Exception:
+                loaded_json = {}
+
+            # Compose new key
+            key = f'gen{number_current_generation}-ind{individual_index}'
+            loaded_json[key] = builtins.ad.visualize_dict
+
+            json_string = jsonpickle.encode(loaded_json, indent=4)
+            with open(json_file_path, 'w+') as f:
+                f.write(json_string)
+
+            number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
+            individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
+
+            # this is for optimization
+            acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
 
     def get_free_variables(self) -> List[Parameter]:
         return [param for param in self.get_parameter_fields().values() if param.type == 'free']
@@ -652,45 +829,45 @@ class Modern_Machine_Designer(object):
     
     def to_dict(self) -> Dict[str, Any]:
         """
-        将 Modern_Machine_Designer 对象转换为字典（用于 JSON 序列化）
-        
-        Returns:
-            Dict: 包含所有字段的字典
+        将 Modern_Machine_Designer 对象的所有成员变量（包括自定义和全部属性）转换为字典。
+        对自定义对象（如 Parameter/Winding/Geometry）自动调用其 to_dict 方法。
         """
-        result = {
-            'machine_class': self.machine_class,
-            'bool_PermanentMagnet': self.bool_PermanentMagnet,
-            'bool_StatorSlotClosed': self.bool_StatorSlotClosed,
-            'bool_RotorNotched': self.bool_RotorNotched,
-            'parameters': {}
-        }
-        
-        # 序列化所有 Parameter 字段
-        for field_name, param in self.get_parameter_fields().items():
-            result['parameters'][field_name] = param.to_dict()
-        
-        # 序列化 Winding 对象（如果存在）
-        if hasattr(self, 'wily') and self.wily is not None:
-            result['winding'] = self.wily.to_dict()
-        
-        # 序列化 machineGeometry（如果存在）
-        # 注意：machineGeometry 包含 lambda 函数，无法直接序列化
-        # 我们只序列化可序列化的部分，或者标记为需要重建
-        if hasattr(self, 'machineGeometry') and self.machineGeometry is not None:
-            result['machineGeometry'] = {}
-            for key, geometry in self.machineGeometry.items():
-                if isinstance(geometry, Geometry):
-                    # 只序列化可序列化的部分
-                    geo_dict = {
-                        'color': geometry.color,
-                        'GP': [gp.name if isinstance(gp, Parameter) else str(gp) for gp in geometry.GP] if geometry.GP else []
-                    }
-                    # 标记 draw_function 和 _calculate_points 需要重建
-                    geo_dict['_needs_rebuild'] = True
-                    result['machineGeometry'][key] = geo_dict
-        
+        def serialize_value(val):
+            # 基础类型直接返回
+            if isinstance(val, (int, float, str, bool, type(None))):
+                return val
+            # Parameter类
+            if isinstance(val, Parameter):
+                return val.to_dict()
+            # 假如有Winding类
+            if hasattr(val, "to_dict") and callable(val.to_dict):
+                return val.to_dict()
+            # dict递归
+            if isinstance(val, dict):
+                return {k: serialize_value(v) for k, v in val.items()}
+            # list/tuple递归
+            if isinstance(val, (list, tuple)):
+                return [serialize_value(x) for x in val]
+            # Geometry特判（常见于 machineGeometry）
+            if 'Geometry' in type(val).__name__ or hasattr(val, 'GP'):
+                # 只序列化字段和参数名称
+                geo_dict = {
+                    'color': getattr(val, 'color', None),
+                    'GP': [
+                        gp.name if isinstance(gp, Parameter) else str(getattr(gp, 'name', gp))
+                        for gp in getattr(val, 'GP', [])
+                    ]
+                }
+                geo_dict['_needs_rebuild'] = True
+                return geo_dict
+            # 其它类型尝试转为字符串
+            return str(val)
+
+        result = {}
+        for attr_name in vars(self):
+            attr_val = getattr(self, attr_name)
+            result[attr_name] = serialize_value(attr_val)
         return result
-    
     def to_json(self, indent: Optional[int] = 2, ensure_ascii: bool = False) -> str:
         """
         将 Modern_Machine_Designer 对象转换为 JSON 字符串
@@ -714,6 +891,156 @@ class Modern_Machine_Designer(object):
         """
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(self.to_dict(), f, indent=indent, ensure_ascii=False)
+    
+    def to_dict_full(self) -> Dict[str, Any]:
+        """
+        将 Modern_Machine_Designer 对象转换为完整字典（包含所有信息，类似 pickle）
+        使用 dill/pickle + base64 编码来保存无法直接序列化的部分
+        
+        Returns:
+            Dict: 包含完整对象信息的字典
+        """
+        # 首先获取标准的字典表示
+        standard_dict = self.to_dict()
+        
+        # 由于 pickle 无法序列化 lambda 函数，我们需要创建一个可序列化的版本
+        # 方法：创建一个新实例，复制所有属性值，但不复制 lambda 函数
+        # 然后在反序列化后通过 __post_init__ 重建 lambda 函数
+        
+        # 保存 lambda 函数的状态信息（用于标记需要重建）
+        lambda_info = {}
+        
+        # 创建新实例并复制所有基本属性
+        obj_copy = self.__class__.__new__(self.__class__)
+        obj_copy.machine_class = self.machine_class
+        obj_copy.bool_PermanentMagnet = self.bool_PermanentMagnet
+        obj_copy.bool_StatorSlotClosed = self.bool_StatorSlotClosed
+        obj_copy.bool_RotorNotched = self.bool_RotorNotched
+        
+        # 复制所有参数，但移除 lambda 函数
+        for field_name, param in self.get_parameter_fields().items():
+            # 创建新的 Parameter 对象，复制所有值，但移除 lambda 函数
+            new_param = Parameter(
+                name=param.name,
+                type=param.type,
+                value=param.value,
+                bounds=param.bounds,
+                unit=param.unit,
+                comment=param.comment,
+                calc=None,  # lambda 函数会被移除
+                calc_bounds=None,  # lambda 函数会被移除
+                args=param.args
+            )
+            setattr(obj_copy, field_name, new_param)
+            
+            # 记录哪些参数有 lambda 函数
+            if param.calc is not None and callable(param.calc):
+                func_name = getattr(param.calc, '__name__', '')
+                if func_name == '<lambda>' or func_name == '':
+                    lambda_info[field_name] = {'has_calc_lambda': True}
+            
+            if param.calc_bounds is not None and callable(param.calc_bounds):
+                func_name = getattr(param.calc_bounds, '__name__', '')
+                if func_name == '<lambda>' or func_name == '':
+                    if field_name not in lambda_info:
+                        lambda_info[field_name] = {}
+                    lambda_info[field_name]['has_calc_bounds_lambda'] = True
+        
+        # 复制 Winding 对象（如果存在）
+        if hasattr(self, 'wily') and self.wily is not None:
+            obj_copy.wily = Winding.from_dict(self.wily.to_dict())
+        
+        # machineGeometry 会在 __post_init__ 中重建，所以不需要复制
+        
+        # 现在尝试序列化
+        try:
+            pickled_data = pickle.dumps(obj_copy)
+            pickled_base64 = base64.b64encode(pickled_data).decode('utf-8')
+            pickle_success = True
+        except Exception as e:
+            # 如果还是失败，只保存标准数据
+            pickled_base64 = None
+            pickle_success = False
+            print(f"Warning: Failed to pickle object: {e}")
+        
+        # 创建完整字典
+        full_dict = {
+            '_standard_data': standard_dict,  # 保留标准数据以便前端读取
+            '_lambda_info': lambda_info,  # 保存 lambda 函数信息，用于重建
+            '_metadata': {
+                'class_name': self.__class__.__name__,
+                'module': self.__class__.__module__,
+                'has_machineGeometry': hasattr(self, 'machineGeometry') and self.machineGeometry is not None,
+                'has_wily': hasattr(self, 'wily') and self.wily is not None,
+                'pickle_success': pickle_success,
+            }
+        }
+        
+        if pickle_success:
+            full_dict['_pickle_data'] = pickled_base64
+            full_dict['_pickle_version'] = pickle.HIGHEST_PROTOCOL if hasattr(pickle, 'HIGHEST_PROTOCOL') else 4
+        else:
+            full_dict['_pickle_data'] = None
+            full_dict['_error'] = 'Failed to pickle object. Use standard serialization instead.'
+        
+        return full_dict
+    
+    def save_to_file_full(self, filepath: str = 'machine_designer_full.json', indent: Optional[int] = 2) -> None:
+        """
+        将对象完整信息保存到 JSON 文件（类似 pickle 保存）
+        
+        Args:
+            filepath: 文件路径，默认为 'machine_designer_full.json'
+            indent: JSON 缩进空格数
+        """
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(self.to_dict_full(), f, indent=indent, ensure_ascii=False)
+    
+    @classmethod
+    def from_dict_full(cls, data: Dict[str, Any]) -> 'Modern_Machine_Designer':
+        """
+        从完整字典创建 Modern_Machine_Designer 对象（从 pickle 数据恢复）
+        
+        Args:
+            data: 包含完整对象数据的字典（包含 _pickle_data）
+            
+        Returns:
+            Modern_Machine_Designer: 重建的对象
+        """
+        if '_pickle_data' in data and data['_pickle_data'] is not None:
+            try:
+                # 从 pickle 数据恢复
+                pickled_base64 = data['_pickle_data']
+                pickled_data = base64.b64decode(pickled_base64.encode('utf-8'))
+                instance = pickle.loads(pickled_data)
+                
+                # 由于 lambda 函数在序列化时被移除了，需要重新调用 __post_init__ 来重建它们
+                # __post_init__ 会重新创建所有 lambda 函数和 machineGeometry
+                instance.__post_init__()
+                
+                return instance
+            except Exception as e:
+                # 如果 pickle 恢复失败，使用标准方法
+                print(f"Warning: Failed to unpickle object, using standard deserialization: {e}")
+                return cls.from_dict(data.get('_standard_data', data))
+        else:
+            # 如果没有 pickle 数据，使用标准方法恢复
+            return cls.from_dict(data.get('_standard_data', data))
+    
+    @classmethod
+    def load_from_file_full(cls, filepath: str = 'machine_designer_full.json') -> 'Modern_Machine_Designer':
+        """
+        从完整 JSON 文件加载对象（从 pickle 数据恢复）
+        
+        Args:
+            filepath: 文件路径，默认为 'machine_designer_full.json'
+            
+        Returns:
+            Modern_Machine_Designer: 重建的对象
+        """
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return cls.from_dict_full(data)
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Modern_Machine_Designer':
@@ -812,12 +1139,23 @@ if __name__ == "__main__":
     mmd = Modern_Machine_Designer()
     mmd.save_to_file('machine_designer.json')
 
+    mmd.show_geometry()
+    print(dir(mmd.machineGeometry['statorCore']))
+    quit()
+
+    # 保存完整信息到文件（类似 pickle）
+    mmd.save_to_file_full('machine_designer_full.json')
+    print("=== 已保存完整信息到 machine_designer_full.json ===")
+
     # 从 JSON 文件恢复对象
     mmd2 = Modern_Machine_Designer.load_from_file('machine_designer.json')
 
-    mmd2.show_geometry()
+    # 从完整文件恢复对象（包含所有信息，包括 lambda 函数）
+    mmd3 = Modern_Machine_Designer.load_from_file_full('machine_designer_full.json')
+    print("=== 已从完整文件恢复对象 ===")
 
 quit()
+
 if __name__ == "__main__":
     # 创建实例
     mmd = Modern_Machine_Designer()

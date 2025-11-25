@@ -65,10 +65,7 @@ class CrossSectInnerNotchedRotor(object):
             if not (self.mm_d_rs==0):
                 raise Exception('Invalid d_rs. Check that it is equal to 0 for s =1')
 
-        # Calculate all point coordinates in __init__
-        self._calculate_points()
-
-    def _calculate_points(self):
+    def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the geometric parameters."""
         mm_d_pm  = self.mm_d_pm
         alpha_rm = self.deg_alpha_rm * math.pi/180
@@ -88,83 +85,56 @@ class CrossSectInnerNotchedRotor(object):
                 alpha_rs = alpha_rm
 
         # Basic points
-        self.P1 = [r_ri, 0]
+        P1 = [r_ri, 0]
 
         r_P2 = r_ri + d_ri + d_rp
-        self.P2 = [r_P2, 0]
+        P2 = [r_P2, 0]
 
         alpha_P3 = alpha_rp - alpha_rm
-        self.P3 = [r_P2*cos(alpha_P3), r_P2*-sin(alpha_P3)]
+        P3 = [r_P2*cos(alpha_P3), r_P2*-sin(alpha_P3)]
 
         r_P4 = r_ri + d_ri
-        self.P4 = [r_P4*cos(alpha_P3), r_P4*-sin(alpha_P3)]
+        P4 = [r_P4*cos(alpha_P3), r_P4*-sin(alpha_P3)]
 
         alpha_P5 = alpha_P3 + alpha_rs
         if abs(alpha_rs*s - alpha_rm) < EPS:
             alpha_P5 = alpha_P3 + alpha_rs*s
-        self.P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
+        P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
 
         # Points for s == 1 case
-        self.P6 = [r_ri*cos(alpha_P5), r_ri*-sin(alpha_P5)]
-        self.P1p5 = [self.P2[0] - d_rp, self.P2[1]]
+        P6 = [r_ri*cos(alpha_P5), r_ri*-sin(alpha_P5)]
+        P1p5 = [P2[0] - d_rp, P2[1]]
 
         # Points for s > 1 case
         if s > 1:
             alpha_notch = (alpha_rm - s*alpha_rs) / (s-1)
             r_P6 = r_ri + d_ri + d_rs
-            self.P6 = [r_P6*cos(alpha_P5), r_P6*-sin(alpha_P5)]
+            P6 = [r_P6*cos(alpha_P5), r_P6*-sin(alpha_P5)]
             
             alpha_P7 = alpha_P5 + alpha_notch
-            self.P7 = [r_P6*cos(alpha_P7), r_P6*-sin(alpha_P7)]
-            self.P8 = [r_P4*cos(alpha_P7), r_P4*-sin(alpha_P7)]
+            P7 = [r_P6*cos(alpha_P7), r_P6*-sin(alpha_P7)]
+            P8 = [r_P4*cos(alpha_P7), r_P4*-sin(alpha_P7)]
             
             # P9 and P10 for the last segment
-            self.P9 = [cos(alpha_rs)*self.P8[0] + sin(alpha_rs)*self.P8[1],
-                       -sin(alpha_rs)*self.P8[0] + cos(alpha_rs)*self.P8[1]]
-            self.P10 = [r_ri*cos(alpha_rp), r_ri*-sin(alpha_rp)]
+            P9 = [cos(alpha_rs)*P8[0] + sin(alpha_rs)*P8[1],
+                       -sin(alpha_rs)*P8[0] + cos(alpha_rs)*P8[1]]
+            P10 = [r_ri*cos(alpha_rp), r_ri*-sin(alpha_rp)]
         else:
             # For s == 1, set these to None or default values
-            self.P7 = None
-            self.P8 = None
-            self.P9 = None
-            self.P10 = None
-
-        # Store intermediate values for use in draw method
-        self.alpha_rm = alpha_rm
-        self.alpha_rs = alpha_rs
-        self.alpha_rp = alpha_rp
-        self.alpha_P3 = alpha_P3
-        self.alpha_P5 = alpha_P5
-        if s > 1:
-            self.alpha_notch = (alpha_rm - s*alpha_rs) / (s-1)
-        else:
-            self.alpha_notch = None
-
-    def draw(self, drawer, bool_draw_whole_model=False):
+            P7 = None
+            P8 = None
+            P9 = None
+            P10 = None
+            alpha_notch = None
 
         drawer.getSketch(self.name, self.color)
-
-        # Use points from self
-        P1 = self.P1
-        P2 = self.P2
-        P3 = self.P3
-        P4 = self.P4
-        P5 = self.P5
-        P6 = self.P6
-        P1p5 = self.P1p5
-
-        s = self.s
-        p = self.p
-        alpha_rm = self.alpha_rm
-        alpha_rp = self.alpha_rp
-        d_rp = self.mm_d_rp
 
         list_segments = []
         if s == 1:
             if alpha_rm >= alpha_rp*0.9800:
                 logger = logging.getLogger(__name__)
                 logger.info('Non-NOTCHED ROTOR IS USED.')
-                logger.info('alpha_P5 is %s, %s deg', self.alpha_P5, self.alpha_P5/math.pi*180)
+                logger.info('alpha_P5 is %s, %s deg', alpha_P5, alpha_P5/math.pi*180)
                 if bool_draw_whole_model:
                     list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
                     list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1)
@@ -267,11 +237,8 @@ class CrossSectInnerNotchedMagnet(object):
         self.name = name
         self.color = color
         self.notched_rotor = notched_rotor
-        
-        # Calculate all point coordinates in __init__
-        self._calculate_points()
 
-    def _calculate_points(self):
+    def draw(self, drawer, bool_re_evaluate=False, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the notched_rotor."""
         d_pm     = self.notched_rotor.mm_d_pm
         alpha_rm = self.notched_rotor.deg_alpha_rm * math.pi/180
@@ -305,61 +272,38 @@ class CrossSectInnerNotchedMagnet(object):
             logger.warning('[class CrossSectInnerNotchedMagnet] Detect d_rp is too close to d_pm. To avoid small line entity error in JMAG, set d_pm equal to d_rp because rotor core is plotted already.')
             raise ExceptionBadDesign('[Error] Magnet depth d_pm is too close to inter-pole notch depth d_rp.')
 
-        self.P1 = [r_ri, 0]
+        P1 = [r_ri, 0]
 
         r_P2 = r_ri + d_ri + d_rp
-        self.P2 = [r_P2, 0]
+        P2 = [r_P2, 0]
 
         alpha_P3 = alpha_rp - alpha_rm
         r_P4 = r_ri + d_ri
-        self.P4 = [r_P4*cos(alpha_P3), r_P4*-sin(alpha_P3)]
+        P4 = [r_P4*cos(alpha_P3), r_P4*-sin(alpha_P3)]
 
-        self.P3_extra = [(r_P4+d_pm)*cos(alpha_P3), (r_P4+d_pm)*-sin(alpha_P3)]
+        P3_extra = [(r_P4+d_pm)*cos(alpha_P3), (r_P4+d_pm)*-sin(alpha_P3)]
 
         alpha_P5 = alpha_P3 + alpha_rs
-        self.P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
+        P5 = [r_P4*cos(alpha_P5), r_P4*-sin(alpha_P5)]
 
         if s > 1:
-            self.alpha_notch = (alpha_rm - s*alpha_rs) / (s-1)
+            alpha_notch = (alpha_rm - s*alpha_rs) / (s-1)
         else:
-            self.alpha_notch = None
+            alpha_notch = None
             
-        self.P6_extra = [(r_P4+d_pm)*cos(alpha_P5), (r_P4+d_pm)*-sin(alpha_P5)]
+        P6_extra = [(r_P4+d_pm)*cos(alpha_P5), (r_P4+d_pm)*-sin(alpha_P5)]
 
         Rout = r_P4+d_pm
         Rin  = r_P4
-        self.mm2_magnet_area = alpha_rm/alpha_rp  *  math.pi*(Rout**2 - Rin**2)
+        mm2_magnet_area = alpha_rm/alpha_rp  *  math.pi*(Rout**2 - Rin**2)
         logger = logging.getLogger(__name__)
-        logger.info('Magnet area in total is %g mm^2', self.mm2_magnet_area)
-
-        # Store intermediate values
-        self.alpha_rm = alpha_rm
-        self.alpha_rs = alpha_rs
-        self.alpha_rp = alpha_rp
-        self.alpha_P3 = alpha_P3
-        self.alpha_P5 = alpha_P5
-        self.s = s
-        self.p = p
-
-    def draw(self, drawer, bool_re_evaluate=False, bool_draw_whole_model=False):
+        logger.info('Magnet area in total is %g mm^2', mm2_magnet_area)
 
         if False == bool_re_evaluate:
             drawer.getSketch(self.name, self.color)
 
         if bool_re_evaluate:
-            return self.mm2_magnet_area
-
-        # Use points from self
-        P3_extra = self.P3_extra
-        P4 = self.P4
-        P5 = self.P5
-        P6_extra = self.P6_extra
-
-        p = self.p
-        s = self.s
-        alpha_rp = self.alpha_rp
-        alpha_rs = self.alpha_rs
-        alpha_notch = self.alpha_notch
+            return mm2_magnet_area
 
         list_regions = []
         list_segments = []
@@ -428,10 +372,7 @@ class CrossSectSleeve(object):
         self.notched_magnet = notched_magnet
         self.d_sleeve = d_sleeve
 
-        # Calculate all point coordinates in __init__
-        self._calculate_points()
-
-    def _calculate_points(self):
+    def draw(self, drawer):
         """Calculate all point coordinates."""
         r_ri  = self.notched_magnet.notched_rotor.mm_r_ri
         d_ri  = self.notched_magnet.notched_rotor.mm_d_ri
@@ -441,23 +382,15 @@ class CrossSectSleeve(object):
         r_or = r_ri + d_ri + d_pm 
         d_sleeve = self.d_sleeve
 
-        self.P1 = [r_or, 0]
-        self.P2 = [r_or+d_sleeve, 0]
+        P1 = [r_or, 0]
+        P2 = [r_or+d_sleeve, 0]
 
-        self.P3 = [cos(math.pi/p)*self.P1[0] + sin(math.pi/p)*self.P1[1],
-                  -sin(math.pi/p)*self.P1[0] + cos(math.pi/p)*self.P1[1]]
-        self.P4 = [cos(math.pi/p)*self.P2[0] + sin(math.pi/p)*self.P2[1],
-                  -sin(math.pi/p)*self.P2[0] + cos(math.pi/p)*self.P2[1]]
-
-    def draw(self, drawer):
+        P3 = [cos(math.pi/p)*P1[0] + sin(math.pi/p)*P1[1],
+                  -sin(math.pi/p)*P1[0] + cos(math.pi/p)*P1[1]]
+        P4 = [cos(math.pi/p)*P2[0] + sin(math.pi/p)*P2[1],
+                  -sin(math.pi/p)*P2[0] + cos(math.pi/p)*P2[1]]
 
         drawer.getSketch(self.name, self.color)
-
-        # Use points from self
-        P1 = self.P1
-        P2 = self.P2
-        P3 = self.P3
-        P4 = self.P4
 
         list_regions = []
         list_segments = []
@@ -483,23 +416,14 @@ class CrossSectShaft(object):
         self.color = color
         self.notched_rotor = notched_rotor
 
-        # Calculate all point coordinates in __init__
-        self._calculate_points()
-
-    def _calculate_points(self):
+    def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates."""
         r_ri = self.notched_rotor.mm_r_ri
 
-        self.P1 = [r_ri, 0]
-        self.NP1 = [-r_ri, 0]
-
-    def draw(self, drawer, bool_draw_whole_model=False):
+        P1 = [r_ri, 0]
+        NP1 = [-r_ri, 0]
 
         drawer.getSketch(self.name, self.color)
-
-        # Use points from self
-        P1 = self.P1
-        NP1 = self.NP1
 
         list_regions = []
         list_segments = []

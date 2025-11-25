@@ -3,67 +3,347 @@
   "bool_PermanentMagnet": true,
   "bool_StatorSlotClosed": false,
   "bool_RotorNotched": true,
-  "parameters": {},
-  "winding": {
-    "phase_number_m": 3,
-    "stator_slot_number_Qs": 12,
-    "pole_pair_number_p": 4,
-    "suspension_pole_pair_number_ps": 5
+  "select_FEA_tool": "JMAG",
+  "name": "SuperCoolName",
+  "m": {
+    "name": "phase_number_m",
+    "type": "fixed",
+    "value": 3,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "Qs": {
+    "name": "stator_slot_number_Qs",
+    "type": "fixed",
+    "value": 12,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "p": {
+    "name": "pole_pair_number_p",
+    "type": "fixed",
+    "value": 4,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "ps": {
+    "name": "suspension_pole_pair_number_ps",
+    "type": "fixed",
+    "value": 5,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "coil_pitch_y": {
+    "name": "coil_pitch_y",
+    "type": "fixed",
+    "value": 1,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_r_so": {
+    "name": "stator_outer_radius",
+    "type": "fixed",
+    "value": 123.5,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_d_mech_air_gap": {
+    "name": "mechanical_air_gap_depth",
+    "type": "fixed",
+    "value": 0.5,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_d_pm": {
+    "name": "magnet_depth",
+    "type": "free",
+    "value": 3,
+    "bounds": [
+      2,
+      6
+    ],
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_d_sleeve": {
+    "name": "rotor_sleeve_depth",
+    "type": "fixed",
+    "value": 1.0,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "s": {
+    "name": "number_of_magnet_segments_per_pole",
+    "type": "fixed",
+    "value": 1,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "split_ratio": {
+    "name": "split_ratio_r_si_slash_r_so",
+    "type": "free",
+    "value": 0.35,
+    "bounds": [
+      0.2,
+      0.5
+    ],
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_w_st": {
+    "name": "stator_tooth_width",
+    "type": "free",
+    "value": 16.368188599054943,
+    "bounds": [
+      10.912125732703295,
+      21.82425146540659
+    ],
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_d_sy": {
+    "name": "stator_yoke_depth",
+    "type": "free",
+    "value": 26.089375000000004,
+    "bounds": [
+      16.055000000000003,
+      36.12375
+    ],
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_d_sts": {
+    "name": "stator_tooth_shoe_depth",
+    "type": "free",
+    "value": 3.0,
+    "bounds": [
+      1,
+      5
+    ],
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "deg_alpha_st": {
+    "name": "stator_tooth_span_angle",
+    "type": "free",
+    "value": 16.5,
+    "bounds": [
+      3.0,
+      30.0
+    ],
+    "unit": "deg",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_r_si": {
+    "name": "stator_inner_radius",
+    "type": "derived",
+    "value": 43.224999999999994,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_d_st": {
+    "name": "stator_tooth_depth",
+    "type": "derived",
+    "value": 51.185625,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_d_ri": {
+    "name": "rotor_iron (back iron) depth",
+    "type": "derived",
+    "value": 4,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_r_ro": {
+    "name": "rotor_outer_radius",
+    "type": "derived",
+    "value": 41.724999999999994,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_r_ri": {
+    "name": "rotor_inner_radius",
+    "type": "derived",
+    "value": 34.724999999999994,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_d_sto": {
+    "name": "stator_tooth_open_depth",
+    "type": "derived",
+    "value": 2.0010000000000003,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "deg_alpha_sto": {
+    "name": "stator_tooth_open_angle",
+    "type": "derived",
+    "value": 8.25,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "deg_alpha_rm": {
+    "name": "magnet_pole_span_angle",
+    "type": "free",
+    "value": 38.25,
+    "bounds": [
+      31.499999999999996,
+      45.0
+    ],
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "deg_alpha_rs": {
+    "name": "magnet_segment_span_angle",
+    "type": "derived",
+    "value": 38.25,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_d_rp": {
+    "name": "inter_polar_iron_thickness",
+    "type": "derived",
+    "value": 3,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
+  },
+  "mm_d_rs": {
+    "name": "inter_segment_iron_thickness",
+    "type": "fixed",
+    "value": 0.0,
+    "bounds": null,
+    "unit": "mm",
+    "comment": null,
+    "calc_dependencies": null
   },
   "machineGeometry": {
     "rotorCore": {
       "color": null,
-      "GP": [
-        "mm_r_ro",
-        "mm_d_ri",
-        "mm_d_pm",
-        "mm_d_rp",
-        "mm_d_rs",
-        "p",
-        "s"
-      ],
+      "GP": {
+        "mm_r_ro": "rotor_outer_radius",
+        "mm_d_ri": "rotor_iron (back iron) depth",
+        "mm_d_pm": "magnet_depth",
+        "mm_d_rp": "inter_polar_iron_thickness",
+        "mm_d_rs": "inter_segment_iron_thickness",
+        "p": "pole_pair_number_p",
+        "s": "number_of_magnet_segments_per_pole"
+      },
+      "mm_r_ro": 41.724999999999994,
+      "mm_d_ri": 4,
+      "mm_d_pm": 3,
+      "mm_d_rp": 3,
+      "mm_d_rs": 0.0,
+      "p": 4,
+      "s": 1,
       "_needs_rebuild": true
     },
     "shaft": {
       "color": null,
-      "GP": [
-        "mm_r_ri"
-      ],
+      "GP": {
+        "mm_r_ri": "rotor_inner_radius"
+      },
+      "mm_r_ri": 34.724999999999994,
       "_needs_rebuild": true
     },
     "rotorMagnet": {
       "color": null,
-      "GP": [
-        "mm_d_pm",
-        "mm_d_ri",
-        "mm_r_ri"
-      ],
+      "GP": {
+        "mm_d_pm": "magnet_depth",
+        "mm_d_ri": "rotor_iron (back iron) depth",
+        "mm_r_ri": "rotor_inner_radius"
+      },
+      "mm_d_pm": 3,
+      "mm_d_ri": 4,
+      "mm_r_ri": 34.724999999999994,
       "_needs_rebuild": true
     },
     "statorCore": {
       "color": null,
-      "GP": [
-        "mm_r_si",
-        "mm_d_sto",
-        "mm_d_sts",
-        "mm_d_st",
-        "mm_d_sy",
-        "mm_w_st",
-        "deg_alpha_st",
-        "deg_alpha_sto",
-        "Q"
-      ],
+      "GP": {
+        "mm_r_si": "stator_inner_radius",
+        "mm_d_sto": "stator_tooth_open_depth",
+        "mm_d_sts": "stator_tooth_shoe_depth",
+        "mm_d_st": "stator_tooth_depth",
+        "mm_d_sy": "stator_yoke_depth",
+        "mm_w_st": "stator_tooth_width",
+        "deg_alpha_st": "stator_tooth_span_angle",
+        "deg_alpha_sto": "stator_tooth_open_angle",
+        "Q": "stator_slot_number_Qs"
+      },
+      "mm_r_si": 43.224999999999994,
+      "mm_d_sto": 2.0010000000000003,
+      "mm_d_sts": 3.0,
+      "mm_d_st": 51.185625,
+      "mm_d_sy": 26.089375000000004,
+      "mm_w_st": 16.368188599054943,
+      "deg_alpha_st": 16.5,
+      "deg_alpha_sto": 8.25,
+      "Q": 12,
       "_needs_rebuild": true
     },
     "coils": {
       "color": null,
-      "GP": [
-        "mm_r_so",
-        "mm_d_sy",
-        "mm_w_st",
-        "mm_d_st"
-      ],
+      "GP": {
+        "mm_r_so": "stator_outer_radius",
+        "mm_d_sy": "stator_yoke_depth",
+        "mm_w_st": "stator_tooth_width",
+        "mm_d_st": "stator_tooth_depth"
+      },
+      "mm_r_so": 123.5,
+      "mm_d_sy": 26.089375000000004,
+      "mm_w_st": 16.368188599054943,
+      "mm_d_st": 51.185625,
       "_needs_rebuild": true
     }
+  },
+  "wily": {
+    "phase_number_m": 3,
+    "stator_slot_number_Qs": 12,
+    "pole_pair_number_p": 4,
+    "suspension_pole_pair_number_ps": 5
   }
 }
