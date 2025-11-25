@@ -1349,8 +1349,8 @@ class desgin_specification(object):
             self.pmsm_template.deg_alpha_sto         =                                   self.pmsm_template.deg_alpha_st/2 # im_template uses alpha_so as 0.
             self.pmsm_template.mm_r_si              = im_template.Radius_OuterRotor + im_template.Length_AirGap
             self.pmsm_template.mm_d_sto              = im_template.Width_StatorTeethHeadThickness
-            self.pmsm_template.mm_d_stt              =                                   1.5*self.pmsm_template.mm_d_sto
-            self.pmsm_template.mm_d_st              = im_template.Radius_InnerStatorYoke - self.pmsm_template.mm_r_si - self.pmsm_template.mm_d_stt
+            self.pmsm_template.mm_d_sts              =                                   1.5*self.pmsm_template.mm_d_sto
+            self.pmsm_template.mm_d_st              = im_template.Radius_InnerStatorYoke - self.pmsm_template.mm_r_si - self.pmsm_template.mm_d_sts
             self.pmsm_template.mm_d_sy              = im_template.Radius_OuterStatorYoke - im_template.Radius_InnerStatorYoke
             self.pmsm_template.mm_w_st              = self.im_template.Width_StatorTeethBody
             self.pmsm_template.mm_r_st              = 0
@@ -1454,8 +1454,8 @@ class desgin_specification(object):
             self.pmsm_template.deg_alpha_sto         = spec_geometry_dict['deg_alpha_sto'] =                                   self.pmsm_template.deg_alpha_st/2 # im_template uses alpha_so as 0.
             self.pmsm_template.mm_r_si              = spec_geometry_dict['mm_r_si'] = 1e3*stator_inner_radius_r_is # mm
             self.pmsm_template.mm_d_sto              = spec_geometry_dict['mm_d_sto'] = 1 # mm
-            self.pmsm_template.mm_d_stt              = spec_geometry_dict['mm_d_stt'] =                                   1.5*self.pmsm_template.mm_d_sto
-            self.pmsm_template.mm_d_st              = spec_geometry_dict['mm_d_st'] = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - self.pmsm_template.mm_r_si - self.pmsm_template.mm_d_stt  # mm
+            self.pmsm_template.mm_d_sts              = spec_geometry_dict['mm_d_sts'] =                                   1.5*self.pmsm_template.mm_d_sto
+            self.pmsm_template.mm_d_st              = spec_geometry_dict['mm_d_st'] = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - self.pmsm_template.mm_r_si - self.pmsm_template.mm_d_sts  # mm
             self.pmsm_template.mm_d_sy              = spec_geometry_dict['mm_d_sy'] = 1e3*stator_yoke_height_h_ys # mm
             self.pmsm_template.mm_w_st              = spec_geometry_dict['mm_w_st'] = 1e3*stator_tooth_width_b_ds # mm
             self.pmsm_template.mm_r_st              = spec_geometry_dict['mm_r_st'] = 0
@@ -1565,8 +1565,8 @@ class desgin_specification(object):
         self.pmVM_template.deg_alpha_sto         = spec_geometry_dict['deg_alpha_sto'] = self.pmVM_template.deg_alpha_st/2 # im_template uses alpha_so as 0.
         self.pmVM_template.mm_r_si              = spec_geometry_dict['mm_r_si'] = 1e3*stator_inner_radius_r_is # mm
         self.pmVM_template.mm_d_sto              = spec_geometry_dict['mm_d_sto'] = 1 # mm
-        self.pmVM_template.mm_d_stt              = spec_geometry_dict['mm_d_stt'] = 1.5*self.pmVM_template.mm_d_sto
-        self.pmVM_template.mm_d_st              = spec_geometry_dict['mm_d_st'] = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - self.pmVM_template.mm_r_si - self.pmVM_template.mm_d_stt  # mm
+        self.pmVM_template.mm_d_sts              = spec_geometry_dict['mm_d_sts'] = 1.5*self.pmVM_template.mm_d_sto
+        self.pmVM_template.mm_d_st              = spec_geometry_dict['mm_d_st'] = 1e3*(0.5*stator_outer_diameter_Dse - stator_yoke_height_h_ys) - self.pmVM_template.mm_r_si - self.pmVM_template.mm_d_sts  # mm
         self.pmVM_template.mm_d_sy              = spec_geometry_dict['mm_d_sy'] = 1e3*stator_yoke_height_h_ys # mm
         self.pmVM_template.mm_w_st              = spec_geometry_dict['mm_w_st'] = 1e3*stator_tooth_width_b_ds # mm
         self.pmVM_template.mm_r_st              = spec_geometry_dict['mm_r_st'] = 0

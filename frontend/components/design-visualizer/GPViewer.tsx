@@ -28,7 +28,7 @@ const GPViewer: React.FC<GPViewerProps> = ({ data, onParameterChange }) => {
         'deg_alpha_rm', 'deg_alpha_rs'
     ];
     const statorParams = [
-        'mm_r_si', 'mm_r_so', 'mm_w_st', 'mm_d_st', 'mm_d_sy', 'mm_d_stt',
+        'mm_r_si', 'mm_r_so', 'mm_w_st', 'mm_d_st', 'mm_d_sy', 'mm_d_sts',
         'mm_d_sto', 'deg_alpha_st', 'deg_alpha_sto'
     ];
     const mechanicalParams = [

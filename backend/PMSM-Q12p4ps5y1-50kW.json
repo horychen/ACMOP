@@ -256,7 +256,7 @@
                     0.6
                 ]
             },
-            "mm_d_stt": {
+            "mm_d_sts": {
                 "type": "free",
                 "value": 3,
                 "bounds": [
@@ -501,7 +501,7 @@
                         },
                         {
                             "py/tuple": [
-                                "mm_d_stt",
+                                "mm_d_sts",
                                 {
                                     "py/object": "utility.acmop_parameter",
                                     "py/state": {
@@ -741,7 +741,7 @@
                         },
                         {
                             "py/tuple": [
-                                "mm_d_stt",
+                                "mm_d_sts",
                                 3
                             ]
                         },
@@ -789,7 +789,7 @@
                         },
                         {
                             "py/tuple": [
-                                "mm_d_stt",
+                                "mm_d_sts",
                                 {
                                     "py/id": 24
                                 }

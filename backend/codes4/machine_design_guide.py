@@ -2,6 +2,7 @@ from dataclasses import dataclass, fields
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
 import json, math
+EPS = 1e-3
 
 class Parameter(object):
     def __init__(self, name, type, value=None, bounds=None, calc=None, calc_bounds=None, unit='mm', comment=None, args=None) -> None:
@@ -27,8 +28,10 @@ class Parameter(object):
             else:
                 self.bounds = self.calc_bounds()
 
-        if type == 'free' and value is None:
-            self.value = self.bounds[0]+ (self.bounds[1]-self.bounds[0])*0.5
+        if type == 'free' and value is None and self.bounds is not None:
+            if isinstance(self.bounds, (list, tuple)) and len(self.bounds) == 2:
+                if self.bounds[0] is not None and self.bounds[1] is not None:
+                    self.value = self.bounds[0] + (self.bounds[1] - self.bounds[0]) * 0.5
 
     def __repr__(self):
         return f"Parameter(name='{self.name}', type='{self.type}', value={self.value}, unit='{self.unit}')"
@@ -103,12 +106,14 @@ class Winding(object):
         )
 
 class Geometry(object):
-    def __init__(self, color: str, GP: list[Parameter], draw_function: callable, _calculate_points: callable):
+    def __init__(self, GP: dict = None, draw_function: callable = None, _calculate_points: callable = None, color: str = None):
         self.color = color
-        self.GP = GP
+        self.GP = GP or []
         self.draw_function = draw_function
         self._calculate_points = _calculate_points
-    
+        for i, (name, gp) in enumerate(self.GP.items()):
+            if isinstance(gp, Parameter):
+                exec(f"self.{name} = {gp.value}")
     def to_dict(self) -> Dict[str, Any]:
         return {
             'color': self.color,
@@ -116,7 +121,6 @@ class Geometry(object):
             'draw_function': self.draw_function,
             '_calculate_points': self._calculate_points
         }
-    
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Geometry':
         return cls(
@@ -125,10 +129,10 @@ class Geometry(object):
             draw_function=data['draw_function'],
             _calculate_points=data['_calculate_points']
         )
-    def draw(self):
-        return self.draw_function(self.GP)
-    def _calculate_points(self):
-        return self._calculate_points(self.GP)
+    def draw(self, drawer, *args, **kwargs):
+        self.components_make_region = self.draw_function(drawer, *args, **kwargs)
+    def _calculate_points(self, *args, **kwargs):
+        return self._calculate_points(self.GP, *args, **kwargs)
 
 @dataclass
 class Modern_Machine_Designer(object):
@@ -155,7 +159,7 @@ class Modern_Machine_Designer(object):
         yoke_split_ratio_bounds = [0.2, 0.45]
         tooth_split_ratio_at_middle_slot = [0.25, 0.50]
 
-        # Fixed variables
+        '''Fixed variables'''
         self.m: Parameter            = Parameter('phase_number_m', 'fixed', 3)
         self.Qs: Parameter           = Parameter('stator_slot_number_Qs', 'fixed', Qs)
         self.p: Parameter            = Parameter('pole_pair_number_p', 'fixed', p)
@@ -169,7 +173,7 @@ class Modern_Machine_Designer(object):
             self.mm_d_sleeve: Parameter  = Parameter('rotor_sleeve_depth', 'fixed', 1.0)
             self.s: Parameter            = Parameter('number_of_magnet_segments_per_pole', 'fixed', 1)
 
-        # Free variables
+        '''Free variables'''
         self.split_ratio: Parameter  = Parameter('split_ratio_r_si_slash_r_so', 'free', SR, calc_bounds=lambda p: [0.2, 0.5] if p < 10 else [0.15, 0.35], args=[p])
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             # "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30>)")
@@ -185,62 +189,47 @@ class Modern_Machine_Designer(object):
         if not self.bool_StatorSlotClosed:
             self.deg_alpha_st: Parameter = Parameter('stator_tooth_span_angle', 'free', calc_bounds=lambda Qs: [360/Qs*0.1, 360/Qs], unit='deg', args=[self.Qs.value])
 
-        # derived variables have dependency on the other geometric parameters
+        '''derived variables have dependency on the other geometric parameters'''
         self.mm_r_si: Parameter      = Parameter('stator_inner_radius', 'derived', calc=lambda mm_r_so, split_ratio: mm_r_so * split_ratio, args=[self.mm_r_so.value, self.split_ratio.value])
+        self.mm_d_st: Parameter      = Parameter('stator_tooth_depth', 'derived', calc=lambda mm_r_so, mm_r_si, mm_d_sy, mm_d_sts: mm_r_so - mm_r_si - mm_d_sy - mm_d_sts, args=[self.mm_r_so.value, self.mm_r_si.value, self.mm_d_sy.value, self.mm_d_sts.value])
         if self.bool_PermanentMagnet:
             self.mm_d_ri: Parameter      = Parameter('rotor_iron (back iron) depth', 'derived', calc=lambda mm_d_pm: 4 if mm_d_pm < 4 else mm_d_pm, args=[self.mm_d_pm.value])
             self.mm_r_ro: Parameter      = Parameter('rotor_outer_radius', 'derived', calc=lambda mm_r_si, mm_d_mech_air_gap, mm_d_sleeve: mm_r_si - mm_d_mech_air_gap - mm_d_sleeve, args=[self.mm_r_si.value, self.mm_d_mech_air_gap.value, self.mm_d_sleeve.value])
             self.mm_r_ri: Parameter      = Parameter('rotor_inner_radius', 'derived', calc=lambda r_ro, mm_d_pm, mm_d_ri: r_ro-mm_d_pm-mm_d_ri, args=[self.mm_r_ro.value, self.mm_d_pm.value, self.mm_d_ri.value])
-        self.mm_d_st: Parameter      = Parameter('stator_tooth_depth', 'derived', calc=lambda mm_r_so, mm_r_si, mm_d_sy, mm_d_sts: mm_r_so - mm_r_si - mm_d_sy - mm_d_sts, args=[self.mm_r_so.value, self.mm_r_si.value, self.mm_d_sy.value, self.mm_d_sts.value])
 
         if not self.bool_StatorSlotClosed:
+            self.mm_d_sto: Parameter = Parameter('stator_tooth_open_depth', 'derived', calc=lambda mm_d_sts: mm_d_sts*0.667, args=[self.mm_d_sts.value])
             # deg_alpha_sto 依赖于 deg_alpha_st，使用 deg_alpha_st 的当前值（如果已计算）或使用 bounds 的中间值
             deg_alpha_st_value = self.deg_alpha_st.value if self.deg_alpha_st.value is not None else (self.deg_alpha_st.bounds[0] + self.deg_alpha_st.bounds[1]) / 2 if self.deg_alpha_st.bounds else 360/12*0.1*0.5
             self.deg_alpha_sto: Parameter = Parameter('stator_tooth_open_angle', 'derived', calc=lambda deg_alpha_st: deg_alpha_st*0.5, args=[deg_alpha_st_value])
 
         if self.bool_RotorNotched:
-            self.deg_alpha_rm: Parameter = Parameter('magnet_pole_span_angle', 'free', bounds=[360/self.p.value*0.7, 360/self.p.value], args=[self.p.value])
+            self.deg_alpha_rm: Parameter = Parameter('magnet_pole_span_angle', 'free', bounds=[180/self.p.value*0.7, 180/self.p.value])
 
             # deg_alpha_rs 依赖于 deg_alpha_rm，使用 deg_alpha_rm 的当前值（如果已计算）或使用 bounds 的中间值
             deg_alpha_rm_value = self.deg_alpha_rm.value if self.deg_alpha_rm.value is not None else (self.deg_alpha_rm.bounds[0] + self.deg_alpha_rm.bounds[1]) / 2 if self.deg_alpha_rm.bounds else 360/12*0.1
             self.deg_alpha_rs: Parameter = Parameter('magnet_segment_span_angle', 'derived', calc=lambda deg_alpha_rm: deg_alpha_rm, args=[deg_alpha_rm_value])
 
             self.mm_d_rp: Parameter      = Parameter('inter_polar_iron_thickness', 'derived', calc=lambda mm_d_pm: mm_d_pm, args=[self.mm_d_pm.value])
-            self.mm_d_rs: Parameter      = Parameter('inter_segment_iron_thickness', 'derived', calc=lambda mm_d_pm: mm_d_pm, args=[self.mm_d_pm.value])
+            self.mm_d_rs: Parameter      = Parameter('inter_segment_iron_thickness', 'fixed', 0.0)
 
         import CrossSectInnerNotchedRotor, CrossSectStator
         self.machineGeometry = {
             "rotorCore": Geometry(
-                GP=[
-                    self.mm_r_ro, 
-                    self.mm_d_ri if hasattr(self, 'mm_d_ri') else None, 
-                    self.mm_d_pm if hasattr(self, 'mm_d_pm') else None, 
-                    self.mm_d_rp if hasattr(self, 'mm_d_rp') else None, 
-                    self.mm_d_rs if hasattr(self, 'mm_d_rs') else None, 
-                    self.p if hasattr(self, 'p') else None, 
-                    self.s if hasattr(self, 's') else None
-                ],
-                draw_function=lambda drawer, **kwargs: CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
-                    name="rotorCore",
-                    color="#FE840E",
-                    mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
-                    deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
-                    deg_alpha_rs=self.deg_alpha_rs.value if hasattr(self, "deg_alpha_rs") and self.deg_alpha_rs.value is not None else 10,
-                    mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 8,
-                    mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 40,
-                    mm_d_rp=self.mm_d_rp.value if hasattr(self, "mm_d_rp") and self.mm_d_rp.value is not None else 5,
-                    mm_d_rs=self.mm_d_rs.value if hasattr(self, "mm_d_rs") and self.mm_d_rs.value is not None else 3,
-                    p=self.p.value if hasattr(self, "p") and self.p.value is not None else 2,
-                    s=self.s.value if hasattr(self, "s") and self.s.value is not None else 4
-                ).draw(drawer, **kwargs),
-                _calculate_points=lambda: CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor.calculate_points
-            ),
-            "shaft": Geometry(
-                GP=[self.mm_r_ri if hasattr(self, 'mm_r_ri') else None],
-                draw_function=lambda drawer, **kwargs: CrossSectInnerNotchedRotor.CrossSectShaft(
-                    name="shaft",
-                    color="#0EE0E2",
-                    notched_rotor=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
+                GP={
+                    'mm_r_ro': self.mm_r_ro,
+                    'mm_d_ri': self.mm_d_ri,
+                    'mm_d_pm': self.mm_d_pm,
+                    'mm_d_rp': self.mm_d_rp,
+                    'mm_d_rs': self.mm_d_rs,
+                    'p': self.p,
+                    's': self.s,
+
+                },
+                draw_function=lambda drawer, **kwargs: (
+                    CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
+                        name="rotorCore",
+                        color="#FE840E",
                         mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
                         deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
                         deg_alpha_rs=self.deg_alpha_rs.value if hasattr(self, "deg_alpha_rs") and self.deg_alpha_rs.value is not None else 10,
@@ -250,112 +239,204 @@ class Modern_Machine_Designer(object):
                         mm_d_rs=self.mm_d_rs.value if hasattr(self, "mm_d_rs") and self.mm_d_rs.value is not None else 3,
                         p=self.p.value if hasattr(self, "p") and self.p.value is not None else 2,
                         s=self.s.value if hasattr(self, "s") and self.s.value is not None else 4
-                    )
-                ).draw(drawer, **kwargs),
+                    ).draw(drawer, **kwargs)
+                ),
+                _calculate_points=lambda: (
+                    CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor.calculate_points 
+                    if CrossSectInnerNotchedRotor else None
+                )
+            ),
+            "shaft": Geometry(
+                GP={'mm_r_ri': self.mm_r_ri},
+                draw_function=lambda drawer, **kwargs: (
+                    CrossSectInnerNotchedRotor.CrossSectShaft(
+                        name="shaft",
+                        color="#0EE0E2",
+                        notched_rotor=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
+                            mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
+                            deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
+                            deg_alpha_rs=self.deg_alpha_rs.value if hasattr(self, "deg_alpha_rs") and self.deg_alpha_rs.value is not None else 10,
+                            mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 8,
+                            mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 40,
+                            mm_d_rp=self.mm_d_rp.value if hasattr(self, "mm_d_rp") and self.mm_d_rp.value is not None else 5,
+                            mm_d_rs=self.mm_d_rs.value if hasattr(self, "mm_d_rs") and self.mm_d_rs.value is not None else 3,
+                            p=self.p.value if hasattr(self, "p") and self.p.value is not None else 2,
+                            s=self.s.value if hasattr(self, "s") and self.s.value is not None else 4
+                        )
+                    ).draw(drawer, **kwargs)
+                ),
                 _calculate_points=lambda: None,
             ),
             "rotorMagnet": Geometry(
-                GP=[
-                    self.mm_d_pm if hasattr(self, "mm_d_pm") else None,
-                    self.mm_d_ri if hasattr(self, "mm_d_ri") else None,
-                    self.mm_r_ri if hasattr(self, "mm_r_ri") else None,
-                ],
-                draw_function=lambda drawer, **kwargs: CrossSectInnerNotchedRotor.CrossSectInnerNotchedMagnet(
-                    name="rotorMagnet",
-                    color="#1C96E0",
-                    notched_rotor=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
-                        mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
-                        deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
-                        deg_alpha_rs=self.deg_alpha_rs.value if hasattr(self, "deg_alpha_rs") and self.deg_alpha_rs.value is not None else 10,
-                        mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 8,
-                        mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 40,
-                        mm_d_rp=self.mm_d_rp.value if hasattr(self, "mm_d_rp") and self.mm_d_rp.value is not None else 5,
-                        mm_d_rs=self.mm_d_rs.value if hasattr(self, "mm_d_rs") and self.mm_d_rs.value is not None else 3,
-                        p=self.p.value if hasattr(self, "p") and self.p.value is not None else 2,
-                        s=self.s.value if hasattr(self, "s") and self.s.value is not None else 4
-                    )
-                ).draw(drawer, **kwargs),
+                GP={
+                    'mm_d_pm': self.mm_d_pm,
+                    'mm_d_ri': self.mm_d_ri,
+                    'mm_r_ri': self.mm_r_ri,
+                },
+                draw_function=lambda drawer, **kwargs: (
+                    CrossSectInnerNotchedRotor.CrossSectInnerNotchedMagnet(
+                        name="rotorMagnet",
+                        color="#1C96E0",
+                        notched_rotor=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
+                            mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
+                            deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
+                            deg_alpha_rs=self.deg_alpha_rs.value if hasattr(self, "deg_alpha_rs") and self.deg_alpha_rs.value is not None else 10,
+                            mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 8,
+                            mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 40,
+                            mm_d_rp=self.mm_d_rp.value if hasattr(self, "mm_d_rp") and self.mm_d_rp.value is not None else 5,
+                            mm_d_rs=self.mm_d_rs.value if hasattr(self, "mm_d_rs") and self.mm_d_rs.value is not None else 3,
+                            p=self.p.value if hasattr(self, "p") and self.p.value is not None else 2,
+                            s=self.s.value if hasattr(self, "s") and self.s.value is not None else 4
+                        )
+                    ).draw(drawer, **kwargs)
+                ),
                 _calculate_points=lambda: None,
             ),
             "statorCore": Geometry(
-                GP=[
-                    self.mm_r_si if hasattr(self, "mm_r_si") else None,
-                    self.mm_d_sto if hasattr(self, "mm_d_sto") else None,
-                    self.mm_d_stt if hasattr(self, "mm_d_stt") else None,
-                    self.mm_d_st if hasattr(self, "mm_d_st") else None,
-                    self.mm_d_sy if hasattr(self, "mm_d_sy") else None,
-                    self.mm_w_st if hasattr(self, "mm_w_st") else None,
-                    self.mm_r_st if hasattr(self, "mm_r_st") else None,
-                    self.mm_r_sf if hasattr(self, "mm_r_sf") else None,
-                    self.mm_r_sb if hasattr(self, "mm_r_sb") else None,
-                    self.Q if hasattr(self, "Q") else None,
-                ],
-                draw_function=lambda drawer, **kwargs: CrossSectStator.CrossSectInnerRotorStator(
-                    name="statorCore",
-                    color="#BAFA01",
-                    deg_alpha_st=self.deg_alpha_st.value if hasattr(self, "deg_alpha_st") and self.deg_alpha_st.value is not None else 40,
-                    deg_alpha_sto=self.deg_alpha_sto.value if hasattr(self, "deg_alpha_sto") and self.deg_alpha_sto.value is not None else 20,
-                    mm_r_si=self.mm_r_si.value if hasattr(self, "mm_r_si") and self.mm_r_si.value is not None else 40,
-                    mm_d_sto=self.mm_d_sto.value if hasattr(self, "mm_d_sto") and self.mm_d_sto.value is not None else 5,
-                    mm_d_stt=self.mm_d_stt.value if hasattr(self, "mm_d_stt") and self.mm_d_stt.value is not None else 10,
-                    mm_d_st=self.mm_d_st.value if hasattr(self, "mm_d_st") and self.mm_d_st.value is not None else 15,
-                    mm_d_sy=self.mm_d_sy.value if hasattr(self, "mm_d_sy") and self.mm_d_sy.value is not None else 15,
-                    mm_w_st=self.mm_w_st.value if hasattr(self, "mm_w_st") and self.mm_w_st.value is not None else 13,
-                    mm_r_st=self.mm_r_st.value if hasattr(self, "mm_r_st") and self.mm_r_st.value is not None else 0,
-                    mm_r_sf=self.mm_r_sf.value if hasattr(self, "mm_r_sf") and self.mm_r_sf.value is not None else 0,
-                    mm_r_sb=self.mm_r_sb.value if hasattr(self, "mm_r_sb") and self.mm_r_sb.value is not None else 0,
-                    Q=self.Q.value if hasattr(self, "Q") and self.Q.value is not None else 6,
-                ).draw(drawer, **kwargs),
+                GP={
+                    'mm_r_si': self.mm_r_si,
+                    'mm_d_sto': self.mm_d_sto,
+                    'mm_d_sts': self.mm_d_sts,
+                    'mm_d_st': self.mm_d_st,
+                    'mm_d_sy': self.mm_d_sy,
+                    'mm_w_st': self.mm_w_st,
+                    'deg_alpha_st': self.deg_alpha_st,
+                    'deg_alpha_sto': self.deg_alpha_sto,
+                    'mm_r_si': self.mm_r_si,
+                    'mm_d_sto': self.mm_d_sto,
+                    'Q': self.Qs,
+                },
+                draw_function=lambda drawer, **kwargs: (
+                    CrossSectStator.CrossSectInnerRotorStator(
+                        name="statorCore",
+                        color="#BAFA01",
+                        deg_alpha_st=self.deg_alpha_st.value if hasattr(self, "deg_alpha_st") and self.deg_alpha_st.value is not None else 40,
+                        deg_alpha_sto=self.deg_alpha_sto.value if hasattr(self, "deg_alpha_sto") and self.deg_alpha_sto.value is not None else 20,
+                        mm_r_si=self.mm_r_si.value if hasattr(self, "mm_r_si") and self.mm_r_si.value is not None else 40,
+                        mm_d_sto=self.mm_d_sto.value if hasattr(self, "mm_d_sto") and self.mm_d_sto.value is not None else 5,
+                        mm_d_sts=self.mm_d_sts.value if hasattr(self, "mm_d_sts") and self.mm_d_sts.value is not None else 10,
+                        mm_d_st=self.mm_d_st.value if hasattr(self, "mm_d_st") and self.mm_d_st.value is not None else 15,
+                        mm_d_sy=self.mm_d_sy.value if hasattr(self, "mm_d_sy") and self.mm_d_sy.value is not None else 15,
+                        mm_w_st=self.mm_w_st.value if hasattr(self, "mm_w_st") and self.mm_w_st.value is not None else 13,
+                        Q=self.Q.value if hasattr(self, "Q") and self.Q.value is not None else 6,
+                    ).draw(drawer, **kwargs)
+                ),
                 _calculate_points=lambda: None,
             ),
-            "coils": Geometry(
-                GP=[self.mm_r_so, self.mm_d_sy, self.mm_w_st, self.mm_d_st],
-                draw_function=lambda drawer, **kwargs: CrossSectStator.CrossSectInnerRotorStatorWinding(
-                    mm_r_si=self.mm_r_si.value if hasattr(self, "mm_r_si") and self.mm_r_si.value is not None else 35,
-                    mm_d_st=self.mm_d_st.value if hasattr(self, "mm_d_st") and self.mm_d_st.value is not None else 5,
-                    mm_d_sy=self.mm_d_sy.value if hasattr(self, "mm_d_sy") and self.mm_d_sy.value is not None else 6,
-                    mm_w_st=self.mm_w_st.value if hasattr(self, "mm_w_st") and self.mm_w_st.value is not None else 4,
-                    mm_d_stt=self.mm_d_sts.value if hasattr(self, "mm_d_sts") and self.mm_d_sts.value is not None else 2,
-                    Q=self.Qs.value if hasattr(self, "Qs") and self.Qs.value is not None else 12,
-                ).draw(drawer, **kwargs),
+            "coils": None
+        }
+        self.machineGeometry['coils'] = Geometry(
+                GP={
+                    'mm_r_so': self.mm_r_so,
+                    'mm_d_sy': self.mm_d_sy,
+                    'mm_w_st': self.mm_w_st,
+                    'mm_d_st': self.mm_d_st,
+                },
+                draw_function=lambda drawer, **kwargs: (
+                    CrossSectStator.CrossSectInnerRotorStatorWinding(
+                        stator_core=self.machineGeometry['statorCore'],
+                    ).draw(drawer, **kwargs)
+                ),
                 _calculate_points=lambda: None
             )
-        }
 
+        self.wily = Winding(phase_number_m=self.m.value if hasattr(self, "m") and self.m.value is not None else 3, stator_slot_number_Qs=self.Qs.value if hasattr(self, "Qs") and self.Qs.value is not None else 12, pole_pair_number_p=self.p.value if hasattr(self, "p") and self.p.value is not None else 4, suspension_pole_pair_number_ps=self.ps.value if hasattr(self, "ps") and self.ps.value is not None else 5)
 
-        # 从参数中获取winding参数值，如果没有则使用默认值
-        m_val = self.m.value if self.m.value is not None else 3
-        Qs_val = self.Qs.value if self.Qs.value is not None else 12
-        p_val = self.p.value if self.p.value is not None else 4
-        ps_val = self.ps.value if self.ps.value is not None else 5
-        self.wily = Winding(phase_number_m=m_val, stator_slot_number_Qs=Qs_val, pole_pair_number_p=p_val, suspension_pole_pair_number_ps=ps_val)
+    def getSketch(self, name, color):
+        self.name = name
+        self.color = color
 
-        # 以下代码用于实际创建电机设计变体，但在仅需要参数信息时可以跳过
-        # 如果 fea_config_dict 和 spec_input_dict 不存在，说明这是用于参数配置的场景，跳过实际设计创建
-        if hasattr(self, 'fea_config_dict') and hasattr(self, 'spec_input_dict'):
-            try:
-                import bearingless_spmsm_heart
-                acm_template = bearingless_spmsm_heart.bearingless_spmsm_template(self.fea_config_dict, self.spec_input_dict)
-                # 注意：x_denorm, counter, counter_loop 等变量需要在使用前定义
-                # acm_variant = bearingless_spmsm_heart.bearingless_spmsm_design_variant(template=acm_template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-                # acm_variant = self.ad.build_acm_variant(self.ad.acm_template, x_denorm, counter=counter) # counter has the same function as filename
-            except Exception as e:
-                # 如果创建失败，不影响参数配置功能
-                pass
+    def drawLine(self, p1, p2):
+        self.ctx.move_to(p1[0], p1[1])
+        self.ctx.line_to(p2[0], p2[1])
+        return [{'move_to': (p1[0], p1[1]), 'line_to': (p2[0], p2[1])}]
 
-    def show_geometry(self) -> None:
-        import VanGogh_Cairo
-        toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=acm_variant.template.SI['GP']['mm_r_so'].value*2.1, 
-                                                            height_in_points=acm_variant.template.SI['GP']['mm_r_so'].value*2.1,
-                                                            filename=filename)
-        if 'PMSM' in acm_variant.template.name:
-            lw = 0.1 if acm_variant.template.SI['GP']['mm_r_ro'].value < 15 else 0.5
-            saved_filename = toolCairo.draw_spmsm(acm_variant, bool_draw_whole_model=True, lw=lw)
-            return saved_filename
+    def drawArc(self, centerxy, startxy, endxy):
+
+        v1 = [startxy[0] - centerxy[0], startxy[1] - centerxy[1]]
+        v2 = [endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]]
+        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])*math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]))
+        if 1.0 < cos夹角 < 1.0+EPS:
+            cos夹角 = 1.0
+            # logger = logging.getLogger(__name__)
+            # logger.debug('cos夹角=%s', cos夹角)
+        elif -1.0-EPS < cos夹角 < -1.0:
+            cos夹角 = -1.0
+            # logger = logging.getLogger(__name__)
+            # logger.debug('cos夹角=%s', cos夹角)
+        angle_between = math.acos(cos夹角)
+
+        radius = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
+        angle_start = math.atan2(v1[1], v1[0])
+        angle_end = angle_start + angle_between
+
+        self.ctx.move_to(startxy[0], startxy[1])
+        self.ctx.arc(centerxy[0], centerxy[1], radius, angle_start, angle_end)
+        # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_end, angle_start)
+        return [{'move_to': (centerxy[0], centerxy[1]), 'arc': (radius, angle_start, angle_end)}]
+
+    def show_geometry(self, filename=None) -> None:
+        width_in_points  = self.mm_r_so.value*2.1
+        height_in_points = self.mm_r_so.value*2.1
+        lw = 0.1 if self.mm_r_ro.value < 15 else 0.5
+        bool_draw_whole_model = True
+
+        def draw_spmsm(lw, width_in_points, height_in_points, bool_draw_whole_model):
+            import cairo
+
+            def init_canvas(width_in_points, height_in_points):
+                self.surface = cairo.SVGSurface('machine_geometry.svg', width_in_points, height_in_points)
+                self.ctx = cairo.Context(self.surface)
+                # self.ctx.scale(width_in_points, height_in_points)
+                # m = cairo.Matrix(yy=-1, y0=height_in_points) # Cartetian Coordinate
+                m = cairo.Matrix(yy=-1, y0=0.5*height_in_points, x0=+0.5*width_in_points) # Offset to center
+                self.ctx.transform(m)
+                # Set a background color
+                self.ctx.save()
+                self.ctx.set_source_rgb(0.95, 0.95, 0.95)
+                self.ctx.paint()
+                self.ctx.restore()
+            def apply_stroke(lw=0.5):
+                self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+                self.ctx.set_line_width(lw)
+                # setting color of the context
+                self.ctx.set_source_rgba(0.0, 0.0, 0.0, 1)
+                # stroke out the color and width property
+                self.ctx.stroke()
+            def convert_to_pdf(bool_open_pdf=False, filename=None): # 这个代码只是把SVG转换为PDF而已
+                # self.surface.write_to_svg()
+                self.surface.finish()
+                import cairosvg
+                cairosvg.svg2pdf(url=f'machine_geometry.svg', write_to=f'machine_geometry.pdf')
+                if bool_open_pdf:
+                    import os
+                    os.system('sumatraPDF2.exe ' + 'machine_geometry.pdf')
+                print('[machine_design_guide.py] Find the file machine_geometry.pdf in the current folder.')
+
+            init_canvas(width_in_points, height_in_points)
+
+            list_regions = self.machineGeometry['rotorCore'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.machineGeometry['shaft'].draw(self) 
+            list_regions = self.machineGeometry['rotorMagnet'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.machineGeometry['statorCore'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.machineGeometry['coils'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
+
+            apply_stroke(lw=lw)
+            convert_to_pdf()
+
+            # import builtins
+            # builtins.ad.visualize_dict['GeometricComponentsObjects']['rotorCore'] = acm_variant.rotorCore
+            # builtins.ad.visualize_dict['GeometricComponentsObjects']['shaft'] = acm_variant.shaft
+            # builtins.ad.visualize_dict['GeometricComponentsObjects']['rotorMagnet'] = acm_variant.rotorMagnet
+            # builtins.ad.visualize_dict['GeometricComponentsObjects']['sleeve'] = acm_variant.sleeve
+            # builtins.ad.visualize_dict['GeometricComponentsObjects']['statorCore'] = acm_variant.statorCore
+            # builtins.ad.visualize_dict['GeometricComponentsObjects']['coils'] = acm_variant.coils
+
+        draw_spmsm(lw, width_in_points, height_in_points, bool_draw_whole_model=bool_draw_whole_model)
 
     def get_free_variables(self) -> List[Parameter]:
         return [param for param in self.get_parameter_fields().values() if param.type == 'free']
-    
+
     def update_derived_parameters(self) -> None:
         """
         更新所有 derived 类型的参数值
@@ -686,4 +767,6 @@ if __name__ == "__main__":
     print(f"按类型: {summary['by_type']}")
     print(f"按单位: {summary['by_unit']}")
     print(f"有值: {summary['with_values']}, 无值: {summary['without_values']}")
+
+    mmd.show_geometry()
 

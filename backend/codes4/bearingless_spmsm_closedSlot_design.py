@@ -132,7 +132,7 @@ class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_
 
         # 修改定子截面为闭口槽
         self.statorCore = CrossSectStator.CrossSectInnerRotorClosedSlotStator( name = 'StatorCore',
-                                            mm_d_stt = SI['GP']['mm_d_stt'].value,
+                                            mm_d_sts = SI['GP']['mm_d_sts'].value,
                                             mm_r_si = SI['GP']['mm_r_si'].value,
                                             mm_d_st = SI['GP']['mm_d_st'].value,
                                             mm_d_sy = SI['GP']['mm_d_sy'].value,
@@ -176,7 +176,7 @@ class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_
         #                                     deg_alpha_sto = GP['deg_alpha_sto'].value, #20,
         #                                     mm_r_si = GP['mm_r_si'].value,
         #                                     mm_d_sto = GP['mm_d_sto'].value,
-        #                                     mm_d_stt = GP['mm_d_stt'].value,
+        #                                     mm_d_sts = GP['mm_d_sts'].value,
         #                                     mm_d_st = GP['mm_d_st'].value,
         #                                     mm_d_sy = GP['mm_d_sy'].value,
         #                                     mm_w_st = GP['mm_w_st'].value,
@@ -273,7 +273,7 @@ class bearingless_spmsm_closedSlot_variant(inner_rotor_motor.variant_machine_as_
 #                                             # deg_alpha_sto = SI['GP']['deg_alpha_sto'].value, #20,
 #                                             mm_r_si = SI['GP']['mm_r_si'].value,
 #                                             # mm_d_sto = SI['GP']['mm_d_sto'].value,
-#                                             # mm_d_stt = SI['GP']['mm_d_stt'].value,
+#                                             # mm_d_sts = SI['GP']['mm_d_sts'].value,
 #                                             mm_d_st = SI['GP']['mm_d_st'].value,
 #                                             mm_d_sy = SI['GP']['mm_d_sy'].value,
 #                                             mm_w_st = SI['GP']['mm_w_st'].value,

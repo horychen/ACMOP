@@ -1168,7 +1168,7 @@
             "deg_alpha_sto": 14.0,
             "mm_r_si": 62.5,
             "mm_d_sto": 1,
-            "mm_d_stt": 1.5,
+            "mm_d_sts": 1.5,
             "mm_d_st": 44.0922305453723,
             "mm_d_sy": 18.407769454627694,
             "mm_w_st": 19.634954084936208,
@@ -4376,7 +4376,7 @@
                 0.6
             ]
         },
-        "mm_d_stt": {
+        "mm_d_sts": {
             "type": "free",
             "value": 3,
             "bounds": [
@@ -4621,7 +4621,7 @@
                     },
                     {
                         "py/tuple": [
-                            "mm_d_stt",
+                            "mm_d_sts",
                             {
                                 "py/object": "utility.acmop_parameter",
                                 "py/state": {
@@ -4861,7 +4861,7 @@
                     },
                     {
                         "py/tuple": [
-                            "mm_d_stt",
+                            "mm_d_sts",
                             3
                         ]
                     },
@@ -4909,7 +4909,7 @@
                     },
                     {
                         "py/tuple": [
-                            "mm_d_stt",
+                            "mm_d_sts",
                             {
                                 "py/id": 362
                             }

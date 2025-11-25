@@ -263,7 +263,7 @@ class swarm_data_container(object):
                     #                                   1 spmsm_template.deg_alpha_sto 
                     #                                   2 spmsm_template.mm_r_si      
                     #                                   3 spmsm_template.mm_d_sto      
-                    #                                   4 spmsm_template.mm_d_stt      
+                    #                                   4 spmsm_template.mm_d_sts      
                     #                                   5 spmsm_template.mm_d_st      
                     #                                   6 spmsm_template.mm_d_sy      
                     #                                   7 spmsm_template.mm_w_st      
@@ -480,7 +480,7 @@ class swarm_data_container(object):
             free_variables[0]  = design_parameters[0] # spmsm_template.deg_alpha_st 
             free_variables[1]  = design_parameters[3] # spmsm_template.mm_d_sto         
             free_variables[2]  = design_parameters[5] # spmsm_template.mm_d_st
-            free_variables[3]  = sum([design_parameters[i] for i in (2,4,5,6)]) # spmsm_template.mm_r_si + spmsm_template.mm_d_stt + spmsm_template.mm_d_st + spmsm_template.mm_d_sy # stator outer radius
+            free_variables[3]  = sum([design_parameters[i] for i in (2,4,5,6)]) # spmsm_template.mm_r_si + spmsm_template.mm_d_sts + spmsm_template.mm_d_st + spmsm_template.mm_d_sy # stator outer radius
             free_variables[4]  = design_parameters[7] # spmsm_template.mm_w_st         
             free_variables[5]  = design_parameters[12] # spmsm_template.sleeve_length   
             free_variables[6]  = design_parameters[14] # spmsm_template.mm_d_pm         

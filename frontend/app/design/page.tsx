@@ -645,7 +645,7 @@ export default function DesignViewerPage() {
                                         statorInnerRadius: gp.mm_r_si?.value || (gp.mm_r_so?.value || 6.5) * (gp.split_ratio?.value || 0.6),
                                         rotorOuterRadius: gp.mm_r_ro?.value || 3.0,
                                         rotorInnerRadius: (gp.mm_r_ro?.value || 3.0) * 0.3, // Estimate shaft radius
-                                        slotDepth: (gp.mm_d_st?.value || 0) + (gp.mm_d_stt?.value || 0),
+                                        slotDepth: (gp.mm_d_st?.value || 0) + (gp.mm_d_sts?.value || 0),
                                         toothWidth: gp.mm_w_st?.value || 1.0,
                                         magnetThickness: gp.mm_d_pm?.value || 1.0,
                                         airGap: gp.mm_d_mech_air_gap?.value || 0.3,
@@ -755,7 +755,7 @@ export default function DesignViewerPage() {
                         r_so: geometricParams?.geometric_parameters?.mm_r_so?.value || 50,
                         Qs: specDetails.Qs || 12,
                         slotDepth: (geometricParams?.geometric_parameters?.mm_d_st?.value || 5) + 
-                                  (geometricParams?.geometric_parameters?.mm_d_stt?.value || 0),
+                                  (geometricParams?.geometric_parameters?.mm_d_sts?.value || 0),
                         d_pm: geometricParams?.geometric_parameters?.mm_d_pm?.value || 2
                     }}
                 />

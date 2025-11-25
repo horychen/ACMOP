@@ -518,7 +518,7 @@ class AC_Machine_Optiomization_Wrapper(object):
         self.acm_template.d['GP']['deg_alpha_sto'].value = design_parameters[ 1] 
         self.acm_template.d['GP']['mm_r_si'].value = design_parameters[ 2]      
         self.acm_template.d['GP']['mm_d_sto'].value = design_parameters[ 3]      
-        self.acm_template.d['GP']['mm_d_stt'].value = design_parameters[ 4]      
+        self.acm_template.d['GP']['mm_d_sts'].value = design_parameters[ 4]      
         self.acm_template.d['GP']['mm_d_st'].value = design_parameters[ 5]      
         self.acm_template.d['GP']['mm_d_sy'].value = design_parameters[ 6]      
         self.acm_template.d['GP']['mm_w_st'].value = design_parameters[ 7]      

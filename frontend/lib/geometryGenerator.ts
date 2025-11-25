@@ -20,8 +20,8 @@ export function generateGeometryFromGP(data: DesignData): GeometricComponentsObj
     const d_mech_air_gap = gp.mm_d_mech_air_gap?.value ?? 0.5;
     const d_sleeve = gp.mm_d_sleeve?.value ?? 1.0;
     const d_st = gp.mm_d_st?.value ?? ((r_si - r_ro - d_mech_air_gap) * 0.6);
-    const d_stt = gp.mm_d_stt?.value ?? 3;
-    const d_sy = gp.mm_d_sy?.value ?? ((r_so - r_si - d_st - d_stt) * 0.5);
+    const d_sts = gp.mm_d_sts?.value ?? 3;
+    const d_sy = gp.mm_d_sy?.value ?? ((r_so - r_si - d_st - d_sts) * 0.5);
     const w_st = gp.mm_w_st?.value ?? ((2 * Math.PI * r_si) / Qs * 0.4);
     const deg_alpha_st = gp.deg_alpha_st?.value ?? (360 / Qs * 0.7);
     const deg_alpha_rm = gp.deg_alpha_rm?.value ?? (360 / ps * 0.85);
@@ -37,7 +37,7 @@ export function generateGeometryFromGP(data: DesignData): GeometricComponentsObj
     const poleAngle = (2 * Math.PI) / ps;
 
     // Generate stator core points
-    const statorCore = generateStatorCore(r_so, r_si, r_si + d_st + d_stt, d_sy, Qs, alpha_st, slotAngle);
+    const statorCore = generateStatorCore(r_so, r_si, r_si + d_st + d_sts, d_sy, Qs, alpha_st, slotAngle);
     
     // Generate rotor core points
     const rotorCore = generateRotorCore(r_ro, r_ri, d_ri, ps, alpha_rm, poleAngle);

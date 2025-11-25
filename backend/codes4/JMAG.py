@@ -333,7 +333,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # Create Set for layer_X_phases
         Angle_StatorSlotSpan = 360/Q
-        # R = self.mm_r_si + self.mm_d_stt + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
+        # R = self.mm_r_si + self.mm_d_sts + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
         # THETA = 0.25*(Angle_StatorSlotSpan)/180.*math.pi
         R = math.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
         THETA = math.atan2(acm_variant.coils.PCoil[1], acm_variant.coils.PCoil[0])

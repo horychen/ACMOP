@@ -19,7 +19,7 @@ def derive_mm_r_si(GP,SI):
     return GP['mm_r_si'].value
 
     # (option 2) depends on d_sy (which is bad, as d_sy is also derived) and r_os
-    # GP['mm_r_si'].value = GP['mm_r_so'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_stt'].value
+    # GP['mm_r_si'].value = GP['mm_r_so'].value - GP['mm_d_sy'].value - GP['mm_d_st'].value - GP['mm_d_sts'].value
     # return GP['mm_r_si'].value
 
     # (option 3) depends on r_or and air gap length
@@ -27,7 +27,7 @@ def derive_mm_r_si(GP,SI):
     # return GP['mm_r_si'].value
 
 def derive_mm_d_sy(GP,SI):
-    GP       ['mm_d_sy'].value = GP['mm_r_so'].value - GP['mm_r_si'].value - GP['mm_d_st'].value - GP['mm_d_stt'].value
+    GP       ['mm_d_sy'].value = GP['mm_r_so'].value - GP['mm_r_si'].value - GP['mm_d_st'].value - GP['mm_d_sts'].value
     return GP['mm_d_sy'].value
 
 def derive_mm_r_ro(GP,SI):
@@ -39,10 +39,10 @@ def derive_split_ratio(GP,SI):
     return GP['split_ratio'].value
 
 def derive_mm_d_st(GP,SI):
-    if 'mm_d_stt' not in GP.keys():
+    if 'mm_d_sts' not in GP.keys():
         GP['mm_d_st'].value = GP['mm_r_so'].value - GP['mm_r_si'].value - GP['mm_d_sy'].value
     else:
-        GP['mm_d_st'].value = GP['mm_r_so'].value - GP['mm_r_si'].value - GP['mm_d_sy'].value - GP['mm_d_stt'].value
+        GP['mm_d_st'].value = GP['mm_r_so'].value - GP['mm_r_si'].value - GP['mm_d_sy'].value - GP['mm_d_sts'].value
     return GP['mm_d_st'].value
 
 class template_machine_as_numbers(object):
@@ -67,7 +67,7 @@ class template_machine_as_numbers(object):
             "mm_r_so"       : acmop_parameter("fixed", "stator_outer_radius"        , None, [None, None], lambda GP,SI:None),
             "mm_d_sy"       : acmop_parameter("fixed",   "stator_yoke_depth"          , None, [None, None], lambda GP,SI:derive_mm_d_sy(GP,SI)),
             "mm_d_st"       : acmop_parameter("fixed",    "stator_tooth_depth"         , None, [None, None], lambda GP,SI:derive_mm_d_st(GP,SI)),
-            "mm_d_stt"      : acmop_parameter("fixed",    "stator_tooth_shoe_depth"        , None, [None, None], lambda GP,SI:None),
+            "mm_d_sts"      : acmop_parameter("fixed",    "stator_tooth_shoe_depth"        , None, [None, None], lambda GP,SI:None),
         })
 
         # assert derived variables

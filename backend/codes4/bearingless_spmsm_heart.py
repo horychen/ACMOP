@@ -27,9 +27,9 @@ def derive_deg_alpha_sto(GP,SI):
     GP       ['deg_alpha_sto'].value = GP['deg_alpha_st'].value/2
     return GP['deg_alpha_sto'].value
 
-def derive_mm_d_stt(GP,SI):
-    GP       ['mm_d_stt'].value = 1.5*GP['mm_d_sto'].value
-    return GP['mm_d_stt'].value
+def derive_mm_d_sts(GP,SI):
+    GP       ['mm_d_sts'].value = 1.5*GP['mm_d_sto'].value
+    return GP['mm_d_sts'].value
 
 class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
     ''' This is a surface mounted PM motor but it might have saliency on q-axis if alpha_rm is less than 180/p.
@@ -60,7 +60,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
             "deg_alpha_st"  : acmop_parameter("fixed",    "stator_tooth_span_angle"    , None, [None, None], lambda GP,SI:None),
             "mm_d_sto"      : acmop_parameter("fixed",   "stator_tooth_open_depth"    , None, [None, None], lambda GP,SI:None),
             "deg_alpha_sto" : acmop_parameter("derived", "stator_tooth_open_angle"    , None, [None, None], lambda GP,SI:derive_deg_alpha_sto(GP,SI)),
-            "mm_d_stt"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_stt(GP,SI)),
+            "mm_d_sts"      : acmop_parameter("derived", "stator_tooth_tip_depth"     , None, [None, None], lambda GP,SI:derive_mm_d_sts(GP,SI)),
         })
         GP.update(childGP)
 
@@ -81,7 +81,7 @@ class bearingless_spmsm_template(inner_rotor_motor.template_machine_as_numbers):
         GP['deg_alpha_st'].value         = 360/SI['Qs'] - 2 # deg
         GP['deg_alpha_sto'].value         = GP['deg_alpha_st'].value/2
         GP['mm_d_sto'].value              = 1 # mm
-        GP['mm_d_stt'].value              = 1.5*GP['mm_d_sto'].value
+        GP['mm_d_sts'].value              = 1.5*GP['mm_d_sto'].value
 
 
         # 定义搜索空间，determine bounds
@@ -197,7 +197,7 @@ class bearingless_spmsm_design_variant(inner_rotor_motor.variant_machine_as_obje
                                             deg_alpha_sto = GP['deg_alpha_sto'].value, #20,
                                             mm_r_si = GP['mm_r_si'].value,
                                             mm_d_sto = GP['mm_d_sto'].value,
-                                            mm_d_stt = GP['mm_d_stt'].value,
+                                            mm_d_sts = GP['mm_d_sts'].value,
                                             mm_d_st = GP['mm_d_st'].value,
                                             mm_d_sy = GP['mm_d_sy'].value,
                                             mm_w_st = GP['mm_w_st'].value,

@@ -13,7 +13,7 @@ class CrossSectInnerRotorStator:
                     deg_alpha_sto = 20, # angle of tooth edge: class type DimAngular
                     mm_r_si      = 40, # inner radius of stator teeth: class type DimLinear
                     mm_d_sto      = 5,  # tooth edge length: class type DimLinear
-                    mm_d_stt      = 10, # tooth tip length: class type DimLinear
+                    mm_d_sts      = 10, # tooth tip length: class type DimLinear
                     mm_d_st      = 15, # tooth base length: class type DimLinear
                     mm_d_sy      = 15, # back iron thickness: class type DimLinear
                     mm_w_st      = 13, # tooth base width: class type DimLinear
@@ -30,7 +30,7 @@ class CrossSectInnerRotorStator:
         self.deg_alpha_sto = deg_alpha_sto
         self.mm_r_si      = mm_r_si     
         self.mm_d_sto      = mm_d_sto     
-        self.mm_d_stt      = mm_d_stt     
+        self.mm_d_sts      = mm_d_sts     
         self.mm_d_st      = mm_d_st     
         self.mm_d_sy      = mm_d_sy     
         self.mm_w_st      = mm_w_st     
@@ -46,10 +46,10 @@ class CrossSectInnerRotorStator:
     def _calculate_points(self):
         """Calculate all point coordinates based on the geometric parameters."""
         alpha_st = self.deg_alpha_st * math.pi/180
-        alpha_so = -self.deg_alpha_sto * math.pi/180
+        alpha_sto = -self.deg_alpha_sto * math.pi/180
         r_si = self.mm_r_si
-        d_so = self.mm_d_sto
-        d_sp = self.mm_d_stt
+        d_sto = self.mm_d_sto
+        d_sp = self.mm_d_sts
         d_st = self.mm_d_st
         d_sy = self.mm_d_sy
         w_st = self.mm_w_st
@@ -59,10 +59,10 @@ class CrossSectInnerRotorStator:
 
         self.P1 = [r_si, 0]
         self.P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
-        P3_temp = [ d_so*cos(alpha_st*0.5), 
-                    d_so*-sin(alpha_st*0.5)]
-        P3_local_rotate = [   cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
-                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        P3_temp = [ d_sto*cos(alpha_st*0.5), 
+                    d_sto*-sin(alpha_st*0.5)]
+        P3_local_rotate = [   cos(alpha_sto)*P3_temp[0] + sin(alpha_sto)*P3_temp[1],
+                             -sin(alpha_sto)*P3_temp[0] + cos(alpha_sto)*P3_temp[1] ]
         self.P3 = [  P3_local_rotate[0] + self.P2[0],
                 P3_local_rotate[1] + self.P2[1] ] 
 
@@ -91,7 +91,7 @@ class CrossSectInnerRotorStator:
 
         # Store intermediate values
         self.alpha_st = alpha_st
-        self.alpha_so = alpha_so
+        self.alpha_sto = alpha_sto
         self.alpha_slot_span = alpha_slot_span
 
     def draw(self, drawer, bool_draw_whole_model=False):
@@ -178,7 +178,7 @@ class CrossSectInnerRotorClosedSlotStator:
     def __init__(self,
                     name  = 'StatorCore',
                     color = '#BAFD01',
-                    mm_d_stt     = 1,  # stator slot shoe depth
+                    mm_d_sts     = 1,  # stator slot shoe depth
                     mm_r_si      = 40, # inner radius of stator teeth: class type DimLinear
                     mm_d_st      = 15, # tooth base length: class type DimLinear
                     mm_d_sy      = 15, # back iron thickness: class type DimLinear
@@ -189,7 +189,7 @@ class CrossSectInnerRotorClosedSlotStator:
 
         self.name = name
         self.color = color
-        self.mm_d_stt     = mm_d_stt
+        self.mm_d_sts     = mm_d_sts
         self.mm_r_si      = mm_r_si     
         self.mm_d_st      = mm_d_st     
         self.mm_d_sy      = mm_d_sy     
@@ -206,7 +206,7 @@ class CrossSectInnerRotorClosedSlotStator:
         d_st = self.mm_d_st
         d_sy = self.mm_d_sy
         w_st = self.mm_w_st
-        d_stt = self.mm_d_stt
+        d_sts = self.mm_d_sts
         Q    = self.Q
 
         alpha_slot_span = 360/Q * math.pi/180
@@ -214,20 +214,20 @@ class CrossSectInnerRotorClosedSlotStator:
         self.P1 = [r_si, 0]
         self.P2 = [r_si*cos(alpha_slot_span*0.5), r_si*-sin(alpha_slot_span*0.5)]
 
-        # Note: This class seems to have some undefined variables (alpha_st, alpha_so, d_sp)
+        # Note: This class seems to have some undefined variables (alpha_st, alpha_sto, d_sp)
         # Using defaults based on the pattern from CrossSectInnerRotorStator
         alpha_st = alpha_slot_span * 0.9  # Approximate based on typical design
-        alpha_so = -alpha_st * 0.5
-        d_sp = d_stt  # Using d_stt as d_sp equivalent
+        alpha_sto = -alpha_st * 0.5
+        d_sp = d_sts  # Using d_sts as d_sp equivalent
 
-        P3_temp = [ d_stt*cos(alpha_st*0.5), 
-                    d_stt*-sin(alpha_st*0.5)]
-        P3_local_rotate = [   cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
-                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        P3_temp = [ d_sts*cos(alpha_st*0.5), 
+                    d_sts*-sin(alpha_st*0.5)]
+        P3_local_rotate = [   cos(alpha_sto)*P3_temp[0] + sin(alpha_sto)*P3_temp[1],
+                             -sin(alpha_sto)*P3_temp[0] + cos(alpha_sto)*P3_temp[1] ]
         self.P3 = [  P3_local_rotate[0] + self.P2[0],
                 P3_local_rotate[1] + self.P2[1] ] 
 
-        三角形的底 = r_si + d_stt
+        三角形的底 = r_si + d_sts
         三角形的高 = w_st*0.5
         三角形的角度 = atan(三角形的高 / 三角形的底)
         self.P4 = [  三角形的底*cos(三角形的角度), 
@@ -349,10 +349,10 @@ class CrossSectInnerRotorStatorWinding(object):
     def _calculate_points(self):
         """Calculate all point coordinates based on the stator_core."""
         alpha_st = self.statorCore.deg_alpha_st * math.pi/180
-        alpha_so = self.statorCore.deg_alpha_sto * math.pi/180
+        alpha_sto = self.statorCore.deg_alpha_sto * math.pi/180
         r_si     = self.statorCore.mm_r_si
-        d_so     = self.statorCore.mm_d_sto
-        d_sp     = self.statorCore.mm_d_stt
+        d_sto     = self.statorCore.mm_d_sto
+        d_sp     = self.statorCore.mm_d_sts
         d_st     = self.statorCore.mm_d_st
         d_sy     = self.statorCore.mm_d_sy
         w_st     = self.statorCore.mm_w_st
@@ -497,7 +497,7 @@ class CrossSectInnerRotorStator_PMAtYoke:
                     deg_alpha_sto = 20, # angle of tooth edge: class type DimAngular
                     mm_r_si      = 40, # inner radius of stator teeth: class type DimLinear
                     mm_d_sto      = 5,  # tooth edge length: class type DimLinear
-                    mm_d_stt      = 10, # tooth tip length: class type DimLinear
+                    mm_d_sts      = 10, # tooth tip length: class type DimLinear
                     mm_d_st      = 15, # tooth base length: class type DimLinear
                     mm_d_sy      = 15, # back iron thickness: class type DimLinear
                     mm_w_st      = 13, # tooth base width: class type DimLinear
@@ -522,12 +522,12 @@ class CrossSectInnerRotorStator_PMAtYoke:
         self.deg_alpha_sto = self.deg_alpha_st/2 #deg_alpha_sto
         self.mm_r_si      = mm_r_si     
         self.mm_d_sto     = mm_d_sto # * 0
-        self.mm_d_stt     = mm_d_stt # * 0 
+        self.mm_d_sts     = mm_d_sts # * 0 
         self.mm_d_st      = mm_d_st     
         self.mm_d_sy      = mm_d_sy     
         # self.mm_w_st      = mm_w_st     
         # print(self.deg_alpha_st, self.alpha_slot_span/math.pi*180)
-        self.mm_w_st = 2*(self.mm_r_si+self.mm_d_stt)*sin(0.5*(self.alpha_slot_span/2))
+        self.mm_w_st = 2*(self.mm_r_si+self.mm_d_sts)*sin(0.5*(self.alpha_slot_span/2))
         self.mm_r_st      = mm_r_st     
         self.mm_r_sf      = mm_r_sf     
         self.mm_r_sb      = mm_r_sb  
@@ -541,10 +541,10 @@ class CrossSectInnerRotorStator_PMAtYoke:
     def _calculate_points(self):
         """Calculate all point coordinates based on the geometric parameters."""
         alpha_st = self.deg_alpha_st * math.pi/180
-        alpha_so = -self.deg_alpha_sto * math.pi/180
+        alpha_sto = -self.deg_alpha_sto * math.pi/180
         r_si = self.mm_r_si
         d_sto = self.mm_d_sto
-        d_stt = self.mm_d_stt
+        d_sts = self.mm_d_sts
         d_st = self.mm_d_st
         d_sy = self.mm_d_sy
         w_st = self.mm_w_st
@@ -556,12 +556,12 @@ class CrossSectInnerRotorStator_PMAtYoke:
         self.P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
         P3_temp = [ d_sto*cos(alpha_st*0.5), 
                     d_sto*-sin(alpha_st*0.5)]
-        P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
-                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        P3_local_rotate = [  cos(alpha_sto)*P3_temp[0] + sin(alpha_sto)*P3_temp[1],
+                             -sin(alpha_sto)*P3_temp[0] + cos(alpha_sto)*P3_temp[1] ]
         self.P3 = [  P3_local_rotate[0] + self.P2[0],
                 P3_local_rotate[1] + self.P2[1] ]
 
-        三角形的底 = r_si + d_stt
+        三角形的底 = r_si + d_sts
         三角形的高 = w_st*0.5
         三角形的角度 = atan(三角形的高 / 三角形的底)
         self.P4 = [  三角形的底*cos(三角形的角度), 
@@ -693,10 +693,10 @@ class CrossSectStatorMagnetAtYoke:
     def _calculate_points(self):
         """Calculate all point coordinates based on the stator_core."""
         alpha_st = self.statorCore.deg_alpha_st * math.pi/180
-        alpha_so = -self.statorCore.deg_alpha_sto * math.pi/180
+        alpha_sto = -self.statorCore.deg_alpha_sto * math.pi/180
         r_si = self.statorCore.mm_r_si
-        d_so = self.statorCore.mm_d_sto
-        d_sp = self.statorCore.mm_d_stt
+        d_sto = self.statorCore.mm_d_sto
+        d_sp = self.statorCore.mm_d_sts
         d_st = self.statorCore.mm_d_st
         d_sy = self.statorCore.mm_d_sy
         w_st = self.statorCore.mm_w_st
@@ -706,10 +706,10 @@ class CrossSectStatorMagnetAtYoke:
         alpha_slot_span = self.statorCore.alpha_slot_span
         self.P1 = [r_si, 0]
         self.P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
-        P3_temp = [ d_so*cos(alpha_st*0.5), 
-                    d_so*-sin(alpha_st*0.5)]
-        P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
-                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        P3_temp = [ d_sto*cos(alpha_st*0.5), 
+                    d_sto*-sin(alpha_st*0.5)]
+        P3_local_rotate = [  cos(alpha_sto)*P3_temp[0] + sin(alpha_sto)*P3_temp[1],
+                             -sin(alpha_sto)*P3_temp[0] + cos(alpha_sto)*P3_temp[1] ]
         self.P3 = [  P3_local_rotate[0] + self.P2[0],
                 P3_local_rotate[1] + self.P2[1] ]
 
@@ -856,10 +856,10 @@ class CrossSectToroidalWiniding:
     def _calculate_points(self):
         """Calculate all point coordinates based on the stator_core."""
         alpha_st = self.statorCore.deg_alpha_st * math.pi/180
-        alpha_so = -self.statorCore.deg_alpha_sto * math.pi/180
+        alpha_sto = -self.statorCore.deg_alpha_sto * math.pi/180
         r_si = self.statorCore.mm_r_si
-        d_so = self.statorCore.mm_d_sto
-        d_sp = self.statorCore.mm_d_stt
+        d_sto = self.statorCore.mm_d_sto
+        d_sp = self.statorCore.mm_d_sts
         d_st = self.statorCore.mm_d_st
         d_sy = self.statorCore.mm_d_sy
         w_st = self.statorCore.mm_w_st
@@ -869,10 +869,10 @@ class CrossSectToroidalWiniding:
         alpha_slot_span = self.statorCore.alpha_slot_span
         self.P1 = [r_si, 0]
         self.P2 = [r_si*cos(alpha_st*0.5), r_si*-sin(alpha_st*0.5)]
-        P3_temp = [ d_so*cos(alpha_st*0.5), 
-                    d_so*-sin(alpha_st*0.5)]
-        P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
-                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        P3_temp = [ d_sto*cos(alpha_st*0.5), 
+                    d_sto*-sin(alpha_st*0.5)]
+        P3_local_rotate = [  cos(alpha_sto)*P3_temp[0] + sin(alpha_sto)*P3_temp[1],
+                             -sin(alpha_sto)*P3_temp[0] + cos(alpha_sto)*P3_temp[1] ]
         self.P3 = [  P3_local_rotate[0] + self.P2[0],
                 P3_local_rotate[1] + self.P2[1] ]
 
@@ -1035,7 +1035,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
                     deg_alpha_sto = 20, # angle of tooth edge: class type DimAngular
                     mm_r_si      = 40, # inner radius of stator teeth: class type DimLinear
                     mm_d_sto      = 5,  # tooth edge length: class type DimLinear
-                    mm_d_stt      = 10, # tooth tip length: class type DimLinear
+                    mm_d_sts      = 10, # tooth tip length: class type DimLinear
                     mm_d_st      = 15, # tooth base length: class type DimLinear
                     mm_d_sy      = 15, # back iron thickness: class type DimLinear
                     mm_w_st      = 13, # tooth base width: class type DimLinear
@@ -1061,12 +1061,12 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         self.deg_alpha_sto = self.deg_alpha_st/2 #deg_alpha_sto
         self.mm_r_si      = mm_r_si     
         self.mm_d_sto     = mm_d_sto # * 0
-        self.mm_d_stt     = mm_d_stt # * 0 
+        self.mm_d_sts     = mm_d_sts # * 0 
         self.mm_d_st      = mm_d_st     
         self.mm_d_sy      = mm_d_sy     
         self.mm_w_st      = mm_w_st     
         # print(self.deg_alpha_st, self.alpha_slot_span/math.pi*180)
-        # self.mm_w_st = 2*(self.mm_r_si+self.mm_d_stt)*sin(0.5*(self.alpha_slot_span/2))
+        # self.mm_w_st = 2*(self.mm_r_si+self.mm_d_sts)*sin(0.5*(self.alpha_slot_span/2))
         self.mm_r_st      = mm_r_st     
         self.mm_r_sf      = mm_r_sf     
         self.mm_r_sb      = mm_r_sb  
@@ -1081,10 +1081,10 @@ class CrossSectInnerRotorStator_PMAtToothBody:
     def _calculate_points(self):
         """Calculate all point coordinates based on the geometric parameters."""
         alpha_st = self.deg_alpha_st   * math.pi/180
-        alpha_so = -self.deg_alpha_sto * math.pi/180
+        alpha_sto = -self.deg_alpha_sto * math.pi/180
         r_si = self.mm_r_si
         d_sto = self.mm_d_sto
-        d_stt = self.mm_d_stt
+        d_sts = self.mm_d_sts
         d_st = self.mm_d_st
         d_sy = self.mm_d_sy
         w_st = self.mm_w_st
@@ -1100,12 +1100,12 @@ class CrossSectInnerRotorStator_PMAtToothBody:
 
         P3_temp = [ d_sto*cos(alpha_st*0.5), 
                     d_sto*-sin(alpha_st*0.5)]
-        P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
-                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        P3_local_rotate = [  cos(alpha_sto)*P3_temp[0] + sin(alpha_sto)*P3_temp[1],
+                             -sin(alpha_sto)*P3_temp[0] + cos(alpha_sto)*P3_temp[1] ]
         self.P3 = [  P3_local_rotate[0] + self.P2[0],
                 P3_local_rotate[1] + self.P2[1] ]
 
-        三角形的底 = r_si + d_stt
+        三角形的底 = r_si + d_sts
         三角形的高 = w_st*0.5
         三角形的角度 = atan(三角形的高 / 三角形的底)
         self.P4 = [  三角形的底*cos(三角形的角度), 
@@ -1276,10 +1276,10 @@ class CrossSectStatorMagnetAtToothBody:
     def _calculate_points(self):
         """Calculate all point coordinates based on the stator_core."""
         alpha_st = self.statorCore.deg_alpha_st * math.pi/180
-        alpha_so = -self.statorCore.deg_alpha_sto * math.pi/180
+        alpha_sto = -self.statorCore.deg_alpha_sto * math.pi/180
         r_si = self.statorCore.mm_r_si
         d_sto = self.statorCore.mm_d_sto
-        d_stt = self.statorCore.mm_d_stt
+        d_sts = self.statorCore.mm_d_sts
         d_st = self.statorCore.mm_d_st
         d_sy = self.statorCore.mm_d_sy
         w_st = self.statorCore.mm_w_st
@@ -1297,12 +1297,12 @@ class CrossSectStatorMagnetAtToothBody:
 
         P3_temp = [ d_sto*cos(alpha_st*0.5), 
                     d_sto*-sin(alpha_st*0.5)]
-        P3_local_rotate = [  cos(alpha_so)*P3_temp[0] + sin(alpha_so)*P3_temp[1],
-                             -sin(alpha_so)*P3_temp[0] + cos(alpha_so)*P3_temp[1] ]
+        P3_local_rotate = [  cos(alpha_sto)*P3_temp[0] + sin(alpha_sto)*P3_temp[1],
+                             -sin(alpha_sto)*P3_temp[0] + cos(alpha_sto)*P3_temp[1] ]
         self.P3 = [  P3_local_rotate[0] + self.P2[0],
                 P3_local_rotate[1] + self.P2[1] ]
 
-        三角形的底 = r_si + d_stt
+        三角形的底 = r_si + d_sts
         三角形的高 = w_st*0.5
         三角形的角度 = atan(三角形的高 / 三角形的底)
         self.P4 = [  三角形的底*cos(三角形的角度), 
@@ -1473,13 +1473,13 @@ if __name__ == '__main__':
                                         deg_alpha_sto = 20,
                                         mm_r_si = 40,
                                         mm_d_sto = 5,
-                                        mm_d_stt = 10,
+                                        mm_d_sts = 10,
                                         mm_d_st = 15,
                                         mm_d_sy = 15,
                                         mm_w_st = 13,
-                                        mm_r_st = 0,
-                                        mm_r_sf = 0,
-                                        mm_r_sb = 0,
+                                        # mm_r_st = 0,
+                                        # mm_r_sf = 0,
+                                        # mm_r_sb = 0,
                                         Q = 6,
                                         location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
                                         )
