@@ -1,0 +1,10 @@
+{
+  "machine_class": "bearingless_spmsm_heart.bearingless_spmsm_design_variant",
+  "parameters": {},
+  "winding": {
+    "phase_number_m": 3,
+    "stator_slot_number_Qs": 12,
+    "pole_pair_number_p": 4,
+    "suspension_pole_pair_number_ps": 5
+  }
+}

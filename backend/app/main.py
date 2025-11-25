@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'backend', 'codes4')))
 
 from app.routers import project, optimization, results, design
+from codes4 import acmopv2
 
 app = FastAPI(title="ACMOP Backend", version="1.0.0")
 
@@ -25,6 +26,7 @@ app.include_router(project.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(optimization.router, prefix="/api/optimization", tags=["Optimization"])
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
 app.include_router(design.router, prefix="/api/design", tags=["Design"])
+app.include_router(acmopv2.router)  # ACMOP v2 API
 
 @app.get("/")
 async def root():

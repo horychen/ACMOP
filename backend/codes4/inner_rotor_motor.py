@@ -39,7 +39,7 @@ def derive_split_ratio(GP,SI):
     return GP['split_ratio'].value
 
 def derive_mm_d_st(GP,SI):
-    if 'mm_d_st' not in GP.keys():
+    if 'mm_d_stt' not in GP.keys():
         GP['mm_d_st'].value = GP['mm_r_so'].value - GP['mm_r_si'].value - GP['mm_d_sy'].value
     else:
         GP['mm_d_st'].value = GP['mm_r_so'].value - GP['mm_r_si'].value - GP['mm_d_sy'].value - GP['mm_d_stt'].value
