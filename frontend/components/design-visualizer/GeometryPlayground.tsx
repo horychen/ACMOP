@@ -41,7 +41,8 @@ export default function GeometryPlayground({ data }: GeometryPlaygroundProps) {
 
     // Reverse engineer list_region to DSL
     const generateCodeFromComponent = (component: GeometricComponent) => {
-        let generatedCode = `// Generated code for ${component.name}\n\n`;
+        const componentName = component?.name || 'Unknown Component';
+        let generatedCode = `// Generated code for ${componentName}\n\n`;
 
         // 1. Extract predefined Points (P1, P2, etc.)
         const pointMap = new Map<string, string>(); // "x,y" -> "P1"
@@ -178,8 +179,10 @@ export default function GeometryPlayground({ data }: GeometryPlaygroundProps) {
             setCode(DEFAULT_CODE);
         } else if (data && data[value as keyof GeometricComponentsObjects]) {
             const comp = data[value as keyof GeometricComponentsObjects];
-            const newCode = generateCodeFromComponent(comp);
-            setCode(newCode);
+            if (comp) {
+                const newCode = generateCodeFromComponent(comp);
+                setCode(newCode);
+            }
         }
     };
 
@@ -280,11 +283,13 @@ export default function GeometryPlayground({ data }: GeometryPlaygroundProps) {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="custom">Custom Playground</SelectItem>
-                                {data && Object.entries(data).map(([key, component]) => (
-                                    <SelectItem key={key} value={key}>
-                                        {component.name || key}
-                                    </SelectItem>
-                                ))}
+                                {data && Object.entries(data)
+                                    .filter(([_, component]) => component !== null)
+                                    .map(([key, component]) => (
+                                        <SelectItem key={key} value={key}>
+                                            {component?.name || key}
+                                        </SelectItem>
+                                    ))}
                             </SelectContent>
                         </Select>
                     </div>
@@ -502,6 +507,7 @@ function PlaygroundPreview({ geometry, variableNames }: { geometry: GeometricCom
         let hasPoints = false;
 
         Object.values(geometry).forEach(comp => {
+            if (!comp) return;
             const points = getPoints(comp);
             points.forEach(p => {
                 hasPoints = true;
@@ -583,9 +589,11 @@ function PlaygroundPreview({ geometry, variableNames }: { geometry: GeometricCom
                 <g transform={`translate(${offset.x}, ${offset.y}) scale(${scale})`}>
                     <line x1="-1000" y1="0" x2="1000" y2="0" stroke="#ddd" strokeWidth={1 / scale} />
                     <line x1="0" y1="-1000" x2="0" y2="1000" stroke="#ddd" strokeWidth={1 / scale} />
-                    {Object.values(geometry).map((comp, idx) => (
-                        <g key={idx}>{renderComponent(comp)}</g>
-                    ))}
+                    {Object.values(geometry)
+                        .filter(comp => comp !== null)
+                        .map((comp, idx) => (
+                            <g key={idx}>{renderComponent(comp!)}</g>
+                        ))}
                 </g>
             </svg>
         </div>

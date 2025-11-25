@@ -10,12 +10,13 @@ import ParameterTable from './ParameterTable';
 import ExcitationViewer from './ExcitationViewer';
 import GeometryDetails from './GeometryDetails';
 import GeometryPlayground from './GeometryPlayground';
+import GPViewer from './GPViewer';
 
 interface DesignVisualizerClientProps {
     data: DesignData;
 }
 
-type TabValue = 'geometry' | 'winding' | 'performance' | 'excitation';
+type TabValue = 'geometry' | 'winding' | 'performance' | 'excitation' | 'gp';
 
 export default function DesignVisualizerClient({ data }: DesignVisualizerClientProps) {
     const [activeTab, setActiveTab] = useState<TabValue>('geometry');
@@ -67,6 +68,12 @@ export default function DesignVisualizerClient({ data }: DesignVisualizerClientP
                         onClick={() => setActiveTab('excitation')}
                     >
                         Circuit Excitation
+                    </Button>
+                    <Button
+                        variant={activeTab === 'gp' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('gp')}
+                    >
+                        GP Parameters
                     </Button>
                 </div>
 
@@ -148,6 +155,20 @@ export default function DesignVisualizerClient({ data }: DesignVisualizerClientP
                             </CardHeader>
                             <CardContent>
                                 <ExcitationViewer data={data["EX-user"]} />
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {activeTab === 'gp' && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Geometric Parameters (GP)</CardTitle>
+                                <CardDescription>
+                                    All machine design parameters with optimization bounds.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <GPViewer data={data.GP} />
                             </CardContent>
                         </Card>
                     )}

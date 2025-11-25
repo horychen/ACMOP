@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { GeometricComponentsObjects, GeometricComponent, getPoints } from '@/lib/DesignData';
+import { GeometricComponentsObjects, GeometricComponent, getPoints, GP } from '@/lib/DesignData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ZoomIn, ZoomOut, Maximize, Settings } from "lucide-react";
@@ -23,13 +23,17 @@ interface CrossSectionViewerProps {
     selectedComponent?: string | null;
     visibility?: Record<string, boolean>;
     onVisibilityChange?: (visibility: Record<string, boolean>) => void;
+    showParameters?: boolean;
+    gpData?: GP;
 }
 
 const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({
     geometry,
     selectedComponent,
     visibility: externalVisibility,
-    onVisibilityChange
+    onVisibilityChange,
+    showParameters = false,
+    gpData
 }) => {
     const [scale, setScale] = useState(10);
     const [offset, setOffset] = useState({ x: 400, y: 300 });
@@ -61,6 +65,7 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({
         let hasPoints = false;
 
         Object.values(geometry).forEach(comp => {
+            if (!comp) return;
             const points = getPoints(comp);
             points.forEach(p => {
                 hasPoints = true;
@@ -122,7 +127,37 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({
         setInternalVisibility(initialVisibility);
     }, [geometry, externalVisibility]);
 
-    if (!geometry) return <div className="p-4 text-red-500">No geometry data available</div>;
+    if (!geometry) {
+        return (
+            <div className="h-full flex items-center justify-center p-4">
+                <div className="text-center space-y-2">
+                    <p className="text-red-500 font-medium">无几何数据可用</p>
+                    <p className="text-sm text-muted-foreground">
+                        GeometricComponentsObjects 为 null 或未定义
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    // Check if geometry has any valid components
+    const hasValidComponents = Object.values(geometry).some(comp => 
+        comp !== null && comp !== undefined && 
+        (comp.list_region || getPoints(comp).length > 0)
+    );
+
+    if (!hasValidComponents) {
+        return (
+            <div className="h-full flex items-center justify-center p-4">
+                <div className="text-center space-y-2">
+                    <p className="text-yellow-600 dark:text-yellow-400 font-medium">几何数据为空</p>
+                    <p className="text-sm text-muted-foreground">
+                        所有几何组件均为 null 或没有有效的点数据
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     // Helper to extract tuple values from python pickle JSON format
     const extractTuple = (obj: any): number[] | null => {
@@ -211,9 +246,9 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({
         return pathData;
     };
 
-    const renderComponent = (component: GeometricComponent, componentKey: string) => {
-        // Skip if component is hidden
-        if (visibility[componentKey] === false) return null;
+    const renderComponent = (component: GeometricComponent | null, componentKey: string) => {
+        // Skip if component is null or hidden
+        if (!component || visibility[componentKey] === false) return null;
 
         const isSelected = selectedComponent === componentKey;
         const isDimmed = selectedComponent && !isSelected;
@@ -264,7 +299,8 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({
 
 
 
-    const renderPoints = (component: GeometricComponent) => {
+    const renderPoints = (component: GeometricComponent | null) => {
+        if (!component) return null;
         const points = getPoints(component);
         return points.map((p, i) => (
             <TooltipProvider key={`${component.name}-p${i}`}>
@@ -286,6 +322,176 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({
                 </Tooltip>
             </TooltipProvider>
         ));
+    };
+
+    const renderParameterAnnotations = () => {
+        if (!gpData) return null;
+
+        const annotations: JSX.Element[] = [];
+        const fontSize = 10 / scale;
+        const strokeWidth = 0.5 / scale;
+
+        // Get key parameters
+        const r_so = gpData.mm_r_so?.value ?? 0;
+        const r_si = gpData.mm_r_si?.value ?? 0;
+        const r_ro = gpData.mm_r_ro?.value ?? 0;
+        const r_ri = gpData.mm_r_ri?.value ?? 0;
+        const d_pm = gpData.mm_d_pm?.value ?? 0;
+        const d_mech_air_gap = gpData.mm_d_mech_air_gap?.value ?? 0;
+
+        // Annotate stator outer radius (r_so)
+        if (r_so > 0) {
+            const angle = Math.PI / 6;
+            const x1 = r_so * Math.cos(angle);
+            const y1 = -r_so * Math.sin(angle);
+            const x2 = (r_so + 10) * Math.cos(angle);
+            const y2 = -(r_so + 10) * Math.sin(angle);
+            annotations.push(
+                <g key="r_so">
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#3b82f6" strokeWidth={strokeWidth} />
+                    <line x1={x2 - 3} y1={y2 - 3} x2={x2} y2={y2} stroke="#3b82f6" strokeWidth={strokeWidth} />
+                    <line x1={x2 - 3} y1={y2 + 3} x2={x2} y2={y2} stroke="#3b82f6" strokeWidth={strokeWidth} />
+                    <text
+                        x={x2 + 5}
+                        y={y2}
+                        fill="#3b82f6"
+                        fontSize={fontSize}
+                        textAnchor="start"
+                        dominantBaseline="middle"
+                    >
+                        r_so = {r_so.toFixed(1)}mm
+                    </text>
+                </g>
+            );
+        }
+
+        // Annotate stator inner radius (r_si)
+        if (r_si > 0) {
+            const angle = Math.PI / 4;
+            const x1 = r_si * Math.cos(angle);
+            const y1 = -r_si * Math.sin(angle);
+            const x2 = (r_si + 8) * Math.cos(angle);
+            const y2 = -(r_si + 8) * Math.sin(angle);
+            annotations.push(
+                <g key="r_si">
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#10b981" strokeWidth={strokeWidth} />
+                    <text
+                        x={x2 + 5}
+                        y={y2}
+                        fill="#10b981"
+                        fontSize={fontSize}
+                        textAnchor="start"
+                        dominantBaseline="middle"
+                    >
+                        r_si = {r_si.toFixed(1)}mm
+                    </text>
+                </g>
+            );
+        }
+
+        // Annotate rotor outer radius (r_ro)
+        if (r_ro > 0) {
+            const angle = -Math.PI / 3;
+            const x1 = r_ro * Math.cos(angle);
+            const y1 = -r_ro * Math.sin(angle);
+            const x2 = (r_ro - 8) * Math.cos(angle);
+            const y2 = -(r_ro - 8) * Math.sin(angle);
+            annotations.push(
+                <g key="r_ro">
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#f59e0b" strokeWidth={strokeWidth} />
+                    <text
+                        x={x2 - 5}
+                        y={y2}
+                        fill="#f59e0b"
+                        fontSize={fontSize}
+                        textAnchor="end"
+                        dominantBaseline="middle"
+                    >
+                        r_ro = {r_ro.toFixed(1)}mm
+                    </text>
+                </g>
+            );
+        }
+
+        // Annotate rotor inner radius (r_ri)
+        if (r_ri > 0) {
+            const angle = -Math.PI / 5;
+            const x1 = r_ri * Math.cos(angle);
+            const y1 = -r_ri * Math.sin(angle);
+            const x2 = (r_ri - 6) * Math.cos(angle);
+            const y2 = -(r_ri - 6) * Math.sin(angle);
+            annotations.push(
+                <g key="r_ri">
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#8b5cf6" strokeWidth={strokeWidth} />
+                    <text
+                        x={x2 - 5}
+                        y={y2}
+                        fill="#8b5cf6"
+                        fontSize={fontSize}
+                        textAnchor="end"
+                        dominantBaseline="middle"
+                    >
+                        r_ri = {r_ri.toFixed(1)}mm
+                    </text>
+                </g>
+            );
+        }
+
+        // Annotate air gap
+        if (d_mech_air_gap > 0 && r_ro > 0 && r_si > 0) {
+            const angle = Math.PI / 2;
+            const r_mid = (r_ro + r_si) / 2;
+            const x = r_mid * Math.cos(angle);
+            const y = -r_mid * Math.sin(angle);
+            annotations.push(
+                <g key="air_gap">
+                    <line x1={r_ro * Math.cos(angle)} y1={-r_ro * Math.sin(angle)} 
+                          x2={r_si * Math.cos(angle)} y2={-r_si * Math.sin(angle)} 
+                          stroke="#ef4444" strokeWidth={strokeWidth} strokeDasharray={`${2/scale} ${2/scale}`} />
+                    <text
+                        x={x}
+                        y={y - 8}
+                        fill="#ef4444"
+                        fontSize={fontSize}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                    >
+                        gap = {d_mech_air_gap.toFixed(2)}mm
+                    </text>
+                </g>
+            );
+        }
+
+        // Annotate magnet thickness
+        if (d_pm > 0 && r_ro > 0) {
+            const angle = -Math.PI / 6;
+            const r_mid = r_ro - d_pm / 2;
+            const x1 = (r_ro - d_pm) * Math.cos(angle);
+            const y1 = -(r_ro - d_pm) * Math.sin(angle);
+            const x2 = r_ro * Math.cos(angle);
+            const y2 = -r_ro * Math.sin(angle);
+            annotations.push(
+                <g key="d_pm">
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#ec4899" strokeWidth={strokeWidth} />
+                    <line x1={x1 - 2} y1={y1 - 2} x2={x1} y2={y1} stroke="#ec4899" strokeWidth={strokeWidth} />
+                    <line x1={x1 - 2} y1={y1 + 2} x2={x1} y2={y1} stroke="#ec4899" strokeWidth={strokeWidth} />
+                    <line x1={x2 + 2} y1={y2 - 2} x2={x2} y2={y2} stroke="#ec4899" strokeWidth={strokeWidth} />
+                    <line x1={x2 + 2} y1={y2 + 2} x2={x2} y2={y2} stroke="#ec4899" strokeWidth={strokeWidth} />
+                    <text
+                        x={r_mid * Math.cos(angle) + 5}
+                        y={-r_mid * Math.sin(angle)}
+                        fill="#ec4899"
+                        fontSize={fontSize}
+                        textAnchor="start"
+                        dominantBaseline="middle"
+                    >
+                        d_pm = {d_pm.toFixed(1)}mm
+                    </text>
+                </g>
+            );
+        }
+
+        return annotations;
     };
 
     const handleWheel = (e: React.WheelEvent) => {
@@ -379,7 +585,7 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({
                                             htmlFor={`visibility-${key}`}
                                             className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                                         >
-                                            {component.name || key}
+                                            {component?.name || key}
                                         </label>
                                     </div>
                                 ))}
@@ -417,10 +623,13 @@ const CrossSectionViewer: React.FC<CrossSectionViewerProps> = ({
                         <line x1="0" y1="-1000" x2="0" y2="1000" stroke="#ddd" strokeWidth={1 / scale} />
 
                         {/* Components - only render after mount to prevent hydration mismatch */}
-                        {isMounted && Object.entries(geometry).map(([key, comp]) => renderComponent(comp, key))}
+                        {isMounted && Object.entries(geometry).map(([key, comp]) => comp ? renderComponent(comp, key) : null)}
 
                         {/* Points Overlay */}
-                        {isMounted && Object.values(geometry).map(comp => renderPoints(comp))}
+                        {isMounted && Object.values(geometry).map((comp, idx) => renderPoints(comp))}
+
+                        {/* Parameter Annotations */}
+                        {isMounted && showParameters && gpData && renderParameterAnnotations()}
                     </g>
                 </svg>
             </CardContent>

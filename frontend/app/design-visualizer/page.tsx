@@ -3,7 +3,7 @@ import React from 'react';
 import fs from 'fs';
 import path from 'path';
 import DesignVisualizerClient from '@/components/design-visualizer/DesignVisualizerClient';
-import { DesignData } from '@/lib/DesignData';
+import { DesignData, parseGPData } from '@/lib/DesignData';
 
 async function getDesignData(): Promise<DesignData | null> {
     // Construct path to backend/DesignVisualizationPickle.json
@@ -16,8 +16,15 @@ async function getDesignData(): Promise<DesignData | null> {
             return null;
         }
         const fileContent = fs.readFileSync(filePath, 'utf-8');
-        const data = JSON.parse(fileContent);
-        return data as DesignData;
+        const rawData = JSON.parse(fileContent);
+
+        // Parse GP data from the complex structure
+        const gp = parseGPData(rawData.GP);
+
+        return {
+            ...rawData,
+            GP: gp
+        } as DesignData;
     } catch (error) {
         console.error("Error reading design data:", error);
         return null;

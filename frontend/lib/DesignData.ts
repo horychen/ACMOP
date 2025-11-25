@@ -60,6 +60,51 @@ export interface GpUser {
     } | number | null;
 }
 
+export interface GPParameter {
+    type: 'fixed' | 'free' | 'derived';
+    description: string;
+    value: number;
+    bounds: [number, number] | null;
+}
+
+export interface GP {
+    [key: string]: GPParameter;
+}
+
+export interface FEA_Performance {
+    project_name: string;
+    individual_name: string;
+    f1: number;
+    f2: number;
+    f3: number;
+    TRV: number;
+    FRW: number;
+    torque_average: number;
+    ss_avg_force_magnitude: number;
+    rotor_weight: number;
+    normalized_torque_ripple: number;
+    normalized_force_error_magnitude: number;
+    force_error_angle: number;
+    coil_flux_linkage_peak2peak_value: number;
+    mm2_slot_area: number;
+    Cost: number;
+    Cost_Fe: number;
+    Cost_Cu: number;
+    Cost_PM: number;
+    power_factor: number;
+    rated_ratio: number;
+    rated_stack_length_mm: number;
+    rated_total_loss: number;
+    rated_stator_copper_loss_along_stack: number;
+    rated_rotor_copper_loss_along_stack: number;
+    rated_magnet_Joule_loss: number;
+    stator_copper_loss_in_end_turn: number;
+    rotor_copper_loss_in_end_turn: number;
+    rated_iron_loss: number;
+    rated_windage_loss: number;
+    [key: string]: any;
+}
+
 export interface DesignData {
     machine_type: string;
     m: number;
@@ -71,6 +116,8 @@ export interface DesignData {
     GeometricComponentsObjects: GeometricComponentsObjects;
     "EX-user": ExUser;
     "GP-user": GpUser;
+    GP?: GP;
+    "FEA_Evaluated_Performance--1-Initial"?: FEA_Performance;
     [key: string]: any;
 }
 
@@ -99,3 +146,47 @@ export function getPoints(component: GeometricComponent): [number, number][] {
 
     return points;
 }
+
+/**
+ * Parse GP (Geometric Parameters) from the JSON pickle structure
+ * Converts the complex py/object structure to a simple GP interface
+ */
+export function parseGPData(gpRaw: any): GP | undefined {
+    if (!gpRaw || !gpRaw['py/reduce']) return undefined;
+
+    const tuples = gpRaw['py/reduce']?.[4]?.['py/tuple'];
+    if (!tuples || !Array.isArray(tuples)) return undefined;
+
+    const gp: GP = {};
+
+    tuples.forEach((item: any) => {
+        if (!item['py/tuple'] || item['py/tuple'].length < 2) return;
+
+        const key = item['py/tuple'][0];
+        const paramObj = item['py/tuple'][1];
+
+        if (!paramObj?.['py/state']?.['py/tuple']) return;
+
+        const state = paramObj['py/state']['py/tuple'];
+        const type = state[0] as 'fixed' | 'free' | 'derived';
+        const description = state[1];
+        const value = state[2];
+        const boundsRaw = state[3];
+
+        let bounds: [number, number] | null = null;
+        if (Array.isArray(boundsRaw) && boundsRaw.length === 2 &&
+            boundsRaw[0] !== null && boundsRaw[1] !== null) {
+            bounds = [boundsRaw[0], boundsRaw[1]];
+        }
+
+        gp[key] = {
+            type,
+            description,
+            value,
+            bounds
+        };
+    });
+
+    return gp;
+}
+

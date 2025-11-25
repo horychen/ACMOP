@@ -693,8 +693,8 @@ def main(number_which_part):
 if __name__ == '__main__':
     # mop = main(1)
     # mop = main(31)
-    mop = main(3)
-    # mop = main(4)
+    # mop = main(3)
+    mop = main(4)
     # mop = main(5)
 
     ''' Interactive variable checking examples:

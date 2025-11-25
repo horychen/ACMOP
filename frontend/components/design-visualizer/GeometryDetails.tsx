@@ -16,7 +16,15 @@ interface GeometryDetailsProps {
 }
 
 export default function GeometryDetails({ data, onComponentSelect, visibility = {}, onVisibilityChange }: GeometryDetailsProps) {
-    const renderComponentDetails = (name: string, component: GeometricComponent) => {
+    const renderComponentDetails = (name: string, component: GeometricComponent | null) => {
+        if (!component) {
+            return (
+                <div className="text-center text-muted-foreground py-8">
+                    <p>No geometry data available for {name}</p>
+                </div>
+            );
+        }
+
         // Separate points and other parameters
         const parameters: Record<string, any> = {};
         const points: Record<string, [number, number]> = {};
@@ -89,37 +97,51 @@ export default function GeometryDetails({ data, onComponentSelect, visibility = 
                 >
                     <div className="px-4 pt-2">
                         <TabsList className="w-full justify-start overflow-x-auto h-auto flex-wrap gap-1 bg-transparent p-0">
-                            {Object.keys(data).map(key => (
-                                <div key={key} className="flex items-center gap-1">
-                                    {onVisibilityChange && (
-                                        <Checkbox
-                                            checked={visibility[key] !== false}
-                                            onCheckedChange={(checked: boolean) => {
-                                                onVisibilityChange({
-                                                    ...visibility,
-                                                    [key]: checked === true
-                                                });
-                                            }}
-                                            className="h-3 w-3"
-                                        />
-                                    )}
-                                    <TabsTrigger
-                                        value={key}
-                                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border text-xs px-2 py-1 h-auto"
-                                    >
-                                        {data[key as keyof GeometricComponentsObjects].name || key}
-                                    </TabsTrigger>
-                                </div>
-                            ))}
+                            {Object.keys(data).map(key => {
+                                const component = data[key as keyof GeometricComponentsObjects];
+                                return (
+                                    <div key={key} className="flex items-center gap-1">
+                                        {onVisibilityChange && (
+                                            <Checkbox
+                                                checked={visibility[key] !== false}
+                                                onCheckedChange={(checked: boolean) => {
+                                                    onVisibilityChange({
+                                                        ...visibility,
+                                                        [key]: checked === true
+                                                    });
+                                                }}
+                                                className="h-3 w-3"
+                                            />
+                                        )}
+                                        <TabsTrigger
+                                            value={key}
+                                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border text-xs px-2 py-1 h-auto"
+                                        >
+                                            {component?.name || key}
+                                        </TabsTrigger>
+                                    </div>
+                                );
+                            })}
                         </TabsList>
                     </div>
 
                     <ScrollArea className="flex-1 p-4">
-                        {Object.entries(data).map(([key, component]) => (
-                            <TabsContent key={key} value={key} className="mt-0">
-                                {renderComponentDetails(key, component)}
-                            </TabsContent>
-                        ))}
+                        {Object.entries(data).map(([key, component]) => {
+                            if (!component) {
+                                return (
+                                    <TabsContent key={key} value={key} className="mt-0">
+                                        <div className="text-center text-muted-foreground py-8">
+                                            <p>No geometry data available for {key}</p>
+                                        </div>
+                                    </TabsContent>
+                                );
+                            }
+                            return (
+                                <TabsContent key={key} value={key} className="mt-0">
+                                    {renderComponentDetails(key, component)}
+                                </TabsContent>
+                            );
+                        })}
                     </ScrollArea>
                 </Tabs>
             </CardContent>

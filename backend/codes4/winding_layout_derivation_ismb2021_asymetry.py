@@ -625,9 +625,9 @@ class Winding_Derivation(object):
             drawer_T3a, dpnv_grouping_dict_a    = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*ps, which_phase='Aa') # p is original frequency, ps is the new frequency
             drawer_T3b, dpnv_grouping_dict_b    = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*ps, which_phase='Bb') # (Unchanged) NOTE THAT THE PHASE V and W are transposed!
             drawer_T3c, dpnv_grouping_dict_c    = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*ps, which_phase='Cc') # (Unchanged) NOTE THAT THE PHASE V and W are transposed!
-            self.SIpnv_grouping_dict_a = dpnv_grouping_dict_a
-            self.SIpnv_grouping_dict_b = dpnv_grouping_dict_b
-            self.SIpnv_grouping_dict_c = dpnv_grouping_dict_c
+            self.dpnv_grouping_dict_a = dpnv_grouping_dict_a
+            self.dpnv_grouping_dict_b = dpnv_grouping_dict_b
+            self.dpnv_grouping_dict_c = dpnv_grouping_dict_c
         # drawer_T33, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(3*p), which_phase='Aa') # 3次谐波
         # drawer_T35, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(5*p), which_phase='Aa') # 5次谐波
         # drawer_T37, _                       = draw_connection_star_at_another_frequency(connection_star_raw_dict, 1/p*(7*p), which_phase='Aa') # 7次谐波
@@ -895,14 +895,14 @@ class Winding_Derivation(object):
             if p_or_ps == self.ps or bool_study_suspension_subharmonics:
                 # suspension winding has different connection patten from the torque winding
                 if ZONE == 'A':
-                    dpnv_grouping_AC = self.SIpnv_grouping_dict_a['GAC']
-                    dpnv_grouping_BD = self.SIpnv_grouping_dict_a['GBD']
+                    dpnv_grouping_AC = self.dpnv_grouping_dict_a['GAC']
+                    dpnv_grouping_BD = self.dpnv_grouping_dict_a['GBD']
                 if ZONE == 'B':
-                    dpnv_grouping_AC = self.SIpnv_grouping_dict_b['GAC']
-                    dpnv_grouping_BD = self.SIpnv_grouping_dict_b['GBD']
+                    dpnv_grouping_AC = self.dpnv_grouping_dict_b['GAC']
+                    dpnv_grouping_BD = self.dpnv_grouping_dict_b['GBD']
                 if ZONE == 'C':
-                    dpnv_grouping_AC = self.SIpnv_grouping_dict_c['GAC']
-                    dpnv_grouping_BD = self.SIpnv_grouping_dict_c['GBD']
+                    dpnv_grouping_AC = self.dpnv_grouping_dict_c['GAC']
+                    dpnv_grouping_BD = self.dpnv_grouping_dict_c['GBD']
                 connection_star_raw_results = [-int(el) for el in dpnv_grouping_AC] + [int(el) for el in dpnv_grouping_BD]
                 pcc = [    el  for el in connection_star_raw_results if el>0]
                 ncc = [abs(el) for el in connection_star_raw_results if el<0]

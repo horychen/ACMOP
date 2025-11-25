@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { LayoutDashboard, Settings, BarChart3, Box, Sparkles, Moon, Sun } from "lucide-react"
+import { LayoutDashboard, Settings, BarChart3, Box, Sparkles, Moon, Sun, FileSearch, Code2 } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 import { useState, useEffect } from "react"
 
@@ -56,6 +56,18 @@ export function Sidebar({ className }: SidebarProps) {
               <Link href="/design-visualizer">
                 <Box className="mr-2 h-4 w-4" />
                 Design Visualizer (New)
+              </Link>
+            </Button>
+            <Button variant={pathname === "/design-analyzer" ? "secondary" : "ghost"} className="w-full justify-start" asChild>
+              <Link href="/design-analyzer">
+                <FileSearch className="mr-2 h-4 w-4" />
+                Design Analyzer
+              </Link>
+            </Button>
+            <Button variant={pathname === "/developer" ? "secondary" : "ghost"} className="w-full justify-start" asChild>
+              <Link href="/developer">
+                <Code2 className="mr-2 h-4 w-4" />
+                开发者页面
               </Link>
             </Button>
           </div>

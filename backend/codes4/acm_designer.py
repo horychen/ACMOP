@@ -11,7 +11,7 @@ import JMAG
 import bearingless_spmsm_closedSlot_design, bearingless_spmsm_heart
 
 class Swarm_Data_Analyzer(object):
-    def __init__(self, fname, desired_x_denorm_dict):
+    def __init__(self, fname, desired_x_denorm_dict, bool_filter_pareto_front=False):
         logger = logging.getLogger(__name__)
         logger.info('Swarm_Data_Analyzer: %s', fname)
         if not os.path.exists(fname):
@@ -20,49 +20,47 @@ class Swarm_Data_Analyzer(object):
         else:
             ''' 1. Load json file
             '''
+            print(f'[acm_designer.py] read in {fname=}')
             with open(fname, 'r') as f:
-                buf = f.read()
-                swarm_data_as_dict = json.loads('{'+buf[1:]+'}')
-                del buf
-                if 'Test' in swarm_data_as_dict.keys():
-                    del swarm_data_as_dict['Test']
+                swarm_data_as_dict = json.load(f)
+                # buf = f.read()
+                # swarm_data_as_dict = json.loads('{'+buf[1:]+'}')
+                # del buf
+                # if 'Test' in swarm_data_as_dict.keys():
+                #     del swarm_data_as_dict['Test']
             
-            swarm_data_as_dict = self.filter_data(swarm_data_as_dict, 'Geometric parameters', 'split_ratio', 'bigger', 0.45)
+            if bool_filter_pareto_front:
+                swarm_data_as_dict = self.filter_data(swarm_data_as_dict, 'Geometric parameters', 'split_ratio', 'bigger', 0.45)
+
             self.number_of_chromosome = len(swarm_data_as_dict)
             self.swarm_data_as_dict = swarm_data_as_dict
 
-
-            ''' 2. Get swarm_data_xf
-            '''
-            # for k1, v1 in swarm_data_as_dict.items():
-            #     for k2, v2 in v1.items():
-            #         print(k1, k2, v2)
-
-            # DEBUG
-            # print('[acm_designer.py] Archive order:', list(list(swarm_data_as_dict.values())[0].values())[0]['x_denorm_dict'].keys() )
-            # print('\tThe desired order is:', desired_x_denorm_dict.keys())
-            # print('---'*30)
-            def sort_as_desired(x_denorm_dict, desired_x_denorm_dict=None):
-                if desired_x_denorm_dict is None:
-                    return list(x_denorm_dict.values())
-                else:
-                    try:
-                        return [x_denorm_dict[key] for key in desired_x_denorm_dict.keys()]
-                    except KeyError as e:
-                        print('Error Hint: some geometric parameters are renamed so the old json archive file now has different name from the new name.')
-                        raise e
-
-                ''' 目前只支持重新跑优化的时候减少自由的几何参数，如果要增加自由的几何参数，则要从GP里面拿出来对应的参数的取值。其实也很简单啦。'''
-                x_denorm = []
-                for key in desired_x_denorm_dict.keys():
-                    if key not in x_denorm_dict:
-                        x_denorm.append(self.decode(v)['Geometric parameters'][key]) # pseudo code for showing the concept, this will not work.
+            if False:
+                def sort_as_desired(x_denorm_dict, desired_x_denorm_dict=None):
+                    if desired_x_denorm_dict is None:
+                        return list(x_denorm_dict.values())
                     else:
-                        x_denorm.append(x_denorm_dict[key])
-            self.swarm_data_xf = [
-                                    sort_as_desired(self.decode(v)['x_denorm_dict'], desired_x_denorm_dict) + [ self.decode(v)['Performance']['f1'], self.decode(v)['Performance']['f2'], self.decode(v)['Performance']['f3'] ]
-                                    for v in swarm_data_as_dict.values() # v = {name:data}
-                                    ]
+                        try:
+                            return [x_denorm_dict[key] for key in desired_x_denorm_dict.keys()]
+                        except KeyError as e:
+                            print('Error Hint: some geometric parameters are renamed so the old json archive file now has different name from the new name.')
+                            raise e
+
+                    ''' 目前只支持重新跑优化的时候减少自由的几何参数，如果要增加自由的几何参数，则要从GP里面拿出来对应的参数的取值。其实也很简单啦。'''
+                    x_denorm = []
+                    for key in desired_x_denorm_dict.keys():
+                        if key not in x_denorm_dict:
+                            x_denorm.append(self.decode(v)['Geometric parameters'][key]) # pseudo code for showing the concept, this will not work.
+                        else:
+                            x_denorm.append(x_denorm_dict[key])
+                self.swarm_data_xf = [
+                                        sort_as_desired(self.decode(v)['x_denorm_dict'], desired_x_denorm_dict) + [ self.decode(v)['Performance']['f1'], self.decode(v)['Performance']['f2'], self.decode(v)['Performance']['f3'] ]
+                                        for v in swarm_data_as_dict.values() # v = {name:data}
+                                        ]
+
+            # 几个问题：一个是x_denorm_dict没有被更新成正确的值，
+            # 另一个是数据结构的问题，基础的参数在那边没问题，优化的结果应该只保留变化的值
+            self.swarm_data_xf = swarm_data_as_dict['x_denorm_dict'] + [swarm_data_as_dict['Performance']]
             self.number_of_free_variables = len(self.swarm_data_xf[0]) - 3
 
             # DEBUG
@@ -1129,6 +1127,7 @@ class acm_designer(object):
             # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
             spec_performance_dict = dict()
+            spec_performance_dict['x_denorm_dict'] = self.acm_template.SI['x_denorm_dict']
             spec_performance_dict['project_name'] = project_name
             spec_performance_dict['individual_name'] = individual_name
             spec_performance_dict['number_current_generation'] = number_current_generation
@@ -1168,7 +1167,6 @@ class acm_designer(object):
             spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
             spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
 
-
             GP = acm_variant.template.SI['GP']
             EX = acm_variant.template.SI['EX']
 
@@ -1178,11 +1176,25 @@ class acm_designer(object):
             number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
             individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
             builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
-            with open(self.fea_config_dict['output_dir'] + self.select_spec + '.json', 'a') as f:
-                json_string = jsonpickle.encode(builtins.ad.visualize_dict, indent=4)
-                f.write(json_string)
-                    # f.write(f',\n"{acm_variant.counter}":')
+            json_file_path = self.fea_config_dict['output_dir'] + self.select_spec + '.json'
 
+            # Read the possibly-existing current json data
+            try:
+                if os.path.getsize(json_file_path) > 0:
+                    with open(json_file_path, 'r') as rf:
+                        loaded_json = json.load(rf)
+                else:
+                    loaded_json = {}
+            except Exception:
+                loaded_json = {}
+
+            # Compose new key
+            key = f'gen{number_current_generation}-ind{individual_index}'
+            loaded_json[key] = builtins.ad.visualize_dict
+
+            json_string = jsonpickle.encode(loaded_json, indent=4)
+            with open(json_file_path, 'w+') as f:
+                f.write(json_string)
 
             number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
             individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
