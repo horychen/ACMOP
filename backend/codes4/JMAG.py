@@ -102,9 +102,124 @@ class data_manager(object):
         return power_factor
 
 
+def add_M1xSteel(app, dir_parent, Steel_name="M-19 Steel Gauge-29"):
+
+    if '19' in Steel_name:
+        try:
+            BH = np.loadtxt(dir_parent + '../BH/M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1)) # after JMAG smooth, it beomces HB rather than BH
+        except OSError:
+            BH = np.loadtxt(dir_parent + './BH/M-19-Steel-BH-Curve-afterJMAGsmooth.BH', unpack=True, usecols=(0,1)) # after JMAG smooth, it beomces HB rather than BH
+    elif '15' in Steel_name:
+        BH = np.loadtxt(dir_parent + '../BH/M-15-Steel-BH-Curve.txt', unpack=True, usecols=(0,1))
+
+
+    app.GetMaterialLibrary().CreateCustomMaterial(Steel_name, "Custom Materials")
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("Density", 7.85)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("MagneticSteelPermeabilityType", 2)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("CoerciveForce", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).GetTable("BhTable").SetName("Untitled")
+
+    refarray = BH.T.tolist()
+
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).GetTable("BhTable").SetTable(refarray)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("DemagnetizationCoerciveForce", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("MagnetizationSaturated", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("MagnetizationSaturated2", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("YoungModulus", 210000)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("ShearModulus", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("YoungModulusX", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("YoungModulusY", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("YoungModulusZ", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("ShearModulusXY", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("ShearModulusYZ", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("ShearModulusZX", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G11", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G12", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G13", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G14", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G15", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G16", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G22", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G23", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G24", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G25", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G26", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G33", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G34", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G35", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G36", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G44", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G45", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G46", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G55", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G56", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("G66", 0)
+
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("MagnetizationSaturated2", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("MagnetizationSaturatedMakerValue", 0)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("Loss_Type", 1)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("LossConstantKhX", 143.)
+    app.GetMaterialLibrary().GetUserMaterial(Steel_name).SetValue("LossConstantKeX", 0.530)
+
+def add_Arnon5(app, dir_parent):
+    app.GetMaterialLibrary().CreateCustomMaterial("Arnon5-final", "Custom Materials")
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("Density", 7.85)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("MagneticSteelPermeabilityType", 2)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("CoerciveForce", 0)
+    # app.GetMaterialLibrary().GetUserMaterial(u"Arnon5-final").GetTable("BhTable").SetName(u"SmoothZeroPointOne")
+
+    BH = np.loadtxt(dir_parent + 'Arnon5/Arnon5-final.txt', unpack=True, usecols=(0,1))
+    refarray = BH.T.tolist()
+
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").GetTable("BhTable").SetTable(refarray)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("DemagnetizationCoerciveForce", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("MagnetizationSaturated", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("MagnetizationSaturated2", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("ExtrapolationMethod", 1)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("YoungModulus", 210000)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("ShearModulus", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("YoungModulusX", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("YoungModulusY", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("YoungModulusZ", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("ShearModulusXY", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("ShearModulusYZ", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("ShearModulusZX", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G11", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G12", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G13", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G14", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G15", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G16", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G22", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G23", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G24", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G25", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G26", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G33", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G34", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G35", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G36", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G44", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G45", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G46", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G55", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G56", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("G66", 0)
+
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("MagnetizationSaturated2", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("MagnetizationSaturatedMakerValue", 0)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("Loss_Type", 1)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("LossConstantKhX", 186.6)
+    app.GetMaterialLibrary().GetUserMaterial("Arnon5-final").SetValue("LossConstantKeX", 0.07324)
+
+def add_Arnon7(app, dir_parent):
+    pass
+
+
+
 class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveBase
     # JMAG Encapsulation for the JMAG Designer of JSOL Corporation.    
-    def __init__(self, fea_config_dict, spec_input_dict=None):
+    def __init__(self, fea_config_dict=None, spec_input_dict=None):
         self.jd = None       # The activexserver selfect for JMAG Designer
         self.app = None      # app = jd
         self.projName = None # The name of JMAG Designer project (a string)
@@ -126,7 +241,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         self.fea_config_dict = fea_config_dict
         self.spec_input_dict = spec_input_dict
 
-    def open(self, expected_project_file_path):
+    def open(self, Steel_name: str, expected_project_file_path: str, pc_name: str, dir_parent: str, bool_jmagDesignerShow: bool = True):
         if self.app is None:
             # 在 Streamlit 等多线程环境中，需要显式初始化 COM
             # 使用 COINIT_APARTMENTTHREADED 模式（适合单线程单元模型）
@@ -153,47 +268,40 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             self.JMAG_version_string = app.VersionString(0)
             self.JMAG_version_number = float(app.VersionString(0)[:2])
 
-            if self.fea_config_dict['designer.Show'] == True:
+            if bool_jmagDesignerShow == True:
                 app.Show()
             else:
                 app.Hide()
             # app.Quit()
             self.app = app # means that the JMAG Designer is turned ON now.
 
-            def add_steel(self):
-                logger = logging.getLogger(__name__)
-                logger.info('[First run on %s detected] %s is added to jmag material library.', self.fea_config_dict['pc_name'], self.spec_input_dict['EX-user']['Steel'])
-                import population
-                if 'M15' in self.spec_input_dict['EX-user']['Steel']:
-                    population.add_M1xSteel(self.app, self.fea_config_dict['dir.parent'], steel_name="M-15 Steel")
-                elif 'M19' in self.spec_input_dict['EX-user']['Steel']:
-                    population.add_M1xSteel(self.app, self.fea_config_dict['dir.parent'])
-                elif 'Arnon5' == self.spec_input_dict['EX-user']['Steel']:
-                    population.add_Arnon5(self.app, self.fea_config_dict['dir.parent'])        
+            def add_steel(app, dir_parent, Steel_name: str):
+                if 'M15' in Steel_name:
+                    add_M1xSteel(app, dir_parent, Steel_name="M-15 Steel")
+                elif 'M19' in Steel_name:
+                    add_M1xSteel(app, dir_parent)
+                elif 'Arnon5' == Steel_name:
+                    add_Arnon5(app, dir_parent)        
 
             # too avoid tons of the same material in JAMG's material library
-            fname = self.fea_config_dict['dir.parent'] + 'BH/.jmag_state.txt'
+            fname = dir_parent + 'BH/.jmag_state.txt'
             if not os.path.exists(fname):
-                print(f'{fname=} does not exist.')
                 with open(fname, 'a') as f:
-                    f.write(self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['EX-user']['Steel'] + '\n')
-                add_steel(self)
-                # quit()
+                    f.write(self.fea_config_dict['pc_name'] + '/' + Steel_name + '\n')
+                add_steel(app, dir_parent, Steel_name=Steel_name)
             else:
-                print(f'{fname=} exists.')
                 with open(fname, 'r') as f:
                     flag_already_there = False
                     for line in f.readlines():
-                        logger = logging.getLogger(__name__)
-                        logger.debug('%s %s', self.fea_config_dict['pc_name'], self.spec_input_dict['EX-user']['Steel'])
-                        if self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['EX-user']['Steel'] in line:
+                        if pc_name + '/' + Steel_name in line:
                             flag_already_there = True
-                            print('[JMAG.py] steel material already there:', self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['EX-user']['Steel'])
+                            print('[JMAG.py] steel material already there:', pc_name + '/' + Steel_name)
                             break
                     if flag_already_there == False:
-                        add_steel(self)
+                        add_steel(app, dir_parent, Steel_name=Steel_name)
                         with open(fname, 'a') as f:
-                            f.write(self.fea_config_dict['pc_name'] + '/' + self.spec_input_dict['EX-user']['Steel'] + '\n')
+                            f.write(pc_name + '/' + Steel_name + '\n')
+
         else:
             app = self.app
 

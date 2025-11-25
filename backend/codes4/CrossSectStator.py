@@ -438,7 +438,6 @@ class CrossSectInnerRotorStatorWinding(object):
             'P6_Shrink_Mirror': P6_Shrink_Mirror, 'P5_Shrink_Mirror': P5_Shrink_Mirror,
             'P4_Shrink_Mirror': P4_Shrink_Mirror, 'POpen_Shrink_Mirror': POpen_Shrink_Mirror
         }
-        
         return {'innerCoord': self.innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
 
 

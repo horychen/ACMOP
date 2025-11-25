@@ -5,6 +5,7 @@
   "bool_StatorSlotClosed": false,
   "bool_RotorNotched": true,
   "select_FEA_tool": "JMAG",
+  "bool_jmagDeleteResultsAfterCalculation": false,
   "m": {
     "name": "phase_number_m",
     "type": "fixed",
@@ -347,6 +348,7 @@
     "suspension_pole_pair_number_ps": 5
   },
   "EX": {
+    "SteelMaterial": "M19 Gauge-29",
     "bool_WyeConnectOrDeltaConnect": true,
     "DCBusVoltage": 400,
     "Js": 4000000.0,

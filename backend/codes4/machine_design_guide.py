@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
-import json, math, base64, pickle
+import json, math, base64, pickle, cairo
 
 class Parameter(object):
     def __init__(self, name, type, value=None, bounds=None, calc=None, calc_bounds=None, unit='mm', comment=None, args=None) -> None:
@@ -165,6 +165,73 @@ class Geometry(object):
         )
     def draw(self, drawer, *args, **kwargs):
         self.components_make_region = self.draw_function(drawer, *args, **kwargs)
+        return self.components_make_region
+
+class CairoDrawer(object):
+    def __init__(self, width_in_points=500, height_in_points=500, filename=None):
+        self.filename = filename
+        self.surface = cairo.SVGSurface(self.filename, width_in_points, height_in_points)
+        self.ctx = cairo.Context(self.surface)
+        # self.ctx.scale(width_in_points, height_in_points)
+        # m = cairo.Matrix(yy=-1, y0=height_in_points) # Cartetian Coordinate
+        m = cairo.Matrix(yy=-1, y0=0.5*height_in_points, x0=+0.5*width_in_points) # Offset to center
+        self.ctx.transform(m)
+        # Set a background color
+        self.ctx.save()
+        self.ctx.set_source_rgb(0.95, 0.95, 0.95)
+        self.ctx.paint()
+        self.ctx.restore()
+    def apply_stroke(self, lw=0.5):
+        self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        self.ctx.set_line_width(lw)
+        # setting color of the context
+        self.ctx.set_source_rgba(0.0, 0.0, 0.0, 1)
+        # stroke out the color and width property
+        self.ctx.stroke()
+    def convert_to_pdf(self, bool_open_pdf=False, filename=None): # 这个代码只是把SVG转换为PDF而已
+        # self.surface.write_to_svg()
+        self.surface.finish()
+        import cairosvg
+        cairosvg.svg2pdf(url=f'machine_geometry.svg', write_to=f'machine_geometry.pdf')
+        if bool_open_pdf:
+            import os
+            os.system('sumatraPDF2.exe ' + 'machine_geometry.pdf')
+        print('[machine_design_guide.py] Find the file machine_geometry.pdf in the current folder.')
+
+    def getSketch(self, name, color):
+        self.sketch_name = name
+        self.sketch_color = color
+
+    def drawLine(self, p1, p2):
+        self.ctx.move_to(p1[0], p1[1])
+        self.ctx.line_to(p2[0], p2[1])
+        return [{'move_to': (p1[0], p1[1]), 'line_to': (p2[0], p2[1])}]
+
+    def drawArc(self, centerxy, startxy, endxy):
+        EPS = 1e-3
+        v1 = [startxy[0] - centerxy[0], startxy[1] - centerxy[1]]
+        v2 = [endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]]
+        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])*math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]))
+        if 1.0 < cos夹角 < 1.0+EPS:
+            cos夹角 = 1.0
+            # logger = logging.getLogger(__name__)
+            # logger.debug('cos夹角=%s', cos夹角)
+        elif -1.0-EPS < cos夹角 < -1.0:
+            cos夹角 = -1.0
+            # logger = logging.getLogger(__name__)
+            # logger.debug('cos夹角=%s', cos夹角)
+        angle_between = math.acos(cos夹角)
+
+        radius = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
+        angle_start = math.atan2(v1[1], v1[0])
+        angle_end = angle_start + angle_between
+
+        self.ctx.move_to(startxy[0], startxy[1])
+        self.ctx.arc(centerxy[0], centerxy[1], radius, angle_start, angle_end)
+        # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_end, angle_start)
+        return [{'move_to': (centerxy[0], centerxy[1]), 'arc': (radius, angle_start, angle_end)}]
+
+
 
 @dataclass
 class Modern_Machine_Designer(object):
@@ -177,11 +244,12 @@ class Modern_Machine_Designer(object):
     bool_RotorNotched: bool = True
 
     select_FEA_tool: str = 'JMAG'
+    bool_jmagDeleteResultsAfterCalculation: bool = False
 
     def __post_init__(self):
 
         # 绕组
-        m: int = 3
+        m : int = 3
         Qs: int = 12
         p : int = 4
         ps: int = 5
@@ -189,21 +257,23 @@ class Modern_Machine_Designer(object):
 
         # 激励（含热负荷）
         bool_WyeConnectOrDeltaConnect: bool = True
+        bool_weHavePlentyVoltage: bool = True
         DCBusVoltage: float = 400
         Js: float = 4e6
         WindingFill: float = 0.3882
-        RatedSpeed = 30000 # rpm
-        ExcitationFreqSimulated = RatedSpeed / 60 * p
-        TORQUE_CURRENT_RATIO = 0.95
-        SUSPENSION_CURRENT_RATIO = 0.05
+        RatedSpeed: float = 30000 # rpm
+        ExcitationFreqSimulated: float = RatedSpeed / 60 * p
+        TORQUE_CURRENT_RATIO: float = 0.95
+        SUSPENSION_CURRENT_RATIO: float = 0.05
+        SteelMaterial: str = 'M19 Gauge-29'
 
         # 定子裂比和外径
-        SR = 0.35
-        mm_r_so = 123.5
+        SR: float = 0.35
+        mm_r_so: float = 123.5
 
         # 利用不同的裂比去估算合理的边界值
-        yoke_split_ratio_bounds = [0.2, 0.45]
-        tooth_split_ratio_at_middle_slot = [0.25, 0.50] # TODO: 下界需要考虑到w_st的宽度和半径的值
+        yoke_split_ratio_bounds: list[float] = [0.2, 0.45]
+        tooth_split_ratio_at_middle_slot: list[float] = [0.25, 0.50] # TODO: 下界需要考虑到w_st的宽度和半径的值
 
         '''Fixed variables'''
         self.m: Parameter            = Parameter('phase_number_m', 'fixed', m)
@@ -388,6 +458,7 @@ class Modern_Machine_Designer(object):
         mm_r_sy = self.mm_r_so.value - self.mm_d_sy.value  # radius stator yoke
         mm_r_ss = self.mm_r_si.value + self.mm_d_sts.value # radius stator slot
         self.EX = EX = {
+            'SteelMaterial': SteelMaterial,
             'bool_WyeConnectOrDeltaConnect' : bool_WyeConnectOrDeltaConnect,
             'DCBusVoltage' : DCBusVoltage,
             'Js' : Js,
@@ -407,7 +478,6 @@ class Modern_Machine_Designer(object):
         no_series_coil_turns_N = V_desired_emf_Em / (2*math.pi* ExcitationFreqSimulated * self.wily.kw1 * Wb_air_gap_flux_Phi_m)
         no_series_coil_turns_N = round(no_series_coil_turns_N)
         SPP = Qs / (2*p*m) # slot per pole per phase
-        bool_weHavePlentyVoltage = True
         if bool_weHavePlentyVoltage:
             no_series_coil_turns_N = min([p*SPP*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
         else:
@@ -425,54 +495,7 @@ class Modern_Machine_Designer(object):
         EX['SUSPENSION_CURRENT'] = EX['SUSPENSION_CURRENT_RATIO'] * EX['CurrentAmp_per_phase']
         EX['slot_current_utilizing_ratio_for_torque'] = (EX['TORQUE_CURRENT'] + EX['SUSPENSION_CURRENT']) / EX['CurrentAmp_per_phase']
 
-    def getSketch(self, name, color):
-        self.name = name
-        self.color = color
-
-    def drawLine(self, p1, p2):
-        self.ctx.move_to(p1[0], p1[1])
-        self.ctx.line_to(p2[0], p2[1])
-        return [{'move_to': (p1[0], p1[1]), 'line_to': (p2[0], p2[1])}]
-
-    def drawArc(self, centerxy, startxy, endxy):
-        EPS = 1e-3
-        v1 = [startxy[0] - centerxy[0], startxy[1] - centerxy[1]]
-        v2 = [endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]]
-        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])*math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]))
-        if 1.0 < cos夹角 < 1.0+EPS:
-            cos夹角 = 1.0
-            # logger = logging.getLogger(__name__)
-            # logger.debug('cos夹角=%s', cos夹角)
-        elif -1.0-EPS < cos夹角 < -1.0:
-            cos夹角 = -1.0
-            # logger = logging.getLogger(__name__)
-            # logger.debug('cos夹角=%s', cos夹角)
-        angle_between = math.acos(cos夹角)
-
-        radius = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
-        angle_start = math.atan2(v1[1], v1[0])
-        angle_end = angle_start + angle_between
-
-        self.ctx.move_to(startxy[0], startxy[1])
-        self.ctx.arc(centerxy[0], centerxy[1], radius, angle_start, angle_end)
-        # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_end, angle_start)
-        return [{'move_to': (centerxy[0], centerxy[1]), 'arc': (radius, angle_start, angle_end)}]
-
     def show_geometry(self, filename=None) -> None:
-        # 检查必要的参数是否存在
-        if not hasattr(self, 'mm_r_so') or self.mm_r_so.value is None:
-            raise ValueError("mm_r_so parameter is required but not found or has no value")
-        
-        width_in_points  = self.mm_r_so.value*2.1
-        height_in_points = self.mm_r_so.value*2.1
-        
-        # mm_r_ro 只在 bool_PermanentMagnet 为 True 时存在
-        if hasattr(self, 'mm_r_ro') and self.mm_r_ro.value is not None:
-            lw = 0.1 if self.mm_r_ro.value < 15 else 0.5
-        else:
-            # 使用默认值
-            lw = 0.5
-        
         bool_draw_whole_model = True
         
         # 确保 machineGeometry 已初始化
@@ -480,39 +503,8 @@ class Modern_Machine_Designer(object):
             # 如果 machineGeometry 不存在，调用 __post_init__ 来创建
             self.__post_init__()
 
-        def draw_spmsm(lw, width_in_points, height_in_points, bool_draw_whole_model):
-            import cairo
-
-            def init_canvas(width_in_points, height_in_points):
-                self.surface = cairo.SVGSurface('machine_geometry.svg', width_in_points, height_in_points)
-                self.ctx = cairo.Context(self.surface)
-                # self.ctx.scale(width_in_points, height_in_points)
-                # m = cairo.Matrix(yy=-1, y0=height_in_points) # Cartetian Coordinate
-                m = cairo.Matrix(yy=-1, y0=0.5*height_in_points, x0=+0.5*width_in_points) # Offset to center
-                self.ctx.transform(m)
-                # Set a background color
-                self.ctx.save()
-                self.ctx.set_source_rgb(0.95, 0.95, 0.95)
-                self.ctx.paint()
-                self.ctx.restore()
-            def apply_stroke(lw=0.5):
-                self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-                self.ctx.set_line_width(lw)
-                # setting color of the context
-                self.ctx.set_source_rgba(0.0, 0.0, 0.0, 1)
-                # stroke out the color and width property
-                self.ctx.stroke()
-            def convert_to_pdf(bool_open_pdf=False, filename=None): # 这个代码只是把SVG转换为PDF而已
-                # self.surface.write_to_svg()
-                self.surface.finish()
-                import cairosvg
-                cairosvg.svg2pdf(url=f'machine_geometry.svg', write_to=f'machine_geometry.pdf')
-                if bool_open_pdf:
-                    import os
-                    os.system('sumatraPDF2.exe ' + 'machine_geometry.pdf')
-                print('[machine_design_guide.py] Find the file machine_geometry.pdf in the current folder.')
-
-            init_canvas(width_in_points, height_in_points)
+        def draw_spmsm(lw, width_in_points, height_in_points, filename='machine_geometry.svg', bool_draw_whole_model=True):
+            drawer = CairoDrawer(width_in_points, height_in_points, filename=filename)
 
             # 检查 machineGeometry 是否存在且包含必要的键
             if not hasattr(self, 'machineGeometry') or self.machineGeometry is None:
@@ -524,14 +516,14 @@ class Modern_Machine_Designer(object):
             and 'rotorMagnet' in self.machineGeometry and self.machineGeometry['rotorMagnet'] is not None\
             and 'statorCore' in self.machineGeometry and self.machineGeometry['statorCore'] is not None\
             and 'coils' in self.machineGeometry and self.machineGeometry['coils'] is not None:
-                list_regions = self.machineGeometry['rotorCore'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
-                list_regions = self.machineGeometry['shaft'].draw(self)
-                list_regions = self.machineGeometry['rotorMagnet'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
-                list_regions = self.machineGeometry['statorCore'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
-                list_regions = self.machineGeometry['coils'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
+                list_regions = self.machineGeometry['rotorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+                list_regions = self.machineGeometry['shaft'].draw(drawer)
+                list_regions = self.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+                list_regions = self.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+                list_regions = self.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
 
-            apply_stroke(lw=lw)
-            convert_to_pdf()
+            drawer.apply_stroke(lw=lw)
+            drawer.convert_to_pdf()
 
             # import builtins
             # builtins.ad.visualize_dict['GeometricComponentsObjects']['rotorCore'] = acm_variant.rotorCore
@@ -541,9 +533,21 @@ class Modern_Machine_Designer(object):
             # builtins.ad.visualize_dict['GeometricComponentsObjects']['statorCore'] = acm_variant.statorCore
             # builtins.ad.visualize_dict['GeometricComponentsObjects']['coils'] = acm_variant.coils
 
-        draw_spmsm(lw, width_in_points, height_in_points, bool_draw_whole_model=bool_draw_whole_model)
 
-    def FEA_evaluate(self, project_loc=fr'../_default/'):
+        # mm_r_ro 只在 bool_PermanentMagnet 为 True 时存在
+        if hasattr(self, 'mm_r_ro') and self.mm_r_ro.value is not None:
+            lw = 0.1 if self.mm_r_ro.value < 15 else 0.5
+        else:
+            # 使用默认值
+            lw = 0.5
+        # 检查必要的参数是否存在
+        if not hasattr(self, 'mm_r_so') or self.mm_r_so.value is None:
+            raise ValueError("mm_r_so parameter is required but not found or has no value")
+        width_in_points  = self.mm_r_so.value*2.1
+        height_in_points = self.mm_r_so.value*2.1
+        draw_spmsm(lw, width_in_points, height_in_points)
+
+    def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True):
 
         import os
         def get_pc_name():
@@ -574,69 +578,67 @@ class Modern_Machine_Designer(object):
             # Leave the solving task to JMAG
             def build_jmag_project(study_name):
                 import JMAG
-                toolJd = JMAG.JMAG(self.fea_config_dict, self.spec_input_dict)
-                toolJd.open(self.expected_project_file)
-            def draw_spmsm():
+                toolJd = JMAG.JMAG()
+                toolJd.open(Steel_name=self.EX['SteelMaterial'], expected_project_file_path=self.expected_project_file, pc_name=pc_name, dir_parent=dir_parent, bool_jmagDesignerShow=bool_jmagDesignerShow)
+                return toolJd
+
+            def draw_spmsm(toolJd):
                 import numpy as np
                 # gray
                 color_rgb_A = np.array([236,236,236])/255
                 color_rgb_B = np.array([226,226,226])/255
 
                 # Rotor Core
-                list_regions_1 = acm_variant.rotorCore.draw(self)
+                list_regions_1 = self.machineGeometry['rotorCore'].draw(toolJd)
                 self.bMirror = False
-                self.iRotateCopy = acm_variant.rotorCore.p*2
-                region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
+                self.iRotateCopy = self.machineGeometry['rotorCore'].p*2
+                region1 = toolJd.prepareSection(list_regions_1, color=color_rgb_A)
 
                 # Shaft
-                list_regions = acm_variant.shaft.draw(self)
+                list_regions = self.machineGeometry['shaft'].draw(toolJd)
                 self.bMirror = False
                 self.iRotateCopy = 1
-                region0 = self.prepareSection(list_regions)
+                region0 = toolJd.prepareSection(list_regions)
 
                 # Rotor Magnet
-                list_regions = acm_variant.rotorMagnet.draw(self)
+                list_regions = self.machineGeometry['rotorMagnet'].draw(toolJd)
                 self.bMirror = False
-                self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
-                region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
+                self.iRotateCopy = self.machineGeometry['rotorMagnet'].notched_rotor.p*2
+                region2 = toolJd.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
                 # Sleeve
-                list_regions = acm_variant.sleeve.draw(self)
+                list_regions = self.machineGeometry['sleeve'].draw(toolJd)
                 self.bMirror = False
-                self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
-                regionS = self.prepareSection(list_regions)
+                self.iRotateCopy = self.machineGeometry['rotorMagnet'].notched_rotor.p*2
+                regionS = toolJd.prepareSection(list_regions)
 
                 # Stator Core
-                list_regions = acm_variant.statorCore.draw(self)
+                list_regions = self.machineGeometry['statorCore'].draw(toolJd)
                 self.bMirror = True
-                self.iRotateCopy = acm_variant.statorCore.Q
-                region3 = self.prepareSection(list_regions, color=color_rgb_A)
+                self.iRotateCopy = self.machineGeometry['statorCore'].Q
+                region3 = toolJd.prepareSection(list_regions, color=color_rgb_A)
 
                 # Stator Winding
-                list_regions = acm_variant.coils.draw(self)
+                list_regions = self.machineGeometry['coils'].draw(toolJd)
                 self.bMirror = False
-                self.iRotateCopy = acm_variant.coils.statorCore.Q
-                region4 = self.prepareSection(list_regions)
+                self.iRotateCopy = self.machineGeometry['coils']['statorCore'].Q
+                region4 = toolJd.prepareSection(list_regions)
 
-                # '''
-                # '''
-                self.calculate_excitation_current(acm_variant)
+                # self.calculate_excitation_current(acm_variant)
 
                 # Import Model into Designer
-                self.save(acm_variant.name, self.show(acm_variant, toString=False))
+                toolJd.save(self.name, self.to_json())
 
-
-                app = toolJd.app
+            def add_transient_study(toolJd):
 
                 # JMAG
+                app = toolJd.app
                 if app.NumModels()>=1:
-                    model = app.GetModel(acm_variant.name)
+                    model = app.GetModel(self.name)
                 else:
-                    logger = logging.getLogger(__name__)
-                    logger.error('there is no model yet for %s'%(acm_variant.name))
-                    raise Exception('why is there no model yet? %s'%(acm_variant.name))
+                    raise Exception('why is there no model yet? %s'%(self.name))
 
-                if 'PMSM' in acm_variant.template.name:
+                if 'PMSM' in self.name:
                     toolJd.pre_process_PMSM(app, model, acm_variant)
 
                 study = toolJd.add_magnetic_transient_study(app, model, self.path2FEACsv, study_name, acm_variant)
@@ -645,15 +647,14 @@ class Modern_Machine_Designer(object):
                 toolJd.run_study(acm_variant, app, study, acm_variant.template.fea_config_dict, clock_time())
 
                 # export Voltage if field data exists.
-                if acm_variant.template.fea_config_dict['delete_results_after_calculation'] == False:
+                if self.EX['bool_jmagDeleteResultsAfterCalculation'] == False:
                     # Export Circuit Voltage
                     ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                     app.GetDataManager().CreateGraphModel(ref1)
                     app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
 
-                self.toolJd = self.build_jmag_project(acm_variant, self.project_meta_data, bool_re_evaluate=bool_re_evaluate)
-
-            def compile_results(results_to_be_unpacked):
+            def compile_results(study_name, toolJd):
+                results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.path2FEACsv, self.fea_config_dict, femm_solver=None)
                 cost_function, f1, f2, f3, FRW, \
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \
@@ -755,16 +756,17 @@ class Modern_Machine_Designer(object):
                 # this is for optimization
                 acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
 
-            build_jmag_project(study_name)
+            self.toolJd = build_jmag_project(study_name)
             if 'PMSM' in self.name:
-                draw_spmsm()
-            results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.path2FEACsv, self.fea_config_dict, femm_solver=None)
-            compile_results(results_to_be_unpacked)
+                draw_spmsm(self.toolJd)
+            add_transient_study(self.toolJd)
+            compile_results(study_name, self.toolJd)
 
         elif 'FEMM' in self.select_FEA_tool:
-            self.toolFEMM = self.build_femm_project(acm_variant)
+            pass 
+            # self.toolFEMM = self.build_femm_project(acm_variant)
             # acm_variant.results_to_be_unpacked = results_to_be_unpacked = toolFEMM.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
-            return acm_variant
+            # return acm_variant
         else:
             raise Exception('[acm_designer.py] Wrong string of select_FEA_tool:', self.select_FEA_tool)
 
