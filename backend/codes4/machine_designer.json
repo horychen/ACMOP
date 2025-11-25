@@ -1,10 +1,10 @@
 {
+  "name": "SuperCoolPMSM",
   "machine_class": "bearingless_spmsm_heart.bearingless_spmsm_design_variant",
   "bool_PermanentMagnet": true,
   "bool_StatorSlotClosed": false,
   "bool_RotorNotched": true,
   "select_FEA_tool": "JMAG",
-  "name": "SuperCoolName",
   "m": {
     "name": "phase_number_m",
     "type": "fixed",
@@ -345,5 +345,21 @@
     "stator_slot_number_Qs": 12,
     "pole_pair_number_p": 4,
     "suspension_pole_pair_number_ps": 5
+  },
+  "EX": {
+    "bool_WyeConnectOrDeltaConnect": true,
+    "DCBusVoltage": 400,
+    "Js": 4000000.0,
+    "WindingFill": 0.3882,
+    "TORQUE_CURRENT_RATIO": 0.95,
+    "SUSPENSION_CURRENT_RATIO": 0.05,
+    "zQ": 2.0,
+    "mm2_slot_area": 22259.422158806734,
+    "CurrentAmp_in_the_slot": 48881.48671151886,
+    "CurrentAmp_per_conductor": 24440.74335575943,
+    "CurrentAmp_per_phase": 48881.48671151886,
+    "TORQUE_CURRENT": 46437.41237594291,
+    "SUSPENSION_CURRENT": 2444.074335575943,
+    "slot_current_utilizing_ratio_for_torque": 0.9999999999999999
   }
 }

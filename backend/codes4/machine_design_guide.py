@@ -79,12 +79,16 @@ class Parameter(object):
         )
 
 class Winding(object):
-    def __init__(self, phase_number_m: int, stator_slot_number_Qs: int, pole_pair_number_p: int, suspension_pole_pair_number_ps: int) -> None:
+    def __init__(self, phase_number_m: int, stator_slot_number_Qs: int, pole_pair_number_p: int, suspension_pole_pair_number_ps: int, number_of_parallel_branch: int=2) -> None:
         self.phase_number_m = phase_number_m
         self.stator_slot_number_Qs = stator_slot_number_Qs
         self.pole_pair_number_p = pole_pair_number_p
         self.suspension_pole_pair_number_ps = suspension_pole_pair_number_ps
-    
+
+        self.number_of_parallel_branch = number_of_parallel_branch
+
+        self.kw1 = 0.933
+
     def to_dict(self) -> Dict[str, Any]:
         """将 Winding 对象转换为字典"""
         return {
@@ -176,23 +180,33 @@ class Modern_Machine_Designer(object):
 
     def __post_init__(self):
 
-        Qs = 12
-        p = 4
-        ps = 5
-        coil_pitch_y = 1
+        # 绕组
+        m: int = 3
+        Qs: int = 12
+        p : int = 4
+        ps: int = 5
+        coil_pitch_y: int = 1
 
-        # 裂比
+        # 激励（含热负荷）
+        bool_WyeConnectOrDeltaConnect: bool = True
+        DCBusVoltage: float = 400
+        Js: float = 4e6
+        WindingFill: float = 0.3882
+        RatedSpeed = 30000 # rpm
+        ExcitationFreqSimulated = RatedSpeed / 60 * p
+        TORQUE_CURRENT_RATIO = 0.95
+        SUSPENSION_CURRENT_RATIO = 0.05
+
+        # 定子裂比和外径
         SR = 0.35
-
-        # 定子
         mm_r_so = 123.5
 
         # 利用不同的裂比去估算合理的边界值
         yoke_split_ratio_bounds = [0.2, 0.45]
-        tooth_split_ratio_at_middle_slot = [0.25, 0.50]
+        tooth_split_ratio_at_middle_slot = [0.25, 0.50] # TODO: 下界需要考虑到w_st的宽度和半径的值
 
         '''Fixed variables'''
-        self.m: Parameter            = Parameter('phase_number_m', 'fixed', 3)
+        self.m: Parameter            = Parameter('phase_number_m', 'fixed', m)
         self.Qs: Parameter           = Parameter('stator_slot_number_Qs', 'fixed', Qs)
         self.p: Parameter            = Parameter('pole_pair_number_p', 'fixed', p)
         self.ps: Parameter           = Parameter('suspension_pole_pair_number_ps', 'fixed', ps)
@@ -212,8 +226,6 @@ class Modern_Machine_Designer(object):
 
         # 计算 mm_r_si 的初始值用于 calc_bounds
         mm_r_si_initial = mm_r_so * SR
-
-        # TODO: 下界需要考虑到w_st的宽度和半径的值
         self.mm_w_st: Parameter = Parameter('stator_tooth_width', 'free', calc_bounds=lambda mm_r_so, mm_r_si, tooth_split_ratio_at_middle_slot, Q: [el / Q * math.pi * (mm_r_so + mm_r_si) for el in tooth_split_ratio_at_middle_slot], args=[mm_r_so, mm_r_si_initial, tooth_split_ratio_at_middle_slot, Qs])
         self.mm_d_sy: Parameter = Parameter('stator_yoke_depth', 'free', calc_bounds=lambda mm_r_so, mm_r_si, yoke_split_ratio_bounds: [el * (mm_r_so - mm_r_si) for el in yoke_split_ratio_bounds], args=[mm_r_so, mm_r_si_initial, yoke_split_ratio_bounds])
         self.mm_d_sts: Parameter = Parameter('stator_tooth_shoe_depth', 'free', bounds=[1, 5])
@@ -371,40 +383,47 @@ class Modern_Machine_Designer(object):
                 _calculate_points=lambda: None
             )
 
-mm_d_st: Parameter      = Parameter('stator_tooth_depth', 'derived', calc=lambda mm_r_so, mm_r_si, mm_d_sy, mm_d_sts: mm_r_so - mm_r_si - mm_d_sy - mm_d_sts, args=[self.mm_r_so.value, self.mm_r_si.value, self.mm_d_sy.value, self.mm_d_sts.value])
-    @staticmethod
-    def calculate_excitation_current(acm_variant):
-        # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
-        EX = acm_variant.template.SI['EX']
-        CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
-        CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
-        CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
-
-        # Maybe there is a bug here... regarding the excitation for suspension winding...
-        # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
-        # variant_BeariW_CurrentAmp =  CurrentAmp_per_phase * 1 # number_parallel_branch is 1 for suspension winding
-        EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
-        variant_DriveW_CurrentAmp = EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['circuit.TORQUE_CURRENT_RATIO'] * CurrentAmp_per_phase
-        variant_BeariW_CurrentAmp = EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['circuit.SUSPENSION_CURRENT_RATIO'] * CurrentAmp_per_phase
-        # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
-                                                                                                    # EX['CurrentAmp_per_phase'],
-                                                                                                    # EX['DriveW_CurrentAmp'],
-                                                                                                    # EX['BeariW_CurrentAmp'])
-
-        slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
-        print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
-        print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
-        print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
-        print('---acm_variant.DriveW_CurrentAmp =', variant_DriveW_CurrentAmp)
-        print('---acm_variant.BeariW_CurrentAmp =', variant_BeariW_CurrentAmp)
-        print('---TORQUE_CURRENT_RATIO:', acm_variant.template.fea_config_dict['circuit.TORQUE_CURRENT_RATIO'])
-        print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['circuit.SUSPENSION_CURRENT_RATIO'])
-        print('---DriveW_zQ:', EX['DriveW_zQ'])
-
-
-
-
-        self.wily = Winding(phase_number_m=self.m.value if hasattr(self, "m") and self.m.value is not None else 3, stator_slot_number_Qs=self.Qs.value if hasattr(self, "Qs") and self.Qs.value is not None else 12, pole_pair_number_p=self.p.value if hasattr(self, "p") and self.p.value is not None else 4, suspension_pole_pair_number_ps=self.ps.value if hasattr(self, "ps") and self.ps.value is not None else 5)
+        ''' Excitations Consiering Thermal Capability Limit (Simple) '''
+        self.wily = Winding(m, Qs, p, ps)
+        mm_r_sy = self.mm_r_so.value - self.mm_d_sy.value  # radius stator yoke
+        mm_r_ss = self.mm_r_si.value + self.mm_d_sts.value # radius stator slot
+        self.EX = EX = {
+            'bool_WyeConnectOrDeltaConnect' : bool_WyeConnectOrDeltaConnect,
+            'DCBusVoltage' : DCBusVoltage,
+            'Js' : Js,
+            'WindingFill' : WindingFill,
+            'TORQUE_CURRENT_RATIO': TORQUE_CURRENT_RATIO,
+            'SUSPENSION_CURRENT_RATIO': SUSPENSION_CURRENT_RATIO
+        }
+        V_stator_phase_voltage_amp = math.sqrt(2) *DCBusVoltage / (math.sqrt(3) if bool_WyeConnectOrDeltaConnect else 1.0) 
+        V_desired_emf_Em = 0.95 * V_stator_phase_voltage_amp
+        alpha_i = 2.0/math.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
+        T_air_gap_flux_density_Bg_guessed = 0.9 # T
+        mm_stack_length_specified = 50 # mm
+        mm_d_magnetic_air_gap = self.mm_d_mech_air_gap.value + self.mm_d_sleeve.value
+        mm_stack_length_effective = mm_stack_length_specified + 2 * mm_d_magnetic_air_gap
+        mm_pole_pitch_tau_p = math.pi *self.mm_r_si.value / p
+        Wb_air_gap_flux_Phi_m = alpha_i * T_air_gap_flux_density_Bg_guessed * mm_pole_pitch_tau_p * mm_stack_length_effective*1e-3 # Wb
+        no_series_coil_turns_N = V_desired_emf_Em / (2*math.pi* ExcitationFreqSimulated * self.wily.kw1 * Wb_air_gap_flux_Phi_m)
+        no_series_coil_turns_N = round(no_series_coil_turns_N)
+        SPP = Qs / (2*p*m) # slot per pole per phase
+        bool_weHavePlentyVoltage = True
+        if bool_weHavePlentyVoltage:
+            no_series_coil_turns_N = min([p*SPP*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
+        else:
+            no_series_coil_turns_N = min([p*SPP*i for i in range(1000)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
+        print(f'[zQ] We need {no_series_coil_turns_N=} to reach the desired voltage: {V_desired_emf_Em=} V when {DCBusVoltage=} V')
+        if no_series_coil_turns_N > 990:
+            raise Exception(f'What? no_series_coil_turns_N is too large: {no_series_coil_turns_N=}')
+        print('[zQ] no_series_coil_turns_N should be multiple of pq: %s = q * p = %s * %s', no_series_coil_turns_N, SPP, p)
+        EX['zQ'] = no_conductors_per_slot_zQ = 2* m * no_series_coil_turns_N / Qs * self.wily.number_of_parallel_branch
+        EX['mm2_slot_area']            = math.pi*(mm_r_sy**2 - mm_r_ss**2) - self.mm_w_st.value * self.mm_d_st.value # 计算槽面积
+        EX['CurrentAmp_in_the_slot']   = EX['mm2_slot_area'] * 1e-6 * Js * WindingFill * math.sqrt(2)
+        EX['CurrentAmp_per_conductor'] = EX['CurrentAmp_in_the_slot'] / EX['zQ']
+        EX['CurrentAmp_per_phase']     = EX['CurrentAmp_per_conductor'] * self.wily.number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+        EX['TORQUE_CURRENT']     = EX['TORQUE_CURRENT_RATIO']     * EX['CurrentAmp_per_phase']
+        EX['SUSPENSION_CURRENT'] = EX['SUSPENSION_CURRENT_RATIO'] * EX['CurrentAmp_per_phase']
+        EX['slot_current_utilizing_ratio_for_torque'] = (EX['TORQUE_CURRENT'] + EX['SUSPENSION_CURRENT']) / EX['CurrentAmp_per_phase']
 
     def getSketch(self, name, color):
         self.name = name

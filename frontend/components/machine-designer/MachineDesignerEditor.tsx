@@ -546,26 +546,43 @@ export default function MachineDesignerEditor() {
                                 </thead>
                                 <tbody>
                                   {gpEntries.map(([gpKey, gpDisplayName]) => {
-                                    // 从 data 中直接读取参数信息（JSON 中的键名就是参数键）
+                                    // 从顶层 data 读取参数定义（包含 type, unit, bounds 等）
                                     const paramData = data[gpKey] as ParameterData | undefined;
                                     
-                                    // 从 API 获取的参数信息中查找 calc 和 calc_bounds（使用 name 字段匹配）
-                                    const apiParamInfo = paramData 
-                                      ? Object.values(parametersInfo).find(p => p.name === paramData.name)
-                                      : null;
+                                    // 从组件内部读取实际值（优先级更高，因为这是组件特定的值）
+                                    const componentValue = (componentData as any)[gpKey];
+                                    
+                                    // 从 API 获取的参数信息中查找（使用 name 字段匹配）
+                                    let apiParamInfo: ParameterInfo | null = null;
+                                    if (paramData?.name) {
+                                      apiParamInfo = parametersInfo[paramData.name] || null;
+                                    } else {
+                                      // 如果顶层没有定义，尝试直接用 gpKey 查找
+                                      apiParamInfo = parametersInfo[gpKey] || null;
+                                    }
                                     
                                     // 构建完整的参数信息
-                                    const paramInfo: ParameterInfo | null = paramData ? {
-                                      name: paramData.name,
-                                      displayName: paramData.name,
-                                      type: paramData.type,
-                                      unit: paramData.unit,
-                                      value: paramData.value,
-                                      bounds: paramData.bounds,
+                                    // 优先使用组件内部的值，如果没有则使用顶层定义的值，最后使用 API 的值
+                                    const finalValue = componentValue !== undefined 
+                                      ? componentValue 
+                                      : (paramData?.value !== undefined ? paramData.value : (apiParamInfo?.value));
+                                    
+                                    // 优先使用顶层定义的类型和单位，如果没有则使用 API 的信息
+                                    const finalType = paramData?.type || apiParamInfo?.type || "unknown";
+                                    const finalUnit = paramData?.unit || apiParamInfo?.unit || "-";
+                                    const finalBounds = paramData?.bounds || apiParamInfo?.bounds || null;
+                                    
+                                    const paramInfo: ParameterInfo | null = (paramData || componentValue !== undefined || apiParamInfo) ? {
+                                      name: paramData?.name || apiParamInfo?.name || gpKey,
+                                      displayName: gpDisplayName,
+                                      type: finalType,
+                                      unit: finalUnit,
+                                      value: finalValue,
+                                      bounds: finalBounds,
                                       calc: apiParamInfo?.calc || null,
                                       calc_bounds: apiParamInfo?.calc_bounds || null,
                                       args: apiParamInfo?.args || [],
-                                      comment: paramData.comment || ""
+                                      comment: paramData?.comment || apiParamInfo?.comment || ""
                                     } : null;
                                     
                                     const rowKey = `${componentName}-${gpKey}`;
@@ -605,11 +622,19 @@ export default function MachineDesignerEditor() {
                                             )}
                                           </td>
                                           <td className="p-2 text-right font-mono">
-                                            {paramInfo?.value !== null && paramInfo?.value !== undefined 
-                                              ? typeof paramInfo.value === 'number' 
-                                                ? paramInfo.value.toFixed(3) 
-                                                : String(paramInfo.value)
-                                              : "-"}
+                                            {(() => {
+                                              // 优先显示 paramInfo 的值，如果没有则显示组件内部的值
+                                              const displayValue = paramInfo?.value !== null && paramInfo?.value !== undefined
+                                                ? paramInfo.value
+                                                : (componentValue !== undefined ? componentValue : null);
+                                              
+                                              if (displayValue !== null && displayValue !== undefined) {
+                                                return typeof displayValue === 'number' 
+                                                  ? displayValue.toFixed(3) 
+                                                  : String(displayValue);
+                                              }
+                                              return "-";
+                                            })()}
                                           </td>
                                           <td className="p-2 text-right font-mono text-xs">
                                             {paramInfo?.bounds 

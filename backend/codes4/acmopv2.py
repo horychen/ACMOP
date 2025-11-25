@@ -477,6 +477,40 @@ async def get_sensitivity_analysis(request: AnalysisRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"获取敏感性分析数据时出错: {str(e)}")
 
 
+@router.get("/default-machine-designer")
+async def get_default_machine_designer() -> Dict[str, Any]:
+    """
+    获取默认的 machine_designer.json 配置
+    
+    返回完整的默认配置，用于前端初始化
+    """
+    try:
+        # 获取当前文件所在目录
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        json_path = os.path.join(current_dir, "machine_designer.json")
+        
+        if not os.path.exists(json_path):
+            raise HTTPException(
+                status_code=404, 
+                detail=f"默认配置文件不存在: {json_path}"
+            )
+        
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        return data
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"JSON解析失败: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"读取默认配置失败: {str(e)}"
+        )
+
+
 @router.post("/optimization-results")
 async def get_optimization_results(request: AnalysisRequest) -> Dict[str, Any]:
     """
