@@ -126,30 +126,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         self.fea_config_dict = fea_config_dict
         self.spec_input_dict = spec_input_dict
 
-        # self.output_dir = self.fea_config_dict['dir.parent'] + self.fea_config_dict['run_folder']
-        # self.SIir_csv_output_folder = self.output_dir + 'csv/'
-        # if not os.path.isdir(self.output_dir):
-        #     os.makedirs(self.output_dir)
-        # if not os.path.isdir(self.SIir_csv_output_folder):
-        #     os.makedirs(self.SIir_csv_output_folder)
-
-        # # post-process feature
-        # self.fig_main, self.axeses = plt.subplots(2, 2, sharex=True, dpi=150, figsize=(16, 8), facecolor='w', edgecolor='k')
-        # utility.pyplot_clear(self.axeses)
-
-        # self.folder_to_be_deleted = None
-
-        # if os.path.exists(self.output_dir+'swarm_MOO_log.txt'):
-        #     os.rename(self.output_dir+'swarm_MOO_log.txt', self.output_dir+'swarm_MOO_log_backup.txt')
-        # open(self.output_dir+'swarm_MOO_log.txt', 'a').close()
-
-
-        #   File "C:\Users\horyc\Anaconda3\lib\site-packages\win32com\client\dynamic.py", line 527, in __getattr__
-        #     raise AttributeError("%s.%s" % (self._username_, attr))
-        # AttributeError: designer.Application.171.Hide
-        # 减少对app.Hide的调用，初始默认是Hide
-        # self.hide_or_show = None
-
     def open(self, expected_project_file_path):
         if self.app is None:
             # 在 Streamlit 等多线程环境中，需要显式初始化 COM

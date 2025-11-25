@@ -137,6 +137,15 @@ class CrossSectInnerRotorStator:
         self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
         self.list_region = [list_segments]
+        
+        # Pass point coordinates to drawer for frontend visualization
+        if not hasattr(drawer, 'visualization_points'):
+            drawer.visualization_points = {}
+        drawer.visualization_points[self.name] = {
+            'P1': P1, 'P2': P2, 'P3': P3, 'P4': P4, 'P5': P5, 'P6': P6, 'P7': P7, 'P8': P8,
+            'P2_Mirror': P2_Mirror, 'P3_Mirror': P3_Mirror, 'P4_Mirror': P4_Mirror, 'P5_Mirror': P5_Mirror
+        }
+        
         return {'innerCoord': self.innerCoord, 'list_regions':[list_segments], 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])]}
 
     def drawArc(self, center, PA, PB):
@@ -347,6 +356,16 @@ class CrossSectInnerRotorStatorWinding(object):
             drawer.getSketch(self.name, self.color)
 
         if bool_re_evaluate:
+            # Pass point coordinates to drawer for frontend visualization
+            if not hasattr(drawer, 'visualization_points'):
+                drawer.visualization_points = {}
+            drawer.visualization_points[self.name] = {
+                'P1': P1, 'POpen': POpen, 'P4': P4, 'P5': P5, 'P6': P6,
+                'PCoil': PCoil, 'P6_Shrink': P6_Shrink, 'P5_Shrink': P5_Shrink,
+                'P4_Shrink': P4_Shrink, 'POpen_Shrink': POpen_Shrink,
+                'P6_Shrink_Mirror': P6_Shrink_Mirror, 'P5_Shrink_Mirror': P5_Shrink_Mirror,
+                'P4_Shrink_Mirror': P4_Shrink_Mirror, 'POpen_Shrink_Mirror': POpen_Shrink_Mirror
+            }
             return mm2_slot_area
 
         list_regions = []
@@ -405,9 +424,21 @@ class CrossSectInnerRotorStatorWinding(object):
             list_segments = []
 
         # 我乱给的
-        self.innerCoord = ( 0.5*(self.POpen[0]+self.P6[0]), 0.5*(self.POpen[1]+self.P6[1]))
+        self.innerCoord = ( 0.5*(POpen[0]+P6[0]), 0.5*(POpen[1]+P6[1]))
 
         self.list_region = list_regions
+        
+        # Pass point coordinates to drawer for frontend visualization
+        if not hasattr(drawer, 'visualization_points'):
+            drawer.visualization_points = {}
+        drawer.visualization_points[self.name] = {
+            'P1': P1, 'POpen': POpen, 'P4': P4, 'P5': P5, 'P6': P6,
+            'PCoil': PCoil, 'P6_Shrink': P6_Shrink, 'P5_Shrink': P5_Shrink,
+            'P4_Shrink': P4_Shrink, 'POpen_Shrink': POpen_Shrink,
+            'P6_Shrink_Mirror': P6_Shrink_Mirror, 'P5_Shrink_Mirror': P5_Shrink_Mirror,
+            'P4_Shrink_Mirror': P4_Shrink_Mirror, 'POpen_Shrink_Mirror': POpen_Shrink_Mirror
+        }
+        
         return {'innerCoord': self.innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
 
 
@@ -565,10 +596,19 @@ class CrossSectInnerRotorStator_PMAtYoke:
             # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
             #     print(ind+1, point, sqrt(point[0]**2+point[1]**2))
 
-            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+            innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
             self.list_region = [list_segments]
-            return {'innerCoord': self.innerCoord, 
+            
+            # Pass point coordinates to drawer for frontend visualization
+            if not hasattr(drawer, 'visualization_points'):
+                drawer.visualization_points = {}
+            drawer.visualization_points[self.name] = {
+                'P1': P1, 'P2': P2, 'P3': P3, 'P4': P4, 'P5': P5, 'P6': P6, 'P7': P7, 'P8': P8, 'P0': P0,
+                'P2_Mirror': P2_Mirror, 'P3_Mirror': P3_Mirror, 'P4_Mirror': P4_Mirror, 'P5_Mirror': P5_Mirror
+            }
+            
+            return {'innerCoord': innerCoord, 
                     'list_regions':[list_segments], 
                     'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
                     'inner_or_outer_region_to_remove': [False, True]
@@ -703,6 +743,15 @@ class CrossSectStatorMagnetAtYoke:
             innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
             self.list_region = [list_segments]
+            
+            # Pass point coordinates to drawer for frontend visualization
+            if not hasattr(drawer, 'visualization_points'):
+                drawer.visualization_points = {}
+            drawer.visualization_points[self.name] = {
+                'P1': P1, 'P2': P2, 'P3': P3, 'P4': P4, 'P5': P5, 'P6': P6, 'P7': P7, 'P8': P8, 'P0': P0,
+                'P2_Mirror': P2_Mirror, 'P3_Mirror': P3_Mirror, 'P4_Mirror': P4_Mirror, 'P5_Mirror': P5_Mirror
+            }
+            
             return {'innerCoord': innerCoord, 
                     'list_regions':[list_segments], 
                     # 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
@@ -855,11 +904,21 @@ class CrossSectToroidalWiniding:
             # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
             #     print(ind+1, point, sqrt(point[0]**2+point[1]**2))
 
-            # self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+            # innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
             self.list_region = [list_segments]
+            self.wily = wily
+            
+            # Pass point coordinates to drawer for frontend visualization
+            if not hasattr(drawer, 'visualization_points'):
+                drawer.visualization_points = {}
+            drawer.visualization_points[self.name] = {
+                'P1': P1, 'P2': P2, 'P3': P3, 'P4': P4, 'P5': P5, 'P6': P6, 'P7': P7, 'P8': P8, 'P0': P0,
+                'P2_Mirror': P2_Mirror, 'P3_Mirror': P3_Mirror, 'P4_Mirror': P4_Mirror, 'P5_Mirror': P5_Mirror
+            }
+            
             return {
-                    # 'innerCoord': self.innerCoord, 
+                    # 'innerCoord': innerCoord, 
                     'list_regions':[list_segments], 
                     # 'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
                     # 'inner_or_outer_region_to_remove': [False, True]
@@ -1036,6 +1095,17 @@ class CrossSectInnerRotorStator_PMAtToothBody:
             self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
             self.list_region = [list_segments]
+            
+            # Pass point coordinates to drawer for frontend visualization
+            if not hasattr(drawer, 'visualization_points'):
+                drawer.visualization_points = {}
+            drawer.visualization_points[self.name] = {
+                'P0': P0, 'P1': P1, 'P2': P2, 'P3': P3, 'P4': P4, 'P5': P5, 'P6': P6, 'P7': P7, 'P8': P8,
+                'P_PM': P_PM, 'P5_OuterEdge': P5_OuterEdge,
+                'P1_Mirror': P1_Mirror, 'P2_Mirror': P2_Mirror, 'P3_Mirror': P3_Mirror,
+                'P4_Mirror': P4_Mirror, 'P5_Mirror': P5_Mirror, 'P_PM_Mirror': P_PM_Mirror
+            }
+            
             return {'innerCoord': self.innerCoord, 
                     'list_regions':[list_segments], 
                     'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
@@ -1062,10 +1132,21 @@ class CrossSectInnerRotorStator_PMAtToothBody:
 
             list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
 
-            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+            innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
             self.list_region = [list_segments]
-            return {'innerCoord': self.innerCoord, 
+            
+            # Pass point coordinates to drawer for frontend visualization
+            if not hasattr(drawer, 'visualization_points'):
+                drawer.visualization_points = {}
+            drawer.visualization_points[self.name] = {
+                'P0': P0, 'P1': P1, 'P2': P2, 'P3': P3, 'P4': P4, 'P5': P5, 'P6': P6, 'P7': P7, 'P8': P8,
+                'P_PM': P_PM,
+                'P1_Mirror': P1_Mirror, 'P2_Mirror': P2_Mirror, 'P3_Mirror': P3_Mirror,
+                'P4_Mirror': P4_Mirror, 'P5_Mirror': P5_Mirror, 'P_PM_Mirror': P_PM_Mirror
+            }
+            
+            return {'innerCoord': innerCoord, 
                     'list_regions':[list_segments], 
                     'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
                     # 'inner_or_outer_region_to_remove': [False, True]
@@ -1200,10 +1281,21 @@ class CrossSectStatorMagnetAtToothBody:
             # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
             #     print(ind+1, point, sqrt(point[0]**2+point[1]**2))
 
-            self.innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
+            innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
             self.list_region = [list_segments]
-            return {'innerCoord': self.innerCoord, 
+            
+            # Pass point coordinates to drawer for frontend visualization
+            if not hasattr(drawer, 'visualization_points'):
+                drawer.visualization_points = {}
+            drawer.visualization_points[self.name] = {
+                'P0': P0, 'P1': P1, 'P2': P2, 'P3': P3, 'P4': P4, 'P5': P5, 'P6': P6, 'P7': P7, 'P8': P8,
+                'P_PM': P_PM,
+                'P1_Mirror': P1_Mirror, 'P2_Mirror': P2_Mirror, 'P3_Mirror': P3_Mirror,
+                'P4_Mirror': P4_Mirror, 'P5_Mirror': P5_Mirror, 'P_PM_Mirror': P_PM_Mirror
+            }
+            
+            return {'innerCoord': innerCoord, 
                     'list_regions':[list_segments], 
                     'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],
                     'inner_or_outer_region_to_remove': [False, True]
@@ -1227,6 +1319,17 @@ class CrossSectStatorMagnetAtToothBody:
             innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
             self.list_region = [list_segments]
+            
+            # Pass point coordinates to drawer for frontend visualization
+            if not hasattr(drawer, 'visualization_points'):
+                drawer.visualization_points = {}
+            drawer.visualization_points[self.name] = {
+                'P0': P0, 'P1': P1, 'P2': P2, 'P3': P3, 'P4': P4, 'P5': P5, 'P6': P6, 'P7': P7, 'P8': P8,
+                'P_PM': P_PM,
+                'P1_Mirror': P1_Mirror, 'P2_Mirror': P2_Mirror, 'P3_Mirror': P3_Mirror,
+                'P4_Mirror': P4_Mirror, 'P5_Mirror': P5_Mirror, 'P_PM_Mirror': P_PM_Mirror
+            }
+            
             return {'innerCoord': innerCoord, 
                     'list_regions':[list_segments], 
                     'mirrorAxis': [(P8[0]+5, P8[1]), (P8[0]+15, P8[1])],

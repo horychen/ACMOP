@@ -165,13 +165,14 @@ class Geometry(object):
 @dataclass
 class Modern_Machine_Designer(object):
 
+    name: str = 'SuperCoolPMSM'
     machine_class: str = 'bearingless_spmsm_heart.bearingless_spmsm_design_variant'
+
     bool_PermanentMagnet: bool = True
     bool_StatorSlotClosed: bool = False
     bool_RotorNotched: bool = True
 
     select_FEA_tool: str = 'JMAG'
-    name: str = 'SuperCoolName'
 
     def __post_init__(self):
 
@@ -370,6 +371,39 @@ class Modern_Machine_Designer(object):
                 _calculate_points=lambda: None
             )
 
+mm_d_st: Parameter      = Parameter('stator_tooth_depth', 'derived', calc=lambda mm_r_so, mm_r_si, mm_d_sy, mm_d_sts: mm_r_so - mm_r_si - mm_d_sy - mm_d_sts, args=[self.mm_r_so.value, self.mm_r_si.value, self.mm_d_sy.value, self.mm_d_sts.value])
+    @staticmethod
+    def calculate_excitation_current(acm_variant):
+        # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
+        EX = acm_variant.template.SI['EX']
+        CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
+        CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
+        CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+
+        # Maybe there is a bug here... regarding the excitation for suspension winding...
+        # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
+        # variant_BeariW_CurrentAmp =  CurrentAmp_per_phase * 1 # number_parallel_branch is 1 for suspension winding
+        EX['CurrentAmp_per_phase'] = CurrentAmp_per_phase
+        variant_DriveW_CurrentAmp = EX['DriveW_CurrentAmp'] = acm_variant.template.fea_config_dict['circuit.TORQUE_CURRENT_RATIO'] * CurrentAmp_per_phase
+        variant_BeariW_CurrentAmp = EX['BeariW_CurrentAmp'] = acm_variant.template.fea_config_dict['circuit.SUSPENSION_CURRENT_RATIO'] * CurrentAmp_per_phase
+        # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
+                                                                                                    # EX['CurrentAmp_per_phase'],
+                                                                                                    # EX['DriveW_CurrentAmp'],
+                                                                                                    # EX['BeariW_CurrentAmp'])
+
+        slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+        print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
+        print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
+        print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
+        print('---acm_variant.DriveW_CurrentAmp =', variant_DriveW_CurrentAmp)
+        print('---acm_variant.BeariW_CurrentAmp =', variant_BeariW_CurrentAmp)
+        print('---TORQUE_CURRENT_RATIO:', acm_variant.template.fea_config_dict['circuit.TORQUE_CURRENT_RATIO'])
+        print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['circuit.SUSPENSION_CURRENT_RATIO'])
+        print('---DriveW_zQ:', EX['DriveW_zQ'])
+
+
+
+
         self.wily = Winding(phase_number_m=self.m.value if hasattr(self, "m") and self.m.value is not None else 3, stator_slot_number_Qs=self.Qs.value if hasattr(self, "Qs") and self.Qs.value is not None else 12, pole_pair_number_p=self.p.value if hasattr(self, "p") and self.p.value is not None else 4, suspension_pole_pair_number_ps=self.ps.value if hasattr(self, "ps") and self.ps.value is not None else 5)
 
     def getSketch(self, name, color):
@@ -464,17 +498,17 @@ class Modern_Machine_Designer(object):
             # 检查 machineGeometry 是否存在且包含必要的键
             if not hasattr(self, 'machineGeometry') or self.machineGeometry is None:
                 raise ValueError("machineGeometry is not initialized. Please ensure __post_init__ was called.")
-            
+
             # 安全地调用 draw 方法
-            if 'rotorCore' in self.machineGeometry and self.machineGeometry['rotorCore'] is not None:
+            if  'rotorCore' in self.machineGeometry and self.machineGeometry['rotorCore'] is not None\
+            and 'shaft' in self.machineGeometry and self.machineGeometry['shaft'] is not None\
+            and 'rotorMagnet' in self.machineGeometry and self.machineGeometry['rotorMagnet'] is not None\
+            and 'statorCore' in self.machineGeometry and self.machineGeometry['statorCore'] is not None\
+            and 'coils' in self.machineGeometry and self.machineGeometry['coils'] is not None:
                 list_regions = self.machineGeometry['rotorCore'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
-            if 'shaft' in self.machineGeometry and self.machineGeometry['shaft'] is not None:
                 list_regions = self.machineGeometry['shaft'].draw(self)
-            if 'rotorMagnet' in self.machineGeometry and self.machineGeometry['rotorMagnet'] is not None:
                 list_regions = self.machineGeometry['rotorMagnet'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
-            if 'statorCore' in self.machineGeometry and self.machineGeometry['statorCore'] is not None:
                 list_regions = self.machineGeometry['statorCore'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
-            if 'coils' in self.machineGeometry and self.machineGeometry['coils'] is not None:
                 list_regions = self.machineGeometry['coils'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
 
             apply_stroke(lw=lw)
@@ -507,43 +541,206 @@ class Modern_Machine_Designer(object):
         pc_name = get_pc_name()
         # os.chdir(dir_codes)
         self.path2SwarmData = project_loc + self.name.replace(' ', '_')+'/'
-        if not os.path.isdir(path2SwarmData): os.makedirs(path2SwarmData)
+        if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
 
         self.project_name = self.name+'proj'
         self.expected_project_file = self.path2SwarmData + "temp/%s.jproj"%(self.project_name)
 
-        self.path2FEACsv    = self.path2SwarmData + 'csv/'
-        if not os.path.isdir(self.dir_csv_output_folder): os.makedirs(self.dir_csv_output_folder)
+        self.path2FEACsv = self.path2SwarmData + 'csv/'
+        if not os.path.isdir(self.path2FEACsv): os.makedirs(self.path2FEACsv)
 
         if 'JMAG' in self.select_FEA_tool:
-
-            # study name
             study_name = self.project_name + "-Transient" # Change here and there 
 
             # Leave the solving task to JMAG
-            self.toolJd = self.build_jmag_project(acm_variant, self.project_meta_data, bool_re_evaluate=bool_re_evaluate)
-            import rich
-            rich.print(self.project_meta_data)
+            def build_jmag_project(study_name):
+                import JMAG
+                toolJd = JMAG.JMAG(self.fea_config_dict, self.spec_input_dict)
+                toolJd.open(self.expected_project_file)
+            def draw_spmsm():
+                import numpy as np
+                # gray
+                color_rgb_A = np.array([236,236,236])/255
+                color_rgb_B = np.array([226,226,226])/255
 
-            ################################################################
-            # Load data for cost function evaluation
-            ################################################################
-            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
-            if results_to_be_unpacked is not None:
-                if self.toolJd.fig_main is not None:
-                    try:
-                        if False:
-                            self.toolJd.fig_main.savefig(self.fea_config_dict['output_dir'] + acm_variant.name + 'results.png', dpi=150)
-                    except Exception as e:
-                        logger = logging.getLogger(__name__)
-                        logger.error('Exception in saving figure: %s', e)
-                        logger.info('Ignore error and continue.')
-                    finally:
-                        utility.pyplot_clear(self.toolJd.axeses)
-                # show()
-                return acm_variant 
-            else:
-                raise Exception('[acm_designer] results_to_be_unpacked is None.')
+                # Rotor Core
+                list_regions_1 = acm_variant.rotorCore.draw(self)
+                self.bMirror = False
+                self.iRotateCopy = acm_variant.rotorCore.p*2
+                region1 = self.prepareSection(list_regions_1, color=color_rgb_A)
+
+                # Shaft
+                list_regions = acm_variant.shaft.draw(self)
+                self.bMirror = False
+                self.iRotateCopy = 1
+                region0 = self.prepareSection(list_regions)
+
+                # Rotor Magnet
+                list_regions = acm_variant.rotorMagnet.draw(self)
+                self.bMirror = False
+                self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
+                region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
+
+                # Sleeve
+                list_regions = acm_variant.sleeve.draw(self)
+                self.bMirror = False
+                self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
+                regionS = self.prepareSection(list_regions)
+
+                # Stator Core
+                list_regions = acm_variant.statorCore.draw(self)
+                self.bMirror = True
+                self.iRotateCopy = acm_variant.statorCore.Q
+                region3 = self.prepareSection(list_regions, color=color_rgb_A)
+
+                # Stator Winding
+                list_regions = acm_variant.coils.draw(self)
+                self.bMirror = False
+                self.iRotateCopy = acm_variant.coils.statorCore.Q
+                region4 = self.prepareSection(list_regions)
+
+                # '''
+                # '''
+                self.calculate_excitation_current(acm_variant)
+
+                # Import Model into Designer
+                self.save(acm_variant.name, self.show(acm_variant, toString=False))
+
+
+                app = toolJd.app
+
+                # JMAG
+                if app.NumModels()>=1:
+                    model = app.GetModel(acm_variant.name)
+                else:
+                    logger = logging.getLogger(__name__)
+                    logger.error('there is no model yet for %s'%(acm_variant.name))
+                    raise Exception('why is there no model yet? %s'%(acm_variant.name))
+
+                if 'PMSM' in acm_variant.template.name:
+                    toolJd.pre_process_PMSM(app, model, acm_variant)
+
+                study = toolJd.add_magnetic_transient_study(app, model, self.path2FEACsv, study_name, acm_variant)
+                toolJd.mesh_study(acm_variant, app, model, study, output_dir=self.path2SwarmData)
+                # raise KeyboardInterrupt
+                toolJd.run_study(acm_variant, app, study, acm_variant.template.fea_config_dict, clock_time())
+
+                # export Voltage if field data exists.
+                if acm_variant.template.fea_config_dict['delete_results_after_calculation'] == False:
+                    # Export Circuit Voltage
+                    ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
+                    app.GetDataManager().CreateGraphModel(ref1)
+                    app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+
+                self.toolJd = self.build_jmag_project(acm_variant, self.project_meta_data, bool_re_evaluate=bool_re_evaluate)
+
+            def compile_results(results_to_be_unpacked):
+                cost_function, f1, f2, f3, FRW, \
+                normalized_torque_ripple, \
+                normalized_force_error_magnitude, \
+                force_error_angle, \
+                project_name, individual_name, \
+                number_current_generation, individual_index,\
+                power_factor, \
+                rated_ratio, \
+                rated_stack_length_mm, \
+                rated_total_loss, \
+                rated_stator_copper_loss_along_stack, \
+                rated_magnet_Joule_loss, \
+                rated_rotor_copper_loss_along_stack, \
+                stator_copper_loss_in_end_turn, \
+                rotor_copper_loss_in_end_turn, \
+                rated_iron_loss, \
+                rated_windage_loss, \
+                str_results, \
+                mm2_slot_area, \
+                coil_flux_linkage_peak2peak_value, \
+                TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
+                ss_avg_force_magnitude, rotor_weight, torque_average = acm_variant.results_to_be_unpacked
+
+                # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
+
+                spec_performance_dict = dict()
+                spec_performance_dict['x_denorm_dict'] = self.acm_template.SI['x_denorm_dict']
+                spec_performance_dict['project_name'] = project_name
+                spec_performance_dict['individual_name'] = individual_name
+                spec_performance_dict['number_current_generation'] = number_current_generation
+                spec_performance_dict['individual_index'] = individual_index
+                # spec_performance_dict['cost_function'] = cost_function
+                spec_performance_dict['f1'] = f1
+                spec_performance_dict['f2'] = f2
+                spec_performance_dict['f3'] = float(f3)
+                spec_performance_dict['TRV'] = TRV
+                spec_performance_dict['FRW'] = FRW
+                spec_performance_dict['torque_average'] = torque_average
+                spec_performance_dict['ss_avg_force_magnitude'] = ss_avg_force_magnitude
+                spec_performance_dict['rotor_weight'] = rotor_weight
+                spec_performance_dict['normalized_torque_ripple'] = float(normalized_torque_ripple)
+                spec_performance_dict['normalized_force_error_magnitude'] = float(normalized_force_error_magnitude)
+                spec_performance_dict['force_error_angle'] = float(force_error_angle)
+                spec_performance_dict['coil_flux_linkage_peak2peak_value'] = float(coil_flux_linkage_peak2peak_value)
+                spec_performance_dict['mm2_slot_area'] = mm2_slot_area
+                spec_performance_dict['Cost'] = Cost
+                spec_performance_dict['Cost_Fe'] = Cost_Fe
+                spec_performance_dict['Cost_Cu'] = Cost_Cu
+                spec_performance_dict['Cost_PM'] = Cost_PM
+                spec_performance_dict['power_factor'] = power_factor
+                spec_performance_dict['rated_ratio'] = rated_ratio
+                spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
+                spec_performance_dict['rated_total_loss'] = rated_total_loss
+                spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
+                spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
+                spec_performance_dict['rated_magnet_Joule_loss'] = rated_magnet_Joule_loss
+                spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
+                spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
+                spec_performance_dict['rated_iron_loss'] = rated_iron_loss
+                spec_performance_dict['rated_windage_loss'] = rated_windage_loss
+                # spec_performance_dict['str_results'] = str_results
+                spec_performance_dict['select_FEA_tool'] = self.select_FEA_tool
+                spec_performance_dict['moo.fitness_OA'] = self.fea_config_dict['moo.fitness_OA']
+                spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
+                spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
+
+                GP = acm_variant.template.SI['GP']
+                EX = acm_variant.template.SI['EX']
+
+                # Save to disk
+                # self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
+
+                number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
+                individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
+                builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
+                json_file_path = self.fea_config_dict['output_dir'] + self.select_spec + '.json'
+
+                # Read the possibly-existing current json data
+                try:
+                    if os.path.getsize(json_file_path) > 0:
+                        with open(json_file_path, 'r') as rf:
+                            loaded_json = json.load(rf)
+                    else:
+                        loaded_json = {}
+                except Exception:
+                    loaded_json = {}
+
+                # Compose new key
+                key = f'gen{number_current_generation}-ind{individual_index}'
+                loaded_json[key] = builtins.ad.visualize_dict
+
+                json_string = jsonpickle.encode(loaded_json, indent=4)
+                with open(json_file_path, 'w+') as f:
+                    f.write(json_string)
+
+                number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
+                individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
+
+                # this is for optimization
+                acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
+
+            build_jmag_project(study_name)
+            if 'PMSM' in self.name:
+                draw_spmsm()
+            results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.path2FEACsv, self.fea_config_dict, femm_solver=None)
+            compile_results(results_to_be_unpacked)
 
         elif 'FEMM' in self.select_FEA_tool:
             self.toolFEMM = self.build_femm_project(acm_variant)
@@ -552,109 +749,6 @@ class Modern_Machine_Designer(object):
         else:
             raise Exception('[acm_designer.py] Wrong string of select_FEA_tool:', self.select_FEA_tool)
 
-
-        if 'JMAG' in self.select_FEA_tool:
-
-            cost_function, f1, f2, f3, FRW, \
-            normalized_torque_ripple, \
-            normalized_force_error_magnitude, \
-            force_error_angle, \
-            project_name, individual_name, \
-            number_current_generation, individual_index,\
-            power_factor, \
-            rated_ratio, \
-            rated_stack_length_mm, \
-            rated_total_loss, \
-            rated_stator_copper_loss_along_stack, \
-            rated_magnet_Joule_loss, \
-            rated_rotor_copper_loss_along_stack, \
-            stator_copper_loss_in_end_turn, \
-            rotor_copper_loss_in_end_turn, \
-            rated_iron_loss, \
-            rated_windage_loss, \
-            str_results, \
-            mm2_slot_area, \
-            coil_flux_linkage_peak2peak_value, \
-            TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
-            ss_avg_force_magnitude, rotor_weight, torque_average = acm_variant.results_to_be_unpacked
-
-            # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
-
-            spec_performance_dict = dict()
-            spec_performance_dict['x_denorm_dict'] = self.acm_template.SI['x_denorm_dict']
-            spec_performance_dict['project_name'] = project_name
-            spec_performance_dict['individual_name'] = individual_name
-            spec_performance_dict['number_current_generation'] = number_current_generation
-            spec_performance_dict['individual_index'] = individual_index
-            # spec_performance_dict['cost_function'] = cost_function
-            spec_performance_dict['f1'] = f1
-            spec_performance_dict['f2'] = f2
-            spec_performance_dict['f3'] = float(f3)
-            spec_performance_dict['TRV'] = TRV
-            spec_performance_dict['FRW'] = FRW
-            spec_performance_dict['torque_average'] = torque_average
-            spec_performance_dict['ss_avg_force_magnitude'] = ss_avg_force_magnitude
-            spec_performance_dict['rotor_weight'] = rotor_weight
-            spec_performance_dict['normalized_torque_ripple'] = float(normalized_torque_ripple)
-            spec_performance_dict['normalized_force_error_magnitude'] = float(normalized_force_error_magnitude)
-            spec_performance_dict['force_error_angle'] = float(force_error_angle)
-            spec_performance_dict['coil_flux_linkage_peak2peak_value'] = float(coil_flux_linkage_peak2peak_value)
-            spec_performance_dict['mm2_slot_area'] = mm2_slot_area
-            spec_performance_dict['Cost'] = Cost
-            spec_performance_dict['Cost_Fe'] = Cost_Fe
-            spec_performance_dict['Cost_Cu'] = Cost_Cu
-            spec_performance_dict['Cost_PM'] = Cost_PM
-            spec_performance_dict['power_factor'] = power_factor
-            spec_performance_dict['rated_ratio'] = rated_ratio
-            spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
-            spec_performance_dict['rated_total_loss'] = rated_total_loss
-            spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
-            spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
-            spec_performance_dict['rated_magnet_Joule_loss'] = rated_magnet_Joule_loss
-            spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
-            spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
-            spec_performance_dict['rated_iron_loss'] = rated_iron_loss
-            spec_performance_dict['rated_windage_loss'] = rated_windage_loss
-            # spec_performance_dict['str_results'] = str_results
-            spec_performance_dict['select_FEA_tool'] = self.select_FEA_tool
-            spec_performance_dict['moo.fitness_OA'] = self.fea_config_dict['moo.fitness_OA']
-            spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
-            spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
-
-            GP = acm_variant.template.SI['GP']
-            EX = acm_variant.template.SI['EX']
-
-            # Save to disk
-            # self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
-
-            number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
-            individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
-            builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
-            json_file_path = self.fea_config_dict['output_dir'] + self.select_spec + '.json'
-
-            # Read the possibly-existing current json data
-            try:
-                if os.path.getsize(json_file_path) > 0:
-                    with open(json_file_path, 'r') as rf:
-                        loaded_json = json.load(rf)
-                else:
-                    loaded_json = {}
-            except Exception:
-                loaded_json = {}
-
-            # Compose new key
-            key = f'gen{number_current_generation}-ind{individual_index}'
-            loaded_json[key] = builtins.ad.visualize_dict
-
-            json_string = jsonpickle.encode(loaded_json, indent=4)
-            with open(json_file_path, 'w+') as f:
-                f.write(json_string)
-
-            number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
-            individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
-
-            # this is for optimization
-            acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
 
     def get_free_variables(self) -> List[Parameter]:
         return [param for param in self.get_parameter_fields().values() if param.type == 'free']
@@ -1141,6 +1235,8 @@ if __name__ == "__main__":
 
     mmd.show_geometry()
     print(dir(mmd.machineGeometry['statorCore']))
+
+    mmd.FEA_evaluate()
     quit()
 
     # 保存完整信息到文件（类似 pickle）

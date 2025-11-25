@@ -226,6 +226,15 @@ class CrossSectInnerNotchedRotor(object):
         innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))
 
         self.list_region=[list_segments]
+        
+        # Pass point coordinates to drawer for frontend visualization
+        if not hasattr(drawer, 'visualization_points'):
+            drawer.visualization_points = {}
+        points_dict = {'P1': P1, 'P2': P2, 'P3': P3, 'P4': P4, 'P5': P5, 'P6': P6, 'P1p5': P1p5}
+        if s > 1:
+            points_dict.update({'P7': P7, 'P8': P8, 'P9': P9, 'P10': P10})
+        drawer.visualization_points[self.name] = points_dict
+        
         return {'innerCoord': innerCoord, 'list_regions':[list_segments], 'mirrorAxis': None}
 
 class CrossSectInnerNotchedMagnet(object):
@@ -358,6 +367,14 @@ class CrossSectInnerNotchedMagnet(object):
 
         innerCoord = ( 0.5*(P4[0]+P6_extra[0]), 0.5*(P4[1]+P6_extra[1]))
         self.list_region = list_regions
+        
+        # Pass point coordinates to drawer for frontend visualization
+        if not hasattr(drawer, 'visualization_points'):
+            drawer.visualization_points = {}
+        drawer.visualization_points[self.name] = {
+            'P1': P1, 'P2': P2, 'P3_extra': P3_extra, 'P4': P4, 'P5': P5, 'P6_extra': P6_extra
+        }
+        
         return {'innerCoord': innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
 
 class CrossSectSleeve(object):
@@ -404,6 +421,14 @@ class CrossSectSleeve(object):
 
         innerCoord = ( 0.5*(P1[0]+P2[0]), 0.5*(P1[1]+P2[1]))
         self.list_region = list_regions
+        
+        # Pass point coordinates to drawer for frontend visualization
+        if not hasattr(drawer, 'visualization_points'):
+            drawer.visualization_points = {}
+        drawer.visualization_points[self.name] = {
+            'P1': P1, 'P2': P2, 'P3': P3, 'P4': P4
+        }
+        
         return {'innerCoord': innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
 
 class CrossSectShaft(object):
@@ -436,6 +461,14 @@ class CrossSectShaft(object):
         innerCoord = ( 0, 0 )
 
         self.list_region = list_regions
+        
+        # Pass point coordinates to drawer for frontend visualization
+        if not hasattr(drawer, 'visualization_points'):
+            drawer.visualization_points = {}
+        drawer.visualization_points[self.name] = {
+            'P1': P1, 'NP1': NP1
+        }
+        
         return {'innerCoord': innerCoord, 'list_regions':list_regions, 'mirrorAxis': None}
 
 if __name__ == '__main__':
