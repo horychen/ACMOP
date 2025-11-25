@@ -6,7 +6,6 @@ EPS = 1e-3
 
 class Parameter(object):
     def __init__(self, name, type, value=None, bounds=None, calc=None, calc_bounds=None, unit='mm', comment=None, args=None) -> None:
-        # todo: add validation for the type, value, bounds, calc, unit, comment
         self.name = name
         self.type = type
         self.value = value
@@ -16,6 +15,7 @@ class Parameter(object):
         self.calc_bounds = calc_bounds
         self.comment = comment
         self.args = args
+        # todo: add validation for the type, value, bounds, calc, unit, comment
         if self.calc is not None:
             if self.args is not None:
                 self.value = self.calc(*self.args)
@@ -115,11 +115,30 @@ class Geometry(object):
             if isinstance(gp, Parameter):
                 exec(f"self.{name} = {gp.value}")
     def to_dict(self) -> Dict[str, Any]:
+        """
+        将 Geometry 对象转换为字典（用于 JSON 序列化）
+        注意：draw_function 和 _calculate_points 是 lambda 函数，无法序列化
+        """
+        # 序列化 GP 列表，将 Parameter 对象转换为名称
+        gp_list = []
+        if self.GP:
+            if isinstance(self.GP, list):
+                for gp in self.GP:
+                    if isinstance(gp, Parameter):
+                        gp_list.append(gp.name)
+                    elif gp is not None:
+                        gp_list.append(str(gp))
+                    else:
+                        gp_list.append(None)
+            elif isinstance(self.GP, dict):
+                gp_list = {k: (v.name if isinstance(v, Parameter) else str(v) if v is not None else None) 
+                          for k, v in self.GP.items()}
+        
         return {
             'color': self.color,
-            'GP': self.GP,
-            'draw_function': self.draw_function,
-            '_calculate_points': self._calculate_points
+            'GP': gp_list,
+            # draw_function 和 _calculate_points 无法序列化，标记为需要重建
+            '_needs_rebuild': True
         }
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Geometry':
@@ -376,10 +395,26 @@ class Modern_Machine_Designer(object):
         return [{'move_to': (centerxy[0], centerxy[1]), 'arc': (radius, angle_start, angle_end)}]
 
     def show_geometry(self, filename=None) -> None:
+        # 检查必要的参数是否存在
+        if not hasattr(self, 'mm_r_so') or self.mm_r_so.value is None:
+            raise ValueError("mm_r_so parameter is required but not found or has no value")
+        
         width_in_points  = self.mm_r_so.value*2.1
         height_in_points = self.mm_r_so.value*2.1
-        lw = 0.1 if self.mm_r_ro.value < 15 else 0.5
+        
+        # mm_r_ro 只在 bool_PermanentMagnet 为 True 时存在
+        if hasattr(self, 'mm_r_ro') and self.mm_r_ro.value is not None:
+            lw = 0.1 if self.mm_r_ro.value < 15 else 0.5
+        else:
+            # 使用默认值
+            lw = 0.5
+        
         bool_draw_whole_model = True
+        
+        # 确保 machineGeometry 已初始化
+        if not hasattr(self, 'machineGeometry') or self.machineGeometry is None:
+            # 如果 machineGeometry 不存在，调用 __post_init__ 来创建
+            self.__post_init__()
 
         def draw_spmsm(lw, width_in_points, height_in_points, bool_draw_whole_model):
             import cairo
@@ -415,11 +450,21 @@ class Modern_Machine_Designer(object):
 
             init_canvas(width_in_points, height_in_points)
 
-            list_regions = self.machineGeometry['rotorCore'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
-            list_regions = self.machineGeometry['shaft'].draw(self) 
-            list_regions = self.machineGeometry['rotorMagnet'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
-            list_regions = self.machineGeometry['statorCore'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
-            list_regions = self.machineGeometry['coils'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            # 检查 machineGeometry 是否存在且包含必要的键
+            if not hasattr(self, 'machineGeometry') or self.machineGeometry is None:
+                raise ValueError("machineGeometry is not initialized. Please ensure __post_init__ was called.")
+            
+            # 安全地调用 draw 方法
+            if 'rotorCore' in self.machineGeometry and self.machineGeometry['rotorCore'] is not None:
+                list_regions = self.machineGeometry['rotorCore'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            if 'shaft' in self.machineGeometry and self.machineGeometry['shaft'] is not None:
+                list_regions = self.machineGeometry['shaft'].draw(self)
+            if 'rotorMagnet' in self.machineGeometry and self.machineGeometry['rotorMagnet'] is not None:
+                list_regions = self.machineGeometry['rotorMagnet'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            if 'statorCore' in self.machineGeometry and self.machineGeometry['statorCore'] is not None:
+                list_regions = self.machineGeometry['statorCore'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
+            if 'coils' in self.machineGeometry and self.machineGeometry['coils'] is not None:
+                list_regions = self.machineGeometry['coils'].draw(self, bool_draw_whole_model=bool_draw_whole_model)
 
             apply_stroke(lw=lw)
             convert_to_pdf()
@@ -614,6 +659,9 @@ class Modern_Machine_Designer(object):
         """
         result = {
             'machine_class': self.machine_class,
+            'bool_PermanentMagnet': self.bool_PermanentMagnet,
+            'bool_StatorSlotClosed': self.bool_StatorSlotClosed,
+            'bool_RotorNotched': self.bool_RotorNotched,
             'parameters': {}
         }
         
@@ -624,6 +672,22 @@ class Modern_Machine_Designer(object):
         # 序列化 Winding 对象（如果存在）
         if hasattr(self, 'wily') and self.wily is not None:
             result['winding'] = self.wily.to_dict()
+        
+        # 序列化 machineGeometry（如果存在）
+        # 注意：machineGeometry 包含 lambda 函数，无法直接序列化
+        # 我们只序列化可序列化的部分，或者标记为需要重建
+        if hasattr(self, 'machineGeometry') and self.machineGeometry is not None:
+            result['machineGeometry'] = {}
+            for key, geometry in self.machineGeometry.items():
+                if isinstance(geometry, Geometry):
+                    # 只序列化可序列化的部分
+                    geo_dict = {
+                        'color': geometry.color,
+                        'GP': [gp.name if isinstance(gp, Parameter) else str(gp) for gp in geometry.GP] if geometry.GP else []
+                    }
+                    # 标记 draw_function 和 _calculate_points 需要重建
+                    geo_dict['_needs_rebuild'] = True
+                    result['machineGeometry'][key] = geo_dict
         
         return result
     
@@ -693,7 +757,12 @@ class Modern_Machine_Designer(object):
         
         # 创建对象实例
         instance = cls.__new__(cls)
+        
+        # 设置基本字段
         instance.machine_class = data.get('machine_class', field_defaults.get('machine_class', cls.machine_class))
+        instance.bool_PermanentMagnet = data.get('bool_PermanentMagnet', field_defaults.get('bool_PermanentMagnet', True))
+        instance.bool_StatorSlotClosed = data.get('bool_StatorSlotClosed', field_defaults.get('bool_StatorSlotClosed', False))
+        instance.bool_RotorNotched = data.get('bool_RotorNotched', field_defaults.get('bool_RotorNotched', True))
         
         # 设置所有参数字段
         for field_name, param in param_dict.items():
@@ -702,9 +771,10 @@ class Modern_Machine_Designer(object):
         # 重建 Winding 对象
         if 'winding' in data:
             instance.wily = Winding.from_dict(data['winding'])
-        else:
-            # 如果没有 winding 数据，调用 __post_init__ 来创建
-            instance.__post_init__()
+        
+        # 调用 __post_init__ 来创建 machineGeometry 和其他依赖项
+        # 注意：__post_init__ 会使用已设置的参数值来创建 machineGeometry
+        instance.__post_init__()
         
         return instance
     
@@ -737,6 +807,17 @@ class Modern_Machine_Designer(object):
             data = json.load(f)
         return cls.from_dict(data)
 
+if __name__ == "__main__":
+    # 创建对象并导出为 JSON
+    mmd = Modern_Machine_Designer()
+    mmd.save_to_file('machine_designer.json')
+
+    # 从 JSON 文件恢复对象
+    mmd2 = Modern_Machine_Designer.load_from_file('machine_designer.json')
+
+    mmd2.show_geometry()
+
+quit()
 if __name__ == "__main__":
     # 创建实例
     mmd = Modern_Machine_Designer()

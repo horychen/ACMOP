@@ -1,10 +1,69 @@
 {
   "machine_class": "bearingless_spmsm_heart.bearingless_spmsm_design_variant",
+  "bool_PermanentMagnet": true,
+  "bool_StatorSlotClosed": false,
+  "bool_RotorNotched": true,
   "parameters": {},
   "winding": {
     "phase_number_m": 3,
     "stator_slot_number_Qs": 12,
     "pole_pair_number_p": 4,
     "suspension_pole_pair_number_ps": 5
+  },
+  "machineGeometry": {
+    "rotorCore": {
+      "color": null,
+      "GP": [
+        "mm_r_ro",
+        "mm_d_ri",
+        "mm_d_pm",
+        "mm_d_rp",
+        "mm_d_rs",
+        "p",
+        "s"
+      ],
+      "_needs_rebuild": true
+    },
+    "shaft": {
+      "color": null,
+      "GP": [
+        "mm_r_ri"
+      ],
+      "_needs_rebuild": true
+    },
+    "rotorMagnet": {
+      "color": null,
+      "GP": [
+        "mm_d_pm",
+        "mm_d_ri",
+        "mm_r_ri"
+      ],
+      "_needs_rebuild": true
+    },
+    "statorCore": {
+      "color": null,
+      "GP": [
+        "mm_r_si",
+        "mm_d_sto",
+        "mm_d_sts",
+        "mm_d_st",
+        "mm_d_sy",
+        "mm_w_st",
+        "deg_alpha_st",
+        "deg_alpha_sto",
+        "Q"
+      ],
+      "_needs_rebuild": true
+    },
+    "coils": {
+      "color": null,
+      "GP": [
+        "mm_r_so",
+        "mm_d_sy",
+        "mm_w_st",
+        "mm_d_st"
+      ],
+      "_needs_rebuild": true
+    }
   }
 }
