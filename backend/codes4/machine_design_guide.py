@@ -109,11 +109,10 @@ class Winding(object):
         )
 
 class Geometry(object):
-    def __init__(self, GP: dict = None, draw_function: callable = None, _calculate_points: callable = None, color: str = None):
+    def __init__(self, GP: dict = None, draw_function: callable = None, color: str = None):
         self.color = color
         self.GP = GP or []
         self.draw_function = draw_function
-        self._calculate_points = _calculate_points
         for i, (name, gp) in enumerate(self.GP.items()):
             if isinstance(gp, Parameter):
                 exec(f"self.{name} = {gp.value}")
@@ -121,12 +120,12 @@ class Geometry(object):
         # INSERT_YOUR_CODE
         """
         扩展序列化方法：将所有当前成员变量都存入字典（不局限于定义时的变量）
-        排除不能序列化的 draw_function/_calculate_points 属性
+        排除不能序列化的 draw_function 属性
         """
         result = {}
         # 收集所有实例属性
         for k, v in self.__dict__.items():
-            if k in ['draw_function', '_calculate_points']:
+            if k in ['draw_function']:
                 # 无法序列化，略去
                 continue
             elif k == 'GP':
@@ -141,6 +140,12 @@ class Geometry(object):
                                     for kk, vv in v.items()}
                 else:
                     result['GP'] = v
+            elif k == 'visualization_points':
+                # 特殊处理 visualization_points：确保它是可序列化的字典
+                if isinstance(v, dict):
+                    result['visualization_points'] = v
+                else:
+                    result['visualization_points'] = {}
             else:
                 # 其它属性，直接存储基础类型，否则转为字符串
                 if isinstance(v, (int, float, str, bool, type(None))):
@@ -161,10 +166,25 @@ class Geometry(object):
             color=data['color'],
             GP=data['GP'],
             draw_function=data['draw_function'],
-            _calculate_points=data['_calculate_points']
         )
     def draw(self, drawer, *args, **kwargs):
+        # 记录调用 draw 之前的 visualization_points 键，以便识别新添加的点
+        old_keys = set(getattr(drawer, 'visualization_points', {}).keys())
+        
+        # 调用 draw_function
         self.components_make_region = self.draw_function(drawer, *args, **kwargs)
+        
+        # 从 drawer.visualization_points 中提取新添加的点坐标
+        if hasattr(drawer, 'visualization_points'):
+            new_keys = set(drawer.visualization_points.keys()) - old_keys
+            # 如果有新添加的点，将它们存储到 self.visualization_points
+            if new_keys:
+                # 通常只有一个新键，但为了安全起见，我们存储所有新添加的点
+                for key in new_keys:
+                    if key in drawer.visualization_points:
+                        self.visualization_points = drawer.visualization_points[key]
+                        break  # 通常只需要第一个匹配的键
+        
         return self.components_make_region
 
 class CairoDrawer(object):
@@ -354,9 +374,6 @@ class Modern_Machine_Designer(object):
                         p=self.p.value if hasattr(self, "p") and self.p.value is not None else 2,
                         s=self.s.value if hasattr(self, "s") and self.s.value is not None else 4
                     ).draw(drawer, **kwargs)
-                ),
-                _calculate_points=lambda: (
-                    CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor.calculate_points 
                 )
             ),
             "shaft": Geometry(
@@ -590,36 +607,48 @@ class Modern_Machine_Designer(object):
 
                 # Rotor Core
                 list_regions_1 = self.machineGeometry['rotorCore'].draw(toolJd)
+                if hasattr(toolJd, 'visualization_points') and 'rotorCore' in toolJd.visualization_points:
+                    self.machineGeometry['rotorCore'].visualization_points = toolJd.visualization_points['rotorCore']
                 self.bMirror = False
                 self.iRotateCopy = self.machineGeometry['rotorCore'].p*2
                 region1 = toolJd.prepareSection(list_regions_1, color=color_rgb_A)
 
                 # Shaft
                 list_regions = self.machineGeometry['shaft'].draw(toolJd)
+                if hasattr(toolJd, 'visualization_points') and 'shaft' in toolJd.visualization_points:
+                    self.machineGeometry['shaft'].visualization_points = toolJd.visualization_points['shaft']
                 self.bMirror = False
                 self.iRotateCopy = 1
                 region0 = toolJd.prepareSection(list_regions)
 
                 # Rotor Magnet
                 list_regions = self.machineGeometry['rotorMagnet'].draw(toolJd)
+                if hasattr(toolJd, 'visualization_points') and 'rotorMagnet' in toolJd.visualization_points:
+                    self.machineGeometry['rotorMagnet'].visualization_points = toolJd.visualization_points['rotorMagnet']
                 self.bMirror = False
-                self.iRotateCopy = self.machineGeometry['rotorMagnet'].notched_rotor.p*2
+                self.iRotateCopy = self.machineGeometry['rotorCore'].p*2
                 region2 = toolJd.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
                 # Sleeve
                 list_regions = self.machineGeometry['sleeve'].draw(toolJd)
+                if hasattr(toolJd, 'visualization_points') and 'Sleeve' in toolJd.visualization_points:
+                    self.machineGeometry['sleeve'].visualization_points = toolJd.visualization_points['Sleeve']
                 self.bMirror = False
                 self.iRotateCopy = self.machineGeometry['rotorMagnet'].notched_rotor.p*2
                 regionS = toolJd.prepareSection(list_regions)
 
                 # Stator Core
                 list_regions = self.machineGeometry['statorCore'].draw(toolJd)
+                if hasattr(toolJd, 'visualization_points') and 'statorCore' in toolJd.visualization_points:
+                    self.machineGeometry['statorCore'].visualization_points = toolJd.visualization_points['statorCore']
                 self.bMirror = True
                 self.iRotateCopy = self.machineGeometry['statorCore'].Q
                 region3 = toolJd.prepareSection(list_regions, color=color_rgb_A)
 
                 # Stator Winding
                 list_regions = self.machineGeometry['coils'].draw(toolJd)
+                if hasattr(toolJd, 'visualization_points') and 'Coils' in toolJd.visualization_points:
+                    self.machineGeometry['coils'].visualization_points = toolJd.visualization_points['Coils']
                 self.bMirror = False
                 self.iRotateCopy = self.machineGeometry['coils']['statorCore'].Q
                 region4 = toolJd.prepareSection(list_regions)
@@ -1255,9 +1284,9 @@ if __name__ == "__main__":
     mmd.save_to_file('machine_designer.json')
 
     mmd.show_geometry()
-    print(dir(mmd.machineGeometry['statorCore']))
+    # print(dir(mmd.machineGeometry['statorCore']))
 
-    mmd.FEA_evaluate()
+    # mmd.FEA_evaluate()
     quit()
 
     # 保存完整信息到文件（类似 pickle）
@@ -1270,6 +1299,8 @@ if __name__ == "__main__":
     # 从完整文件恢复对象（包含所有信息，包括 lambda 函数）
     mmd3 = Modern_Machine_Designer.load_from_file_full('machine_designer_full.json')
     print("=== 已从完整文件恢复对象 ===")
+
+
 
 quit()
 

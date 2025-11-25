@@ -241,23 +241,23 @@ class CrossSectInnerNotchedMagnet(object):
     def __init__(self, 
                     name = 'Notched Rotor',
                     color = '#0BA0E2',
-                    notched_rotor = None,
+                    rotorCore = None,
                     ):
         self.name = name
         self.color = color
-        self.notched_rotor = notched_rotor
+        self.rotorCore = rotorCore
 
     def draw(self, drawer, bool_re_evaluate=False, bool_draw_whole_model=False):
-        """Calculate all point coordinates based on the notched_rotor."""
-        d_pm     = self.notched_rotor.mm_d_pm
-        alpha_rm = self.notched_rotor.deg_alpha_rm * math.pi/180
-        alpha_rs = self.notched_rotor.deg_alpha_rs * math.pi/180
-        r_ri     = self.notched_rotor.mm_r_ri
-        d_ri     = self.notched_rotor.mm_d_ri
-        d_rp     = self.notched_rotor.mm_d_rp
-        d_rs     = self.notched_rotor.mm_d_rs
-        p        = self.notched_rotor.p
-        s        = self.notched_rotor.s
+        """Calculate all point coordinates based on the rotorCore."""
+        d_pm     = self.rotorCore.mm_d_pm
+        alpha_rm = self.rotorCore.deg_alpha_rm * math.pi/180
+        alpha_rs = self.rotorCore.deg_alpha_rs * math.pi/180
+        r_ri     = self.rotorCore.mm_r_ri
+        d_ri     = self.rotorCore.mm_d_ri
+        d_rp     = self.rotorCore.mm_d_rp
+        d_rs     = self.rotorCore.mm_d_rs
+        p        = self.rotorCore.p
+        s        = self.rotorCore.s
         alpha_rp = 2*math.pi/(2*p) # pole span
 
         # rotor inter-pole notch being too small
@@ -381,20 +381,20 @@ class CrossSectSleeve(object):
     def __init__(self, 
                     name = 'Sleeve',
                     color = '#11E322',
-                    notched_magnet = None,
+                    rotorMagnet = None,
                     d_sleeve = None
                     ):
         self.name = name
         self.color = color
-        self.notched_magnet = notched_magnet
+        self.rotorMagnet = rotorMagnet
         self.d_sleeve = d_sleeve
 
     def draw(self, drawer):
         """Calculate all point coordinates."""
-        r_ri  = self.notched_magnet.notched_rotor.mm_r_ri
-        d_ri  = self.notched_magnet.notched_rotor.mm_d_ri
-        d_pm  = self.notched_magnet.notched_rotor.mm_d_pm
-        p     = self.notched_magnet.notched_rotor.p
+        r_ri  = self.rotorMagnet.rotorCore.mm_r_ri
+        d_ri  = self.rotorMagnet.rotorCore.mm_d_ri
+        d_pm  = self.rotorMagnet.rotorCore.mm_d_pm
+        p     = self.rotorMagnet.rotorCore.p
 
         r_or = r_ri + d_ri + d_pm 
         d_sleeve = self.d_sleeve
@@ -435,15 +435,15 @@ class CrossSectShaft(object):
     def __init__(self, 
                     name = 'Shaft',
                     color = '#0EE0E2',
-                    notched_rotor = None,
+                    rotorCore = None,
                     ):
         self.name = name
         self.color = color
-        self.notched_rotor = notched_rotor
+        self.rotorCore = rotorCore
 
     def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates."""
-        r_ri = self.notched_rotor.mm_r_ri
+        r_ri = self.rotorCore.mm_r_ri
 
         P1 = [r_ri, 0]
         NP1 = [-r_ri, 0]
@@ -487,7 +487,7 @@ if __name__ == '__main__':
 
     if True:
         # %% Define cross sections
-        notched_rotor = CrossSectInnerNotchedRotor( name = 'NotchedRotor',
+        rotorCore = CrossSectInnerNotchedRotor( name = 'NotchedRotor',
                                                     color = '#FE840E',
                                                     deg_alpha_rm = 60,
                                                     deg_alpha_rs = 10,
@@ -500,20 +500,20 @@ if __name__ == '__main__':
                                                     location = Location2D.Location2D(anchor_xy=[0,0], deg_theta=0)
                                                     )
 
-    list_regions = notched_rotor.draw(toolJd)
+    list_regions = rotorCore.draw(toolJd)
     toolJd.bMirror = False
-    toolJd.iRotateCopy = notched_rotor.p*2
+    toolJd.iRotateCopy = rotorCore.p*2
     region1 = toolJd.prepareSection(list_regions)
     
     if True:
         notched_magnet = CrossSectInnerNotchedMagnet( name = 'RotorMagnet',
                                                       color = '#0E001E',
-                                                      notched_rotor = notched_rotor
+                                                      rotorCore = rotorCore
                                                     )
 
     list_regions = notched_magnet.draw(toolJd)
     toolJd.bMirror = False
-    toolJd.iRotateCopy = notched_rotor.p*2
+    toolJd.iRotateCopy = rotorCore.p*2
     region2 = toolJd.prepareSection(list_regions)
 
     # Import Model into Designer

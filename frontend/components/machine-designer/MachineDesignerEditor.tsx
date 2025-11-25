@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Upload, Download, RefreshCw, Plus, Trash2, ChevronDown, ChevronUp, Code } from "lucide-react";
+import { Save, Upload, Download, RefreshCw, Plus, Trash2, ChevronDown, ChevronUp, Code, Play, RotateCcw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import Editor from "@monaco-editor/react";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ParameterData {
   name: string;
@@ -36,26 +37,31 @@ interface MachineDesignerData {
       color: string | null;
       GP: Record<string, string>; // 从数组改为对象
       _needs_rebuild: boolean;
+      visualization_points?: Record<string, [number, number]>;
     };
     shaft: {
       color: string | null;
       GP: Record<string, string>;
       _needs_rebuild: boolean;
+      visualization_points?: Record<string, [number, number]>;
     };
     rotorMagnet: {
       color: string | null;
       GP: Record<string, string>;
       _needs_rebuild: boolean;
+      visualization_points?: Record<string, [number, number]>;
     };
     statorCore: {
       color: string | null;
       GP: Record<string, string>;
       _needs_rebuild: boolean;
+      visualization_points?: Record<string, [number, number]>;
     };
     coils: {
       color: string | null;
       GP: Record<string, string>;
       _needs_rebuild: boolean;
+      visualization_points?: Record<string, [number, number]>;
     };
   };
   wily: {
@@ -382,10 +388,11 @@ export default function MachineDesignerEditor() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">基本设置</TabsTrigger>
               <TabsTrigger value="winding">绕组参数</TabsTrigger>
               <TabsTrigger value="geometry">几何参数</TabsTrigger>
+              <TabsTrigger value="crosssection">横截面</TabsTrigger>
               <TabsTrigger value="json">JSON视图</TabsTrigger>
             </TabsList>
 
@@ -775,6 +782,11 @@ export default function MachineDesignerEditor() {
               </ScrollArea>
             </TabsContent>
 
+            {/* 横截面 */}
+            <TabsContent value="crosssection" className="mt-4">
+              <CrossSectionTab data={data} />
+            </TabsContent>
+
             {/* JSON视图 */}
             <TabsContent value="json" className="mt-4">
               <ScrollArea className="h-[600px] w-full rounded-md border p-4">
@@ -786,6 +798,446 @@ export default function MachineDesignerEditor() {
           </Tabs>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// CrossSectionTab 组件：显示横截面和 Script Editor
+function CrossSectionTab({ data }: { data: MachineDesignerData }) {
+  const [selectedComponent, setSelectedComponent] = useState<string>("custom");
+  const [code, setCode] = useState(`// Define points
+const P1 = [10, 0];
+const P2 = [15, 5];
+const P3 = [5, 10];
+
+// Draw a shape with lines
+MoveTo(P1);
+LineTo(P2);
+LineTo(P3);
+
+// Draw an arc (independent of previous point)
+ArcTo([0, 0], 10, Math.PI/2, Math.PI);
+
+// Continue drawing
+LineTo(P1);
+`);
+  const [geometry, setGeometry] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [variableNames, setVariableNames] = useState<Record<string, string>>({});
+
+  // 从 visualization_points 生成代码
+  const generateCodeFromVisualizationPoints = (componentName: string, points: Record<string, [number, number]>) => {
+    let generatedCode = `// Generated code for ${componentName}\n// Visualization points from machine_designer.json\n\n`;
+    
+    Object.entries(points).forEach(([pointName, coords]) => {
+      generatedCode += `const ${pointName} = [${coords[0]}, ${coords[1]}];\n`;
+    });
+    
+    generatedCode += `\n// Draw shape using points\n`;
+    const pointEntries = Object.entries(points);
+    if (pointEntries.length > 0) {
+      generatedCode += `MoveTo(${pointEntries[0][0]});\n`;
+      for (let i = 1; i < pointEntries.length; i++) {
+        generatedCode += `LineTo(${pointEntries[i][0]});\n`;
+      }
+      if (pointEntries.length > 2) {
+        generatedCode += `LineTo(${pointEntries[0][0]});\n`;
+      }
+    }
+    
+    return generatedCode;
+  };
+
+  // 处理组件选择
+  const handleComponentSelect = (value: string) => {
+    setSelectedComponent(value);
+    if (value === "custom") {
+      setCode(`// Define points
+const P1 = [10, 0];
+const P2 = [15, 5];
+const P3 = [5, 10];
+
+MoveTo(P1);
+LineTo(P2);
+LineTo(P3);
+LineTo(P1);
+`);
+    } else {
+      const componentData = data.machineGeometry[value as keyof typeof data.machineGeometry];
+      if (componentData?.visualization_points) {
+        const newCode = generateCodeFromVisualizationPoints(value, componentData.visualization_points);
+        setCode(newCode);
+      }
+    }
+  };
+
+  // 执行代码
+  const executeCode = React.useCallback(() => {
+    setError(null);
+    try {
+      const generatedRegions: any[][] = [];
+      const activeRegionSegments: any[] = [];
+      let currentPen = [0, 0];
+      const varNames: Record<string, string> = {};
+
+      // 提取变量定义
+      const varRegex = /const\s+(\w+)\s*=\s*\[\s*([\d.-]+)\s*,\s*([\d.-]+)\s*\]/g;
+      let match;
+      while ((match = varRegex.exec(code)) !== null) {
+        const varName = match[1];
+        const x = parseFloat(match[2]);
+        const y = parseFloat(match[3]);
+        varNames[`${x},${y}`] = varName;
+      }
+      setVariableNames(varNames);
+
+      const dslMoveTo = (p: number[]) => {
+        currentPen = p;
+      };
+
+      const dslLineTo = (p: number[]) => {
+        activeRegionSegments.push({
+          move_to: { 'py/tuple': currentPen },
+          line_to: { 'py/tuple': p }
+        });
+        currentPen = p;
+      };
+
+      const dslArcTo = (center: number[], radius: number, startAngle: number, endAngle: number) => {
+        const startX = center[0] + radius * Math.cos(startAngle);
+        const startY = center[1] + radius * Math.sin(startAngle);
+
+        activeRegionSegments.push({
+          move_to: { 'py/tuple': center },
+          arc: { 'py/tuple': [radius, startAngle, endAngle] }
+        });
+
+        const endX = center[0] + radius * Math.cos(endAngle);
+        const endY = center[1] + radius * Math.sin(endAngle);
+        currentPen = [endX, endY];
+      };
+
+      const funcBody = `"use strict"; ${code}`;
+      const func = new Function('MoveTo', 'LineTo', 'ArcTo', funcBody);
+      func(dslMoveTo, dslLineTo, dslArcTo);
+
+      if (activeRegionSegments.length > 0) {
+        generatedRegions.push(activeRegionSegments);
+      }
+
+      const mockGeometry = {
+        customShape: {
+          name: selectedComponent === "custom" ? "Custom Shape" : selectedComponent,
+          color: "#4ade80",
+          list_region: generatedRegions,
+          variableNames: varNames
+        }
+      };
+
+      setGeometry(mockGeometry);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, [code, selectedComponent]);
+
+  React.useEffect(() => {
+    executeCode();
+  }, [executeCode]);
+
+  // 获取所有有 visualization_points 的组件
+  const componentsWithPoints = Object.entries(data.machineGeometry)
+    .filter(([_, componentData]) => componentData.visualization_points && Object.keys(componentData.visualization_points).length > 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[700px]">
+        {/* Script Editor */}
+        <Card className="flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between py-2">
+            <div className="flex items-center gap-4">
+              <CardTitle>Script Editor</CardTitle>
+              <Select value={selectedComponent} onValueChange={handleComponentSelect}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="选择组件" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">自定义形状</SelectItem>
+                  {componentsWithPoints.map(([key]) => (
+                    <SelectItem key={key} value={key}>
+                      {key}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setCode(`// Define points
+const P1 = [10, 0];
+const P2 = [15, 5];
+const P3 = [5, 10];
+
+MoveTo(P1);
+LineTo(P2);
+LineTo(P3);
+LineTo(P1);
+`)}>
+                <RotateCcw className="mr-2 h-4 w-4" /> 重置
+              </Button>
+              <Button size="sm" onClick={executeCode}>
+                <Play className="mr-2 h-4 w-4" /> 运行
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 p-0 overflow-hidden border-t">
+            <Editor
+              height="100%"
+              defaultLanguage="javascript"
+              value={code}
+              onChange={(value) => setCode(value || '')}
+              theme="vs-dark"
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Preview */}
+        <Card className="flex flex-col">
+          <CardHeader>
+            <CardTitle>预览</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 bg-slate-50 dark:bg-slate-900 p-0 relative overflow-hidden">
+            {error && (
+              <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-800 p-2 text-sm z-10 border-b border-red-200">
+                错误: {error}
+              </div>
+            )}
+            {geometry && <PlaygroundPreview geometry={geometry} variableNames={variableNames} />}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Visualization Points 显示 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>可视化点 (Visualization Points)</CardTitle>
+          <CardDescription>从 machine_designer.json 中加载的几何点坐标</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {componentsWithPoints.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                暂无可视化点数据。请先运行 show_geometry() 或 FEA_evaluate() 来生成可视化点。
+              </p>
+            ) : (
+              componentsWithPoints.map(([componentName, componentData]) => (
+                <Card key={componentName}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base capitalize">{componentName}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {Object.entries(componentData.visualization_points || {}).map(([pointName, coords]) => (
+                        <div key={pointName} className="p-2 border rounded text-xs font-mono">
+                          <div className="font-semibold text-blue-600">{pointName}</div>
+                          <div className="text-muted-foreground">
+                            [{coords[0].toFixed(3)}, {coords[1].toFixed(3)}]
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// PlaygroundPreview 组件（简化版）
+function PlaygroundPreview({ geometry, variableNames }: { geometry: any, variableNames: Record<string, string> }) {
+  const [scale, setScale] = useState(10);
+  const [offset, setOffset] = useState({ x: 400, y: 300 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const svgRef = React.useRef<SVGSVGElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const extractTuple = (obj: any): number[] | null => {
+    if (!obj) return null;
+    if (Array.isArray(obj)) return obj;
+    if (obj['py/tuple']) return obj['py/tuple'];
+    return null;
+  };
+
+  const renderComponent = (component: any) => {
+    if (!component.list_region) return null;
+
+    let pathData = "";
+    const pointsToLabel = new Map<string, [number, number]>();
+
+    component.list_region.forEach((region: any) => {
+      if (!Array.isArray(region)) return;
+
+      let currentPen: { x: number, y: number } | null = null;
+
+      region.forEach((segment: any) => {
+        const moveTo = extractTuple(segment.move_to);
+
+        if (segment.line_to) {
+          const lineTo = extractTuple(segment.line_to);
+          if (moveTo && lineTo) {
+            const startX = moveTo[0];
+            const startY = -moveTo[1];
+            const endX = lineTo[0];
+            const endY = -lineTo[1];
+
+            if (!currentPen || Math.abs(currentPen.x - startX) > 1e-6 || Math.abs(currentPen.y - startY) > 1e-6) {
+              pathData += `M ${startX} ${startY} `;
+            }
+            pathData += `L ${endX} ${endY} `;
+            currentPen = { x: endX, y: endY };
+
+            pointsToLabel.set(`${moveTo[0]},${moveTo[1]}`, [moveTo[0], moveTo[1]]);
+            pointsToLabel.set(`${lineTo[0]},${lineTo[1]}`, [lineTo[0], lineTo[1]]);
+          }
+        } else if (segment.arc) {
+          const arcParams = extractTuple(segment.arc);
+          if (moveTo && arcParams && arcParams.length >= 3) {
+            const cx = moveTo[0];
+            const cy = -moveTo[1];
+            const r = arcParams[0];
+            const startAngle = arcParams[1];
+            const endAngle = arcParams[2];
+
+            const startX = cx + r * Math.cos(startAngle);
+            const startY = cy - r * Math.sin(startAngle);
+            const endX = cx + r * Math.cos(endAngle);
+            const endY = cy - r * Math.sin(endAngle);
+
+            if (!currentPen || Math.abs(currentPen.x - startX) > 1e-6 || Math.abs(currentPen.y - startY) > 1e-6) {
+              pathData += `M ${startX} ${startY} `;
+            }
+
+            let delta = endAngle - startAngle;
+            const largeArc = Math.abs(delta) > Math.PI ? 1 : 0;
+            const sweep = delta > 0 ? 0 : 1;
+
+            pathData += `A ${r} ${r} 0 ${largeArc} ${sweep} ${endX} ${endY} `;
+            currentPen = { x: endX, y: endY };
+          }
+        }
+      });
+    });
+
+    if (pathData) {
+      pathData += 'Z';
+    }
+
+    return (
+      <>
+        {pathData && (
+          <path
+            d={pathData}
+            fill={component.color}
+            fillOpacity={0}
+            stroke="black"
+            strokeWidth={0.2 / scale}
+            className="transition-all duration-200"
+          />
+        )}
+        {Array.from(pointsToLabel.entries()).map(([key, [x, y]]) => {
+          const varName = variableNames[key];
+          if (!varName) return null;
+
+          return (
+            <g key={`label-${key}`}>
+              <circle
+                cx={x}
+                cy={-y}
+                r={2 / scale}
+                fill="#ef4444"
+                className="cursor-pointer"
+              />
+              <text
+                x={x + 3 / scale}
+                y={-y - 3 / scale}
+                fontSize={12 / scale}
+                fill="#1f2937"
+                className="font-mono font-bold"
+                style={{ pointerEvents: 'none' }}
+              >
+                {varName}
+              </text>
+            </g>
+          );
+        })}
+      </>
+    );
+  };
+
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomSensitivity = 0.001;
+      setScale(s => Math.max(0.1, s * (1 - e.deltaY * zoomSensitivity)));
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-full relative"
+    >
+      <div className="absolute top-2 left-2 bg-white/80 dark:bg-slate-800/80 p-2 rounded text-xs font-mono pointer-events-none z-10">
+        Scale: {scale.toFixed(2)} px/mm
+      </div>
+      <svg
+        ref={svgRef}
+        className="w-full h-full cursor-move bg-slate-50 dark:bg-slate-900"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        <g transform={`translate(${offset.x}, ${offset.y}) scale(${scale})`}>
+          <line x1="-1000" y1="0" x2="1000" y2="0" stroke="#ddd" strokeWidth={1 / scale} />
+          <line x1="0" y1="-1000" x2="0" y2="1000" stroke="#ddd" strokeWidth={1 / scale} />
+          {Object.values(geometry)
+            .filter((comp: any) => comp !== null)
+            .map((comp: any, idx: number) => (
+              <g key={idx}>{renderComponent(comp)}</g>
+            ))}
+        </g>
+      </svg>
     </div>
   );
 }
