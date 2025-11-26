@@ -511,7 +511,7 @@ if __name__ == '__main__':
     toolJd.bMirror = False
     toolJd.iRotateCopy = rotorCore.p*2
     region1 = toolJd.prepareSection(list_regions)
-    
+
     if True:
         notched_magnet = CrossSectInnerNotchedMagnet( name = 'RotorMagnet',
                                                       color = '#0E001E',

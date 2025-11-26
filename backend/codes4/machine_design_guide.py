@@ -173,7 +173,10 @@ class Geometry(object):
         
         # 调用 draw_function
         self.components_make_region = self.draw_function(drawer, *args, **kwargs)
-        
+        # print(self.components_make_region)
+        # print(drawer)
+        # print() 
+
         # 从 drawer.visualization_points 中提取新添加的点坐标
         if hasattr(drawer, 'visualization_points'):
             new_keys = set(drawer.visualization_points.keys()) - old_keys
@@ -622,48 +625,51 @@ class Modern_Machine_Designer(object):
                 list_regions_1 = self.machineGeometry['rotorCore'].draw(toolJd)
                 if hasattr(toolJd, 'visualization_points') and 'rotorCore' in toolJd.visualization_points:
                     self.machineGeometry['rotorCore'].visualization_points = toolJd.visualization_points['rotorCore']
-                self.bMirror = False
-                self.iRotateCopy = self.machineGeometry['rotorCore'].p*2
+                toolJd.bMirror = False
+                toolJd.iRotateCopy = self.machineGeometry['rotorCore'].p*2
                 region1 = toolJd.prepareSection(list_regions_1, color=color_rgb_A)
+
+                # print(list_regions_1)
+                # raise KeyboardInterrupt
 
                 # Shaft
                 list_regions = self.machineGeometry['shaft'].draw(toolJd)
                 if hasattr(toolJd, 'visualization_points') and 'shaft' in toolJd.visualization_points:
                     self.machineGeometry['shaft'].visualization_points = toolJd.visualization_points['shaft']
-                self.bMirror = False
-                self.iRotateCopy = 1
+                toolJd.bMirror = False
+                toolJd.iRotateCopy = 1
                 region0 = toolJd.prepareSection(list_regions)
 
                 # Rotor Magnet
                 list_regions = self.machineGeometry['rotorMagnet'].draw(toolJd)
                 if hasattr(toolJd, 'visualization_points') and 'rotorMagnet' in toolJd.visualization_points:
                     self.machineGeometry['rotorMagnet'].visualization_points = toolJd.visualization_points['rotorMagnet']
-                self.bMirror = False
-                self.iRotateCopy = self.machineGeometry['rotorCore'].p*2
+                toolJd.bMirror = False
+                toolJd.iRotateCopy = self.machineGeometry['rotorCore'].p*2
                 region2 = toolJd.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
                 # Sleeve
                 list_regions = self.machineGeometry['sleeve'].draw(toolJd)
                 if hasattr(toolJd, 'visualization_points') and 'Sleeve' in toolJd.visualization_points:
                     self.machineGeometry['sleeve'].visualization_points = toolJd.visualization_points['Sleeve']
-                self.bMirror = False
-                self.iRotateCopy = self.machineGeometry['rotorMagnet'].notched_rotor.p*2
+                toolJd.bMirror = False
+                toolJd.iRotateCopy = self.machineGeometry['rotorCore'].p*2
                 regionS = toolJd.prepareSection(list_regions)
 
                 # Stator Core
                 list_regions = self.machineGeometry['statorCore'].draw(toolJd)
                 if hasattr(toolJd, 'visualization_points') and 'statorCore' in toolJd.visualization_points:
                     self.machineGeometry['statorCore'].visualization_points = toolJd.visualization_points['statorCore']
-                self.bMirror = True
-                self.iRotateCopy = self.machineGeometry['statorCore'].Q
+                toolJd.bMirror = True
+                toolJd.iRotateCopy = self.machineGeometry['statorCore'].Q
                 region3 = toolJd.prepareSection(list_regions, color=color_rgb_A)
 
                 # Stator Winding
                 list_regions = self.machineGeometry['coils'].draw(toolJd)
                 if hasattr(toolJd, 'visualization_points') and 'Coils' in toolJd.visualization_points:
                     self.machineGeometry['coils'].visualization_points = toolJd.visualization_points['Coils']
-                self.bMirror = False
-                self.iRotateCopy = self.machineGeometry['coils']['statorCore'].Q
+                toolJd.bMirror = False
+                toolJd.iRotateCopy = self.machineGeometry['statorCore'].Q
                 region4 = toolJd.prepareSection(list_regions)
 
                 # self.calculate_excitation_current(acm_variant)
@@ -679,6 +685,8 @@ class Modern_Machine_Designer(object):
                     model = app.GetModel(self.name)
                 else:
                     raise Exception('why is there no model yet? %s'%(self.name))
+
+
 
                 if 'PMSM' in self.name:
                     toolJd.pre_process_PMSM(app, model, acm_variant)
@@ -1299,7 +1307,7 @@ if __name__ == "__main__":
     mmd.show_geometry()
     # print(dir(mmd.machineGeometry['statorCore']))
 
-    # mmd.FEA_evaluate()
+    mmd.FEA_evaluate()
     quit()
 
     # 保存完整信息到文件（类似 pickle）
