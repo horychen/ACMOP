@@ -254,8 +254,6 @@ class CairoDrawer(object):
         # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_end, angle_start)
         return [{'move_to': (centerxy[0], centerxy[1]), 'arc': (radius, angle_start, angle_end)}]
 
-
-
 @dataclass
 class Modern_Machine_Designer(object):
 
