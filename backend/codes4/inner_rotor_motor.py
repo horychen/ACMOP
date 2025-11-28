@@ -320,8 +320,8 @@ class variant_machine_as_objects(object):
                 number_of_rotor_pole_pairs = SI['p']
             else:
                 number_of_rotor_pole_pairs = SI['number_of_rotor_pole_pairs']
-            EX['the_speed'] = EX['DriveW_Freq']*60. / number_of_rotor_pole_pairs # rpm
-            EX['Omega']     = EX['the_speed'] / 60. * 2*math.pi
+            EX['RatedSpeed'] = EX['DriveW_Freq']*60. / number_of_rotor_pole_pairs # rpm
+            EX['Omega']     = EX['RatedSpeed'] / 60. * 2*math.pi
             # self.omega = None # This variable name is devil! you can't tell its electrical or mechanical! #+ self.SIriveW_Freq * (1-self.the_slip) * 2*pi
         else:
             raise Exception('Not implemented.')

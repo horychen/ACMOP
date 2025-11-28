@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
-import json, math, base64, pickle, cairo, os
+import json, math, base64, pickle, cairo, os, jsonpickle
 
 class Parameter(object):
     def __init__(self, name, type, value=None, bounds=None, calc=None, calc_bounds=None, unit='mm', comment=None, args=None) -> None:
@@ -79,31 +79,47 @@ class Parameter(object):
         )
 
 class Winding(object):
-    def __init__(self, phase_number_m: int, stator_slot_number_Qs: int, pole_pair_number_p: int, suspension_pole_pair_number_ps: int, coil_pitch_y :int, number_of_parallel_branch: int=2) -> None:
+    def __init__(self, phase_number_m: int, stator_slot_number_Qs: int, pole_pair_number_p: int, suspension_pole_pair_number_ps: int, coil_pitch_y :int, bool_DPNVorSEPA: bool=True, number_of_parallel_branch: int=2) -> None:
         self.m = phase_number_m
         self.Qs = stator_slot_number_Qs
         self.p = pole_pair_number_p
         self.ps = suspension_pole_pair_number_ps
-        self.coil_pitch_y = coil_pitch_y
+        self.SPP = self.Qs / (2*self.p * self.m)
+
+        'Pay attention to the coil setup. The codes are written assuming the first coil is in the 12th slot. In other words PCoil[1] should negative, but {PCoil[1]=}'
+        self.deg_winding_U_phase_phase_axis_angle = 0.0
 
         self.number_of_parallel_branch = number_of_parallel_branch
+        self.number_of_winding_layer   = 2
+        if self.number_of_winding_layer == 2:
+            self.coil_pitch_y = coil_pitch_y
+            self.bool_distributed_or_concentrated: bool = False if abs(coil_pitch_y) == 1 else True
+        else:
+            self.coil_pitch_y = self.Qs/self.p/2.0
+            self.bool_distributed_or_concentrated: bool = True
 
+        # TODO: calculate winding factor
         self.kw1 = 0.933
-        self.bool_DPNVorSEPA = True
 
-        self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-        self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-        self.coil_pitch_y   = coil_pitch_y
-        self.layer_Y_phases = self.infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-        self.layer_Y_signs  = self.infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
 
-        self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
-        self.number_parallel_branch = 2
-        self.number_winding_layer   = 2
+        # Excitation for DPNV
+        self.bool_DPNVorSEPA = bool_DPNVorSEPA
+        if self.bool_DPNVorSEPA == True:
 
-        self.bool_3PhaseCurrentSource = False
-        self.CommutatingSequenceD = 1
-        self.CommutatingSequenceB = 0
+            self.bool_3PhaseCurrentSource = False
+            self.bool_CustomizedCircuit = False
+
+            # the first coil in layer Y is assigned to phase W then this code is correct.
+            self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
+            self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
+            self.layer_Y_phases = self.infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = self.infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+            self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
+
+            self.CommutatingSequenceD = 1
+            self.CommutatingSequenceB = 0
+
 
     def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self, layer_X_phases, coil_pitch):
         return layer_X_phases[-coil_pitch:] + layer_X_phases[:-coil_pitch]
@@ -181,17 +197,6 @@ class Winding(object):
             'coil_pitch_y': self.coil_pitch_y,
             'number_of_parallel_branch': self.number_of_parallel_branch,
             'kw1': self.kw1,
-            'bool_DPNVorSEPA': self.bool_DPNVorSEPA,
-            'layer_X_phases': self.layer_X_phases,
-            'layer_X_signs': self.layer_X_signs,
-            'layer_Y_phases': self.layer_Y_phases,
-            'layer_Y_signs': self.layer_Y_signs,
-            'grouping_AC': self.grouping_AC,
-            'number_parallel_branch': self.number_parallel_branch,
-            'number_winding_layer': self.number_winding_layer,
-            'bool_3PhaseCurrentSource': self.bool_3PhaseCurrentSource,
-            'CommutatingSequenceD': self.CommutatingSequenceD,
-            'CommutatingSequenceB': self.CommutatingSequenceB
         }
     
     @classmethod
@@ -410,18 +415,51 @@ class Modern_Machine_Designer(object):
         ps: int = 5
         coil_pitch_y: int = 1
 
+
+        self.wily = Winding(m, Qs, p, ps, coil_pitch_y, bool_DPNVorSEPA=True)
+
         # 激励（含热负荷）
         bool_WyeConnectOrDeltaConnect: bool = True
         bool_weHavePlentyVoltage: bool = True
-        DCBusVoltage: float = 400
-        Js: float = 4e6
+
         Temperature : float = 75
-        WindingFill: float = 0.3882
+        available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220] # according to JMAG
+        Magnet_Temperature = min(available_temperature_list, key=lambda x:abs(x - Temperature))
+
+        RatedPower: float = 50e3 # W
         RatedSpeed: float = 30000 # rpm
         ExcitationFreqSimulated: float = RatedSpeed / 60 * p
+
         TORQUE_CURRENT_RATIO: float = 0.95
         SUSPENSION_CURRENT_RATIO: float = 0.05
-        SteelMaterial: str = 'M19 Gauge-29'
+
+        SteelMaterial = "M-19 Steel Gauge-29"
+
+        self.EX = EX = {
+            # 3D
+            'mm_stack_length_specified': 50, # mm
+            # Materials
+            'Magnet_Name': u"Arnold/Reversible/N40H",
+            'Magnet_StartAngle': 0.5* 360/(2*p),
+            'Magnet_Temperature': Magnet_Temperature,
+            'SteelMaterial': SteelMaterial,
+            'StatorCore_Material': SteelMaterial, # "M-15 Steel", "Arnon5-final", u"35CS250", "DCMagnetic Type/50A1000",
+            'RotorCore_Material': SteelMaterial, # "M-15 Steel", "Arnon5-final", u"35CS250", "DCMagnetic Type/50A1000",
+            'LaminationFactor': 0.95,
+            # Thermal
+            'RatedPower': RatedPower,
+            'RatedSpeed': RatedSpeed,
+            'ExcitationFreqSimulated': ExcitationFreqSimulated,
+            'bool_WyeConnectOrDeltaConnect' : bool_WyeConnectOrDeltaConnect,
+            'DCBusVoltage': 400,
+            'Js' : 4e6,
+            'Temperature': 75,
+            'WindingFill': 0.3882,
+            'TORQUE_CURRENT_RATIO': TORQUE_CURRENT_RATIO,
+            'SUSPENSION_CURRENT_RATIO': SUSPENSION_CURRENT_RATIO,
+            'DriveW_Rs': 1.0, # [Ohm]
+            'BeariW_Rs': 1.0, # [Ohm]
+        }
 
         # 定子裂比和外径
         SR: float = 0.35
@@ -482,6 +520,62 @@ class Modern_Machine_Designer(object):
 
             self.mm_d_rp: Parameter      = Parameter('inter_polar_iron_thickness', 'derived', calc=lambda mm_d_pm: mm_d_pm, args=[self.mm_d_pm.value])
             self.mm_d_rs: Parameter      = Parameter('inter_segment_iron_thickness', 'fixed', 0.0)
+
+
+        V_stator_phase_voltage_amp = math.sqrt(2) *EX['DCBusVoltage'] / (math.sqrt(3) if bool_WyeConnectOrDeltaConnect else 1.0) 
+        V_desired_emf_Em = 0.95 * V_stator_phase_voltage_amp
+        alpha_i = 2.0/math.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
+        T_air_gap_flux_density_Bg_guessed = 0.7 # T
+        mm_stack_length_specified = EX['mm_stack_length_specified']
+        mm_d_magnetic_air_gap = self.mm_d_mech_air_gap.value + self.mm_d_sleeve.value
+        mm_stack_length_effective = mm_stack_length_specified + 2 * mm_d_magnetic_air_gap
+        mm_pole_pitch_tau_p = math.pi *self.mm_r_si.value / p
+        Wb_air_gap_flux_Phi_m = alpha_i * T_air_gap_flux_density_Bg_guessed * mm_pole_pitch_tau_p*1e-3 * mm_stack_length_effective*1e-3 # Wb
+        no_series_coil_turns_N = V_desired_emf_Em / (2*math.pi* ExcitationFreqSimulated * self.wily.kw1 * Wb_air_gap_flux_Phi_m)
+        no_series_coil_turns_N = round(no_series_coil_turns_N)
+        SPP = Qs / (2*p*m) # slot per pole per phase
+        print(f"[DEBUG] m={m}")
+        print(f"[DEBUG] Qs={Qs}")
+        print(f"[DEBUG] p={p}")
+        print(f"[DEBUG] ps={ps}")
+        print(f"[DEBUG] coil_pitch_y={coil_pitch_y}")
+        print(f"[DEBUG] V_stator_phase_voltage_amp={V_stator_phase_voltage_amp}")
+        print(f"[DEBUG] V_desired_emf_Em={V_desired_emf_Em}")
+        print(f"[DEBUG] alpha_i={alpha_i}")
+        print(f"[DEBUG] T_air_gap_flux_density_Bg_guessed={T_air_gap_flux_density_Bg_guessed}")
+        print(f"[DEBUG] mm_stack_length_specified={mm_stack_length_specified}")
+        print(f"[DEBUG] mm_d_magnetic_air_gap={mm_d_magnetic_air_gap}")
+        print(f"[DEBUG] mm_stack_length_effective={mm_stack_length_effective}")
+        print(f"[DEBUG] mm_pole_pitch_tau_p={mm_pole_pitch_tau_p}")
+        print(f"[DEBUG] Wb_air_gap_flux_Phi_m={Wb_air_gap_flux_Phi_m}")
+        print(f"[DEBUG] no_series_coil_turns_N={no_series_coil_turns_N}")
+        print(f"[DEBUG] SPP={SPP}")
+        if bool_weHavePlentyVoltage:
+            no_series_coil_turns_N = min([p*SPP*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
+        else:
+            no_series_coil_turns_N = min([p*SPP*i for i in range(1000)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
+        if no_series_coil_turns_N > 990:
+            raise Exception(f'What? no_series_coil_turns_N is too large: {no_series_coil_turns_N=}')
+        # print(f'[zQ] We need {no_series_coil_turns_N=} to reach the desired voltage: {V_desired_emf_Em=} V when {EX["DCBusVoltage"]=} V')
+        # print(f'[zQ] {no_series_coil_turns_N=} should be multiple of pq: q * p = {SPP} * {p}')
+        EX['no_series_coil_turns_N'] = no_series_coil_turns_N
+        EX['DriveW_zQ'] = no_conductors_per_slot_zQ = 2* m * no_series_coil_turns_N / Qs * self.wily.number_of_parallel_branch
+        EX['BeariW_zQ'] = EX['DriveW_zQ'] if self.wily.bool_DPNVorSEPA == True else EX['DriveW_zQ'] / EX['TORQUE_CURRENT_RATIO'] * EX['SUSPENSION_CURRENT_RATIO']
+
+        ''' Excitations Consiering Thermal Capability Limit (Simple) '''
+        mm_r_sy = self.mm_r_so.value - self.mm_d_sy.value  # radius stator yoke
+        mm_r_ss = self.mm_r_si.value + self.mm_d_sts.value # radius stator slot
+        EX['mm2_slot_area']            = math.pi*(mm_r_sy**2 - mm_r_ss**2) - self.mm_w_st.value * self.mm_d_st.value # 计算槽面积
+        EX['CurrentAmp_in_the_slot']   = EX['mm2_slot_area'] * 1e-6 * EX['Js'] * EX['WindingFill'] * math.sqrt(2)
+        EX['CurrentAmp_per_conductor'] = EX['CurrentAmp_in_the_slot'] / EX['DriveW_zQ']
+        EX['CurrentAmp_per_phase']     = EX['CurrentAmp_per_conductor'] * self.wily.number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+        EX['DriveW_CurrentAmp'] = EX['TORQUE_CURRENT_RATIO']     * EX['CurrentAmp_per_phase']
+        EX['BeariW_CurrentAmp'] = EX['SUSPENSION_CURRENT_RATIO'] * EX['CurrentAmp_per_phase']
+        EX['slot_current_utilizing_ratio_for_torque'] = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+
+        EX['InitialRotationAngle'] = self.get_InitialRotationAngle()
+
+
 
         import CrossSectInnerNotchedRotor, CrossSectStator
         self.machineGeometry = {
@@ -619,68 +713,21 @@ class Modern_Machine_Designer(object):
                 )
             )
 
-        ''' Excitations Consiering Thermal Capability Limit (Simple) '''
-        self.wily = Winding(m, Qs, p, ps, coil_pitch_y)
-        mm_r_sy = self.mm_r_so.value - self.mm_d_sy.value  # radius stator yoke
-        mm_r_ss = self.mm_r_si.value + self.mm_d_sts.value # radius stator slot
-        self.EX = EX = {
-            'SteelMaterial': SteelMaterial,
-            'bool_WyeConnectOrDeltaConnect' : bool_WyeConnectOrDeltaConnect,
-            'DCBusVoltage' : DCBusVoltage,
-            'Js' : Js,
-            'Temperature' : Temperature,
-            'WindingFill' : WindingFill,
-            'TORQUE_CURRENT_RATIO': TORQUE_CURRENT_RATIO,
-            'SUSPENSION_CURRENT_RATIO': SUSPENSION_CURRENT_RATIO
-        }
-        V_stator_phase_voltage_amp = math.sqrt(2) *DCBusVoltage / (math.sqrt(3) if bool_WyeConnectOrDeltaConnect else 1.0) 
-        V_desired_emf_Em = 0.95 * V_stator_phase_voltage_amp
-        alpha_i = 2.0/math.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
-        T_air_gap_flux_density_Bg_guessed = 0.9 # T
-        mm_stack_length_specified = 50 # mm
-        mm_d_magnetic_air_gap = self.mm_d_mech_air_gap.value + self.mm_d_sleeve.value
-        mm_stack_length_effective = mm_stack_length_specified + 2 * mm_d_magnetic_air_gap
-        mm_pole_pitch_tau_p = math.pi *self.mm_r_si.value / p
-        Wb_air_gap_flux_Phi_m = alpha_i * T_air_gap_flux_density_Bg_guessed * mm_pole_pitch_tau_p * mm_stack_length_effective*1e-3 # Wb
-        no_series_coil_turns_N = V_desired_emf_Em / (2*math.pi* ExcitationFreqSimulated * self.wily.kw1 * Wb_air_gap_flux_Phi_m)
-        no_series_coil_turns_N = round(no_series_coil_turns_N)
-        SPP = Qs / (2*p*m) # slot per pole per phase
-        print(f"[DEBUG] m={m}")
-        print(f"[DEBUG] Qs={Qs}")
-        print(f"[DEBUG] p={p}")
-        print(f"[DEBUG] ps={ps}")
-        print(f"[DEBUG] coil_pitch_y={coil_pitch_y}")
-        print(f"[DEBUG] V_stator_phase_voltage_amp={V_stator_phase_voltage_amp}")
-        print(f"[DEBUG] V_desired_emf_Em={V_desired_emf_Em}")
-        print(f"[DEBUG] alpha_i={alpha_i}")
-        print(f"[DEBUG] T_air_gap_flux_density_Bg_guessed={T_air_gap_flux_density_Bg_guessed}")
-        print(f"[DEBUG] mm_stack_length_specified={mm_stack_length_specified}")
-        print(f"[DEBUG] mm_d_magnetic_air_gap={mm_d_magnetic_air_gap}")
-        print(f"[DEBUG] mm_stack_length_effective={mm_stack_length_effective}")
-        print(f"[DEBUG] mm_pole_pitch_tau_p={mm_pole_pitch_tau_p}")
-        print(f"[DEBUG] Wb_air_gap_flux_Phi_m={Wb_air_gap_flux_Phi_m}")
-        print(f"[DEBUG] no_series_coil_turns_N={no_series_coil_turns_N}")
-        print(f"[DEBUG] SPP={SPP}")
-        print(f"[DEBUG] mm_r_sy={mm_r_sy}")
-        print(f"[DEBUG] mm_r_ss={mm_r_ss}")
-        if bool_weHavePlentyVoltage:
-            no_series_coil_turns_N = min([p*SPP*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
-        else:
-            no_series_coil_turns_N = min([p*SPP*i for i in range(1000)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
-        print(f'[zQ] We need {no_series_coil_turns_N=} to reach the desired voltage: {V_desired_emf_Em=} V when {DCBusVoltage=} V')
-        if no_series_coil_turns_N > 990:
-            raise Exception(f'What? no_series_coil_turns_N is too large: {no_series_coil_turns_N=}')
-        print('[zQ] no_series_coil_turns_N should be multiple of pq: %s = q * p = %s * %s', no_series_coil_turns_N, SPP, p)
-        EX['zQ'] = no_conductors_per_slot_zQ = 2* m * no_series_coil_turns_N / Qs * self.wily.number_of_parallel_branch
-        EX['mm2_slot_area']            = math.pi*(mm_r_sy**2 - mm_r_ss**2) - self.mm_w_st.value * self.mm_d_st.value # 计算槽面积
-        EX['CurrentAmp_in_the_slot']   = EX['mm2_slot_area'] * 1e-6 * Js * WindingFill * math.sqrt(2)
-        EX['CurrentAmp_per_conductor'] = EX['CurrentAmp_in_the_slot'] / EX['zQ']
-        EX['CurrentAmp_per_phase']     = EX['CurrentAmp_per_conductor'] * self.wily.number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
-        EX['TORQUE_CURRENT']     = EX['TORQUE_CURRENT_RATIO']     * EX['CurrentAmp_per_phase']
-        EX['SUSPENSION_CURRENT'] = EX['SUSPENSION_CURRENT_RATIO'] * EX['CurrentAmp_per_phase']
-        EX['slot_current_utilizing_ratio_for_torque'] = (EX['TORQUE_CURRENT'] + EX['SUSPENSION_CURRENT']) / EX['CurrentAmp_per_phase']
 
-        EX['mm_stack_length_specified'] = mm_stack_length_specified
+    def get_InitialRotationAngle(self):
+        # 设置转子角度的初始位置条件，以使得在t=0时刻，转子的q轴与U相绕组的相轴重合，并且此时U相电流应该为交流最大（需要同步调整circuit中的激励正弦信号的相位）。
+        # 不仅如此，初始转子角度还影响着永磁体的励磁角度是否对齐，最好手动确认一下： study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*acm_variant.['p']) ) # 半个极距
+        # Implementation of id=0 control:
+        #   After rotate the rotor by half the inter-pole notch span, The d-axis initial position is at pole pitch angle divided by 2.
+        #   The U-phase current is sin(omega_syn*t) = 0 at t=0 and requires the d-axis to be at the winding phase axis (to obtain id=0 control)
+        deg_pole_span = 180/self.p.value
+        #                           inter-pole notch is rotated to x-axis (0.5 for half)  winding placing bias (one slot angle)        align with q-axis
+        self.InitialRotationAngle = (deg_pole_span-self.deg_alpha_rm.value)*0.5 + self.wily.deg_winding_U_phase_phase_axis_angle  # is made by set phase U current maximum at t=0, that is the current is a cosine function.
+        print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {self.InitialRotationAngle} deg = ", (deg_pole_span-self.deg_alpha_rm.value)*0.5,  self.wily.deg_winding_U_phase_phase_axis_angle,  deg_pole_span*0.5)
+        print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {self.InitialRotationAngle} deg")
+
+        return self.InitialRotationAngle
+
 
     def show_geometry(self, filename=None) -> None:
         bool_draw_whole_model = True
@@ -761,7 +808,8 @@ class Modern_Machine_Designer(object):
         self.project_name = self.name+'proj'
         self.expected_project_file = self.path2SwarmData + "temp/%s.jproj"%(self.project_name)
 
-        self.path2FEACsv = self.path2SwarmData + 'csv/'
+        self.path2FEACsv = os.path.abspath(self.path2SwarmData + 'csv/')
+
         if not os.path.isdir(self.path2FEACsv): os.makedirs(self.path2FEACsv)
 
         if 'JMAG' in self.select_FEA_tool:
@@ -912,7 +960,7 @@ class Modern_Machine_Designer(object):
 
                 number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
                 individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
-                builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
+                self.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
                 json_file_path = self.fea_config_dict['output_dir'] + self.select_spec + '.json'
 
                 # Read the possibly-existing current json data
@@ -927,7 +975,7 @@ class Modern_Machine_Designer(object):
 
                 # Compose new key
                 key = f'gen{number_current_generation}-ind{individual_index}'
-                loaded_json[key] = builtins.ad.visualize_dict
+                loaded_json[key] = self.visualize_dict
 
                 json_string = jsonpickle.encode(loaded_json, indent=4)
                 with open(json_file_path, 'w+') as f:
@@ -937,7 +985,7 @@ class Modern_Machine_Designer(object):
                 individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
 
                 # this is for optimization
-                acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
+                self.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
 
             self.toolJd = toolJd = build_jmag_project(study_name)
             if 'PMSM' in self.name:
@@ -954,14 +1002,14 @@ class Modern_Machine_Designer(object):
             toolJd.mesh_study(self, app, model, study, output_dir=self.path2SwarmData)
             # raise KeyboardInterrupt
             from time import time as clock_time
-            toolJd.run_study(self, app, study, self.template.fea_config_dict, clock_time())
+            toolJd.run_study(self, app, study, self.fea_config_dict, clock_time())
 
             # export Voltage if field data exists.
-            if self.EX['bool_jmagDeleteResultsAfterCalculation'] == False:
+            if self.fea_config_dict['delete_results_after_calculation'] == False:
                 # Export Circuit Voltage
                 ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                 app.GetDataManager().CreateGraphModel(ref1)
-                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.path2FEACsv + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
 
             compile_results(study_name, self.toolJd)
 
