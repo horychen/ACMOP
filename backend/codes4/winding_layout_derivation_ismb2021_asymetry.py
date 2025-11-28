@@ -104,7 +104,14 @@ def phase_angle_of_slot_i_at_frequency_h(slot_number, h, Q):
     槽距角 = deg_elec_angle_between_adjacent_slots = 2*math.pi * h / Q 
     return deg_elec_angle_between_adjacent_slots * (slot_number-1) # 水平向右定义为1号槽
 
-import PyX_Utility
+# Switchable Utility
+# import PyX_Utility as chosen_Utility
+import Cairo_Utility as chosen_Utility
+try:
+    trafo = chosen_Utility.trafo
+except AttributeError:
+    import pyx
+    trafo = pyx.trafo
 from utility import gcd
 def draw_star_of_slots(Q, p, m):
 
@@ -119,7 +126,7 @@ def draw_star_of_slots(Q, p, m):
     # 槽电势星形图圈数 = t = gcd(Q,p)
     # 槽电势星形图每圈箭头数 = Q / t
 
-    u = PyX_Utility.PyX_Utility()
+    u = chosen_Utility.PyX_Utility()
     connection_star_raw_dict = dict()
 
     # Draw phase belt
@@ -173,7 +180,7 @@ def draw_star_of_slots(Q, p, m):
     return u, connection_star_raw_dict, phase_belt
 def draw_connection_star(m, phase_belt, connection_star_raw_dict):
 
-    u = PyX_Utility.PyX_Utility()
+    u = chosen_Utility.PyX_Utility()
 
     if m == 3:
         u.pyx_text(angular_location(  0, radius_bias=2), '$u$', scale=1) # 'A'
@@ -240,7 +247,7 @@ def draw_connection_star(m, phase_belt, connection_star_raw_dict):
     return u
 def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequency_ratio, which_phase='Aa'):
 
-    u = PyX_Utility.PyX_Utility()
+    u = chosen_Utility.PyX_Utility()
     dpnv_grouping_dict = dict()
     dpnv_grouping_dict['GAC'] = []
     dpnv_grouping_dict['GBD'] = []
@@ -404,7 +411,7 @@ def draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, phase_Aa_dpnv_
         reversed_excitation_upper_layer = reversed_excitation_lower_layer = None
 
     # initialize the canvas
-    u = PyX_Utility.PyX_Utility()
+    u = chosen_Utility.PyX_Utility()
 
     if bool_double_layer_winding == False:
         return u
@@ -586,7 +593,7 @@ def winding_short_pitch_factor_v2(h, coil_pitch_y, Q):
     # Here, coil_pitch_y/y_Q * math.pi is the short pitch radian (elec.) for 1 pole pair field
     return k_ph
 
-import pyx
+# import pyx
 
 class Winding_Derivation(object):
     """General Implementation of the Winding_Derivation Process."""
@@ -706,7 +713,7 @@ class Winding_Derivation(object):
 
 
 
-        drawer_Text = PyX_Utility.PyX_Utility()
+        drawer_Text = chosen_Utility.PyX_Utility()
 
         kw_at_p  = winding_distribution_factor(Q, connection_star_raw_dict, p, bool_double_layer_winding)
         kw_at_ps = winding_distribution_factor(Q, connection_star_raw_dict, ps, bool_double_layer_winding)
@@ -928,7 +935,8 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
-                                (3, 24, 4, 5, 2, 0), # Q24p4ps5
+                                (3, 24, 4, 5, 1, 0), # Q24p4ps5
+                                # (3, 24, 4, 5, 2, 0), # Q24p4ps5
                                 # (3, 12, 5, 4, 1, 0), # Spindle p5ps4
                                 # (3, 6, 4, 1, 1, 0), # homopolar consqeuent pole
                                 # (3, 12, 4, 5, 1, 0), # Slice BLESSIM for Qr=10
@@ -1035,37 +1043,37 @@ def main_derivation():
         if True:
             ''' ISMB 2021: Produce sub-figure for the paper
             '''
-            wd.drawer_T1.cvs.writePDFfile(fname + '_T1')
-            wd.drawer_T2.cvs.writePDFfile(fname + '_T2')
-            wd.drawer_T3a.cvs.insert(wd.drawer_T3b.cvs, [pyx.trafo.translate(20*2,  0)]) # NOTE THAT THE PHASE V and W are transposed!
-            wd.drawer_T3a.cvs.insert(wd.drawer_T3c.cvs, [pyx.trafo.translate(20*1,  0)]) # NOTE THAT THE PHASE V and W are transposed!
-            wd.drawer_T3a.cvs.writePDFfile(fname + '_T3abc')
-            wd.drawer_T4.cvs.writePDFfile(fname + '_T4')
-            wd.drawer_T4a.cvs.writePDFfile(fname + '_T4a')
-            wd.drawer_T4b.cvs.writePDFfile(fname + '_T4b')
-            wd.drawer_T4c.cvs.writePDFfile(fname + '_T4c')
+            wd.drawer_T1.cvs.writePDFfile(fname + '_T1'); wd.drawer_T1.cvs.writeSVGfile(fname + '_T1')
+            wd.drawer_T2.cvs.writePDFfile(fname + '_T2'); wd.drawer_T2.cvs.writeSVGfile(fname + '_T2')
+            wd.drawer_T3a.cvs.insert(wd.drawer_T3b.cvs, [trafo.translate(20*2,  0)]) # NOTE THAT THE PHASE V and W are transposed!
+            wd.drawer_T3a.cvs.insert(wd.drawer_T3c.cvs, [trafo.translate(20*1,  0)]) # NOTE THAT THE PHASE V and W are transposed!
+            wd.drawer_T3a.cvs.writePDFfile(fname + '_T3abc'); wd.drawer_T3a.cvs.writeSVGfile(fname + '_T3abc')
+            wd.drawer_T4.cvs.writePDFfile(fname + '_T4'); wd.drawer_T4.cvs.writeSVGfile(fname + '_T4')
+            wd.drawer_T4a.cvs.writePDFfile(fname + '_T4a'); wd.drawer_T4a.cvs.writeSVGfile(fname + '_T4a')
+            wd.drawer_T4b.cvs.writePDFfile(fname + '_T4b'); wd.drawer_T4b.cvs.writeSVGfile(fname + '_T4b')
+            wd.drawer_T4c.cvs.writePDFfile(fname + '_T4c'); wd.drawer_T4c.cvs.writeSVGfile(fname + '_T4c')
             print(f'Write pdf to {fname}')
             # quit()
 
         # Collage
-        wd.drawer_T1.cvs.insert(wd.drawer_T2.cvs,  [pyx.trafo.translate(PLOT_SPACING*1,  0)])
+        wd.drawer_T1.cvs.insert(wd.drawer_T2.cvs,  [trafo.translate(PLOT_SPACING*1,  0)])
         if wd.m==3:
-            wd.drawer_T1.cvs.insert(wd.drawer_T3a.cvs, [pyx.trafo.translate(PLOT_SPACING*2,  0)])
-            wd.drawer_T1.cvs.insert(wd.drawer_T3b.cvs, [pyx.trafo.translate(PLOT_SPACING*3,  0)])
-            wd.drawer_T1.cvs.insert(wd.drawer_T3c.cvs, [pyx.trafo.translate(PLOT_SPACING*4,  0)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T3a.cvs, [trafo.translate(PLOT_SPACING*2,  0)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T3b.cvs, [trafo.translate(PLOT_SPACING*3,  0)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T3c.cvs, [trafo.translate(PLOT_SPACING*4,  0)])
         # wd.drawer_T1.cvs.insert(wd.drawer_T33.cvs, [pyx.trafo.translate(PLOT_SPACING*5,  0)])
         # wd.drawer_T1.cvs.insert(wd.drawer_T35.cvs, [pyx.trafo.translate(PLOT_SPACING*6,  0)])
         # wd.drawer_T1.cvs.insert(wd.drawer_T37.cvs, [pyx.trafo.translate(PLOT_SPACING*7,  0)])
-        wd.drawer_T1.cvs.insert(wd.drawer_T4.cvs,  [pyx.trafo.translate(             0, -50)])
+        wd.drawer_T1.cvs.insert(wd.drawer_T4.cvs,  [trafo.translate(             0, -50)])
         if wd.m==3:
-            wd.drawer_T1.cvs.insert(wd.drawer_T4a.cvs, [pyx.trafo.translate(             0,-100)])
-            wd.drawer_T1.cvs.insert(wd.drawer_T4b.cvs, [pyx.trafo.translate(             0,-150)])
-            wd.drawer_T1.cvs.insert(wd.drawer_T4c.cvs, [pyx.trafo.translate(             0,-200)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T4a.cvs, [trafo.translate(             0,-100)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T4b.cvs, [trafo.translate(             0,-150)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T4c.cvs, [trafo.translate(             0,-200)])
         # insert winding factor table
-        wd.drawer_T1.cvs.insert(wd.drawer_Text.cvs, [pyx.trafo.translate(PLOT_SPACING*3, -220)])
+        wd.drawer_T1.cvs.insert(wd.drawer_Text.cvs, [trafo.translate(PLOT_SPACING*3, -220)])
 
         # Save collage as file
-        wd.drawer_T1.cvs.writePDFfile(fname)
+        wd.drawer_T1.cvs.writePDFfile(fname); wd.drawer_T1.cvs.writeSVGfile(fname)
         print(f'save to {fname}')
 
         if wd.m!=3:
