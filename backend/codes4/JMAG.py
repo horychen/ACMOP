@@ -354,19 +354,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # sel = view.GetCurrentSelection()
         # sel.SelectPart(123)
         # sel.SetBlockUpdateView(False)
-        SI = acm_variant.template.spec_input_dict
-        EX = SI['EX']
-        p = SI['p']
-        if 'no_segmented_magnets' not in SI:
-            s = 1
-        else:
-            s = SI['no_segmented_magnets']
-        Q = SI['Qs']
+            
+        EX = acm_variant.EX
+        p = acm_variant.p.value
+        s = acm_variant.s.value if acm_variant.bool_PermanentMagnet else 1
+        Q = acm_variant.Qs.value
                                 #   轴 转子 永磁体  护套 定子 绕组
         if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
             msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(acm_variant,toString=False)
-            logger = logging.getLogger(__name__)
-            logger.error(msg)
+            print(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
 
         self.id_rotorCore = id_rotorCore = part_ID_list[0]
@@ -419,12 +415,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Angle_StatorSlotSpan = 360/Q
         # R = self.mm_r_si + self.mm_d_sts + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
         # THETA = 0.25*(Angle_StatorSlotSpan)/180.*math.pi
-        R = math.sqrt(acm_variant.coils.PCoil[0]**2 + acm_variant.coils.PCoil[1]**2)
-        THETA = math.atan2(acm_variant.coils.PCoil[1], acm_variant.coils.PCoil[0])
+        PCoil = acm_variant.drawer.visualization_points['Coils']['PCoil']
+        R = math.sqrt(PCoil[0]**2 + PCoil[1]**2)
+        THETA = math.atan2(PCoil[1], PCoil[0])
         X = R*math.cos(THETA)
         Y = R*math.sin(THETA)
         countXL = 0
-        wily = acm_variant.template.SI['EX']['wily']
+        wily = acm_variant.wily
 
         for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
             countXL += 1 
@@ -436,14 +433,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             Y = R*math.sin(THETA)
 
         # Create Set for layer_Y_phases
-        if acm_variant.coils.PCoil[1] >= 0:
-            raise Exception(f'Pay attention to the coil setup. The codes are written assuming the first coil is in the 12th slot. In other words acm_variant.coils.PCoil[1] should negative, but {acm_variant.coils.PCoil[1]=}')
+        if PCoil[1] >= 0:
+            raise Exception(f'Pay attention to the coil setup. The codes are written assuming the first coil is in the 12th slot. In other words PCoil[1] should negative, but {PCoil[1]=}')
         # THETA = 0.75*(Angle_StatorSlotSpan)/180.*math.pi # 这里这个角度的选择，决定了悬浮绕组产生悬浮力的方向！！！！！
-        if acm_variant.coils.PCoil[1] > 0.0:
-            THETA = math.atan2(-acm_variant.coils.PCoil[1], acm_variant.coils.PCoil[0]) + (2*math.pi)/Q # needed for case in which PCoil[1] > 0
+        if PCoil[1] > 0.0:
+            THETA = math.atan2(-PCoil[1], PCoil[0]) + (2*math.pi)/Q # needed for case in which PCoil[1] > 0
             wily.deg_winding_U_phase_phase_axis_angle = 360/Q
         else:
-            THETA = math.atan2(-acm_variant.coils.PCoil[1], acm_variant.coils.PCoil[0]) - (2*math.pi)/Q # needed for case in which PCoil[1] < 0
+            THETA = math.atan2(-PCoil[1], PCoil[0]) - (2*math.pi)/Q # needed for case in which PCoil[1] < 0
             wily.deg_winding_U_phase_phase_axis_angle = 0.0
         # the first coil in layer Y is assigned to phase W then this code is correct.
         # the first coil in layer Y is assigned to phase W then this code is correct.
@@ -460,26 +457,25 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             Y = R*math.sin(THETA)
 
         # 设置转子角度的初始位置条件，以使得在t=0时刻，转子的q轴与U相绕组的相轴重合，并且此时U相电流应该为交流最大（需要同步调整circuit中的激励正弦信号的相位）。
-        # 不仅如此，初始转子角度还影响着永磁体的励磁角度是否对齐，最好手动确认一下： study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*acm_template.SI['p']) ) # 半个极距
+        # 不仅如此，初始转子角度还影响着永磁体的励磁角度是否对齐，最好手动确认一下： study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*acm_variant.['p']) ) # 半个极距
         if True:
             # Implementation of id=0 control:
             #   After rotate the rotor by half the inter-pole notch span, The d-axis initial position is at pole pitch angle divided by 2.
             #   The U-phase current is sin(omega_syn*t) = 0 at t=0 and requires the d-axis to be at the winding phase axis (to obtain id=0 control)
-            deg_pole_span = 180/SI['p']
-            wily = SI['EX']['wily']
+            deg_pole_span = 180/p
+            wily = acm_variant.wily
             #                           inter-pole notch is rotated to x-axis (0.5 for half)  winding placing bias (one slot angle)        align with q-axis
-            EX['InitialRotationAngle'] = (deg_pole_span-SI['GP']['deg_alpha_rm'].value)*0.5 + wily.deg_winding_U_phase_phase_axis_angle  # is made by set phase U current maximum at t=0, that is the current is a cosine function.
-            print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {EX['InitialRotationAngle']} deg = ", (deg_pole_span-SI['GP']['deg_alpha_rm'].value)*0.5,  wily.deg_winding_U_phase_phase_axis_angle,  deg_pole_span*0.5)
-            print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {EX['InitialRotationAngle']} deg")
+            acm_variant.InitialRotationAngle = (deg_pole_span-acm_variant.deg_alpha_rm.value)*0.5 + wily.deg_winding_U_phase_phase_axis_angle  # is made by set phase U current maximum at t=0, that is the current is a cosine function.
+            print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {acm_variant.InitialRotationAngle} deg = ", (deg_pole_span-acm_variant.deg_alpha_rm.value)*0.5,  wily.deg_winding_U_phase_phase_axis_angle,  deg_pole_span*0.5)
+            print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {acm_variant.InitialRotationAngle} deg")
 
         # Create Set for Magnets
-        GP = acm_variant.template.SI['GP']
-        R = GP['mm_r_si'].value - GP['mm_d_sleeve'].value - GP['mm_d_mech_air_gap'].value - 0.5*GP['mm_d_pm'].value
-        alpha_rs = GP['deg_alpha_rs'].value /180*math.pi
+        R = acm_variant.mm_r_si.value - acm_variant.mm_d_sleeve.value - acm_variant.mm_d_mech_air_gap.value - 0.5*acm_variant.mm_d_pm.value
+        alpha_rs = acm_variant.deg_alpha_rs.value /180*math.pi
         deg_pole_span = 360 / (p*2)
 
         if s>1:
-            deg_alpha_notch  = (GP['deg_alpha_rm'].value - s*GP['deg_alpha_rs'].value) / (s-1) # inter-segment notch占的角度
+            deg_alpha_notch  = (acm_variant.deg_alpha_rm.value - s*acm_variant.deg_alpha_rs.value) / (s-1) # inter-segment notch占的角度
             alpha_notch = deg_alpha_notch /180*math.pi
 
         list_xy_magnets = []
@@ -489,19 +485,19 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             if s==1:
                       # v---This negative sign means we walk CCW to assign sets.
-                THETA = - (180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rm'].value + deg_pole_span*ind) /180.*math.pi
+                THETA = - (180/p - acm_variant.deg_alpha_rm.value + 0.5*acm_variant.deg_alpha_rm.value + deg_pole_span*ind) /180.*math.pi
                 X = R*math.cos(THETA)
                 Y = R*math.sin(THETA)
 
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
             else:     # v---This negative sign means we walk CCW to assign sets.
-                THETA = - ( 180/p-GP['deg_alpha_rm'].value + 0.5*GP['deg_alpha_rs'].value + deg_pole_span*ind ) /180*math.pi # initial position
+                THETA = - ( 180/p - acm_variant.deg_alpha_rm.value + 0.5*acm_variant.deg_alpha_rs.value + deg_pole_span*ind ) /180*math.pi # initial position
                 # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*math.pi # initial position
-                for s in range(s):
+                for _s in range(s):
                     X = R*math.cos(THETA)
                     Y = R*math.sin(THETA)
-                    add_part_to_set("Magnet %d s%d"%(natural_ind, s), X, Y)
+                    add_part_to_set("Magnet %d s%d"%(natural_ind, _s), X, Y)
                     list_xy_magnets.append([X,Y])
                     THETA -= alpha_notch + alpha_rs
                         # ^---This negative sign means we walk CCW to assign sets.
@@ -538,21 +534,19 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # study.GetStudyProperties().SetValue(u"TimePeriodicType", 2) # This is for TP-EEC but is not effective
 
         # misc
-        GP = acm_variant.template.SI['GP']
-        EX = acm_variant.template.SI['EX']
-        SI = acm_variant.template.SI
-        wily = EX['wily']
+        EX = acm_variant.EX
+        wily = acm_variant.wily
         # try:
         #     wily.deg_winding_U_phase_phase_axis_angle
         # except AttributeError:
         #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'deg_winding_U_phase_phase_axis_angle', implying that the object wily has become a dict after jsonpickle.")
-        #     WILY = namedtuple('WILY', acm_variant.template.SI['EX']['wily'])
-        #     wily_as_obj =      WILY(**acm_variant.template.SI['EX']['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
+        #     WILY = namedtuple('WILY', acm_variant.template.SIEX['wily'])
+        #     wily_as_obj =      WILY(**acm_variant.template.SIEX['wily']) # https://stackoverflow.com/questions/43921240/pythonic-way-to-convert-a-dictionary-into-namedtuple-or-another-hashable-dict-li
         #     wily = wily_as_obj
 
         study.GetStudyProperties().SetValue("ConversionType", 0)
-        study.GetStudyProperties().SetValue("NonlinearMaxIteration", acm_variant.template.fea_config_dict['designer.max_nonlinear_iteration'])
-        study.GetStudyProperties().SetValue("ModelThickness", EX['mm_stack_length']) # [mm] Stack Length
+        study.GetStudyProperties().SetValue("NonlinearMaxIteration", acm_variant.fea_config_dict['designer.max_nonlinear_iteration'])
+        study.GetStudyProperties().SetValue("ModelThickness", EX['mm_stack_length_specified']) # [mm] Stack Length
 
         # Material
         self.add_material(study, acm_variant)
@@ -821,15 +815,17 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         pass
     # TranFEAwi2TSS
     def add_material(self, study, acm_variant):
-        acm_template = acm_variant.template
 
         # if 'PMSM' in acm_variant.template.name:
         #     rotorCoreName = "NotchedRotor"
         # elif 'Flux_Alternator' in acm_variant.template.name:
         #     rotorCoreName = "SalientPoleRotor"
-        rotorCoreName = acm_variant.rotorCore.name
 
-        if 'M19' in acm_template.spec_input_dict['EX-user']['Steel']:
+        rotorCoreName = acm_variant.machineGeometry['rotorCore'].name
+
+        EX = acm_variant.EX
+
+        if 'M19' in EX['SteelMaterial']:
             study.SetMaterialByName("StatorCore", "M-19 Steel Gauge-29")
             study.GetMaterial("StatorCore").SetValue("Laminated", 1)
             study.GetMaterial("StatorCore").SetValue("LaminationFactor", 95)
@@ -839,7 +835,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(rotorCoreName).SetValue("Laminated", 1)
             study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 98)
 
-        elif 'M15' in acm_template.spec_input_dict['EX-user']['Steel']:
+        elif 'M15' in EX['SteelMaterial']:
             study.SetMaterialByName("StatorCore", "M-15 Steel")
             study.GetMaterial("StatorCore").SetValue("Laminated", 1)
             study.GetMaterial("StatorCore").SetValue("LaminationFactor", 98)
@@ -848,7 +844,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(rotorCoreName).SetValue("Laminated", 1)
             study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 98)
 
-        elif acm_template.spec_input_dict['EX-user']['Steel'] == 'Arnon5':
+        elif EX['SteelMaterial'] == 'Arnon5':
             study.SetMaterialByName("StatorCore", "Arnon5-final")
             study.GetMaterial("StatorCore").SetValue("Laminated", 1)
             study.GetMaterial("StatorCore").SetValue("LaminationFactor", 96)
@@ -857,7 +853,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(rotorCoreName).SetValue("Laminated", 1)
             study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 96)
 
-        elif acm_template.spec_input_dict['EX-user']['Steel'] == '35CS250':
+        elif EX['SteelMaterial'] == '35CS250':
             study.SetMaterialByName(u"StatorCore", u"35CS250")
             study.SetMaterialByName(rotorCoreName, u"35CS250")
 
@@ -880,7 +876,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # N40H Reversible
         available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220] # according to JMAG
-        magnet_temperature = min(available_temperature_list, key=lambda x:abs(x-acm_template.spec_input_dict['EX-user']['Temperature']))        
+        magnet_temperature = min(available_temperature_list, key=lambda x:abs(x - acm_variant.EX['Temperature']))        
         logger = logging.getLogger(__name__)
         logger.info('magnet_temperature is %s deg C.', magnet_temperature)
         if 'PMSM' in acm_variant.template.name:
@@ -888,13 +884,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
             study.GetMaterial(u"Magnet").SetValue(u"Temperature", magnet_temperature) # 80 deg TEMPERATURE (There is no 75 deg C option)
 
-            study.GetMaterial(u"Magnet").SetValue(u"Poles", acm_template.SI['EX']['DriveW_poles'])
+            study.GetMaterial(u"Magnet").SetValue(u"Poles", EX['DriveW_poles'])
             study.GetMaterial(u"Magnet").SetDirectionXYZ(1, 0, 0)
             study.GetMaterial(u"Magnet").SetAxisXYZ(0, 0, -1)
             study.GetMaterial(u"Magnet").SetOriginXYZ(0, 0, 0)
             study.GetMaterial(u"Magnet").SetPattern(u"RadialCircular")
             study.GetMaterial(u"Magnet").SetOrientation(False)
-            study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*acm_template.SI['p']) ) # 半个极距
+            study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*acm_variant.p.value) ) # 半个极距
 
         elif 'FSPM' in acm_variant.template.name:
             study.SetMaterialByName(u"Magnet-CW", u"Arnold/Reversible/N40H")
@@ -935,7 +931,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(      u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
             study.GetMaterial(      u"Magnet").SetValue(u"Temperature", magnet_temperature) # 80 deg TEMPERATURE (There is no 75 deg C option)
 
-            study.GetMaterial(      u"Magnet").SetValue(u"Poles", acm_template.SI['EX']['DriveW_poles'])
+            study.GetMaterial(      u"Magnet").SetValue(u"Poles", acm_variant.EX['DriveW_poles'])
             study.GetMaterial(      u"Magnet").SetDirectionXYZ(1, 1, 0)
             study.GetMaterial(      u"Magnet").SetAxisXYZ(0, 0, 1)
             study.GetMaterial(      u"Magnet").SetOriginXYZ(0, 0, 0)            
@@ -943,7 +939,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # study.GetMaterial(      u"Magnet").SetPattern(u"Radial")
             # study.GetMaterial(      u"Magnet").SetOrientation(False) # attention: this is a crucial setting for CPPM， if there were no this setting, the torque produced will be negative (only in CPPM condition), which is not what we want.
             
-            study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 0.5*360/(2*acm_template.SI['p']) ) # 半个极距
+            study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 0.5*360/(2*acm_variant.p.value) ) # 半个极距
 
         elif 'CSPPM' in acm_variant.template.name:
 
@@ -951,7 +947,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(      u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
             study.GetMaterial(      u"Magnet").SetValue(u"Temperature", magnet_temperature) # 80 deg TEMPERATURE (There is no 75 deg C option)
 
-            # study.GetMaterial(      u"Magnet").SetValue(u"Poles", acm_template.SI['EX']['DriveW_poles'])
+            # study.GetMaterial(      u"Magnet").SetValue(u"Poles", acm_variant.EX['DriveW_poles'])
             study.GetMaterial(      u"Magnet").SetDirectionXYZ(1, 1, 0)
             study.GetMaterial(      u"Magnet").SetAxisXYZ(0, 0, 1)
             study.GetMaterial(      u"Magnet").SetOriginXYZ(0, 0, 0)            
@@ -959,12 +955,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # study.GetMaterial(      u"Magnet").SetPattern(u"Radial")
             # study.GetMaterial(      u"Magnet").SetOrientation(False) # attention: this is a crucial setting for CPPM， if there were no this setting, the torque produced will be negative (only in CPPM condition), which is not what we want.
             # set NSNS
-            study.GetMaterial(      u"Magnet").SetValue(u"Poles", acm_template.SI['EX']['DriveW_poles'])
+            study.GetMaterial(      u"Magnet").SetValue(u"Poles", acm_variant.EX['DriveW_poles'])
             study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 11)
             # set NSSN
-            # study.GetMaterial(      u"Magnet").SetValue(u"Poles", acm_template.SI['EX']['DriveW_poles']) / 2 * 3)
+            # study.GetMaterial(      u"Magnet").SetValue(u"Poles", acm_variant.EX['DriveW_poles']) / 2 * 3)
             # study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 9)
-            # study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 0.5*360/(acm_template.SI['p']) ) # 半个极距
+            # study.GetMaterial(      u"Magnet").SetValue(u"StartAngle", 0.5*360/(acm_variant.['p']) ) # 半个极距
             # quit()
             # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Direction")
             # study.GetDesignTable().AddParameterVariableName(u"StatorPM: Inward/Outward")
@@ -1057,10 +1053,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # 这里电流幅值中的0.5因子源自DPNV导致的等于2的平行支路数。没有考虑到这一点，是否会对initial design的有效性产生影响？
         # 仔细看DPNV的接线，对于转矩逆变器，绕组的并联支路数为2，而对于悬浮逆变器，绕组的并联支路数为1。
 
-        EX = acm_variant.template.SI['EX']
+        EX = acm_variant.EX
         # for k,v in EX.items():
         #     print(k,v)
-        wily = EX['wily']
+        wily = acm_variant.wily
 
         npb = wily.number_parallel_branch
         nwl = wily.number_winding_layer # number of windign layers 
@@ -1080,12 +1076,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         circuit('GroupAC',  EX['DriveW_zQ']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
             Rs=EX['DriveW_Rs'],ampD= ampD,
-                              ampB=-ampB, freq=acm_variant.template.SI['EX']['DriveW_Freq'], phase=0,
+                              ampB=-ampB, freq=acm_variant.template.SIEX['DriveW_Freq'], phase=0,
                               CommutatingSequenceD=wily.CommutatingSequenceD,
                               CommutatingSequenceB=wily.CommutatingSequenceB)
         circuit('GroupBD',  EX['BeariW_zQ']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
             Rs=EX['BeariW_Rs'],ampD= ampD,
-                              ampB=+ampB, freq=acm_variant.template.SI['EX']['BeariW_Freq'], phase=0,
+                              ampB=+ampB, freq=acm_variant.template.SIEX['BeariW_Freq'], phase=0,
                               CommutatingSequenceD=wily.CommutatingSequenceD,
                               CommutatingSequenceB=wily.CommutatingSequenceB,x=25) # CS4 corresponds to uauc (conflict with following codes but it does not matter.)
 
@@ -1674,7 +1670,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             self.calculate_excitation_current(acm_variant)
 
             # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
-            # EX = acm_variant.template.SI['EX']
+            # EX = acm_variant.template.SIEX
             # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
             # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
             # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
@@ -1773,7 +1769,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             self.calculate_excitation_current(acm_variant)
 
             # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
-            # EX = acm_variant.template.SI['EX']
+            # EX = acm_variant.template.SIEX
             # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
             # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
             # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
@@ -1874,7 +1870,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             self.calculate_excitation_current(acm_variant)
 
                 # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
-                # EX = acm_variant.template.SI['EX']
+                # EX = acm_variant.template.SIEX
                 # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
                 # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
                 # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
@@ -2009,7 +2005,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     @staticmethod
     def calculate_excitation_current(acm_variant):
         # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
-        EX = acm_variant.template.SI['EX']
+        EX = acm_variant.template.SIEX
         CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * EX['WindingFill'] * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
         CurrentAmp_per_conductor = CurrentAmp_in_the_slot / EX['DriveW_zQ']
         CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wily'].number_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
@@ -2393,7 +2389,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         else:
             SI = acm_variant.template.SI
             GP = acm_variant.template.SI['GP']
-            EX = acm_variant.template.SI['EX']
+            EX = acm_variant.template.SIEX
             wily = EX['wily']
             copper_loss_parameters = [GP['mm_d_sleeve'].value + GP['mm_d_mech_air_gap'].value,
                                 GP['mm_w_st'].value,
@@ -2401,7 +2397,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                                 EX['DriveW_zQ'],
                                 wily.coil_pitch_y,
                                 acm_variant.template.SI['Qs'],
-                                EX['mm_stack_length'],
+                                EX['mm_stack_length_specified'],
                                 EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp'], # total current amplitude
                                 GP['mm_r_ro'].value,       # mm
                                 GP['mm_r_so'].value*2*1e-3 # m, stator_yoke_diameter_Dsyi
@@ -2499,13 +2495,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         str_results += '\n\tfemm loss info: '  + ', '.join(['%g'%(el) for el in dm.femm_loss_list])
 
         if fea_config_dict['delete_results_after_calculation'] == False:
-            power_factor = dm.power_factor(number_of_steps_at_steady_state, targetFreq=acm_variant.template.SI['EX']['DriveW_Freq'])
+            power_factor = dm.power_factor(number_of_steps_at_steady_state, targetFreq=acm_variant.template.SIEX['DriveW_Freq'])
             str_results += '\n\tPF: %g' % (power_factor)
 
         # compute the fitness 
         rotor_volume = acm_variant.template.get_rotor_volume() 
         rotor_weight = acm_variant.template.get_rotor_weight()
-        shaft_power  = acm_variant.template.SI['EX']['Omega'] * torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
+        shaft_power  = acm_variant.template.SIEX['Omega'] * torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
 
         if 'IM' in acm_variant.template.machine_type:
             if False: # fea_config_dict['jmag_run_list'][0] == 0
@@ -2528,7 +2524,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         else:
             raise Exception('Unknown machine type:', acm_variant.template.machine_type)
 
-        windage_loss = utility.get_windage_loss(acm_variant, acm_variant.template.SI['EX']['mm_stack_length'])
+        windage_loss = utility.get_windage_loss(acm_variant, acm_variant.template.SIEX['mm_stack_length_specified'])
 
         # 这样计算效率，输出转矩大的，铁耗大一倍也没关系了，总之就是气隙变得最小。。。要不就不要优化气隙了。。。
         total_loss   = copper_loss + iron_loss + windage_loss
@@ -2601,14 +2597,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         required_torque = acm_variant.template.SI['mec_power'] / (2*math.pi*speed_rpm)*60
 
         rated_ratio                          = required_torque / torque_average 
-        rated_stack_length_mm                = rated_ratio * acm_variant.template.SI['EX']['mm_stack_length']
+        rated_stack_length_mm                = rated_ratio * acm_variant.template.SIEX['mm_stack_length_specified']
         rated_stator_copper_loss_along_stack = rated_ratio * stator_copper_loss_along_stack
         rated_magnet_Joule_loss              = rated_ratio * magnet_Joule_loss
         rated_rotor_copper_loss_along_stack  = rated_ratio * rotor_copper_loss_along_stack
         rated_iron_loss                      = rated_ratio * dm.jmag_loss_list[2]
         rated_windage_loss                   = utility.get_windage_loss(acm_variant, rated_stack_length_mm)
 
-        # print(acm_variant.template.SI['EX']['mm_stack_length'])
+        # print(acm_variant.template.SIEX['mm_stack_length_specified'])
         # print(rated_ratio)
         # print(torque_average)
         # print(required_torque)
@@ -2631,15 +2627,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             #     print('rotor_current_density is over 8e6 Arms/m^2')
         else:
                                     # 基波电流幅值（在一根导体里的电流，六相逆变器中的GroupBDW相的电流，所以相当于已经考虑了并联支路数了）
-            stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.coils.mm2_slot_area*1e-6/acm_variant.template.SI['EX']['DriveW_zQ'])
+            stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.coils.mm2_slot_area*1e-6/acm_variant.template.SIEX['DriveW_zQ'])
             logger = logging.getLogger(__name__)
             logger.info('Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2', stator_current_density)
             rotor_current_density = 0
 
         logger = logging.getLogger(__name__)
         logger.info('Required torque: %g Nm', required_torque)
-        logger.info("acm_variant.template.SI['EX']['Omega']: %g rad/s", acm_variant.template.SI['EX']['Omega'])
-        rated_shaft_power  = acm_variant.template.SI['EX']['Omega'] * required_torque
+        logger.info("acm_variant.template.SIEX['Omega']: %g rad/s", acm_variant.template.SIEX['Omega'])
+        rated_shaft_power  = acm_variant.template.SIEX['Omega'] * required_torque
         rated_efficiency   = rated_shaft_power / (rated_total_loss + rated_shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
 
         rated_rotor_volume = math.pi*(acm_variant.template.SI['GP']['mm_r_ro'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
@@ -2733,7 +2729,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         FRW = ss_avg_force_magnitude / rotor_weight
         logger = logging.getLogger(__name__)
-        logger.info('FRW: %s, Rotor weight: %s, Stack length: %s, Rated stack length: %s', FRW, rotor_weight, acm_variant.template.SI['EX']['mm_stack_length'], rated_stack_length_mm)
+        logger.info('FRW: %s, Rotor weight: %s, Stack length: %s, Rated stack length: %s', FRW, rotor_weight, acm_variant.template.SIEX['mm_stack_length_specified'], rated_stack_length_mm)
         rated_rotor_volume = acm_variant.template.get_rotor_volume(stack_length=rated_stack_length_mm) 
         rated_rotor_weight = acm_variant.template.get_rotor_weight(stack_length=rated_stack_length_mm)
         logger.info('rated_rotor_volume: %s, rated_rotor_weight: %s', rated_rotor_volume, rated_rotor_weight)
@@ -2750,7 +2746,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                             rated_windage_loss,
                             rated_rotor_volume,
                             rated_stack_length_mm,  # new!
-                            acm_variant.template.SI['EX']['mm_stack_length']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
+                            acm_variant.template.SIEX['mm_stack_length_specified']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
 
         # print(type(acm_variant.counter)==type(''))
         # print(type(acm_variant.counter)==type(''))

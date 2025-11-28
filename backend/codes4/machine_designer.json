@@ -1,6 +1,8 @@
 {
   "name": "SuperCoolPMSM",
   "machine_class": "bearingless_spmsm_heart.bearingless_spmsm_design_variant",
+  "select_fea_config_dict": "#0213 JMAG Bearingless Sub-hamonics",
+  "fea_config_dict": null,
   "bool_PermanentMagnet": true,
   "bool_StatorSlotClosed": false,
   "bool_RotorNotched": true,
@@ -263,6 +265,7 @@
   },
   "machineGeometry": {
     "rotorCore": {
+      "name": "rotorCore",
       "color": null,
       "GP": {
         "mm_r_ro": "rotor_outer_radius",
@@ -283,6 +286,7 @@
       "_needs_rebuild": true
     },
     "shaft": {
+      "name": "shaft",
       "color": null,
       "GP": {
         "mm_r_ri": "rotor_inner_radius"
@@ -291,6 +295,7 @@
       "_needs_rebuild": true
     },
     "rotorMagnet": {
+      "name": "rotorMagnet",
       "color": null,
       "GP": {
         "mm_d_pm": "magnet_depth",
@@ -303,6 +308,7 @@
       "_needs_rebuild": true
     },
     "sleeve": {
+      "name": "sleeve",
       "color": null,
       "GP": {
         "mm_r_ri": "rotor_inner_radius",
@@ -317,6 +323,7 @@
       "_needs_rebuild": true
     },
     "statorCore": {
+      "name": "statorCore",
       "color": null,
       "GP": {
         "mm_r_si": "stator_inner_radius",
@@ -341,6 +348,7 @@
       "_needs_rebuild": true
     },
     "coils": {
+      "name": "coils",
       "color": null,
       "GP": {
         "mm_r_so": "stator_outer_radius",
@@ -359,13 +367,93 @@
     "phase_number_m": 3,
     "stator_slot_number_Qs": 12,
     "pole_pair_number_p": 4,
-    "suspension_pole_pair_number_ps": 5
+    "suspension_pole_pair_number_ps": 5,
+    "coil_pitch_y": 1,
+    "number_of_parallel_branch": 2,
+    "kw1": 0.933,
+    "bool_DPNVorSEPA": true,
+    "layer_X_phases": [
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W"
+    ],
+    "layer_X_signs": [
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+"
+    ],
+    "layer_Y_phases": [
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V"
+    ],
+    "layer_Y_signs": [
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-"
+    ],
+    "grouping_AC": [
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1
+    ],
+    "number_parallel_branch": 2,
+    "number_winding_layer": 2,
+    "bool_3PhaseCurrentSource": false,
+    "CommutatingSequenceD": 1,
+    "CommutatingSequenceB": 0
   },
   "EX": {
     "SteelMaterial": "M19 Gauge-29",
     "bool_WyeConnectOrDeltaConnect": true,
     "DCBusVoltage": 400,
     "Js": 4000000.0,
+    "Temperature": 75,
     "WindingFill": 0.3882,
     "TORQUE_CURRENT_RATIO": 0.95,
     "SUSPENSION_CURRENT_RATIO": 0.05,
@@ -376,6 +464,7 @@
     "CurrentAmp_per_phase": 48881.48671151886,
     "TORQUE_CURRENT": 46437.41237594291,
     "SUSPENSION_CURRENT": 2444.074335575943,
-    "slot_current_utilizing_ratio_for_torque": 0.9999999999999999
+    "slot_current_utilizing_ratio_for_torque": 0.9999999999999999,
+    "mm_stack_length_specified": 50
   }
 }

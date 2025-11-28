@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
-import json, math, base64, pickle, cairo
+import json, math, base64, pickle, cairo, os
 
 class Parameter(object):
     def __init__(self, name, type, value=None, bounds=None, calc=None, calc_bounds=None, unit='mm', comment=None, args=None) -> None:
@@ -79,37 +79,169 @@ class Parameter(object):
         )
 
 class Winding(object):
-    def __init__(self, phase_number_m: int, stator_slot_number_Qs: int, pole_pair_number_p: int, suspension_pole_pair_number_ps: int, number_of_parallel_branch: int=2) -> None:
-        self.phase_number_m = phase_number_m
-        self.stator_slot_number_Qs = stator_slot_number_Qs
-        self.pole_pair_number_p = pole_pair_number_p
-        self.suspension_pole_pair_number_ps = suspension_pole_pair_number_ps
+    def __init__(self, phase_number_m: int, stator_slot_number_Qs: int, pole_pair_number_p: int, suspension_pole_pair_number_ps: int, coil_pitch_y :int, number_of_parallel_branch: int=2) -> None:
+        self.m = phase_number_m
+        self.Qs = stator_slot_number_Qs
+        self.p = pole_pair_number_p
+        self.ps = suspension_pole_pair_number_ps
+        self.coil_pitch_y = coil_pitch_y
 
         self.number_of_parallel_branch = number_of_parallel_branch
 
         self.kw1 = 0.933
+        self.bool_DPNVorSEPA = True
+
+        self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
+        self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
+        self.coil_pitch_y   = coil_pitch_y
+        self.layer_Y_phases = self.infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+        self.layer_Y_signs  = self.infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+        self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
+        self.number_parallel_branch = 2
+        self.number_winding_layer   = 2
+
+        self.bool_3PhaseCurrentSource = False
+        self.CommutatingSequenceD = 1
+        self.CommutatingSequenceB = 0
+
+    def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self, layer_X_phases, coil_pitch):
+        return layer_X_phases[-coil_pitch:] + layer_X_phases[:-coil_pitch]
+    def infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self, layer_X_signs, coil_pitch):
+        temp = layer_X_signs[-coil_pitch:] + layer_X_signs[:-coil_pitch]
+        return [('-' if el == '+' else '+') for el in temp]
+
+    def get_wily_obsolete(self):
+        import winding_layout, PyX_Utility, math # for part_winding
+        self.wily = winding_layout.winding_layout_v2(DPNV_or_SEPA=self.bool_DPNVorSEPA, Qs=self.Qs, p=self.p, ps=self.ps, coil_pitch_y=self.coil_pitch_y)
+
+    @staticmethod
+    def draw_winding_in_the_slot(u, Qs, list_layer_phases, list_layer_signs, text=''):
+
+        for i in range(Qs):
+            radius_slot = 30
+            LRIF = layer_radius_incremental_factor = 0.1
+            angular_loc = 2*math.pi/Qs*i
+            x_slot = radius_slot*math.cos(angular_loc)
+            y_slot = radius_slot*math.sin(angular_loc)
+            u.pyx_text(   [ x_slot*(1.0+LRIF), 
+                            y_slot*(1.0+LRIF)],
+                            str(i+1) )
+            u.pyx_marker( [ x_slot*(1.0+2*LRIF), 
+                            y_slot*(1.0+2*LRIF)], size=0.05)
+
+            radius_tooth = radius_slot + 5 
+            x_tooth = radius_tooth*math.cos(angular_loc + math.pi/Qs)
+            y_tooth = radius_tooth*math.sin(angular_loc + math.pi/Qs)
+            radius_airgap = radius_slot - 5
+            x_toothtip = radius_airgap*math.cos(angular_loc+math.pi/Qs)
+            y_toothtip = radius_airgap*math.sin(angular_loc+math.pi/Qs)
+            u.pyx_line([x_toothtip, y_toothtip], [x_tooth, y_tooth])
+
+            for ind, phases in enumerate(list_layer_phases):
+                signs = list_layer_signs[ind]
+                u.pyx_text(   [ x_slot*(1.0-ind*LRIF), 
+                                y_slot*(1.0-ind*LRIF)],
+                                '$' + phases[i].lower() + '^' + signs[i]
+                                + '$' )
+
+        u.pyx_text([0,0], (r'DPNV Winding' if wily.DPNV_or_SEPA else r'Separate Winding') + text)
+
+        u = PyX_Utility.PyX_Utility()
+        draw_winding_in_the_slot(u, wily.Qs, wily.list_layer_motor_phases, wily.list_layer_motor_signs, text=' Motor Mode' )
+        u.cvs.writePDFfile(self.path2SwarmData + 'part_winding_pyx_output_M')
+
+        u = PyX_Utility.PyX_Utility()
+        draw_winding_in_the_slot(u, wily.Qs, wily.list_layer_suspension_phases, wily.list_layer_suspension_signs, text=' Suspension Mode' )
+        u.cvs.writePDFfile(self.path2SwarmData + 'part_winding_pyx_output_S')
+        # u.cvs.writeSVGfile(r'C:\Users\horyc\Desktop\pyx_output')
+        # u.cvs.writeEPSfile(r'C:\Users\horyc\Desktop\pyx_output')
+        # quit()
+
+    @staticmethod
+    def plot_winding_function(wily):
+        '[1.2] Winding function / Current Linkage waveform'
+        from pylab import plt, np
+        zQ = 100 # number of conductors/turns per slot (Assume to be 100 for now)
+        turns_per_layer = zQ / wily.number_winding_layer
+        U_phase = winding_layout.PhaseWinding(wily.Qs, wily.m, turns_per_layer, wily.ox_distribution_phase_U)
+        U_phase.plotFuncObj(U_phase.winding_func)
+        U_phase.fig_plotFuncObj.savefig(self.path2SwarmData + 'part_winding_winding_function.png')
+        U_phase.plot2piFft(U_phase.winding_func, Fs=1/(2*np.pi/3600), L=32000*2**4) # 在2pi的周期内取360个点
+        U_phase.fig_plot2piFft.savefig(self.path2SwarmData + 'part_winding_winding_function_·.png')
+        plt.show()
 
     def to_dict(self) -> Dict[str, Any]:
         """将 Winding 对象转换为字典"""
         return {
-            'phase_number_m': self.phase_number_m,
-            'stator_slot_number_Qs': self.stator_slot_number_Qs,
-            'pole_pair_number_p': self.pole_pair_number_p,
-            'suspension_pole_pair_number_ps': self.suspension_pole_pair_number_ps
+            'phase_number_m': self.m,
+            'stator_slot_number_Qs': self.Qs,
+            'pole_pair_number_p': self.p,
+            'suspension_pole_pair_number_ps': self.ps,
+            'coil_pitch_y': self.coil_pitch_y,
+            'number_of_parallel_branch': self.number_of_parallel_branch,
+            'kw1': self.kw1,
+            'bool_DPNVorSEPA': self.bool_DPNVorSEPA,
+            'layer_X_phases': self.layer_X_phases,
+            'layer_X_signs': self.layer_X_signs,
+            'layer_Y_phases': self.layer_Y_phases,
+            'layer_Y_signs': self.layer_Y_signs,
+            'grouping_AC': self.grouping_AC,
+            'number_parallel_branch': self.number_parallel_branch,
+            'number_winding_layer': self.number_winding_layer,
+            'bool_3PhaseCurrentSource': self.bool_3PhaseCurrentSource,
+            'CommutatingSequenceD': self.CommutatingSequenceD,
+            'CommutatingSequenceB': self.CommutatingSequenceB
         }
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Winding':
         """从字典创建 Winding 对象"""
-        return cls(
-            phase_number_m=data['phase_number_m'],
-            stator_slot_number_Qs=data['stator_slot_number_Qs'],
-            pole_pair_number_p=data['pole_pair_number_p'],
-            suspension_pole_pair_number_ps=data['suspension_pole_pair_number_ps']
+        # 创建对象实例
+        instance = cls(
+            phase_number_m=data.get('phase_number_m', data.get('m', 3)),
+            stator_slot_number_Qs=data.get('stator_slot_number_Qs', data.get('Qs', 12)),
+            pole_pair_number_p=data.get('pole_pair_number_p', data.get('p', 4)),
+            suspension_pole_pair_number_ps=data.get('suspension_pole_pair_number_ps', data.get('ps', 5)),
+            coil_pitch_y=data.get('coil_pitch_y', 1),
+            number_of_parallel_branch=data.get('number_of_parallel_branch', 2)
         )
+        
+        # 设置其他属性（如果 JSON 中有的话）
+        if 'kw1' in data:
+            instance.kw1 = data['kw1']
+        if 'bool_DPNVorSEPA' in data:
+            instance.bool_DPNVorSEPA = data['bool_DPNVorSEPA']
+        if 'layer_X_phases' in data:
+            instance.layer_X_phases = data['layer_X_phases']
+        if 'layer_X_signs' in data:
+            instance.layer_X_signs = data['layer_X_signs']
+        if 'grouping_AC' in data:
+            instance.grouping_AC = data['grouping_AC']
+        if 'number_parallel_branch' in data:
+            instance.number_parallel_branch = data['number_parallel_branch']
+        if 'number_winding_layer' in data:
+            instance.number_winding_layer = data['number_winding_layer']
+        if 'bool_3PhaseCurrentSource' in data:
+            instance.bool_3PhaseCurrentSource = data['bool_3PhaseCurrentSource']
+        if 'CommutatingSequenceD' in data:
+            instance.CommutatingSequenceD = data['CommutatingSequenceD']
+        if 'CommutatingSequenceB' in data:
+            instance.CommutatingSequenceB = data['CommutatingSequenceB']
+        
+        # 重新计算 layer_Y_phases 和 layer_Y_signs（因为它们是通过方法计算的）
+        instance.layer_Y_phases = instance.infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(
+            instance.layer_X_phases, instance.coil_pitch_y
+        )
+        instance.layer_Y_signs = instance.infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(
+            instance.layer_X_signs, instance.coil_pitch_y
+        )
+        
+        return instance
 
 class Geometry(object):
-    def __init__(self, GP: dict = None, draw_function: callable = None, color: str = None):
+    def __init__(self, name, GP: dict = None, draw_function: callable = None, color: str = None):
+        self.name = name
         self.color = color
         self.GP = GP or []
         self.draw_function = draw_function
@@ -259,6 +391,8 @@ class Modern_Machine_Designer(object):
 
     name: str = 'SuperCoolPMSM'
     machine_class: str = 'bearingless_spmsm_heart.bearingless_spmsm_design_variant'
+    select_fea_config_dict: str = '#0213 JMAG Bearingless Sub-hamonics'
+    fea_config_dict: dict = None
 
     bool_PermanentMagnet: bool = True
     bool_StatorSlotClosed: bool = False
@@ -281,6 +415,7 @@ class Modern_Machine_Designer(object):
         bool_weHavePlentyVoltage: bool = True
         DCBusVoltage: float = 400
         Js: float = 4e6
+        Temperature : float = 75
         WindingFill: float = 0.3882
         RatedSpeed: float = 30000 # rpm
         ExcitationFreqSimulated: float = RatedSpeed / 60 * p
@@ -350,7 +485,7 @@ class Modern_Machine_Designer(object):
 
         import CrossSectInnerNotchedRotor, CrossSectStator
         self.machineGeometry = {
-            "rotorCore": Geometry(
+            "rotorCore": Geometry(name='rotorCore',
                 GP={
                     'mm_r_ro': self.mm_r_ro,
                     'mm_d_ri': self.mm_d_ri,
@@ -377,7 +512,7 @@ class Modern_Machine_Designer(object):
                     ).draw(drawer, **kwargs)
                 )
             ),
-            "shaft": Geometry(
+            "shaft": Geometry(name='shaft',
                 GP={'mm_r_ri': self.mm_r_ri},
                 draw_function=lambda drawer, **kwargs: (
                     CrossSectInnerNotchedRotor.CrossSectShaft(
@@ -397,7 +532,7 @@ class Modern_Machine_Designer(object):
                     ).draw(drawer, **kwargs)
                 )
             ),
-            "rotorMagnet": Geometry(
+            "rotorMagnet": Geometry(name='rotorMagnet',
                 GP={
                     'mm_d_pm': self.mm_d_pm,
                     'mm_d_ri': self.mm_d_ri,
@@ -421,7 +556,7 @@ class Modern_Machine_Designer(object):
                     ).draw(drawer, **kwargs)
                 ),
             ),
-            "sleeve": Geometry(
+            "sleeve": Geometry(name='sleeve',
                 GP={
                     'mm_r_ri': self.mm_r_ri,
                     'mm_d_ri': self.mm_d_ri,
@@ -438,7 +573,7 @@ class Modern_Machine_Designer(object):
                     ).draw(drawer, **kwargs)
                 )
             ),
-            "statorCore": Geometry(
+            "statorCore": Geometry(name='statorCore',
                 GP={
                     'mm_r_si': self.mm_r_si,
                     'mm_d_sto': self.mm_d_sto,
@@ -470,7 +605,7 @@ class Modern_Machine_Designer(object):
             ),
             "coils": None
         }
-        self.machineGeometry['coils'] = Geometry(
+        self.machineGeometry['coils'] = Geometry(name='coils',
                 GP={
                     'mm_r_so': self.mm_r_so,
                     'mm_d_sy': self.mm_d_sy,
@@ -485,7 +620,7 @@ class Modern_Machine_Designer(object):
             )
 
         ''' Excitations Consiering Thermal Capability Limit (Simple) '''
-        self.wily = Winding(m, Qs, p, ps)
+        self.wily = Winding(m, Qs, p, ps, coil_pitch_y)
         mm_r_sy = self.mm_r_so.value - self.mm_d_sy.value  # radius stator yoke
         mm_r_ss = self.mm_r_si.value + self.mm_d_sts.value # radius stator slot
         self.EX = EX = {
@@ -493,6 +628,7 @@ class Modern_Machine_Designer(object):
             'bool_WyeConnectOrDeltaConnect' : bool_WyeConnectOrDeltaConnect,
             'DCBusVoltage' : DCBusVoltage,
             'Js' : Js,
+            'Temperature' : Temperature,
             'WindingFill' : WindingFill,
             'TORQUE_CURRENT_RATIO': TORQUE_CURRENT_RATIO,
             'SUSPENSION_CURRENT_RATIO': SUSPENSION_CURRENT_RATIO
@@ -509,6 +645,24 @@ class Modern_Machine_Designer(object):
         no_series_coil_turns_N = V_desired_emf_Em / (2*math.pi* ExcitationFreqSimulated * self.wily.kw1 * Wb_air_gap_flux_Phi_m)
         no_series_coil_turns_N = round(no_series_coil_turns_N)
         SPP = Qs / (2*p*m) # slot per pole per phase
+        print(f"[DEBUG] m={m}")
+        print(f"[DEBUG] Qs={Qs}")
+        print(f"[DEBUG] p={p}")
+        print(f"[DEBUG] ps={ps}")
+        print(f"[DEBUG] coil_pitch_y={coil_pitch_y}")
+        print(f"[DEBUG] V_stator_phase_voltage_amp={V_stator_phase_voltage_amp}")
+        print(f"[DEBUG] V_desired_emf_Em={V_desired_emf_Em}")
+        print(f"[DEBUG] alpha_i={alpha_i}")
+        print(f"[DEBUG] T_air_gap_flux_density_Bg_guessed={T_air_gap_flux_density_Bg_guessed}")
+        print(f"[DEBUG] mm_stack_length_specified={mm_stack_length_specified}")
+        print(f"[DEBUG] mm_d_magnetic_air_gap={mm_d_magnetic_air_gap}")
+        print(f"[DEBUG] mm_stack_length_effective={mm_stack_length_effective}")
+        print(f"[DEBUG] mm_pole_pitch_tau_p={mm_pole_pitch_tau_p}")
+        print(f"[DEBUG] Wb_air_gap_flux_Phi_m={Wb_air_gap_flux_Phi_m}")
+        print(f"[DEBUG] no_series_coil_turns_N={no_series_coil_turns_N}")
+        print(f"[DEBUG] SPP={SPP}")
+        print(f"[DEBUG] mm_r_sy={mm_r_sy}")
+        print(f"[DEBUG] mm_r_ss={mm_r_ss}")
         if bool_weHavePlentyVoltage:
             no_series_coil_turns_N = min([p*SPP*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
         else:
@@ -526,6 +680,8 @@ class Modern_Machine_Designer(object):
         EX['SUSPENSION_CURRENT'] = EX['SUSPENSION_CURRENT_RATIO'] * EX['CurrentAmp_per_phase']
         EX['slot_current_utilizing_ratio_for_torque'] = (EX['TORQUE_CURRENT'] + EX['SUSPENSION_CURRENT']) / EX['CurrentAmp_per_phase']
 
+        EX['mm_stack_length_specified'] = mm_stack_length_specified
+
     def show_geometry(self, filename=None) -> None:
         bool_draw_whole_model = True
         
@@ -535,7 +691,7 @@ class Modern_Machine_Designer(object):
             self.__post_init__()
 
         def draw_spmsm(lw, width_in_points, height_in_points, filename='machine_geometry.svg', bool_draw_whole_model=True):
-            drawer = CairoDrawer(width_in_points, height_in_points, filename=filename)
+            self.drawer = drawer = CairoDrawer(width_in_points, height_in_points, filename=filename)
 
             # 检查 machineGeometry 是否存在且包含必要的键
             if not hasattr(self, 'machineGeometry') or self.machineGeometry is None:
@@ -580,7 +736,12 @@ class Modern_Machine_Designer(object):
 
     def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True):
 
-        import os
+        if self.fea_config_dict is None:
+            with open((os.path.dirname(__file__))+'/machine_simulation.json', 'r') as f:
+                raw_fea_config_dicts = json.load(f)
+                self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
+
+        ''' 工程和文件路径 '''
         def get_pc_name():
             import platform, socket
             n1 = platform.node()
@@ -675,34 +836,8 @@ class Modern_Machine_Designer(object):
                 # Import Model into Designer
                 toolJd.save(self.name, self.to_json())
 
-            def add_transient_study(toolJd):
-
-                # JMAG
-                app = toolJd.app
-                if app.NumModels()>=1:
-                    model = app.GetModel(self.name)
-                else:
-                    raise Exception('why is there no model yet? %s'%(self.name))
-
-
-
-                if 'PMSM' in self.name:
-                    toolJd.pre_process_PMSM(app, model, acm_variant)
-
-                study = toolJd.add_magnetic_transient_study(app, model, self.path2FEACsv, study_name, acm_variant)
-                toolJd.mesh_study(acm_variant, app, model, study, output_dir=self.path2SwarmData)
-                # raise KeyboardInterrupt
-                toolJd.run_study(acm_variant, app, study, acm_variant.template.fea_config_dict, clock_time())
-
-                # export Voltage if field data exists.
-                if self.EX['bool_jmagDeleteResultsAfterCalculation'] == False:
-                    # Export Circuit Voltage
-                    ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
-                    app.GetDataManager().CreateGraphModel(ref1)
-                    app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
-
             def compile_results(study_name, toolJd):
-                results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.path2FEACsv, self.fea_config_dict, femm_solver=None)
+                results_to_be_unpacked = self.toolJd.build_str_results(self, self.project_name, study_name, self.path2FEACsv, self.fea_config_dict, femm_solver=None)
                 cost_function, f1, f2, f3, FRW, \
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \
@@ -724,7 +859,7 @@ class Modern_Machine_Designer(object):
                 mm2_slot_area, \
                 coil_flux_linkage_peak2peak_value, \
                 TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
-                ss_avg_force_magnitude, rotor_weight, torque_average = acm_variant.results_to_be_unpacked
+                ss_avg_force_magnitude, rotor_weight, torque_average = self.results_to_be_unpacked
 
                 # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
@@ -769,8 +904,8 @@ class Modern_Machine_Designer(object):
                 spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
                 spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
 
-                GP = acm_variant.template.SI['GP']
-                EX = acm_variant.template.SI['EX']
+                # GP = acm_variant.template.SI['GP']
+                # EX = acm_variant.template.SI['EX']
 
                 # Save to disk
                 # self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
@@ -804,10 +939,30 @@ class Modern_Machine_Designer(object):
                 # this is for optimization
                 acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
 
-            self.toolJd = build_jmag_project(study_name)
+            self.toolJd = toolJd = build_jmag_project(study_name)
             if 'PMSM' in self.name:
                 draw_spmsm(self.toolJd)
-            add_transient_study(self.toolJd)
+
+            # JMAG
+            app = toolJd.app
+            model = app.GetModel(self.name)
+
+            if 'PMSM' in self.name:
+                toolJd.pre_process_PMSM(app, model, self)
+
+            study = toolJd.add_magnetic_transient_study(app, model, self.path2FEACsv, study_name, self)
+            toolJd.mesh_study(self, app, model, study, output_dir=self.path2SwarmData)
+            # raise KeyboardInterrupt
+            from time import time as clock_time
+            toolJd.run_study(self, app, study, self.template.fea_config_dict, clock_time())
+
+            # export Voltage if field data exists.
+            if self.EX['bool_jmagDeleteResultsAfterCalculation'] == False:
+                # Export Circuit Voltage
+                ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
+                app.GetDataManager().CreateGraphModel(ref1)
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+
             compile_results(study_name, self.toolJd)
 
         elif 'FEMM' in self.select_FEA_tool:
@@ -818,6 +973,180 @@ class Modern_Machine_Designer(object):
         else:
             raise Exception('[acm_designer.py] Wrong string of select_FEA_tool:', self.select_FEA_tool)
 
+    def start_optimization(self):
+        ad = self.ad
+        ad.init_logger(prefix='acmdm')
+
+        # [4.1] Get bounds
+
+        # [4.3] MOO (need to share global variables to the Problem class)
+        from acm_designer import get_bad_fintess_values
+        import logging, builtins, utility_moo
+        logger = logging.getLogger(__name__)
+        import pygmo as pg
+        ad.counter_fitness_called = 0
+        ad.counter_fitness_return = 0
+        builtins.ad = ad # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable
+        import Problem_BearinglessSynchronousDesign # must import this after __builtins__.ad = ad
+        # print('[acmop.py]', builtins.ad)
+
+        ################################################################
+        # MOO Step 1:
+        #   Create UserDefinedProblem and create population
+        #   The magic method __init__ cannot be fined for UDP class
+        ################################################################
+        # [4.3.1] Basic setup
+        _, prob = Problem_BearinglessSynchronousDesign.get_prob()
+        popsize = self.fea_config_dict["moo.popsize"]
+        logger.info(f'Pop size is {popsize}')
+        # print('[acmop.py]', '-'*40 + '\n[acmop.py] Pop size is', popsize)
+
+        # [4.3.2] Generate the pop
+        if False:
+            pop = pg.population(prob, size=popsize) 
+        # Add Restarting Feature when generating pop
+        else:
+
+            # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
+            logger.info(f'Check for swarm data from: {self.select_spec}.json ...')
+            self.ad.acm_template.build_x_denorm()
+            # quit()
+            swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
+            
+            number_of_chromosome = ad.analyzer.number_of_chromosome
+            # print(number_of_chromosome)
+            # quit()
+            for index, (k, v) in enumerate(self.ad.acm_template.x_denorm_dict.items()):
+                logger.info(f'x_denorm_dict variable no. {index} is {k} = {v} with bounds: {ad.acm_template.bounds_denorm[index]}')
+            # quit()
+            # case 1: swarm_data.txt exists # Restarting feature related codes
+            if number_of_chromosome != 0:
+
+                number_of_finished_iterations                       = number_of_chromosome // popsize
+                number_of_finished_chromosome_in_current_generation = number_of_chromosome % popsize
+
+                # 如果刚好整除，把余数0改为popsize
+                if number_of_finished_chromosome_in_current_generation == 0:
+                    number_of_finished_chromosome_in_current_generation = popsize
+                    logger.info(f'\tThere are {number_of_chromosome} chromosomes found in {ad.swarm_data_file}.')
+                    logger.info('\tWhat is the odds! The script just stopped when the evaluation of the whole pop is finished.')
+                    logger.info('\tSet number_of_finished_chromosome_in_current_generation to popsize %d'%(number_of_finished_chromosome_in_current_generation))
+
+                logger.info('This is a restart of '+ self.path2SwarmData)
+                logger.info('\tNumber of finished iterations is %d'%(number_of_finished_iterations))
+                # print('This means the initialization of the population class is interrupted. So the pop in swarm_data.txt is used as the survivor.')
+
+                # 这些计数器的值永远都是评估过的chromosome的个数。
+                ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome
+                logger.info('ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome = %d', number_of_chromosome)
+
+                # 禁止在初始化pop时运行有限元
+                ad.flag_do_not_evaluate_when_init_pop = True
+
+                # 初始化population，如果ad.flag_do_not_evaluate_when_init_pop是False，那么就说明是 new run，否则，整代个体的fitness都是[0,0,0]。
+                pop = pg.population(prob, size=popsize)
+                # quit()
+                # 如果整代个体的fitness都是[0,0,0]，那就需要调用set_xf，把txt文件中的数据写入pop。如果发现数据的个数不够，那就调用set_x()来产生数据，形成初代个体。
+                if ad.flag_do_not_evaluate_when_init_pop == True:
+                    pop_array = pop.get_x()
+                    # print(pop_array)
+                    # quit()
+                    if number_of_chromosome <= popsize: # 个体数不够一代的情况
+                        for i in range(popsize):
+                            if i < number_of_chromosome: #number_of_finished_chromosome_in_current_generation:
+                                pop.set_xf(i, ad.   swarm_data[i][:-3], ad.   swarm_data[i][-3:])
+                                # print(pop.set_xf(i, ad.   swarm_data[i][:-3], ad.   swarm_data[i][-3:]))
+                                # quit()
+                            else:
+                                logger.info('Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
+                                ad.flag_do_not_evaluate_when_init_pop = False
+                                logger.info('Calling pop.set_x()---this is a restart for individual#%d during pop initialization.', i)
+                                logger.info('i=%d: call get_fevals: %s', i, prob.get_fevals()) # https://esa.github.io/pygmo2/problem.html?highlight=get_fevals#pygmo.problem.get_fevals
+                                pop.set_x(i, pop_array[i]) # evaluate this guy
+                    else:
+                        # 新办法，直接从swarm_data.txt（相当于archive）中判断出当前最棒的群体
+                        swarm_data_on_pareto_front = utility_moo.learn_about_the_archive(prob, ad.   swarm_data, popsize, self.fea_config_dict)
+                        # print(swarm_data_on_pareto_front)
+                        # quit()
+                        for i in range(popsize):
+                            pop.set_xf(i, swarm_data_on_pareto_front[i][:-3], swarm_data_on_pareto_front[i][-3:])
+                            # quit()
+                    # 必须放到这个if的最后，因为在 learn_about_the_archive 中是有初始化一个 pop_archive 的，会调用fitness方法。
+                    ad.flag_do_not_evaluate_when_init_pop = False
+
+            # case 2: swarm_data.txt does not exist
+            else:
+                number_of_finished_chromosome_in_current_generation = None
+                number_of_finished_iterations = 0 # 实际上跑起来它不是零，而是一，因为我们认为初始化的一代也是一代。或者，我们定义number_of_finished_iterations = number_of_chromosome // popsize
+
+                # case 2-A: swarm_data.txt does not exist and this is a whole new run.
+                logger.info('Nothing exists in the archival json file. This is a whole new run.')
+                ad.flag_do_not_evaluate_when_init_pop = False
+                pop = pg.population(prob, size=popsize)
+
+            # this flag must be false before moving on
+            ad.flag_do_not_evaluate_when_init_pop = False
+
+        logger.info(f'Pop is initialized:\n {pop}')
+        # hv = pg.hypervolume(pop)
+        # quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
+        # logger.info('[acmop.py] quality_measure: %g'%(quality_measure))
+        # raise KeyboardInterrupt
+
+        # 初始化以后，pop.problem.get_fevals()就是popsize，但是如果大于popsize，说明“pop.set_x(i, pop_array[i]) # evaluate this guy”被调用了，说明还没输出过 survivors 数据，那么就写一下。
+        if pop.problem.get_fevals() > popsize:
+            logger.info('Write survivors.')
+            ad.   write_swarm_survivor(pop, ad.counter_fitness_return)
+
+
+        ################################################################
+        # MOO Step 2:
+        #   Select algorithm (another option is pg.nsga2())
+        ################################################################
+        # [4.3.3] Selecting algorithm
+        # Don't forget to change neighbours to be below popsize (default is 20) decomposition="bi"
+        algo = pg.algorithm(pg.moead(gen=1, weight_generation="grid", decomposition="tchebycheff", 
+                                     neighbours=int(popsize/4), 
+                                     CR=1, F=0.5, eta_m=20, 
+                                     realb=0.9, 
+                                     limit=2, preserve_diversity=True)) # https://esa.github.io/pagmo2/docs/python/algorithms/py_algorithms.html#pygmo.moead
+        logger.info(f'{algo}')
+        logger.info(f'\t MOEA/D neighbourhood size is set to 1/4 of the popsize as {int(popsize/4)}')
+        # quit()
+
+        ################################################################
+        # MOO Step 3:
+        #   Begin optimization
+        ################################################################
+        # [4.3.4] Begin optimization
+        # number_of_chromosome = ad.   read_swarm_data(self.select_spec)
+        # swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
+        number_of_chromosome = ad.analyzer.number_of_chromosome
+        number_of_finished_iterations = number_of_chromosome // popsize
+        number_of_iterations = 500
+
+        for _ in range(number_of_finished_iterations, number_of_iterations):
+            msg = '[acmop.py] This is iteration #%d. '%(_)
+            # print(msg)
+            logger.info(msg)
+            pop = algo.evolve(pop)
+
+            msg += 'Write survivors to file. '
+            ad.   write_swarm_survivor(pop, ad.counter_fitness_return)
+
+            hv = pg.hypervolume(pop)
+            quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
+            msg += 'Quality measure by hyper-volume: %g'% (quality_measure)
+            # print('[acmop.py]', msg)
+            logger.info(msg)
+
+            utility_moo.my_print(ad, pop, _)
+            # my_plot(fits, vectors, ndf)
+        pass
+
+
+
+    # =========== 变量管理 ===========
 
     def get_free_variables(self) -> List[Parameter]:
         return [param for param in self.get_parameter_fields().values() if param.type == 'free']
@@ -1304,6 +1633,8 @@ if __name__ == "__main__":
 
     mmd.show_geometry()
     # print(dir(mmd.machineGeometry['statorCore']))
+
+    mmd.drawer.visualization_points['Coils']['PCoil']
 
     mmd.FEA_evaluate()
     quit()

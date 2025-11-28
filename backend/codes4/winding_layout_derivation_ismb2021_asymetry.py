@@ -813,17 +813,17 @@ class Winding_Derivation(object):
 
 
 
-        self.SIrawer_T1 = drawer_T1
-        self.SIrawer_T2 = drawer_T2
-        self.SIrawer_T4 = drawer_T4
+        self.drawer_T1 = drawer_T1
+        self.drawer_T2 = drawer_T2
+        self.drawer_T4 = drawer_T4
         if m == 3:
-            self.SIrawer_T3a = drawer_T3a
-            self.SIrawer_T3b = drawer_T3b
-            self.SIrawer_T3c = drawer_T3c
-            self.SIrawer_T4a = drawer_T4a
-            self.SIrawer_T4b = drawer_T4b
-            self.SIrawer_T4c = drawer_T4c
-        self.SIrawer_Text = drawer_Text
+            self.drawer_T3a = drawer_T3a
+            self.drawer_T3b = drawer_T3b
+            self.drawer_T3c = drawer_T3c
+            self.drawer_T4a = drawer_T4a
+            self.drawer_T4b = drawer_T4b
+            self.drawer_T4c = drawer_T4c
+        self.drawer_Text = drawer_Text
 
     def get_complex_number_winding_factor_of_coil_i(self, i, coil_pitch_y, Q, v, p):
         ''' In this formulation, the basic component is a coil rather than a coill side.
@@ -928,7 +928,8 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
-                                (3, 12, 5, 4, 1, 0), # Spindle p5ps4
+                                (3, 24, 4, 5, 2, 0), # Q24p4ps5
+                                # (3, 12, 5, 4, 1, 0), # Spindle p5ps4
                                 # (3, 6, 4, 1, 1, 0), # homopolar consqeuent pole
                                 # (3, 12, 4, 5, 1, 0), # Slice BLESSIM for Qr=10
                                 # (3, 24, 13, 14, 1, 0), # Slice BLESSIM
