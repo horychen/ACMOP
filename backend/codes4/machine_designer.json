@@ -1,14 +1,47 @@
 {
   "name": "SPMSM",
   "machine_class": "bearingless_spmsm_heart.bearingless_spmsm_design_variant",
-  "select_fea_config_dict": "#0213 JMAG Bearingless Sub-hamonics",
-  "fea_config_dict": null,
   "bool_PermanentMagnet": true,
   "bool_StatorSlotClosed": false,
   "bool_RotorNotched": true,
-  "select_FEA_tool": "JMAG",
+  "select_FEA_tool": "JMAG Designer",
+  "select_fea_config_dict": "#0213 JMAG Bearingless Sub-hamonics",
+  "fea_config_dict": {
+    "local_sensitivity_analysis": false,
+    "local_sensitivity_analysis_number_of_variants": 20,
+    "bool_post_processing": false,
+    "flag_optimization": false,
+    "bool_re_evaluate": false,
+    "bool_re_evaluate_wo_csv": false,
+    "delete_results_after_calculation": false,
+    "designer.Show": true,
+    "designer.MultipleCPUs": false,
+    "designer.OnlyTableResults": false,
+    "designer.Restart": false,
+    "designer.JMAG_Scheduler": false,
+    "designer.max_nonlinear_iteration": 50,
+    "designer.meshSize_Magnet": 2,
+    "designer.AddIronLossCondition": true,
+    "designer.number_of_steps_1stTSS": 24,
+    "designer.number_of_steps_2ndTSS": 160,
+    "designer.StepPerCycle_3rdTSS": 64,
+    "designer.number_cycles_in_1stTSS": 3,
+    "designer.number_cycles_in_2ndTSS": 5,
+    "designer.number_cycles_in_3rdTSS": 0,
+    "designer.number_cycles_prolonged": 0,
+    "designer.TranRef-StepPerCycle": 64,
+    "femm.Coarse_Mesh": false,
+    "femm.deg_per_step": null,
+    "moo.popsize": 78,
+    "moo.apply_constraints": false,
+    "moo.save_acm_variant_object_as_jsonpickle": true,
+    "moo.fitness_OA": "Cost",
+    "moo.fitness_OB": "Efficiency",
+    "moo.fitness_OC": "BearinglessRippleSum",
+    "moo.fitness_OD": null
+  },
   "bool_jmagDeleteResultsAfterCalculation": false,
-  "counter": 1,
+  "counter": 0,
   "wily": {
     "phase_number_m": 3,
     "stator_slot_number_Qs": 12,
@@ -26,12 +59,12 @@
     "SteelMaterial": "M-19 Steel Gauge-29",
     "StatorCore_Material": "M-19 Steel Gauge-29",
     "RotorCore_Material": "M-19 Steel Gauge-29",
-    "LaminationFactor": 0.95,
+    "LaminationFactor": 95,
     "RatedPower": 50000.0,
     "RatedSpeed": 30000,
     "ExcitationFreqSimulated": 2000.0,
     "bool_WyeConnectOrDeltaConnect": true,
-    "DCBusVoltage": 400,
+    "DCBusVoltage": 600,
     "Js": 4000000.0,
     "Temperature": 75,
     "WindingFill": 0.3882,
@@ -39,16 +72,16 @@
     "SUSPENSION_CURRENT_RATIO": 0.05,
     "DriveW_Rs": 1.0,
     "BeariW_Rs": 1.0,
-    "no_series_coil_turns_N": 26.0,
-    "DriveW_zQ": 26.0,
-    "BeariW_zQ": 26.0,
+    "no_series_coil_turns_N": 40.0,
+    "DriveW_zQ": 40.0,
+    "BeariW_zQ": 40.0,
     "mm2_slot_area": 1086.9538799701013,
     "CurrentAmp_in_the_slot": 2386.940741800488,
-    "CurrentAmp_per_conductor": 91.80541314617261,
-    "CurrentAmp_per_phase": 183.61082629234522,
-    "DriveW_CurrentAmp": 174.43028497772795,
-    "BeariW_CurrentAmp": 9.180541314617262,
-    "slot_current_utilizing_ratio_for_torque": 1.0,
+    "CurrentAmp_per_conductor": 59.6735185450122,
+    "CurrentAmp_per_phase": 119.3470370900244,
+    "DriveW_CurrentAmp": 113.37968523552317,
+    "BeariW_CurrentAmp": 5.967351854501221,
+    "slot_current_utilizing_ratio_for_torque": 0.9999999999999999,
     "InitialRotationAngle": 3.375,
     "mm2_magnet_area": 644.4898789023118
   },
@@ -328,6 +361,37 @@
       "mm_d_rs": 0.0,
       "p": 4,
       "s": 1,
+      "components_make_region": "{'innerCoord': (36.590787997789754, -2.275817858277381), 'list_regions': [[<COMObject CreateLine>, <COMObject CreateArc>, <COMObject CreateLine>, <COMObject CreateArc>, <COMObject CreateLine>, <COMObject CreateArc>]], 'mirrorAxis': None}",
+      "visualization_points": {
+        "P1": [
+          34.724999999999994,
+          0
+        ],
+        "P2": [
+          41.724999999999994,
+          0
+        ],
+        "P3": [
+          41.435781366444296,
+          -4.904247908928275
+        ],
+        "P4": [
+          38.45657599557951,
+          -4.551635716554762
+        ],
+        "P5": [
+          27.38271010144905,
+          -27.38271010144905
+        ],
+        "P6": [
+          24.55428297670286,
+          -24.55428297670286
+        ],
+        "P1p5": [
+          38.724999999999994,
+          0
+        ]
+      },
       "_needs_rebuild": true
     },
     "shaft": {
@@ -337,6 +401,17 @@
         "mm_r_ri": "rotor_inner_radius"
       },
       "mm_r_ri": 34.724999999999994,
+      "components_make_region": "{'innerCoord': (0, 0), 'list_regions': [[<COMObject CreateArc>, <COMObject CreateArc>]], 'mirrorAxis': None}",
+      "visualization_points": {
+        "P1": [
+          34.724999999999994,
+          0
+        ],
+        "NP1": [
+          -34.724999999999994,
+          0
+        ]
+      },
       "_needs_rebuild": true
     },
     "rotorMagnet": {
@@ -350,6 +425,33 @@
       "mm_d_pm": 3,
       "mm_d_ri": 4,
       "mm_r_ri": 34.724999999999994,
+      "components_make_region": "{'innerCoord': (33.980303220294104, -17.02783308078173), 'list_regions': [[<COMObject CreateLine>, <COMObject CreateArc>, <COMObject CreateLine>, <COMObject CreateArc>]], 'mirrorAxis': None}",
+      "visualization_points": {
+        "P1": [
+          34.724999999999994,
+          0
+        ],
+        "P2": [
+          41.724999999999994,
+          0
+        ],
+        "P3_extra": [
+          41.435781366444296,
+          -4.904247908928275
+        ],
+        "P4": [
+          38.45657599557951,
+          -4.551635716554762
+        ],
+        "P5": [
+          27.38271010144905,
+          -27.38271010144905
+        ],
+        "P6_extra": [
+          29.504030445008695,
+          -29.504030445008695
+        ]
+      },
       "_needs_rebuild": true
     },
     "sleeve": {
@@ -365,6 +467,25 @@
       "mm_d_ri": 4,
       "mm_d_pm": 3,
       "p": 4,
+      "components_make_region": "{'innerCoord': (42.224999999999994, 0.0), 'list_regions': [[<COMObject CreateLine>, <COMObject CreateArc>, <COMObject CreateLine>, <COMObject CreateArc>]], 'mirrorAxis': None}",
+      "visualization_points": {
+        "P1": [
+          41.724999999999994,
+          0
+        ],
+        "P2": [
+          42.724999999999994,
+          0
+        ],
+        "P3": [
+          29.504030445008695,
+          -29.504030445008695
+        ],
+        "P4": [
+          30.21113722619524,
+          -30.21113722619524
+        ]
+      },
       "_needs_rebuild": true
     },
     "statorCore": {
@@ -390,6 +511,57 @@
       "deg_alpha_st": 16.5,
       "deg_alpha_sto": 8.25,
       "Q": 12,
+      "components_make_region": "{'innerCoord': (69.96386569399536, -4.029381188977182), 'list_regions': [[<COMObject CreateArc>, <COMObject CreateLine>, <COMObject CreateLine>, <COMObject CreateLine>, <COMObject CreateArc>, <COMObject CreateLine>, <COMObject CreateArc>, <COMObject CreateLine>]], 'mirrorAxis': [(128.5, 0), (138.5, 0)]}",
+      "visualization_points": {
+        "P1": [
+          43.224999999999994,
+          0
+        ],
+        "P2": [
+          42.77768119528024,
+          -6.202468585568726
+        ],
+        "P3": [
+          44.778681195280235,
+          -6.202468585568726
+        ],
+        "P4": [
+          45.51710638799074,
+          -8.058762377954364
+        ],
+        "P5": [
+          96.70273138799074,
+          -8.058762377954364
+        ],
+        "P6": [
+          84.03732165961543,
+          -48.51897028215412
+        ],
+        "P7": [
+          106.95413736737818,
+          -61.74999999999999
+        ],
+        "P8": [
+          123.5,
+          0
+        ],
+        "P2_Mirror": [
+          42.77768119528024,
+          6.202468585568726
+        ],
+        "P3_Mirror": [
+          44.778681195280235,
+          6.202468585568726
+        ],
+        "P4_Mirror": [
+          45.51710638799074,
+          8.058762377954364
+        ],
+        "P5_Mirror": [
+          96.70273138799074,
+          8.058762377954364
+        ]
+      },
       "_needs_rebuild": true
     },
     "coils": {
@@ -405,7 +577,163 @@
       "mm_d_sy": 26.089375000000004,
       "mm_w_st": 16.368188599054943,
       "mm_d_st": 51.185625,
+      "components_make_region": "{'innerCoord': (69.37067988133587, -18.587817652601878), 'list_regions': [[<COMObject CreateArc>, <COMObject CreateLine>, <COMObject CreateLine>, <COMObject CreateLine>], [<COMObject CreateArc>, <COMObject CreateLine>, <COMObject CreateLine>, <COMObject CreateLine>]], 'mirrorAxis': None}",
+      "visualization_points": {
+        "P1": [
+          43.224999999999994,
+          0
+        ],
+        "POpen": [
+          44.64992132021218,
+          -11.96391035986402
+        ],
+        "P4": [
+          45.51710638799074,
+          -8.058762377954364
+        ],
+        "P5": [
+          96.70273138799074,
+          -8.058762377954364
+        ],
+        "P6": [
+          94.09143844245958,
+          -25.211724945339732
+        ],
+        "PCoil": [
+          70.2402993846633,
+          -13.323290015278122
+        ],
+        "P6_Shrink": [
+          91.70632453667994,
+          -24.02288145233357
+        ],
+        "P5_Shrink": [
+          94.05648818765799,
+          -8.58521514168674
+        ],
+        "P4_Shrink": [
+          47.98942568765799,
+          -8.58521514168674
+        ],
+        "POpen_Shrink": [
+          47.20895912665729,
+          -12.09984832540543
+        ],
+        "P6_Shrink_Mirror": [
+          91.70632453667994,
+          24.02288145233357
+        ],
+        "P5_Shrink_Mirror": [
+          94.05648818765799,
+          8.58521514168674
+        ],
+        "P4_Shrink_Mirror": [
+          47.98942568765799,
+          8.58521514168674
+        ],
+        "POpen_Shrink_Mirror": [
+          47.20895912665729,
+          12.09984832540543
+        ]
+      },
       "_needs_rebuild": true
     }
-  }
+  },
+  "drawer": "<__main__.CairoDrawer object at 0x0000017828F5EB50>",
+  "path2SwarmData": "../_default/SPMSM/",
+  "project_name": "SPMSM-0",
+  "expected_project_file": "../_default/SPMSM/temp/SPMSM-0.jproj",
+  "path2FEACsv": "C:\\_Codes\\ACMOP\\backend\\_default\\SPMSM\\csv/",
+  "toolJd": "<JMAG.JMAG object at 0x000001782A6A5610>",
+  "results_to_be_unpacked": [
+    [
+      1.5161945149405018,
+      5.654788382954916
+    ],
+    99.95474181402207,
+    -0.8602135564576946,
+    8.765527283422713,
+    1.9536683798222114,
+    0.1105245803300983,
+    0.06730868057256316,
+    5.208862065369484,
+    "SPMSM-0",
+    "SPMSM",
+    0,
+    0,
+    0.8218273442090226,
+    1.0562792160093168,
+    52.81396080046584,
+    8125.101173593282,
+    89.85368865747434,
+    7750.954510769718,
+    0.0,
+    80.19533462788087,
+    0,
+    67.92420846835505,
+    136.17343106985368,
+    "\n-------\nSPMSM-0-SPMSM\n0,0,O1=1.51619,O2=5.65479,f1=99.9547,f2=-0.860214,f3=8.76553\n0.821827,0.860134,15.0675,0.110525,41.154,0.0673087,5.20886,9748.04,7337.98,64.3052,61.8645,2.44064,165.262,0,85.0662,0,4e+06,0,129.703,7697.25\n50000,0.860214,8125.1,89.8537,7750.95,0,80.1953,0,67.9242,136.173,0.000288863,52.814,50\nTransient\nAverage Torque: 15.0675 Nm\nNormalized Torque Ripple: 11.0525 %\nAverage Force Mag: 41.154 N\nNormalized Force Error Mag: 6.73087%, (+)6.73087% (-)-5.2229%\nMaximum Force Error Angle: 5.20886 [deg], (+)5.20886 deg (-)-5.13306 deg\nExtra Info:\n\tAverage Force Vector: (38.8053, 13.7041) N\n\tTorque Ripple (Peak-to-Peak): 1.66533 Nm\n\tForce Mag Ripple (Peak-to-Peak): 4.91945 N\n\tbasic info:('Case', 1.0)('freq', 2000.0)('0', 41.4427805379)\n\tjmag loss info: 9748.04, 7337.98, 64.3052, 61.8645, 2.44064\n\tfemm loss info: 165.262, 0, 85.0662, 0, 4e+06, 0\n\tPF: 0.821827\n\teta, windage, total_loss: 0.860134, 129.703, 7697.25",
+    1086.9538799701013,
+    0.06794579258967501,
+    55097.111269615365,
+    99.95474181402207,
+    39.82183582902056,
+    36.01742604631335,
+    24.11547993868816,
+    41.15399845671338,
+    21.064986710005766,
+    15.067506837178126
+  ],
+  "spec_performance_dict": {
+    "x_denorm_dict": {},
+    "project_name": "SPMSM-0",
+    "individual_name": "SPMSM",
+    "number_current_generation": 0,
+    "individual_index": 0,
+    "f1": 99.95474181402207,
+    "f2": -0.8602135564576946,
+    "f3": 8.765527283422713,
+    "TRV": 55097.111269615365,
+    "FRW": 1.9536683798222114,
+    "torque_average": 15.067506837178126,
+    "ss_avg_force_magnitude": 41.15399845671338,
+    "rotor_weight": 21.064986710005766,
+    "normalized_torque_ripple": 0.1105245803300983,
+    "normalized_force_error_magnitude": 0.06730868057256316,
+    "force_error_angle": 5.208862065369484,
+    "coil_flux_linkage_peak2peak_value": 0.06794579258967501,
+    "mm2_slot_area": 1086.9538799701013,
+    "Cost": 99.95474181402207,
+    "Cost_Fe": 39.82183582902056,
+    "Cost_Cu": 36.01742604631335,
+    "Cost_PM": 24.11547993868816,
+    "power_factor": 0.8218273442090226,
+    "rated_ratio": 1.0562792160093168,
+    "rated_stack_length_mm": 52.81396080046584,
+    "rated_total_loss": 8125.101173593282,
+    "rated_stator_copper_loss_along_stack": 89.85368865747434,
+    "rated_rotor_copper_loss_along_stack": 0.0,
+    "rated_magnet_Joule_loss": 7750.954510769718,
+    "stator_copper_loss_in_end_turn": 80.19533462788087,
+    "rotor_copper_loss_in_end_turn": 0,
+    "rated_iron_loss": 67.92420846835505,
+    "rated_windage_loss": 136.17343106985368,
+    "select_FEA_tool": "JMAG Designer",
+    "moo.fitness_OA": "Cost",
+    "moo.fitness_OB": "Efficiency",
+    "moo.fitness_OC": "BearinglessRippleSum"
+  },
+  "results_for_optimization": [
+    [
+      1.5161945149405018,
+      5.654788382954916
+    ],
+    99.95474181402207,
+    -0.8602135564576946,
+    8.765527283422713,
+    1.9536683798222114,
+    0.1105245803300983,
+    0.06730868057256316,
+    5.208862065369484
+  ]
 }

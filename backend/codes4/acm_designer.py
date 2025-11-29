@@ -983,9 +983,9 @@ class acm_designer(object):
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
 
-        self.dir_csv_output_folder = output_dir + 'csv/'
-        if not os.path.isdir(self.dir_csv_output_folder):
-            os.makedirs(self.dir_csv_output_folder)
+        self.path2FEACsv = output_dir + 'csv/'
+        if not os.path.isdir(self.path2FEACsv):
+            os.makedirs(self.path2FEACsv)
 
         self.dir_jsonpickle_folder = output_dir + 'jsonpickle/'
         if not os.path.isdir(self.dir_jsonpickle_folder):
@@ -1422,7 +1422,7 @@ class acm_designer(object):
                 "expected_project_file": self.expected_project_file,
                 "project_name": self.project_name,
                 "study_name": study_name,
-                "dir_csv_output_folder": self.dir_csv_output_folder,
+                "path2FEACsv": self.path2FEACsv,
                 "output_dir": self.fea_config_dict['output_dir']
             }
 
@@ -1434,7 +1434,7 @@ class acm_designer(object):
             ################################################################
             # Load data for cost function evaluation
             ################################################################
-            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            acm_variant.results_to_be_unpacked = results_to_be_unpacked = self.toolJd.build_str_results(acm_variant, self.project_name, study_name, self.path2FEACsv, self.fea_config_dict, femm_solver=None)
             if results_to_be_unpacked is not None:
                 if self.toolJd.fig_main is not None:
                     try:
@@ -1453,7 +1453,7 @@ class acm_designer(object):
 
         elif 'FEMM' in self.select_fea_config_dict:
             self.toolFEMM = self.build_femm_project(acm_variant)
-            # acm_variant.results_to_be_unpacked = results_to_be_unpacked = toolFEMM.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.dir_csv_output_folder, self.fea_config_dict, femm_solver=None)
+            # acm_variant.results_to_be_unpacked = results_to_be_unpacked = toolFEMM.build_str_results(self.axeses, acm_variant, self.project_name, study_name, self.path2FEACsv, self.fea_config_dict, femm_solver=None)
             return acm_variant
         else:
             raise Exception('[acm_designer.py] Wrong string of select_fea_config_dict:', self.select_fea_config_dict)
@@ -1469,7 +1469,7 @@ class acm_designer(object):
             self.project_meta_data = project_meta_data
         expected_project_file = project_meta_data["expected_project_file"]
         study_name            = project_meta_data["study_name"]
-        dir_csv_output_folder = project_meta_data["dir_csv_output_folder"]
+        path2FEACsv = project_meta_data["path2FEACsv"]
         output_dir            = project_meta_data["output_dir"]
 
         # use alias
@@ -1522,7 +1522,7 @@ class acm_designer(object):
             elif 'CSPPM' in acm_variant.template.name:
                 toolJd.pre_process_CSPPM(app, model, acm_variant)
 
-            study = toolJd.add_magnetic_transient_study(app, model, dir_csv_output_folder, study_name, acm_variant)
+            study = toolJd.add_magnetic_transient_study(app, model, path2FEACsv, study_name, acm_variant)
             toolJd.mesh_study(acm_variant, app, model, study, output_dir=output_dir)
             # raise KeyboardInterrupt
             toolJd.run_study(acm_variant, app, study, acm_variant.template.fea_config_dict, clock_time())
@@ -1533,7 +1533,7 @@ class acm_designer(object):
                 # Export Circuit Voltage
                 ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                 app.GetDataManager().CreateGraphModel(ref1)
-                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(dir_csv_output_folder + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(path2FEACsv + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
         else:
             ''' This is a special debugging feature that allows to recover FEA results (swarm_data.txt) from JMAG Deisnger's csv results.
             '''
@@ -1771,7 +1771,7 @@ class acm_designer(object):
             # Freq Sweeping for break-down Torque Slip
             # remember to export the B data using subroutine 
             # and check export table results only
-            study = im.add_study(app, model, self.dir_csv_output_folder, choose_study_type='frequency')
+            study = im.add_study(app, model, self.path2FEACsv, choose_study_type='frequency')
 
             # Freq Study: you can choose to not use JMAG to find the breakdown slip.
             # Option 1: you can set im.slip_freq_breakdown_torque by FEMM Solver
@@ -1800,11 +1800,11 @@ class acm_designer(object):
                 study.RunAllCases()
                 app.Save()
 
-                def check_csv_results(dir_csv_output_folder, study_name, returnBoolean=False, file_suffix='_torque.csv'): # '_iron_loss_loss.csv'
-                    # print self.dir_csv_output_folder + study_name + '_torque.csv'
-                    if not os.path.exists(dir_csv_output_folder + study_name + file_suffix):
+                def check_csv_results(path2FEACsv, study_name, returnBoolean=False, file_suffix='_torque.csv'): # '_iron_loss_loss.csv'
+                    # print self.path2FEACsv + study_name + '_torque.csv'
+                    if not os.path.exists(path2FEACsv + study_name + file_suffix):
                         if returnBoolean == False:
-                            print('Nothing is found when looking into:', dir_csv_output_folder + study_name + file_suffix)
+                            print('Nothing is found when looking into:', path2FEACsv + study_name + file_suffix)
                             return None
                         else:
                             return False
@@ -1819,7 +1819,7 @@ class acm_designer(object):
                         l_ForCon_X  = []
                         l_ForCon_Y  = []
 
-                        with open(dir_csv_output_folder + study_name + '_torque.csv', 'r') as f: 
+                        with open(path2FEACsv + study_name + '_torque.csv', 'r') as f: 
                             for ind, row in enumerate(utility.csv_row_reader(f)):
                                 if ind >= 5:
                                     try:
@@ -1829,7 +1829,7 @@ class acm_designer(object):
                                     l_slip_freq.append(float(row[0]))
                                     l_TorCon.append(float(row[1]))
 
-                        with open(dir_csv_output_folder + study_name + '_force.csv', 'r') as f: 
+                        with open(path2FEACsv + study_name + '_force.csv', 'r') as f: 
                             for ind, row in enumerate(utility.csv_row_reader(f)):
                                 if ind >= 5:
                                     try:
@@ -1851,12 +1851,12 @@ class acm_designer(object):
                         raise e
 
                 # evaluation based on the csv results
-                print(':::ZZZ', self.dir_csv_output_folder)
-                slip_freq_breakdown_torque, breakdown_torque, breakdown_force = check_csv_results(self.dir_csv_output_folder, study.GetName())
+                print(':::ZZZ', self.path2FEACsv)
+                slip_freq_breakdown_torque, breakdown_torque, breakdown_force = check_csv_results(self.path2FEACsv, study.GetName())
 
             # this will be used for other duplicated studies
             original_study_name = study.GetName()
-            im.csv_previous_solve = self.dir_csv_output_folder + original_study_name + '_circuit_current.csv'
+            im.csv_previous_solve = self.path2FEACsv + original_study_name + '_circuit_current.csv'
             im.update_mechanical_parameters(slip_freq_breakdown_torque, syn_freq=im.DriveW_Freq)
 
 
@@ -1913,7 +1913,7 @@ class acm_designer(object):
         # debug for tia-iemdc-ecce-2019
         # data_femm_solver = rotating_static_FEA()
         # from show_results_iemdc19 import show_results_iemdc19
-        # show_results_iemdc19(   self.dir_csv_output_folder, 
+        # show_results_iemdc19(   self.path2FEACsv, 
         #                         im_variant, 
         #                         femm_solver_data=data_femm_solver, 
         #                         femm_rotor_current_function=self.femm_solver.get_rotor_current_function()
@@ -1971,7 +1971,7 @@ class acm_designer(object):
             #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
             # add or duplicate study for transient FEA denpending on jmag_run_list
             # FEMM+JMAG (注意，这里我们用50Hz作为滑差频率先设置起来，等拿到breakdown slip freq的时候，再更新变量slip和study properties的时间。)
-            study = im_variant.add_TranFEAwi2TSS_study( 50.0, app, model, self.dir_csv_output_folder, tran2tss_study_name, logger)
+            study = im_variant.add_TranFEAwi2TSS_study( 50.0, app, model, self.path2FEACsv, tran2tss_study_name, logger)
             app.SetCurrentStudy(tran2tss_study_name)
             study = app.GetCurrentStudy()
             self.mesh_study(im_variant, app, model, study)
@@ -2022,10 +2022,10 @@ class acm_designer(object):
                 # Export Circuit Voltage
                 ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
                 app.GetDataManager().CreateGraphModel(ref1)
-                # app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.dir_csv_output_folder + im_variant.name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
-                print('[acm_designer.py] WriteTable to:', self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
-                print('[acm_designer.py] WriteTable to (converter):', os.path.abspath(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv"))
-                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(os.path.abspath(self.dir_csv_output_folder + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")) # must be absolute path to JMAG
+                # app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.path2FEACsv + im_variant.name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                print('[acm_designer.py] WriteTable to:', self.path2FEACsv + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+                print('[acm_designer.py] WriteTable to (converter):', os.path.abspath(self.path2FEACsv + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv"))
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(os.path.abspath(self.path2FEACsv + tran2tss_study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")) # must be absolute path to JMAG
 
             # TranRef
             # transient_FEA_as_reference(im_variant, slip_freq_breakdown_torque)
@@ -2105,7 +2105,7 @@ class acm_designer(object):
         ################################################################
         # Load data for cost function evaluation
         ################################################################
-        im_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, im_variant, self.project_name, tran2tss_study_name, self.dir_csv_output_folder, self.fea_config_dict, self.femm_solver)
+        im_variant.results_to_be_unpacked = results_to_be_unpacked = utility.build_str_results(self.axeses, im_variant, self.project_name, tran2tss_study_name, self.path2FEACsv, self.fea_config_dict, self.femm_solver)
         if results_to_be_unpacked is not None:
             if self.fig_main is not None:
                 try:
@@ -2628,7 +2628,7 @@ class acm_designer(object):
 
         model = sw.app.GetCurrentModel()
         if model.NumStudies() == 0:
-            expected_csv_output_dir = sw.dir_csv_output_folder+'structural/'
+            expected_csv_output_dir = sw.path2FEACsv+'structural/'
             if not os.path.isdir(expected_csv_output_dir):
                 os.makedirs(expected_csv_output_dir)
             study = im_best.add_structural_study(sw.app, model, expected_csv_output_dir) # 文件夹名应该与jproj同名

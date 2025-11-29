@@ -40,6 +40,11 @@ export default function VisualizerPage() {
     // View mode: 'circular' or 'linear'
     const [viewMode, setViewMode] = useState<'circular' | 'linear'>('circular');
 
+    // Metadata from machine_designer_full.json
+    const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
+    const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
+    const [exData, setExData] = useState<Record<string, any> | null>(null);
+
     // Fetch available configurations on mount
     useEffect(() => {
         const fetchConfigs = async () => {
@@ -54,6 +59,41 @@ export default function VisualizerPage() {
             }
         };
         fetchConfigs();
+    }, []);
+
+    // Fetch metadata from machine_designer_full.json
+    useEffect(() => {
+        const fetchMetadata = async () => {
+            setIsLoadingMetadata(true);
+            try {
+                const response = await axios.get('/api/machine-designer/full');
+                if (response.data) {
+                    // Extract metadata fields (lines 2-10 from JSON)
+                    const meta = {
+                        name: response.data.name,
+                        bool_PermanentMagnet: response.data.bool_PermanentMagnet,
+                        bool_StatorSlotClosed: response.data.bool_StatorSlotClosed,
+                        bool_RotorNotched: response.data.bool_RotorNotched,
+                        select_FEA_tool: response.data.select_FEA_tool,
+                        select_fea_config_dict: response.data.select_fea_config_dict,
+                        bool_jmagDeleteResultsAfterCalculation: response.data.bool_jmagDeleteResultsAfterCalculation,
+                        counter: response.data.counter,
+                        parameters: response.data.parameters
+                    };
+                    setMetadata(meta);
+                    
+                    // Extract EX data (lines 20-53 from JSON)
+                    if (response.data.EX) {
+                        setExData(response.data.EX);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to load metadata", error);
+            } finally {
+                setIsLoadingMetadata(false);
+            }
+        };
+        fetchMetadata();
     }, []);
 
     // Auto-recalculate when specs change
@@ -310,6 +350,95 @@ export default function VisualizerPage() {
                                     </div>
                                 )}
                             </div>
+                        </div>
+
+                        {/* Metadata Section */}
+                        <div className="mb-8">
+                            <h3 className="text-lg font-medium text-foreground mb-4 flex items-center">
+                                <Settings className="w-5 h-5 mr-2" /> 元数据信息
+                            </h3>
+                            {isLoadingMetadata ? (
+                                <div className="bg-card rounded-lg border border-border p-6 flex items-center justify-center">
+                                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mr-2" />
+                                    <span className="text-sm text-muted-foreground">加载元数据中...</span>
+                                </div>
+                            ) : metadata ? (
+                                <div className="bg-card rounded-lg border border-border overflow-hidden">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+                                        <div className="space-y-1">
+                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">名称</div>
+                                            <div className="text-sm font-mono text-foreground">{metadata.name || 'N/A'}</div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">永磁体</div>
+                                            <div className="text-sm text-foreground">
+                                                {metadata.bool_PermanentMagnet ? (
+                                                    <span className="text-emerald-500">是</span>
+                                                ) : (
+                                                    <span className="text-red-500">否</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">定子槽封闭</div>
+                                            <div className="text-sm text-foreground">
+                                                {metadata.bool_StatorSlotClosed ? (
+                                                    <span className="text-emerald-500">是</span>
+                                                ) : (
+                                                    <span className="text-red-500">否</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">转子开槽</div>
+                                            <div className="text-sm text-foreground">
+                                                {metadata.bool_RotorNotched ? (
+                                                    <span className="text-emerald-500">是</span>
+                                                ) : (
+                                                    <span className="text-red-500">否</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">FEA 工具</div>
+                                            <div className="text-sm font-mono text-foreground">{metadata.select_FEA_tool || 'N/A'}</div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">FEA 配置</div>
+                                            <div className="text-sm text-foreground break-words">{metadata.select_fea_config_dict || 'N/A'}</div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">计算后删除结果</div>
+                                            <div className="text-sm text-foreground">
+                                                {metadata.bool_jmagDeleteResultsAfterCalculation ? (
+                                                    <span className="text-emerald-500">是</span>
+                                                ) : (
+                                                    <span className="text-red-500">否</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">计数器</div>
+                                            <div className="text-sm font-mono text-foreground">{metadata.counter ?? 'N/A'}</div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">参数数量</div>
+                                            <div className="text-sm font-mono text-foreground">
+                                                {metadata.parameters && typeof metadata.parameters === 'object' 
+                                                    ? Object.keys(metadata.parameters).length 
+                                                    : 0}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-card rounded-lg border border-border p-6">
+                                    <div className="flex items-center text-muted-foreground">
+                                        <AlertCircle className="w-4 h-4 mr-2" />
+                                        <span className="text-sm">无法加载元数据</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* CSV Visualizer Section */}

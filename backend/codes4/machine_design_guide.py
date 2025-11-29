@@ -75,7 +75,8 @@ class Parameter(object):
             unit=data.get('unit', 'mm'),
             comment=data.get('comment'),
             calc=None,  # calc 函数需要从其他地方重建
-            calc_bounds=None  # calc_bounds 函数需要从其他地方重建
+            calc_bounds=None,  # calc_bounds 函数需要从其他地方重建
+            args=data.get('args')  # 保存 args，用于重建 lambda 函数
         )
 
 class Winding(object):
@@ -394,21 +395,24 @@ class CairoDrawer(object):
 @dataclass
 class Modern_Machine_Designer(object):
 
+    # Meta Data
     name: str = 'SPMSM'
     machine_class: str = 'bearingless_spmsm_heart.bearingless_spmsm_design_variant'
-    select_fea_config_dict: str = '#0213 JMAG Bearingless Sub-hamonics'
-    fea_config_dict: dict = None
 
+    # Machine Geometry
     bool_PermanentMagnet: bool = True
     bool_StatorSlotClosed: bool = False
     bool_RotorNotched: bool = True
 
-    select_FEA_tool: str = 'JMAG'
+    select_FEA_tool: str = 'JMAG Designer' # FEMM
+    select_fea_config_dict: str = '#0213 JMAG Bearingless Sub-hamonics'
+    fea_config_dict: dict = None
     bool_jmagDeleteResultsAfterCalculation: bool = False
 
-    def __post_init__(self):
+    # Optimization
+    counter: int = 0
 
-        self.counter = 1
+    def __post_init__(self):
 
         # 绕组
         m : int = 3
@@ -447,13 +451,13 @@ class Modern_Machine_Designer(object):
             'SteelMaterial': SteelMaterial,
             'StatorCore_Material': SteelMaterial, # "M-15 Steel", "Arnon5-final", u"35CS250", "DCMagnetic Type/50A1000",
             'RotorCore_Material': SteelMaterial, # "M-15 Steel", "Arnon5-final", u"35CS250", "DCMagnetic Type/50A1000",
-            'LaminationFactor': 0.95,
+            'LaminationFactor': 95,
             # Thermal
             'RatedPower': RatedPower,
             'RatedSpeed': RatedSpeed,
             'ExcitationFreqSimulated': ExcitationFreqSimulated,
             'bool_WyeConnectOrDeltaConnect' : bool_WyeConnectOrDeltaConnect,
-            'DCBusVoltage': 400,
+            'DCBusVoltage': 600,
             'Js' : 4e6,
             'Temperature': 75,
             'WindingFill': 0.3882,
@@ -828,7 +832,7 @@ class Modern_Machine_Designer(object):
         self.path2SwarmData = project_loc + self.name.replace(' ', '_')+'/'
         if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
 
-        self.project_name = 'Jproj-'
+        self.project_name = self.name + '-' + str(self.counter)
         self.expected_project_file = self.path2SwarmData + "temp/%s.jproj"%(self.project_name)
 
         self.path2FEACsv = os.path.abspath(self.path2SwarmData + 'csv/') + '/'
@@ -960,7 +964,7 @@ class Modern_Machine_Designer(object):
 
                 # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
-                spec_performance_dict = dict()
+                self.spec_performance_dict = spec_performance_dict = dict()
                 spec_performance_dict['x_denorm_dict'] = self.get_free_variables_as_dict() # ['x_denorm_dict']
                 spec_performance_dict['project_name'] = project_name
                 spec_performance_dict['individual_name'] = individual_name
@@ -1494,94 +1498,160 @@ class Modern_Machine_Designer(object):
     
     def to_dict_full(self) -> Dict[str, Any]:
         """
-        将 Modern_Machine_Designer 对象转换为完整字典（包含所有信息，类似 pickle）
-        使用 dill/pickle + base64 编码来保存无法直接序列化的部分
+        将 Modern_Machine_Designer 对象转换为完整字典（包含所有信息）
+        使用纯 JSON 序列化，不依赖 pickle，确保所有数据都能正确保存
         
         Returns:
             Dict: 包含完整对象信息的字典
         """
-        # 首先获取标准的字典表示
-        standard_dict = self.to_dict()
+        import inspect
         
-        # 由于 pickle 无法序列化 lambda 函数，我们需要创建一个可序列化的版本
-        # 方法：创建一个新实例，复制所有属性值，但不复制 lambda 函数
-        # 然后在反序列化后通过 __post_init__ 重建 lambda 函数
-        
-        # 保存 lambda 函数的状态信息（用于标记需要重建）
-        lambda_info = {}
-        
-        # 创建新实例并复制所有基本属性
-        obj_copy = self.__class__.__new__(self.__class__)
-        obj_copy.machine_class = self.machine_class
-        obj_copy.bool_PermanentMagnet = self.bool_PermanentMagnet
-        obj_copy.bool_StatorSlotClosed = self.bool_StatorSlotClosed
-        obj_copy.bool_RotorNotched = self.bool_RotorNotched
-        
-        # 复制所有参数，但移除 lambda 函数
-        for field_name, param in self.get_parameter_fields().items():
-            # 创建新的 Parameter 对象，复制所有值，但移除 lambda 函数
-            new_param = Parameter(
-                name=param.name,
-                type=param.type,
-                value=param.value,
-                bounds=param.bounds,
-                unit=param.unit,
-                comment=param.comment,
-                calc=None,  # lambda 函数会被移除
-                calc_bounds=None,  # lambda 函数会被移除
-                args=param.args
-            )
-            setattr(obj_copy, field_name, new_param)
+        def serialize_parameter_full(param: Parameter) -> Dict[str, Any]:
+            """完整序列化 Parameter 对象，包括 lambda 函数的信息"""
+            param_dict = param.to_dict()
             
-            # 记录哪些参数有 lambda 函数
+            # 保存 args（用于重建 lambda 函数）
+            if param.args is not None:
+                # 序列化 args，将 Parameter 对象转换为名称引用
+                serialized_args = []
+                for arg in param.args:
+                    if isinstance(arg, Parameter):
+                        serialized_args.append({'_type': 'Parameter', 'name': arg.name})
+                    elif isinstance(arg, (int, float, str, bool, type(None))):
+                        serialized_args.append(arg)
+                    elif isinstance(arg, (list, tuple)):
+                        serialized_args.append([serialize_parameter_full(a) if isinstance(a, Parameter) else a for a in arg])
+                    else:
+                        serialized_args.append(str(arg))
+                param_dict['args'] = serialized_args
+            
+            # 尝试保存 lambda 函数的源代码（如果可能）
+            calc_info = {}
             if param.calc is not None and callable(param.calc):
-                func_name = getattr(param.calc, '__name__', '')
-                if func_name == '<lambda>' or func_name == '':
-                    lambda_info[field_name] = {'has_calc_lambda': True}
+                try:
+                    # 尝试获取源代码
+                    source_lines = inspect.getsourcelines(param.calc)
+                    if source_lines and len(source_lines) > 0:
+                        source = ''.join(source_lines[0]).strip()
+                        calc_info['source'] = source
+                        calc_info['has_calc'] = True
+                except Exception:
+                    calc_info['has_calc'] = True
+                    calc_info['source'] = None
+            else:
+                calc_info['has_calc'] = False
             
             if param.calc_bounds is not None and callable(param.calc_bounds):
-                func_name = getattr(param.calc_bounds, '__name__', '')
-                if func_name == '<lambda>' or func_name == '':
-                    if field_name not in lambda_info:
-                        lambda_info[field_name] = {}
-                    lambda_info[field_name]['has_calc_bounds_lambda'] = True
+                try:
+                    source_lines = inspect.getsourcelines(param.calc_bounds)
+                    if source_lines and len(source_lines) > 0:
+                        source = ''.join(source_lines[0]).strip()
+                        calc_info['calc_bounds_source'] = source
+                        calc_info['has_calc_bounds'] = True
+                except Exception:
+                    calc_info['has_calc_bounds'] = True
+                    calc_info['calc_bounds_source'] = None
+            else:
+                calc_info['has_calc_bounds'] = False
+            
+            if calc_info:
+                param_dict['_calc_info'] = calc_info
+            
+            return param_dict
         
-        # 复制 Winding 对象（如果存在）
+        def serialize_geometry_full(geo: Geometry) -> Dict[str, Any]:
+            """完整序列化 Geometry 对象"""
+            geo_dict = geo.to_dict()
+            
+            # 确保 visualization_points 被保存
+            if hasattr(geo, 'visualization_points') and geo.visualization_points:
+                geo_dict['visualization_points'] = geo.visualization_points
+            
+            # 保存 GP 中的 Parameter 对象引用
+            if hasattr(geo, 'GP') and geo.GP:
+                if isinstance(geo.GP, dict):
+                    gp_dict = {}
+                    for k, v in geo.GP.items():
+                        if isinstance(v, Parameter):
+                            gp_dict[k] = {'_type': 'Parameter', 'name': v.name}
+                        else:
+                            gp_dict[k] = v
+                    geo_dict['GP'] = gp_dict
+                elif isinstance(geo.GP, list):
+                    geo_dict['GP'] = [
+                        {'_type': 'Parameter', 'name': gp.name} if isinstance(gp, Parameter) else gp
+                        for gp in geo.GP
+                    ]
+            
+            return geo_dict
+        
+        # 开始构建完整字典
+        full_dict = {}
+        
+        # 1. 保存基本属性
+        full_dict['name'] = self.name
+        full_dict['bool_PermanentMagnet'] = self.bool_PermanentMagnet
+        full_dict['bool_StatorSlotClosed'] = self.bool_StatorSlotClosed
+        full_dict['bool_RotorNotched'] = self.bool_RotorNotched
+        full_dict['select_FEA_tool'] = self.select_FEA_tool
+        full_dict['select_fea_config_dict'] = self.select_fea_config_dict
+        full_dict['bool_jmagDeleteResultsAfterCalculation'] = self.bool_jmagDeleteResultsAfterCalculation
+        full_dict['counter'] = self.counter
+        
+        # 2. 保存所有 Parameter 对象（完整版本）
+        parameters_dict = {}
+        for field_name, param in self.get_parameter_fields().items():
+            parameters_dict[field_name] = serialize_parameter_full(param)
+        full_dict['parameters'] = parameters_dict
+        
+        # 3. 保存 Winding 对象
         if hasattr(self, 'wily') and self.wily is not None:
-            obj_copy.wily = Winding.from_dict(self.wily.to_dict())
+            full_dict['wily'] = self.wily.to_dict()
         
-        # machineGeometry 会在 __post_init__ 中重建，所以不需要复制
+        # 4. 保存 EX 字典（激励参数）
+        if hasattr(self, 'EX') and self.EX is not None:
+            full_dict['EX'] = self.EX.copy()
         
-        # 现在尝试序列化
-        try:
-            pickled_data = pickle.dumps(obj_copy)
-            pickled_base64 = base64.b64encode(pickled_data).decode('utf-8')
-            pickle_success = True
-        except Exception as e:
-            # 如果还是失败，只保存标准数据
-            pickled_base64 = None
-            pickle_success = False
-            print(f"Warning: Failed to pickle object: {e}")
+        # 5. 保存 machineGeometry（完整版本）
+        if hasattr(self, 'machineGeometry') and self.machineGeometry is not None:
+            machine_geometry_dict = {}
+            for key, geo in self.machineGeometry.items():
+                if geo is None:
+                    machine_geometry_dict[key] = None
+                elif isinstance(geo, Geometry):
+                    machine_geometry_dict[key] = serialize_geometry_full(geo)
+                else:
+                    machine_geometry_dict[key] = str(geo)
+            full_dict['machineGeometry'] = machine_geometry_dict
         
-        # 创建完整字典
-        full_dict = {
-            '_standard_data': standard_dict,  # 保留标准数据以便前端读取
-            '_lambda_info': lambda_info,  # 保存 lambda 函数信息，用于重建
-            '_metadata': {
-                'class_name': self.__class__.__name__,
-                'module': self.__class__.__module__,
-                'has_machineGeometry': hasattr(self, 'machineGeometry') and self.machineGeometry is not None,
-                'has_wily': hasattr(self, 'wily') and self.wily is not None,
-                'pickle_success': pickle_success,
-            }
+        # 6. 保存其他可能存在的属性
+        other_attrs = ['path2SwarmData', 'project_name', 'expected_project_file', 
+                      'path2FEACsv', 'toolJd', 'results_to_be_unpacked', 
+                      'spec_performance_dict', 'results_for_optimization',
+                      'InitialRotationAngle', 'drawer']
+        for attr in other_attrs:
+            if hasattr(self, attr):
+                attr_val = getattr(self, attr)
+                # 只保存可序列化的属性
+                if isinstance(attr_val, (int, float, str, bool, type(None), dict, list)):
+                    full_dict[attr] = attr_val
+                elif isinstance(attr_val, Parameter):
+                    full_dict[attr] = serialize_parameter_full(attr_val)
+                elif hasattr(attr_val, 'to_dict'):
+                    try:
+                        full_dict[attr] = attr_val.to_dict()
+                    except Exception:
+                        pass  # 跳过无法序列化的对象
+        
+        # 7. 保存元数据
+        full_dict['_metadata'] = {
+            'class_name': self.__class__.__name__,
+            'module': self.__class__.__module__,
+            'has_machineGeometry': hasattr(self, 'machineGeometry') and self.machineGeometry is not None,
+            'has_wily': hasattr(self, 'wily') and self.wily is not None,
+            'has_EX': hasattr(self, 'EX') and self.EX is not None,
+            'serialization_version': '2.0',  # 版本号，用于未来兼容性
         }
-        
-        if pickle_success:
-            full_dict['_pickle_data'] = pickled_base64
-            full_dict['_pickle_version'] = pickle.HIGHEST_PROTOCOL if hasattr(pickle, 'HIGHEST_PROTOCOL') else 4
-        else:
-            full_dict['_pickle_data'] = None
-            full_dict['_error'] = 'Failed to pickle object. Use standard serialization instead.'
         
         return full_dict
     
@@ -1599,33 +1669,106 @@ class Modern_Machine_Designer(object):
     @classmethod
     def from_dict_full(cls, data: Dict[str, Any]) -> 'Modern_Machine_Designer':
         """
-        从完整字典创建 Modern_Machine_Designer 对象（从 pickle 数据恢复）
+        从完整字典创建 Modern_Machine_Designer 对象（从完整 JSON 数据恢复）
         
         Args:
-            data: 包含完整对象数据的字典（包含 _pickle_data）
+            data: 包含完整对象数据的字典
             
         Returns:
             Modern_Machine_Designer: 重建的对象
         """
+        # 检查是否是旧格式（包含 pickle 数据）
         if '_pickle_data' in data and data['_pickle_data'] is not None:
             try:
-                # 从 pickle 数据恢复
+                # 尝试从旧格式恢复
                 pickled_base64 = data['_pickle_data']
                 pickled_data = base64.b64decode(pickled_base64.encode('utf-8'))
                 instance = pickle.loads(pickled_data)
-                
-                # 由于 lambda 函数在序列化时被移除了，需要重新调用 __post_init__ 来重建它们
-                # __post_init__ 会重新创建所有 lambda 函数和 machineGeometry
                 instance.__post_init__()
-                
                 return instance
             except Exception as e:
-                # 如果 pickle 恢复失败，使用标准方法
                 print(f"Warning: Failed to unpickle object, using standard deserialization: {e}")
-                return cls.from_dict(data.get('_standard_data', data))
-        else:
-            # 如果没有 pickle 数据，使用标准方法恢复
-            return cls.from_dict(data.get('_standard_data', data))
+                # 回退到新格式
+                pass
+        
+        # 新格式：从纯 JSON 数据恢复
+        # 创建对象实例
+        instance = cls.__new__(cls)
+        
+        # 恢复基本属性
+        instance.name = data.get('name', 'SPMSM')
+        instance.bool_PermanentMagnet = data.get('bool_PermanentMagnet', True)
+        instance.bool_StatorSlotClosed = data.get('bool_StatorSlotClosed', False)
+        instance.bool_RotorNotched = data.get('bool_RotorNotched', True)
+        instance.select_FEA_tool = data.get('select_FEA_tool', 'JMAG Designer')
+        instance.select_fea_config_dict = data.get('select_fea_config_dict', '#0213 JMAG Bearingless Sub-hamonics')
+        instance.bool_jmagDeleteResultsAfterCalculation = data.get('bool_jmagDeleteResultsAfterCalculation', False)
+        instance.counter = data.get('counter', 0)
+        instance.fea_config_dict = data.get('fea_config_dict', None)
+        
+        # 恢复 Parameter 对象
+        parameters_data = data.get('parameters', {})
+        for field_name, param_data in parameters_data.items():
+            # 从字典恢复 Parameter
+            param = Parameter.from_dict(param_data)
+            # 注意：calc 和 calc_bounds 函数需要在 __post_init__ 中重建
+            setattr(instance, field_name, param)
+        
+        # 恢复 Winding 对象
+        if 'wily' in data and data['wily'] is not None:
+            instance.wily = Winding.from_dict(data['wily'])
+        
+        # 恢复 EX 字典
+        if 'EX' in data:
+            instance.EX = data['EX'].copy()
+        
+        # 恢复其他属性
+        for attr in ['path2SwarmData', 'project_name', 'expected_project_file', 
+                    'path2FEACsv', 'results_to_be_unpacked', 
+                    'spec_performance_dict', 'results_for_optimization',
+                    'InitialRotationAngle']:
+            if attr in data:
+                setattr(instance, attr, data[attr])
+        
+        # 调用 __post_init__ 来重建 lambda 函数、machineGeometry 和其他依赖项
+        # 注意：__post_init__ 会使用已设置的参数值
+        # 但是，如果参数值已经存在，我们需要确保它们不会被覆盖
+        # 所以我们需要在调用 __post_init__ 之前保存当前值，然后在之后恢复
+        
+        # 保存当前参数值
+        saved_param_values = {}
+        for field_name in parameters_data.keys():
+            param = getattr(instance, field_name, None)
+            if param is not None:
+                saved_param_values[field_name] = param.value
+        
+        # 调用 __post_init__ 重建所有内容
+        instance.__post_init__()
+        
+        # 恢复保存的参数值（如果 __post_init__ 覆盖了它们）
+        for field_name, saved_value in saved_param_values.items():
+            param = getattr(instance, field_name, None)
+            if param is not None and param.value != saved_value:
+                param.value = saved_value
+        
+        # 恢复 machineGeometry（如果 JSON 中有保存）
+        if 'machineGeometry' in data and data['machineGeometry'] is not None:
+            # 注意：machineGeometry 中的 visualization_points 会被保留
+            # 但 draw_function 需要在 __post_init__ 中重建
+            for key, geo_data in data['machineGeometry'].items():
+                if geo_data is None:
+                    instance.machineGeometry[key] = None
+                elif isinstance(geo_data, dict):
+                    # 尝试恢复 Geometry 对象
+                    # 由于 draw_function 无法序列化，我们只恢复可序列化的部分
+                    if hasattr(instance, 'machineGeometry') and key in instance.machineGeometry:
+                        geo = instance.machineGeometry[key]
+                        if geo is not None and isinstance(geo, Geometry):
+                            # 恢复 visualization_points
+                            if 'visualization_points' in geo_data:
+                                geo.visualization_points = geo_data['visualization_points']
+        
+        return instance
     
     @classmethod
     def load_from_file_full(cls, filepath: str = 'machine_designer_full.json') -> 'Modern_Machine_Designer':
@@ -1737,7 +1880,6 @@ class Modern_Machine_Designer(object):
 if __name__ == "__main__":
     # 创建对象并导出为 JSON
     mmd = Modern_Machine_Designer()
-    mmd.save_to_file('machine_designer.json')
 
     mmd.show_geometry()
     # print(dir(mmd.machineGeometry['statorCore']))
@@ -1745,11 +1887,15 @@ if __name__ == "__main__":
     mmd.drawer.visualization_points['Coils']['PCoil']
 
     mmd.FEA_evaluate()
+
+    mmd.save_to_file('machine_designer.json')
+    mmd.save_to_file_full('machine_designer_full.json') # 保存完整信息到文件（类似 pickle）
+
+
+    mmd.start_optimization()
+
     quit()
 
-    # 保存完整信息到文件（类似 pickle）
-    mmd.save_to_file_full('machine_designer_full.json')
-    print("=== 已保存完整信息到 machine_designer_full.json ===")
 
     # 从 JSON 文件恢复对象
     mmd2 = Modern_Machine_Designer.load_from_file('machine_designer.json')

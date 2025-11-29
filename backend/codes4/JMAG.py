@@ -1815,6 +1815,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # use the last 1/4 period data to compute average copper loss of Tran2TSS rather than use that of Freq study
 
+        # 是指时域波形中已经让涡流（转子导体包括铜棒和永磁体）达到稳态的部分。
         # effective_part = rotor_Joule_loss_list[-int(0.5*fea_config_dict['designer.number_of_steps_2ndTSS']):] # number_of_steps_2ndTSS = steps for half peirod
         effective_part = rotor_Joule_loss_list[-int(fea_config_dict['designer.number_of_steps_2ndTSS']):]
         if len(effective_part) == 0: # there is no rotor eddy current (e.g., FSPM motor)

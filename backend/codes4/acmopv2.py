@@ -511,6 +511,40 @@ async def get_default_machine_designer() -> Dict[str, Any]:
         )
 
 
+@router.get("/machine-designer-full")
+async def get_machine_designer_full() -> Dict[str, Any]:
+    """
+    获取 machine_designer_full.json 配置
+    
+    返回完整的配置，包括所有元数据和几何信息
+    """
+    try:
+        # 获取当前文件所在目录
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        json_path = os.path.join(current_dir, "machine_designer_full.json")
+        
+        if not os.path.exists(json_path):
+            raise HTTPException(
+                status_code=404, 
+                detail=f"完整配置文件不存在: {json_path}"
+            )
+        
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        return data
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"JSON解析失败: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"读取完整配置失败: {str(e)}"
+        )
+
+
 @router.post("/optimization-results")
 async def get_optimization_results(request: AnalysisRequest) -> Dict[str, Any]:
     """
