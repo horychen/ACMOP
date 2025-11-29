@@ -1357,7 +1357,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # app.View().ShowMeshGeometry() # 2nd btn
             app.View().ShowMesh() # 3rn btn
             app.View().Zoom(3)
-            app.View().Pan(-acm_variant.template.SI['GP']['mm_r_ro'].value, 0)
+            app.View().Pan(-acm_variant.mm_r_rovalue, 0)
             app.ExportImageWithSize(output_dir + model.GetName() + '.png', 2000, 2000)
             app.View().ShowModel() # 1st btn. close mesh view, and note that mesh data will be deleted if only ouput table results are selected.
 
@@ -1449,8 +1449,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
                 # # acm_variant.spec_geometry_dict['DriveW_CurrentAmp'] = acm_variant.DriveW_CurrentAmp
 
-                # slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
-                # print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
+                # slot_current_utilizing_ratio_for_torque = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+                # print('[JMAG.py]---Heads up! slot_current_utilizing_ratio_for_torque is', slot_current_utilizing_ratio_for_torque, '  (PS: =1 means it is combined winding)')
 
                 # # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
                 # # print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
@@ -1491,8 +1491,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     #                                                                                                 # EX['DriveW_CurrentAmp'],
     #                                                                                                 # EX['BeariW_CurrentAmp'])
 
-    #     slot_current_utilizing_ratio = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
-    #     print('[JMAG.py]---Heads up! slot_current_utilizing_ratio is', slot_current_utilizing_ratio, '  (PS: =1 means it is combined winding)')
+    #     slot_current_utilizing_ratio_for_torque = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+    #     print('[JMAG.py]---Heads up! slot_current_utilizing_ratio_for_torque is', slot_current_utilizing_ratio_for_torque, '  (PS: =1 means it is combined winding)')
     #     print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
     #     print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
     #     print('---acm_variant.DriveW_CurrentAmp =', variant_DriveW_CurrentAmp)
@@ -1505,27 +1505,28 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     ''' JMAG Description
     '''
     def show(self, acm_variant, toString=False):
-        def get_tuple_list(object):
-            attrs = list(vars(object).items())
-            key_list = [el[0] for el in attrs]
-            val_list = [el[1] for el in attrs]
-            the_dict = dict(list(zip(key_list, val_list)))
-            sorted_key = sorted(key_list, key=lambda item: (int(item.partition(' ')[0]) if item[0].isdigit() else float('inf'), item)) # this is also useful for string beginning with digiterations '15 Steel'.
-            tuple_list = [(key, the_dict[key]) for key in sorted_key]
-            return tuple_list
-        variant_tuple_list = get_tuple_list(acm_variant)
-        template_tuple_list = get_tuple_list(acm_variant.template)
-        if toString==False:
-            logger = logging.getLogger(__name__)
-            logger.info('- Bearingless PMSM Individual #%s', acm_variant.name)
-            logger.info('\t%s', ', \n\t'.join("%s = %s" % item for item in variant_tuple_list))
-            # print(', \n\t'.join("%s = %s" % item for item in template_tuple_list))
-            return ''
-        else:
-            return '\n- Bearingless PMSM Individual #%s\n\t' % (acm_variant.name) \
-                    + ', \n\t'.join("%s = %s" % item for item in variant_tuple_list) \
-                    + '\n' + '--'*10 + '\n- Template:\n\t' \
-                    + ', \n\t'.join("%s = %s" % item for item in template_tuple_list)
+        pass
+        # def get_tuple_list(object):
+        #     attrs = list(vars(object).items())
+        #     key_list = [el[0] for el in attrs]
+        #     val_list = [el[1] for el in attrs]
+        #     the_dict = dict(list(zip(key_list, val_list)))
+        #     sorted_key = sorted(key_list, key=lambda item: (int(item.partition(' ')[0]) if item[0].isdigit() else float('inf'), item)) # this is also useful for string beginning with digiterations '15 Steel'.
+        #     tuple_list = [(key, the_dict[key]) for key in sorted_key]
+        #     return tuple_list
+        # variant_tuple_list = get_tuple_list(acm_variant)
+        # # template_tuple_list = get_tuple_list(acm_variant.template)
+        # if toString==False:
+        #     logger = logging.getLogger(__name__)
+        #     logger.info('- Bearingless PMSM Individual #%s', acm_variant.name)
+        #     logger.info('\t%s', ', \n\t'.join("%s = %s" % item for item in variant_tuple_list))
+        #     # print(', \n\t'.join("%s = %s" % item for item in template_tuple_list))
+        #     return ''
+        # else:
+        #     return '\n- Bearingless PMSM Individual #%s\n\t' % (acm_variant.name) \
+        #             + ', \n\t'.join("%s = %s" % item for item in variant_tuple_list) \
+        #             + '\n' + '--'*10 + '\n- Template:\n\t' \
+        #             + ', \n\t'.join("%s = %s" % item for item in template_tuple_list)
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # 从硬盘提取数据
@@ -1857,27 +1858,25 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 raise e
             # enablePrint()
         else:
-            SI = acm_variant.template.SI
-            GP = acm_variant.template.SI['GP']
-            EX = acm_variant.template.SIEX
-            wily = EX['wily']
-            copper_loss_parameters = [GP['mm_d_sleeve'].value + GP['mm_d_mech_air_gap'].value,
-                                GP['mm_w_st'].value,
+            EX = acm_variant.EX
+            wily = acm_variant.wily
+            copper_loss_parameters = [acm_variant.mm_d_sleeve.value + acm_variant.mm_d_mech_air_gap.value,
+                                acm_variant.mm_w_st.value,
                                 wily.number_of_parallel_branch,
                                 EX['DriveW_zQ'],
                                 wily.coil_pitch_y,
-                                acm_variant.template.SI['Qs'],
+                                acm_variant.Qs.value,
                                 EX['mm_stack_length_specified'],
                                 EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp'], # total current amplitude
-                                GP['mm_r_ro'].value,       # mm
-                                GP['mm_r_so'].value*2*1e-3 # m, stator_yoke_diameter_Dsyi
+                                acm_variant.mm_r_ro.value,       # mm
+                                acm_variant.mm_r_so.value*2*1e-3 # m, stator_yoke_diameter_Dsyi
                                 ]
             # slot_area_utilizing_ratio = (acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp) / acm_variant.CurrentAmp_per_phase
             # if slot_area_utilizing_ratio < 1:
             #     print('Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio, 'which means you are simulating a separate winding? If not, contrats--you found a bug...')
             #     print('DW, BW, Total:', acm_variant.DriveW_CurrentAmp, acm_variant.BeariW_CurrentAmp, acm_variant.CurrentAmp_per_phase)
             s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(
-                EX['slot_current_utilizing_ratio']*acm_variant.coils.mm2_slot_area*1e-6, 
+                EX['slot_current_utilizing_ratio_for_torque']*acm_variant.EX['mm2_slot_area']*1e-6, 
                 copper_loss_parameters=copper_loss_parameters, 
                 STATOR_SLOT_FILL_FACTOR=EX['WindingFill'],
                 TEMPERATURE_OF_COIL=EX['Temperature'])
@@ -2060,15 +2059,16 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         str_results += '\n\tfemm loss info: '  + ', '.join(['%g'%(el) for el in dm.femm_loss_list])
 
         if fea_config_dict['delete_results_after_calculation'] == False:
-            power_factor = dm.power_factor(number_of_steps_at_steady_state, targetFreq=acm_variant.EX['FreqS'])
+            power_factor = dm.power_factor(number_of_steps_at_steady_state, targetFreq=acm_variant.EX['ExcitationFreqSimulated'])
             str_results += '\n\tPF: %g' % (power_factor)
 
-        # compute the fitness 
-        rotor_volume = acm_variant.template.get_rotor_volume() 
-        rotor_weight = acm_variant.template.get_rotor_weight()
-        shaft_power  = acm_variant.template.SIEX['Omega'] * torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
 
-        if 'IM' in acm_variant.machine_type:
+        # compute the fitness 
+        rotor_volume = acm_variant.get_rotor_volume() 
+        rotor_weight = acm_variant.get_rotor_weight()
+        shaft_power  = acm_variant.EX['RatedSpeed']/60. * 2*math.pi * torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
+
+        if 'IM' in acm_variant.name:
             if False: # fea_config_dict['jmag_run_list'][0] == 0
                 # by JMAG only
                 copper_loss  = dm.jmag_loss_list[0] + dm.jmag_loss_list[1] 
@@ -2080,16 +2080,16 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 else:
                     copper_loss  = dm.femm_loss_list[0] + dm.femm_loss_list[1]
                 iron_loss = dm.jmag_loss_list[2] 
-        elif 'PM' in acm_variant.machine_type:
+        elif 'PM' in acm_variant.name:
             # Rotor magnet loss by JMAG
             magnet_Joule_loss = dm.jmag_loss_list[1]
             # Stator copper loss by Binder and Bolognani 2006
             copper_loss = dm.femm_loss_list[0] + magnet_Joule_loss
             iron_loss = dm.jmag_loss_list[2] 
         else:
-            raise Exception('Unknown machine type:', acm_variant.machine_type)
+            raise Exception('Unknown machine type:', acm_variant.name)
 
-        windage_loss = utility.get_windage_loss(acm_variant, acm_variant.template.SIEX['mm_stack_length_specified'])
+        windage_loss = utility.get_windage_loss(acm_variant, acm_variant.EX['mm_stack_length_specified'])
 
         # 这样计算效率，输出转矩大的，铁耗大一倍也没关系了，总之就是气隙变得最小。。。要不就不要优化气隙了。。。
         total_loss   = copper_loss + iron_loss + windage_loss
@@ -2158,7 +2158,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
             rotor_copper_loss_in_end_turn  = 0
 
-        required_torque = acm_variant.template.SI['mec_power'] / (2*math.pi*acm_variant.EX['RatedSpeed'])*60
+        required_torque = acm_variant.EX['RatedPower'] / (2*math.pi*acm_variant.EX['RatedSpeed'])*60
 
         rated_ratio                          = required_torque / torque_average 
         rated_stack_length_mm                = rated_ratio * acm_variant.EX['mm_stack_length_specified']
@@ -2191,19 +2191,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             #     print('rotor_current_density is over 8e6 Arms/m^2')
         else:
                                     # 基波电流幅值（在一根导体里的电流，六相逆变器中的GroupBDW相的电流，所以相当于已经考虑了并联支路数了）
-            stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.coils.mm2_slot_area*1e-6/acm_variant.template.SIEX['DriveW_zQ'])
+            stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.EX['mm2_slot_area']*1e-6/acm_variant.EX['DriveW_zQ'])
             logger = logging.getLogger(__name__)
             logger.info('Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2', stator_current_density)
             rotor_current_density = 0
 
-        logger = logging.getLogger(__name__)
-        logger.info('Required torque: %g Nm', required_torque)
-        logger.info("acm_variant.template.SIEX['Omega']: %g rad/s", acm_variant.template.SIEX['Omega'])
-        rated_shaft_power  = acm_variant.template.SIEX['Omega'] * required_torque
+        rated_shaft_power  = acm_variant.EX['RatedSpeed']/60. * 2*math.pi * required_torque
         rated_efficiency   = rated_shaft_power / (rated_total_loss + rated_shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
 
-        rated_rotor_volume = math.pi*(acm_variant.template.SI['GP']['mm_r_ro'].value*1e-3)**2 * (rated_stack_length_mm*1e-3)
-        logger.info('rated_stack_length_mm = %s', rated_stack_length_mm)
+        rated_rotor_volume = acm_variant.get_rotor_volume(stack_length=rated_stack_length_mm)
 
         # This weighted list suggests that peak-to-peak torque ripple of 5% is comparable with Em of 5% or Ea of 1 deg. Ref: Ye gu ECCE 2018
         # Eric suggests Ea is 1 deg. But I think this may be too much emphasis on Ea so large Trip does not matter anymore (not verified yet).
@@ -2221,15 +2217,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         price_per_volume_magnet   = 11.61 * 61023.744 # $/in^3 NdFeB PM
         # price_per_volume_aluminum = 0.88  / 16387.064 # $/in^3 wire or cast Al
         # Vol_Fe = (2*acm_variant.template.SI['GP']['mm_r_so'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
-        Vol_Fe = ( math.pi*(acm_variant.template.SI['GP']['mm_r_so'].value*1e-3)**2 - math.pi*(acm_variant.template.SI['GP']['mm_r_ri'].value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
+        Vol_Fe = ( math.pi*(acm_variant.mm_r_so.value*1e-3)**2 - math.pi*(acm_variant.mm_r_ri.value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
         if 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
             if 'FSPM' in machine_type:
                 Vol_PM = (acm_variant.statorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
                 logger = logging.getLogger(__name__)
                 logger.info('Area_PM %s', (acm_variant.statorMagnet.mm2_magnet_area*1e-6))
             else:
-                Vol_PM = (acm_variant.rotorMagnet.mm2_magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
-                logger.info('Area_PM %s', (acm_variant.rotorMagnet.mm2_magnet_area*1e-6))
+                Vol_PM = (acm_variant.EX['mm2_magnet_area']*1e-6) * (rated_stack_length_mm*1e-3)
+                # logger.info('Area_PM %s', (acm_variant.EX['mm2_magnet_area']*1e-6))
         else:
             Vol_PM = 0.0
         # print('[utility.py] Area_Fe', (acm_variant.template.SI['GP']['mm_r_so'].value*1e-3) ** 2)
@@ -2293,9 +2289,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         FRW = ss_avg_force_magnitude / rotor_weight
         logger = logging.getLogger(__name__)
-        logger.info('FRW: %s, Rotor weight: %s, Stack length: %s, Rated stack length: %s', FRW, rotor_weight, acm_variant.template.SIEX['mm_stack_length_specified'], rated_stack_length_mm)
-        rated_rotor_volume = acm_variant.template.get_rotor_volume(stack_length=rated_stack_length_mm) 
-        rated_rotor_weight = acm_variant.template.get_rotor_weight(stack_length=rated_stack_length_mm)
+        logger.info('FRW: %s, Rotor weight: %s, Stack length: %s, Rated stack length: %s', FRW, rotor_weight, acm_variant.EX['mm_stack_length_specified'], rated_stack_length_mm)
+        rated_rotor_volume = acm_variant.get_rotor_volume(stack_length=rated_stack_length_mm) 
+        rated_rotor_weight = acm_variant.get_rotor_weight(stack_length=rated_stack_length_mm)
         logger.info('rated_rotor_volume: %s, rated_rotor_weight: %s', rated_rotor_volume, rated_rotor_weight)
 
         rated_results = [   rated_shaft_power, 
@@ -2310,14 +2306,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                             rated_windage_loss,
                             rated_rotor_volume,
                             rated_stack_length_mm,  # new!
-                            acm_variant.template.SIEX['mm_stack_length_specified']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
+                            acm_variant.EX['mm_stack_length_specified']]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
 
         # print(type(acm_variant.counter)==type(''))
         # print(type(acm_variant.counter)==type(''))
         # print(type(acm_variant.counter)==type(''))
 
         str_results = '\n-------\n%s-%s\n%d,%d,O1=%g,O2=%g,f1=%g,f2=%g,f3=%g\n%s\n%s\n' % (
-                        project_name, acm_variant.get_individual_name(), 
+                        project_name, acm_variant.name,
                         -1 if type(acm_variant.counter)==type('') else int(acm_variant.counter//acm_variant.fea_config_dict["moo.popsize"]), # generation count
                         -1 if type(acm_variant.counter)==type('') else acm_variant.counter, # individual count
                         cost_function_O1, cost_function_O2, f1, f2, f3,
@@ -2340,7 +2336,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         #     raise Exception('Not implemented error.')
 
         return (cost_function_O1, cost_function_O2), f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle, \
-                project_name, acm_variant.get_individual_name(), \
+                project_name, acm_variant.name, \
                 -1 if type(acm_variant.counter)==type('') else int(acm_variant.counter//acm_variant.fea_config_dict["moo.popsize"]), \
                 acm_variant.counter,\
                 power_factor, \
@@ -2355,7 +2351,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 rated_iron_loss, \
                 rated_windage_loss, \
                 str_results, \
-                acm_variant.coils.mm2_slot_area, \
+                acm_variant.EX['mm2_slot_area'], \
                 coil_flux_linkage_peak2peak_value, \
                 TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
                 ss_avg_force_magnitude, rotor_weight, torque_average

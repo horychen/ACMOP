@@ -1,0 +1,160 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Loader2, FileText, AlertCircle } from 'lucide-react';
+import * as d3 from 'd3';
+
+interface CsvVisualizerProps {
+    projectName: string;
+}
+
+export default function CsvVisualizer({ projectName }: CsvVisualizerProps) {
+    const [csvFiles, setCsvFiles] = useState<string[]>([]);
+    const [selectedFile, setSelectedFile] = useState<string>('');
+    const [chartData, setChartData] = useState<any[]>([]);
+    const [dataKeys, setDataKeys] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchCsvList = async () => {
+            try {
+                const response = await axios.get(`http://localhost:8000/api/results/csv/list/${projectName}`);
+                setCsvFiles(response.data);
+                if (response.data.length > 0) {
+                    setSelectedFile(response.data[0]);
+                }
+            } catch (err) {
+                console.error("Failed to fetch CSV list", err);
+                setError("Failed to load CSV files.");
+            }
+        };
+
+        if (projectName) {
+            fetchCsvList();
+        }
+    }, [projectName]);
+
+    useEffect(() => {
+        const fetchCsvContent = async () => {
+            if (!selectedFile) return;
+
+            setLoading(true);
+            setError(null);
+            try {
+                const response = await axios.get(`http://localhost:8000/api/results/csv/content/${projectName}/${selectedFile}`);
+                const csvContent = response.data.content;
+
+                // Find the start of the actual data (header line starts with "Time(s)")
+                const lines = csvContent.split('\n');
+                const headerIndex = lines.findIndex((line: string) => line.trim().startsWith('Time(s)'));
+
+                if (headerIndex === -1) {
+                    throw new Error("Could not find data header 'Time(s)' in CSV file.");
+                }
+
+                const cleanCsvContent = lines.slice(headerIndex).join('\n');
+
+                // Parse CSV using d3
+                const parsedData = d3.csvParse(cleanCsvContent);
+
+                if (parsedData.length > 0) {
+                    // Filter out columns that are not suitable for plotting (e.g., non-numeric)
+                    // We assume 'Time(s)' is the X-axis.
+                    const keys = Object.keys(parsedData[0]).filter(key => key !== 'Time(s)' && !isNaN(parseFloat(parsedData[0][key] as string)));
+                    setDataKeys(keys);
+
+                    // Convert values to numbers
+                    const formattedData = parsedData.map(row => {
+                        const newRow: any = { ...row };
+                        Object.keys(row).forEach(key => {
+                            const val = parseFloat(row[key] as string);
+                            if (!isNaN(val)) {
+                                newRow[key] = val;
+                            }
+                        });
+                        return newRow;
+                    });
+                    setChartData(formattedData);
+                } else {
+                    setChartData([]);
+                    setDataKeys([]);
+                }
+
+            } catch (err) {
+                console.error("Failed to fetch CSV content", err);
+                setError("Failed to load CSV content.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCsvContent();
+    }, [selectedFile, projectName]);
+
+    return (
+        <div className="flex flex-col h-full">
+            <div className="mb-4 flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">Select Result:</span>
+                </div>
+                <select
+                    value={selectedFile}
+                    onChange={(e) => setSelectedFile(e.target.value)}
+                    className="bg-card border border-border text-sm rounded px-3 py-1.5 text-foreground focus:ring-1 focus:ring-primary outline-none min-w-[250px]"
+                >
+                    {csvFiles.map(file => (
+                        <option key={file} value={file}>{file}</option>
+                    ))}
+                </select>
+                {loading && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+            </div>
+
+            {error && (
+                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-center mb-4">
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    {error}
+                </div>
+            )}
+
+            <div className="flex-1 min-h-[400px] bg-card rounded-lg border border-border p-4 relative">
+                {chartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                            <XAxis
+                                dataKey="Time(s)"
+                                type="number"
+                                domain={['auto', 'auto']}
+                                tickFormatter={(tick) => tick.toFixed(4)}
+                                label={{ value: 'Time (s)', position: 'insideBottomRight', offset: -5 }}
+                            />
+                            <YAxis />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', color: '#f3f4f6' }}
+                            />
+                            <Legend />
+                            {dataKeys.map((key, index) => (
+                                <Line
+                                    key={key}
+                                    type="monotone"
+                                    dataKey={key}
+                                    stroke={`hsl(${index * 60}, 70%, 50%)`}
+                                    dot={false}
+                                    strokeWidth={2}
+                                />
+                            ))}
+                        </LineChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                        {!loading && "No data to display"}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

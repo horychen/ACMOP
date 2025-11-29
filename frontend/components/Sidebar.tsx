@@ -64,6 +64,12 @@ export function Sidebar({ className }: SidebarProps) {
                 Design Analyzer
               </Link>
             </Button>
+            <Button variant={pathname === "/csv-visualizer" ? "secondary" : "ghost"} className="w-full justify-start" asChild>
+              <Link href="/csv-visualizer">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                CSV Visualizer
+              </Link>
+            </Button>
             <Button variant={pathname === "/developer" ? "secondary" : "ghost"} className="w-full justify-start" asChild>
               <Link href="/developer">
                 <Code2 className="mr-2 h-4 w-4" />

@@ -10,6 +10,7 @@ import LinearMachineView from '../../components/LinearMachineView';
 import { EfficiencyChart } from '../../components/Charts';
 import { InputGroup, KpiCard, ResultRow } from '../../components/DesignHelpers';
 import axios from 'axios';
+import CsvVisualizer from '../../components/CsvVisualizer';
 
 const DEFAULT_SPECS: DesignSpecs = {
     ratedPower: 5, // 5 kW
@@ -232,28 +233,26 @@ export default function VisualizerPage() {
                                     <div className="flex items-center space-x-2">
                                         <button
                                             onClick={() => setViewMode('circular')}
-                                            className={`text-xs px-3 py-1 rounded transition-colors ${
-                                                viewMode === 'circular'
+                                            className={`text-xs px-3 py-1 rounded transition-colors ${viewMode === 'circular'
                                                     ? 'bg-primary text-primary-foreground'
                                                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                                            }`}
+                                                }`}
                                         >
                                             Circular
                                         </button>
                                         <button
                                             onClick={() => setViewMode('linear')}
-                                            className={`text-xs px-3 py-1 rounded transition-colors ${
-                                                viewMode === 'linear'
+                                            className={`text-xs px-3 py-1 rounded transition-colors ${viewMode === 'linear'
                                                     ? 'bg-primary text-primary-foreground'
                                                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                                            }`}
+                                                }`}
                                         >
                                             Linear
                                         </button>
                                     </div>
                                 </div>
                                 {result && (
-                                    viewMode === 'circular' 
+                                    viewMode === 'circular'
                                         ? <MotorVisualizer geometry={result.geometry} />
                                         : <LinearMachineView geometry={result.geometry} />
                                 )}
@@ -310,6 +309,14 @@ export default function VisualizerPage() {
                                         </p>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+
+                        {/* CSV Visualizer Section */}
+                        <div className="mb-8">
+                            <h3 className="text-lg font-medium text-foreground mb-4">Simulation Results (CSV)</h3>
+                            <div className="h-[500px]">
+                                <CsvVisualizer projectName="SuperCoolPMSM" />
                             </div>
                         </div>
 

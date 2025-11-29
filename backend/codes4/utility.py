@@ -440,10 +440,10 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     Shaft = [mm_stack_length,                               #1;         %End position of the sections mm (Absolut)
              # [Imthiaz Ahmed] poses question on this value. See https://seversongroup.slack.com/archives/D01HSGBLSES/p1616609258033500?thread_ts=1616560325.030600&cid=D01HSGBLSES
              # im_variant.template.SI['GP']['mm_r_ro'].value+im_variant.template.SI['GP']['mm_d_mech_air_gap'].value, #1;         %Inner Radius in mm
-             im_variant.template.SI['GP']['mm_r_ro'].value+im_variant.template.SI['GP']['mm_d_sleeve'].value, #1;         %Inner Radius in mm 
+             im_variant.mm_r_ro.value+im_variant.mm_d_sleeve.value, #1;         %Inner Radius in mm 
              #
              1,                                                     #0;         %Shrouded (1) or free surface (0)
-             im_variant.template.SI['GP']['mm_d_mech_air_gap'].value]                              #0];        %Airgap in mm
+             im_variant.mm_d_mech_air_gap.value]                              #0];        %Airgap in mm
     Num_shaft_section = 1
     T_Air = TEMPERATURE_OF_AIR #20:(120-20)/((SpeedMax-SpeedMin)/SpeedStep):120         #; % Air temperature []
     
@@ -456,17 +456,12 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     R     = Shaft[1]*1e-3 # radius of air gap
     delta = Shaft[3]*1e-3 # length of air gap
     
-    logger = logging.getLogger(__name__)
-    logger.debug('DEBUG windage: L, R, delta = %s, %s, %s', L, R, delta)
-    logger.debug('\tRadius version old: %s', im_variant.template.SI['GP']['mm_r_ro'].value+im_variant.template.SI['GP']['mm_d_mech_air_gap'].value)
-    logger.debug('\tRadius version new: %s', im_variant.template.SI['GP']['mm_r_ro'].value+im_variant.template.SI['GP']['mm_d_sleeve'].value)
+    # logger = logging.getLogger(__name__)
+    # logger.debug('DEBUG windage: L, R, delta = %s, %s, %s', L, R, delta)
+    # logger.debug('\tRadius version old: %s', im_variant.mm_r_ro.value+im_variant.mm_d_mech_air_gap.value)
+    # logger.debug('\tRadius version new: %s', im_variant.mm_r_ro.value+im_variant.mm_d_sleeve.value)
 
-    Omega = 2*math.pi*im_variant.template.SI['EX']['the_speed']/60.
-    if abs(Omega - im_variant.template.SI['EX']['Omega']) < 0.1:
-        pass
-    else:
-        print(Omega, im_variant.template.SI['EX']['Omega'], im_variant.template.SI['EX']['the_speed'])
-        raise Exception('Check speed calc. resutls.')
+    Omega = 2*math.pi*im_variant.EX['RatedSpeed']/60.
 
     # Reynolds number
     Rey = R**2 * (Omega)/nu_Air
@@ -493,7 +488,7 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
         
     # end friction loss added - 05192018.yegu
     # the friction coefficients from <Rotor Design of a High-Speed Permanent Magnet Synchronous Machine rating 100,000 rpm at 10 kW>
-    Rer = rho_Air * (im_variant.template.SI['GP']['mm_r_ro'].value * 1e-3)**2 * Omega/nu_Air
+    Rer = rho_Air * (im_variant.mm_r_ro.value * 1e-3)**2 * Omega/nu_Air
     if Rer <= 30:
         c_f = 64/3. / Rer
     elif Rer>30 and Rer<3*10**5:
@@ -501,7 +496,7 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     else:
         c_f = 0.146 * Rer**(-0.2)
 
-    windage_loss_axial = 0.5 * c_f * rho_Air * Omega**3 * (im_variant.template.SI['GP']['mm_r_ro'].value*1e-3)**5
+    windage_loss_axial = 0.5 * c_f * rho_Air * Omega**3 * (im_variant.mm_r_ro.value*1e-3)**5
     
     windage_loss_total = windage_loss_radial + windage_loss_axial
     print('\t windage_loss_total = windage_loss_radial + windage_loss_axial =', windage_loss_total, '[W] =', windage_loss_radial, '+', windage_loss_axial, '[W]')

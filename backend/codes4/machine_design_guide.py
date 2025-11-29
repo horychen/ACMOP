@@ -394,7 +394,7 @@ class CairoDrawer(object):
 @dataclass
 class Modern_Machine_Designer(object):
 
-    name: str = 'SuperCoolPMSM'
+    name: str = 'SPMSM'
     machine_class: str = 'bearingless_spmsm_heart.bearingless_spmsm_design_variant'
     select_fea_config_dict: str = '#0213 JMAG Bearingless Sub-hamonics'
     fea_config_dict: dict = None
@@ -407,6 +407,8 @@ class Modern_Machine_Designer(object):
     bool_jmagDeleteResultsAfterCalculation: bool = False
 
     def __post_init__(self):
+
+        self.counter = 1
 
         # 绕组
         m : int = 3
@@ -525,7 +527,7 @@ class Modern_Machine_Designer(object):
         V_stator_phase_voltage_amp = math.sqrt(2) *EX['DCBusVoltage'] / (math.sqrt(3) if bool_WyeConnectOrDeltaConnect else 1.0) 
         V_desired_emf_Em = 0.95 * V_stator_phase_voltage_amp
         alpha_i = 2.0/math.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
-        T_air_gap_flux_density_Bg_guessed = 0.7 # T
+        T_air_gap_flux_density_Bg_guessed = 0.9 # T
         mm_stack_length_specified = EX['mm_stack_length_specified']
         mm_d_magnetic_air_gap = self.mm_d_mech_air_gap.value + self.mm_d_sleeve.value
         mm_stack_length_effective = mm_stack_length_specified + 2 * mm_d_magnetic_air_gap
@@ -565,7 +567,7 @@ class Modern_Machine_Designer(object):
         ''' Excitations Consiering Thermal Capability Limit (Simple) '''
         mm_r_sy = self.mm_r_so.value - self.mm_d_sy.value  # radius stator yoke
         mm_r_ss = self.mm_r_si.value + self.mm_d_sts.value # radius stator slot
-        EX['mm2_slot_area']            = math.pi*(mm_r_sy**2 - mm_r_ss**2) - self.mm_w_st.value * self.mm_d_st.value # 计算槽面积
+        EX['mm2_slot_area']            = (math.pi*(mm_r_sy**2 - mm_r_ss**2) / Qs - self.mm_w_st.value * self.mm_d_st.value) # 计算槽面积
         EX['CurrentAmp_in_the_slot']   = EX['mm2_slot_area'] * 1e-6 * EX['Js'] * EX['WindingFill'] * math.sqrt(2)
         EX['CurrentAmp_per_conductor'] = EX['CurrentAmp_in_the_slot'] / EX['DriveW_zQ']
         EX['CurrentAmp_per_phase']     = EX['CurrentAmp_per_conductor'] * self.wily.number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
@@ -575,7 +577,28 @@ class Modern_Machine_Designer(object):
 
         EX['InitialRotationAngle'] = self.get_InitialRotationAngle()
 
+        Rout = self.mm_r_ri.value+ self.mm_d_ri.value+ self.mm_d_pm.value
+        Rin  = self.mm_r_ri.value+ self.mm_d_ri.value
+        deg_alpha_rp = 360 / (2*self.p.value)
+        EX['mm2_magnet_area'] = self.deg_alpha_rm.value/deg_alpha_rp * math.pi*(Rout**2 - Rin**2)
 
+        # INSERT_YOUR_CODE
+        print(f"[DEBUG] mm_r_sy={mm_r_sy}")
+        print(f"[DEBUG] mm_r_ss={mm_r_ss}")
+        print(f"[DEBUG] EX['mm2_slot_area']={EX['mm2_slot_area']}")
+        print(f"[DEBUG] EX['CurrentAmp_in_the_slot']={EX['CurrentAmp_in_the_slot']}")
+        print(f"[DEBUG] EX['CurrentAmp_per_conductor']={EX['CurrentAmp_per_conductor']}")
+        print(f"[DEBUG] EX['CurrentAmp_per_phase']={EX['CurrentAmp_per_phase']}")
+        print(f"[DEBUG] EX['DriveW_CurrentAmp']={EX['DriveW_CurrentAmp']}")
+        print(f"[DEBUG] EX['BeariW_CurrentAmp']={EX['BeariW_CurrentAmp']}")
+        print(f"[DEBUG] EX['slot_current_utilizing_ratio_for_torque']={EX['slot_current_utilizing_ratio_for_torque']}")
+        print(f"[DEBUG] EX['InitialRotationAngle']={EX['InitialRotationAngle']}")
+        print(f"[DEBUG] Rout={Rout}")
+        print(f"[DEBUG] Rin={Rin}")
+        print(f"[DEBUG] deg_alpha_rp={deg_alpha_rp}")
+        print(f"[DEBUG] EX['mm2_magnet_area']={EX['mm2_magnet_area']}")
+
+        # raise KeyboardInterrupt
 
         import CrossSectInnerNotchedRotor, CrossSectStator
         self.machineGeometry = {
@@ -805,15 +828,15 @@ class Modern_Machine_Designer(object):
         self.path2SwarmData = project_loc + self.name.replace(' ', '_')+'/'
         if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
 
-        self.project_name = self.name+'proj'
+        self.project_name = 'Jproj-'
         self.expected_project_file = self.path2SwarmData + "temp/%s.jproj"%(self.project_name)
 
-        self.path2FEACsv = os.path.abspath(self.path2SwarmData + 'csv/')
+        self.path2FEACsv = os.path.abspath(self.path2SwarmData + 'csv/') + '/'
 
         if not os.path.isdir(self.path2FEACsv): os.makedirs(self.path2FEACsv)
 
         if 'JMAG' in self.select_FEA_tool:
-            study_name = self.project_name + "-Transient" # Change here and there 
+            study_name = "Transient" # Change here and there 
 
             # Leave the solving task to JMAG
             def build_jmag_project(study_name):
@@ -884,8 +907,34 @@ class Modern_Machine_Designer(object):
                 # Import Model into Designer
                 toolJd.save(self.name, self.to_json())
 
+            self.toolJd = toolJd = build_jmag_project(study_name)
+            if 'PMSM' in self.name:
+                draw_spmsm(self.toolJd)
+
+            # JMAG
+            app = toolJd.app
+            model = app.GetModel(self.name)
+
+            if 'PMSM' in self.name:
+                toolJd.pre_process_PMSM(app, model, self)
+
+            study = toolJd.add_magnetic_transient_study(app, model, self.path2FEACsv, study_name, self)
+            toolJd.mesh_study(self, app, model, study, output_dir=self.path2SwarmData)
+            # raise KeyboardInterrupt
+            from time import time as clock_time
+            toolJd.run_study(self, app, study, self.fea_config_dict, clock_time())
+
+            # export Voltage if field data exists.
+            if self.fea_config_dict['delete_results_after_calculation'] == False:
+                # Export Circuit Voltage
+                ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
+                app.GetDataManager().CreateGraphModel(ref1)
+                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.path2FEACsv + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+
+
+
             def compile_results(study_name, toolJd):
-                results_to_be_unpacked = self.toolJd.build_str_results(self, self.project_name, study_name, self.path2FEACsv, self.fea_config_dict, femm_solver=None)
+                self.results_to_be_unpacked = self.toolJd.build_str_results(self, self.project_name, study_name, self.path2FEACsv, self.fea_config_dict, femm_solver=None)
                 cost_function, f1, f2, f3, FRW, \
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \
@@ -912,7 +961,7 @@ class Modern_Machine_Designer(object):
                 # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
                 spec_performance_dict = dict()
-                spec_performance_dict['x_denorm_dict'] = self.acm_template.SI['x_denorm_dict']
+                spec_performance_dict['x_denorm_dict'] = self.get_free_variables_as_dict() # ['x_denorm_dict']
                 spec_performance_dict['project_name'] = project_name
                 spec_performance_dict['individual_name'] = individual_name
                 spec_performance_dict['number_current_generation'] = number_current_generation
@@ -960,8 +1009,8 @@ class Modern_Machine_Designer(object):
 
                 number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
                 individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
-                self.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
-                json_file_path = self.fea_config_dict['output_dir'] + self.select_spec + '.json'
+                # self.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
+                json_file_path = self.path2SwarmData + self.name + f'-gen{number_current_generation}-ind{individual_index}.json'
 
                 # Read the possibly-existing current json data
                 try:
@@ -974,8 +1023,8 @@ class Modern_Machine_Designer(object):
                     loaded_json = {}
 
                 # Compose new key
-                key = f'gen{number_current_generation}-ind{individual_index}'
-                loaded_json[key] = self.visualize_dict
+                # key = f'gen{number_current_generation}-ind{individual_index}'
+                # loaded_json[key] = self.visualize_dict
 
                 json_string = jsonpickle.encode(loaded_json, indent=4)
                 with open(json_file_path, 'w+') as f:
@@ -986,30 +1035,6 @@ class Modern_Machine_Designer(object):
 
                 # this is for optimization
                 self.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
-
-            self.toolJd = toolJd = build_jmag_project(study_name)
-            if 'PMSM' in self.name:
-                draw_spmsm(self.toolJd)
-
-            # JMAG
-            app = toolJd.app
-            model = app.GetModel(self.name)
-
-            if 'PMSM' in self.name:
-                toolJd.pre_process_PMSM(app, model, self)
-
-            study = toolJd.add_magnetic_transient_study(app, model, self.path2FEACsv, study_name, self)
-            toolJd.mesh_study(self, app, model, study, output_dir=self.path2SwarmData)
-            # raise KeyboardInterrupt
-            from time import time as clock_time
-            toolJd.run_study(self, app, study, self.fea_config_dict, clock_time())
-
-            # export Voltage if field data exists.
-            if self.fea_config_dict['delete_results_after_calculation'] == False:
-                # Export Circuit Voltage
-                ref1 = app.GetDataManager().GetDataSet("Circuit Voltage")
-                app.GetDataManager().CreateGraphModel(ref1)
-                app.GetDataManager().GetGraphModel("Circuit Voltage").WriteTable(self.path2FEACsv + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
 
             compile_results(study_name, self.toolJd)
 
@@ -1194,10 +1219,44 @@ class Modern_Machine_Designer(object):
 
 
 
+
+
+    ''' 实用
+    '''
+    def get_rotor_volume(self, stack_length=None):
+        if stack_length is None:
+            return math.pi*(self.mm_r_ro.value*1e-3)**2 * (self.EX['mm_stack_length_specified']*1e-3)
+        else:
+            return math.pi*(self.mm_r_ro.value*1e-3)**2 * (stack_length*1e-3)
+    def get_rotor_weight(self, gravity=9.8, stack_length=None):
+        
+        def get_material_data():
+            material_density_rho = 7860 # kg/m^3
+            Poisson_ratio_nu = 0.29 # (i.e. the ratio of lateral contraction to longitudinal extension in the direction of the stretching force)
+            Youngs_modulus_of_elasticity = 190 * 1e9 # Young's modulus for steel is in [190, 210] GPa
+            return material_density_rho, Poisson_ratio_nu, Youngs_modulus_of_elasticity
+
+        material_density_rho = get_material_data()[0]
+        if stack_length is None:
+            return gravity * self.get_rotor_volume() * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
+        else:
+            return gravity * self.get_rotor_volume(stack_length=stack_length) * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
+
+
     # =========== 变量管理 ===========
 
     def get_free_variables(self) -> List[Parameter]:
         return [param for param in self.get_parameter_fields().values() if param.type == 'free']
+
+    def get_free_variables_as_dict(self) -> Dict[str, Any]:
+        return {param.name: param.value for param in self.get_free_variables()}
+
+    def set_free_variables_from_dict(self, free_variables_dict: Dict[str, Any]) -> None:
+        for name, value in free_variables_dict.items():
+            param = self.get_parameter(name)
+            if param is None:
+                raise Exception(f"Parameter '{name}' not found")
+            param.value = value
 
     def update_derived_parameters(self) -> None:
         """
@@ -1408,6 +1467,7 @@ class Modern_Machine_Designer(object):
             attr_val = getattr(self, attr_name)
             result[attr_name] = serialize_value(attr_val)
         return result
+
     def to_json(self, indent: Optional[int] = 2, ensure_ascii: bool = False) -> str:
         """
         将 Modern_Machine_Designer 对象转换为 JSON 字符串

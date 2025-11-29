@@ -1,5 +1,5 @@
 {
-  "name": "SuperCoolPMSM",
+  "name": "SPMSM",
   "machine_class": "bearingless_spmsm_heart.bearingless_spmsm_design_variant",
   "select_fea_config_dict": "#0213 JMAG Bearingless Sub-hamonics",
   "fea_config_dict": null,
@@ -8,6 +8,7 @@
   "bool_RotorNotched": true,
   "select_FEA_tool": "JMAG",
   "bool_jmagDeleteResultsAfterCalculation": false,
+  "counter": 1,
   "wily": {
     "phase_number_m": 3,
     "stator_slot_number_Qs": 12,
@@ -38,17 +39,18 @@
     "SUSPENSION_CURRENT_RATIO": 0.05,
     "DriveW_Rs": 1.0,
     "BeariW_Rs": 1.0,
-    "no_series_coil_turns_N": 34.0,
-    "DriveW_zQ": 34.0,
-    "BeariW_zQ": 34.0,
-    "mm2_slot_area": 22259.422158806734,
-    "CurrentAmp_in_the_slot": 48881.48671151886,
-    "CurrentAmp_per_conductor": 1437.6907856329076,
-    "CurrentAmp_per_phase": 2875.381571265815,
-    "DriveW_CurrentAmp": 2731.6124927025244,
-    "BeariW_CurrentAmp": 143.76907856329078,
+    "no_series_coil_turns_N": 26.0,
+    "DriveW_zQ": 26.0,
+    "BeariW_zQ": 26.0,
+    "mm2_slot_area": 1086.9538799701013,
+    "CurrentAmp_in_the_slot": 2386.940741800488,
+    "CurrentAmp_per_conductor": 91.80541314617261,
+    "CurrentAmp_per_phase": 183.61082629234522,
+    "DriveW_CurrentAmp": 174.43028497772795,
+    "BeariW_CurrentAmp": 9.180541314617262,
     "slot_current_utilizing_ratio_for_torque": 1.0,
-    "InitialRotationAngle": 3.375
+    "InitialRotationAngle": 3.375,
+    "mm2_magnet_area": 644.4898789023118
   },
   "m": {
     "name": "phase_number_m",

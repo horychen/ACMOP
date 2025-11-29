@@ -174,20 +174,6 @@ class template_machine_as_numbers(object):
         GP['mm_d_ri'].value              = 1e3*(stator_inner_radius_r_is - equivalent_air_gap_length) - GP['mm_d_pm'].value - GP['mm_r_ri'].value
 
 
-    ''' 实用
-    '''
-    def get_rotor_volume(self, stack_length=None):
-        if stack_length is None:
-            return math.pi*(self.SI['GP']['mm_r_ro'].value*1e-3)**2 * (self.SI['EX']['mm_stack_length']*1e-3)
-        else:
-            return math.pi*(self.SI['GP']['mm_r_ro'].value*1e-3)**2 * (stack_length*1e-3)
-    def get_rotor_weight(self, gravity=9.8, stack_length=None):
-        material_density_rho = pyrhonen_procedure_as_function.get_material_data()[0]
-        if stack_length is None:
-            return gravity * self.get_rotor_volume() * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
-        else:
-            return gravity * self.get_rotor_volume(stack_length=stack_length) * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
-
     # ''' 玩弄几何变量
     # '''
     # def build_x_denorm(self):
