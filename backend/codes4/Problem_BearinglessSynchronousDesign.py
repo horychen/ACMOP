@@ -202,15 +202,15 @@ class Problem_BearinglessSynchronousDesign(object):
 
     # Return number of objectives
     def get_nobj(self):
-        return 3
+        global ad
+        x_denorm = list(ad.get_free_variables_as_dict().values())
+        return len(x_denorm)
 
     # Return bounds of decision variables (a.k.a. chromosome)
     def get_bounds(self):
         global ad
-        # logger.debug('Problem_BearinglessSynchronousDesign.get_bounds: %s', ad.acm_template.SI["bounds_denorm_dict"])
-        bounds = list(ad.get_free_variable_bounds_dict().values())
-        logger.debug('Problem_BearinglessSynchronousDesign.get_bounds: %s', ad.acm_template.bounds_denorm)
-        min_b, max_b = np.asarray(ad.acm_template.bounds_denorm).T 
+        bounds_denorm = list(ad.get_free_variable_bounds_dict().values())
+        min_b, max_b = np.asarray(bounds_denorm).T 
         return ( min_b.tolist(), max_b.tolist() )
 
     # Return function name

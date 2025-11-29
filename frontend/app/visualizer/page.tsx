@@ -38,15 +38,14 @@ export default function VisualizerPage() {
     const [selectedConfigKey, setSelectedConfigKey] = useState<string>('');
     const [isLoadingConfigs, setIsLoadingConfigs] = useState(false);
 
-    // PDF viewer URL
-    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-
     // Metadata from machine_designer_full.json
     const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
     const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
     const [exData, setExData] = useState<Record<string, any> | null>(null);
     const [path2FEACsv, setPath2FEACsv] = useState<string | null>(null);
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [coilPitchY, setCoilPitchY] = useState<number | null>(null);
+    const [wilyData, setWilyData] = useState<Record<string, any> | null>(null);
 
     // Fetch available configurations on mount
     useEffect(() => {
@@ -103,10 +102,16 @@ export default function VisualizerPage() {
                         setPath2FEACsv(null);
                     }
                     
-                    // Extract coil_pitch_y from wily
-                    if (response.data.wily && response.data.wily.coil_pitch_y !== undefined) {
-                        setCoilPitchY(response.data.wily.coil_pitch_y);
+                    // Extract wily data (including coil_pitch_y, Qs, p, ps)
+                    if (response.data.wily && typeof response.data.wily === 'object') {
+                        setWilyData(response.data.wily);
+                        if (response.data.wily.coil_pitch_y !== undefined) {
+                            setCoilPitchY(response.data.wily.coil_pitch_y);
+                        } else {
+                            setCoilPitchY(null);
+                        }
                     } else {
+                        setWilyData(null);
                         setCoilPitchY(null);
                     }
                     
@@ -314,96 +319,74 @@ export default function VisualizerPage() {
                 <div className="flex-1 bg-background flex flex-col h-full overflow-hidden">
 
                     <div className="flex-1 overflow-y-auto p-6">
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-
-                            {/* Visualization Panel */}
-                            <div className="flex flex-col space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-medium text-foreground">Geometry</h3>
-                                </div>
-                                
+                        {/* Visualization Panel - Full Width */}
+                        <div className="mb-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-medium text-foreground">Geometry</h3>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                                 {/* PDF Cross Section Viewer */}
                                 <div className="h-[400px] bg-card rounded-lg border border-border overflow-hidden">
                                     {pdfUrl ? (
                                         <PdfViewer pdfUrl={pdfUrl} />
-                                    ) : (
+                                    ) : isLoadingMetadata ? (
                                         <div className="h-full flex items-center justify-center">
                                             <div className="text-center">
                                                 <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
                                                 <p className="text-sm text-muted-foreground">加载横截面 PDF...</p>
                                             </div>
                                         </div>
+                                    ) : (
+                                        <div className="h-full flex items-center justify-center">
+                                            <div className="text-center p-6">
+                                                <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                                                <p className="text-sm text-muted-foreground">PDF 路径未加载</p>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
 
-                                {/* Linear Geometry View */}
-                                {result && (
-                                    <div>
-                                        <h4 className="text-sm font-medium text-foreground mb-2">
-                                            Linear View (Auto-scaled)
-                                            {coilPitchY !== null && (
-                                                <span className="ml-2 text-muted-foreground font-normal">
-                                                    - coil_pitch_y = {coilPitchY}
-                                                </span>
-                                            )}
-                                        </h4>
-                                        <LinearMachineView geometry={result.geometry} coilPitchY={coilPitchY} />
-                                    </div>
-                                )}
-
-                                {/* Stats Summary under Viz */}
-                                <div className="grid grid-cols-3 gap-2 text-center">
-                                    <div className="bg-card p-3 rounded border border-border">
-                                        <div className="text-xs text-muted-foreground">Stator OD</div>
-                                        <div className="text-primary font-mono font-bold">{(result?.geometry.statorOuterRadius! * 2).toFixed(1)} mm</div>
-                                    </div>
-                                    <div className="bg-card p-3 rounded border border-border">
-                                        <div className="text-xs text-muted-foreground">Rotor OD</div>
-                                        <div className="text-primary font-mono font-bold">{(result?.geometry.rotorOuterRadius! * 2).toFixed(1)} mm</div>
-                                    </div>
-                                    <div className="bg-card p-3 rounded border border-border">
-                                        <div className="text-xs text-muted-foreground">Slot Fill</div>
-                                        <div className="text-primary font-mono font-bold">45%</div>
+                                {/* Stats Summary */}
+                                <div className="flex flex-col justify-center">
+                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                        <div className="bg-card p-3 rounded border border-border">
+                                            <div className="text-xs text-muted-foreground">Stator OD</div>
+                                            <div className="text-primary font-mono font-bold">{(result?.geometry.statorOuterRadius! * 2).toFixed(1)} mm</div>
+                                        </div>
+                                        <div className="bg-card p-3 rounded border border-border">
+                                            <div className="text-xs text-muted-foreground">Rotor OD</div>
+                                            <div className="text-primary font-mono font-bold">{(result?.geometry.rotorOuterRadius! * 2).toFixed(1)} mm</div>
+                                        </div>
+                                        <div className="bg-card p-3 rounded border border-border">
+                                            <div className="text-xs text-muted-foreground">Slot Fill</div>
+                                            <div className="text-primary font-mono font-bold">45%</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Performance Panel */}
-                            <div className="flex flex-col space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-medium text-foreground">Performance</h3>
-                                    <button
-                                        onClick={handleAiAnalyze}
-                                        disabled={isAnalyzing}
-                                        className="text-xs flex items-center text-primary hover:text-primary/80 transition-colors"
-                                    >
-                                        {isAnalyzing ? "Analyzing..." : "AI Analysis"} <Sparkles className="w-3 h-3 ml-1" />
-                                    </button>
-                                </div>
-
-                                {/* KPI Cards */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <KpiCard label="Efficiency" value={result?.performance.efficiency.toFixed(1)} unit="%" icon={<Wind className="w-4 h-4 text-emerald-500" />} />
-                                    <KpiCard label="Rated Torque" value={result?.performance.torque.toFixed(2)} unit="Nm" icon={<RotateCw className="w-4 h-4 text-amber-500" />} />
-                                    <KpiCard label="Suspension Force" value={result?.performance.suspensionForce.toFixed(1)} unit="N" icon={<Activity className="w-4 h-4 text-purple-500" />} />
-                                    <KpiCard label="Cost Est." value={result?.performance.materialCost.toFixed(2)} unit="$" icon={<BarChart3 className="w-4 h-4 text-blue-500" />} />
-                                </div>
-
-                                {/* Charts */}
-                                <EfficiencyChart data={efficiencyData} />
-
-                                {/* AI Analysis Box */}
-                                {aiAnalysis && (
-                                    <div className="bg-primary/10/20 border border-primary/30 p-4 rounded-lg mt-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                        <h4 className="text-primary text-xs font-bold uppercase mb-2 flex items-center">
-                                            <Cpu className="w-3 h-3 mr-1" /> Engineer's Note
-                                        </h4>
-                                        <p className="text-sm text-primary-foreground leading-relaxed">
-                                            {aiAnalysis}
-                                        </p>
+                            {/* Linear Geometry View - Full Width with More Space */}
+                            {wilyData && (
+                                <div className="w-full mb-6">
+                                    <h4 className="text-sm font-medium text-foreground mb-4">
+                                        Linear View (Auto-scaled)
+                                        {coilPitchY !== null && (
+                                            <span className="ml-2 text-muted-foreground font-normal">
+                                                - coil_pitch_y = {coilPitchY}
+                                            </span>
+                                        )}
+                                    </h4>
+                                    <div className="w-full bg-card rounded-lg border border-border p-4" style={{ minHeight: '700px' }}>
+                                        <LinearMachineView 
+                                            Qs={wilyData.stator_slot_number_Qs || wilyData.Qs || 12}
+                                            p={wilyData.pole_pair_number_p || wilyData.p || 2}
+                                            ps={wilyData.suspension_pole_pair_number_ps || wilyData.ps || 3}
+                                            coilPitchY={coilPitchY} 
+                                        />
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Metadata Section */}
@@ -722,9 +705,51 @@ export default function VisualizerPage() {
                             <h3 className="text-lg font-medium text-foreground mb-4">Simulation Results (CSV)</h3>
                             <div className="h-[500px]">
                                 <CsvVisualizer 
-                                    projectName={metadata?.name || "SuperCoolPMSM"} 
                                     path2FEACsv={path2FEACsv || undefined}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Performance Panel - Moved to Bottom */}
+                        <div className="mb-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-medium text-foreground">Performance</h3>
+                                <button
+                                    onClick={handleAiAnalyze}
+                                    disabled={isAnalyzing}
+                                    className="text-xs flex items-center text-primary hover:text-primary/80 transition-colors"
+                                >
+                                    {isAnalyzing ? "Analyzing..." : "AI Analysis"} <Sparkles className="w-3 h-3 ml-1" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* KPI Cards */}
+                                <div>
+                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                        <KpiCard label="Efficiency" value={result?.performance.efficiency.toFixed(1)} unit="%" icon={<Wind className="w-4 h-4 text-emerald-500" />} />
+                                        <KpiCard label="Rated Torque" value={result?.performance.torque.toFixed(2)} unit="Nm" icon={<RotateCw className="w-4 h-4 text-amber-500" />} />
+                                        <KpiCard label="Suspension Force" value={result?.performance.suspensionForce.toFixed(1)} unit="N" icon={<Activity className="w-4 h-4 text-purple-500" />} />
+                                        <KpiCard label="Cost Est." value={result?.performance.materialCost.toFixed(2)} unit="$" icon={<BarChart3 className="w-4 h-4 text-blue-500" />} />
+                                    </div>
+
+                                    {/* AI Analysis Box */}
+                                    {aiAnalysis && (
+                                        <div className="bg-primary/10/20 border border-primary/30 p-4 rounded-lg animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                            <h4 className="text-primary text-xs font-bold uppercase mb-2 flex items-center">
+                                                <Cpu className="w-3 h-3 mr-1" /> Engineer's Note
+                                            </h4>
+                                            <p className="text-sm text-primary-foreground leading-relaxed">
+                                                {aiAnalysis}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Charts */}
+                                <div>
+                                    <EfficiencyChart data={efficiencyData} />
+                                </div>
                             </div>
                         </div>
 

@@ -1144,7 +1144,7 @@ class Modern_Machine_Designer(object):
         else:
 
             # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
-            logger.info(f'Check for swarm data from: {self.select_spec}.json ...')
+            # logger.info(f'Check for swarm data from: {self.select_spec}.json ...')
             self.ad.acm_template.build_x_denorm()
             # quit()
             swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
@@ -1325,23 +1325,23 @@ class Modern_Machine_Designer(object):
     def get_free_variables(self) -> List[Parameter]:
         return [param for param in self.get_parameter_fields().values() if param.type == 'free']
 
-    def get_free_variables_as_dict(self) -> OrderedDict[str, Any]:
+    def get_free_variables_as_dict(self) -> OrderedDict:
         """
         获取所有 free 类型参数的值字典（有序）
         
         Returns:
-            OrderedDict[str, Any]: 参数字典，键为参数名，值为参数值
+            OrderedDict: 参数字典，键为参数名，值为参数值
             顺序与 get_free_variable_bounds_dict() 保持一致
         """
         free_vars = self.get_free_variables()
         return OrderedDict((param.name, param.value) for param in free_vars)
 
-    def get_free_variable_bounds_dict(self) -> OrderedDict[str, Any]:
+    def get_free_variable_bounds_dict(self) -> OrderedDict:
         """
         获取所有 free 类型参数的边界值字典（有序）
         
         Returns:
-            OrderedDict[str, Any]: 参数字典，键为参数名，值为边界值（bounds）
+            OrderedDict: 参数字典，键为参数名，值为边界值（bounds）
             如果参数没有边界值，则值为 None
             顺序与 get_free_variables_as_dict() 保持一致
         """

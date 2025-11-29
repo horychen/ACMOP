@@ -23,56 +23,46 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
 
     useEffect(() => {
         const fetchCsvList = async () => {
+            // Only fetch if we have a valid path2FEACsv
+            if (!path2FEACsv) {
+                setCsvFiles([]);
+                setError(null);
+                return;
+            }
+
             try {
-                let response;
-                if (path2FEACsv) {
-                    // Use path2FEACsv if provided
-                    response = await axios.get(`${BACKEND_URL}/api/results/csv/list-from-path`, {
-                        params: { path: path2FEACsv }
-                    });
-                } else if (projectName) {
-                    // Fallback to project name
-                    response = await axios.get(`${BACKEND_URL}/api/results/csv/list/${projectName}`);
-                } else {
-                    setError("Either projectName or path2FEACsv must be provided");
-                    return;
-                }
+                setError(null);
+                const response = await axios.get(`${BACKEND_URL}/api/results/csv/list-from-path`, {
+                    params: { path: path2FEACsv }
+                });
                 
-                setCsvFiles(response.data);
-                if (response.data.length > 0) {
+                setCsvFiles(response.data || []);
+                if (response.data && response.data.length > 0) {
                     setSelectedFile(response.data[0]);
+                } else {
+                    setSelectedFile('');
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Failed to fetch CSV list", err);
-                setError("Failed to load CSV files.");
+                const errorMessage = err.response?.data?.detail || err.message || "无法加载 CSV 文件列表";
+                setError(errorMessage);
+                setCsvFiles([]);
             }
         };
 
-        if (projectName || path2FEACsv) {
-            fetchCsvList();
-        }
-    }, [projectName, path2FEACsv]);
+        fetchCsvList();
+    }, [path2FEACsv]);
 
     useEffect(() => {
         const fetchCsvContent = async () => {
-            if (!selectedFile) return;
+            if (!selectedFile || !path2FEACsv) return;
 
             setLoading(true);
             setError(null);
             try {
-                let response;
-                if (path2FEACsv) {
-                    // Use path2FEACsv if provided
-                    response = await axios.get(`${BACKEND_URL}/api/results/csv/content-from-path`, {
-                        params: { path: path2FEACsv, filename: selectedFile }
-                    });
-                } else if (projectName) {
-                    // Fallback to project name
-                    response = await axios.get(`${BACKEND_URL}/api/results/csv/content/${projectName}/${selectedFile}`);
-                } else {
-                    setError("Either projectName or path2FEACsv must be provided");
-                    return;
-                }
+                const response = await axios.get(`${BACKEND_URL}/api/results/csv/content-from-path`, {
+                    params: { path: path2FEACsv, filename: selectedFile }
+                });
                 
                 const csvContent = response.data.content;
 
@@ -121,7 +111,7 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
         };
 
         fetchCsvContent();
-    }, [selectedFile, projectName, path2FEACsv]);
+    }, [selectedFile, path2FEACsv]);
 
     return (
         <div className="flex flex-col h-full">

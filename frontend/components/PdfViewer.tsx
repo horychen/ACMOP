@@ -93,29 +93,37 @@ export default function PdfViewer({ pdfUrl, className = "" }: PdfViewerProps) {
                             </div>
                         )}
                         <div 
-                            className="w-full h-full flex items-center justify-center p-4 overflow-auto"
-                            style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
+                            className="w-full h-full overflow-auto"
                         >
-                            <iframe
-                                ref={iframeRef}
-                                src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-                                className="w-full h-full border-0"
-                                onLoad={() => {
-                                    if (timeoutRef.current) {
-                                        clearTimeout(timeoutRef.current);
-                                    }
-                                    setLoading(false);
-                                }}
-                                onError={() => {
-                                    if (timeoutRef.current) {
-                                        clearTimeout(timeoutRef.current);
-                                    }
-                                    setError("无法加载 PDF 文件");
-                                    setLoading(false);
-                                }}
-                                title="Machine Geometry PDF"
-                                style={{ minHeight: '600px' }}
-                            />
+                            <div
+                                className="w-full flex justify-center"
+                                style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
+                            >
+                                <iframe
+                                    src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                                    className="border-0"
+                                    onLoad={() => {
+                                        if (timeoutRef.current) {
+                                            clearTimeout(timeoutRef.current);
+                                        }
+                                        setLoading(false);
+                                    }}
+                                    onError={() => {
+                                        if (timeoutRef.current) {
+                                            clearTimeout(timeoutRef.current);
+                                        }
+                                        setError("无法加载 PDF 文件");
+                                        setLoading(false);
+                                    }}
+                                    title="Machine Geometry PDF"
+                                    style={{ 
+                                        width: '100%', 
+                                        height: '600px',
+                                        minHeight: '600px',
+                                        backgroundColor: 'white'
+                                    }}
+                                />
+                            </div>
                         </div>
                     </>
                 )}

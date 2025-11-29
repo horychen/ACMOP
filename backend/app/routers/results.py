@@ -145,40 +145,52 @@ async def get_csv_content_from_path(path: str, filename: str):
 @router.get("/pdf/machine-geometry")
 async def get_machine_geometry_pdf():
     """Get the machine_geometry.pdf file."""
-    from fastapi.responses import FileResponse
+    from fastapi.responses import Response
     
     # Try to find the PDF in codes4 directory
     import os
     current_dir = os.path.dirname(os.path.abspath(__file__))
     # results.py is in backend/app/routers/, so go up to backend/, then to codes4
-    backend_dir = os.path.join(current_dir, '..', '..')
+    backend_dir = os.path.abspath(os.path.join(current_dir, '..', '..'))
     codes4_dir = os.path.join(backend_dir, 'codes4')
     pdf_path = os.path.join(codes4_dir, 'machine_geometry.pdf')
     
     # Normalize the path
     pdf_path = os.path.normpath(os.path.abspath(pdf_path))
     
+    # Debug: log the path being checked
     if not os.path.exists(pdf_path):
-        raise HTTPException(status_code=404, detail=f"PDF file not found: {pdf_path}")
+        # Try alternative path: maybe codes4 is at the same level as app
+        alt_codes4_dir = os.path.join(os.path.dirname(backend_dir), 'codes4')
+        alt_pdf_path = os.path.join(alt_codes4_dir, 'machine_geometry.pdf')
+        alt_pdf_path = os.path.normpath(os.path.abspath(alt_pdf_path))
+        
+        if os.path.exists(alt_pdf_path):
+            pdf_path = alt_pdf_path
+        else:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"PDF file not found. Checked: {pdf_path}, {alt_pdf_path}"
+            )
     
-    from fastapi.responses import Response
-    import aiofiles
-    
-    # Read the PDF file and return it with inline content disposition
-    async def generate():
-        async with aiofiles.open(pdf_path, 'rb') as f:
-            content = await f.read()
-            return content
-    
-    # For now, use synchronous file reading with inline disposition
-    with open(pdf_path, 'rb') as f:
-        content = f.read()
-    
-    return Response(
-        content=content,
-        media_type='application/pdf',
-        headers={
-            'Content-Disposition': 'inline; filename="machine_geometry.pdf"',
-            'Content-Type': 'application/pdf'
-        }
-    )
+    try:
+        # Read the PDF file synchronously
+        with open(pdf_path, 'rb') as f:
+            content = f.read()
+        
+        if not content:
+            raise HTTPException(status_code=500, detail="PDF file is empty")
+        
+        return Response(
+            content=content,
+            media_type='application/pdf',
+            headers={
+                'Content-Disposition': 'inline; filename="machine_geometry.pdf"',
+                'Content-Type': 'application/pdf',
+                'Cache-Control': 'no-cache'
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading PDF file: {str(e)}")

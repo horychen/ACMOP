@@ -6,18 +6,20 @@ import { MachineGeometry } from '../types';
 import { useTheme } from '@/context/ThemeContext';
 
 interface LinearMachineViewProps {
-    geometry: MachineGeometry;
+    Qs: number;  // Stator slot number
+    p: number;   // Pole pair number (for torque)
+    ps: number;  // Suspension pole pair number
     coilPitchY?: number | null;
 }
 
-const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry, coilPitchY }) => {
+const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPitchY }) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const { theme } = useTheme();
 
     // Calculate coil distribution (distributed winding)
     const coilDistribution = useMemo(() => {
-        const slots = geometry.slots;
-        const poles = geometry.poles;
+        const slots = Qs;
+        const poles = p * 2; // p is pole pairs, so poles = p * 2
         const slotsPerPole = slots / poles;
         const phases = 3; // 3-phase winding
         const slotsPerPolePerPhase = slotsPerPole / phases;
@@ -47,7 +49,7 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry, coilPit
         }
         
         return coils;
-    }, [geometry.slots, geometry.poles]);
+    }, [Qs, p]);
 
     // Color schemes based on theme
     const colors = useMemo(() => theme === 'dark' ? {
@@ -81,42 +83,79 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry, coilPit
             const svg = d3.select(svgRef.current);
             svg.selectAll("*").remove();
 
-            // Get actual container dimensions
+            // Calculate required dimensions first
+            const statorYokeHeight = 40;
+            const slotDepth = 80;
+            const toothHeight = 20;
+            const airGapHeight = 10;
+            const rotorHeight = 60;
+            const secondRowHeight = 40; // Height for second row of magnets (ps)
+            const legendHeight = 30; // Space for legend
+            const titleHeight = 30; // Space for title
+            
+            // Calculate margins
+            const margin = { top: 40, right: 20, bottom: 50, left: 60 };
+            
+            // Calculate actual container dimensions
             const container = svgRef.current.parentElement;
             const containerWidth = container?.clientWidth || 800;
-            // Auto-scale height based on container, but maintain aspect ratio
-            const containerHeight = container?.clientHeight || Math.max(350, containerWidth * 0.4);
+            const containerHeight = container?.clientHeight || 500;
             
-            // Use container width for SVG, ensure minimum width
-            const width = Math.max(containerWidth, 600);
-            const height = containerHeight;
+            // Use container width, but ensure minimum width
+            const minInnerWidth = 600;
+            const width = Math.max(containerWidth, minInnerWidth + margin.left + margin.right);
             
-            // Update SVG dimensions
-            svg.attr("width", width).attr("height", height);
+            // Update SVG dimensions - set width first
+            svg.attr("width", width);
             
-            const margin = { top: 40, right: 20, bottom: 60, left: 60 };
             const innerWidth = width - margin.left - margin.right;
-            const innerHeight = height - margin.top - margin.bottom;
 
         const g = svg.append("g")
             .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
         // Calculate dimensions
-        const slotWidth = innerWidth / geometry.slots;
-        const statorYokeHeight = 40;
-        const slotDepth = 80;
-        const toothHeight = 20;
-        const airGapHeight = 10;
-        const rotorHeight = 60;
-        const totalHeight = statorYokeHeight + slotDepth + toothHeight + airGapHeight + rotorHeight;
+        const slotWidth = innerWidth / Qs;
 
-        // Scale to fit
-        const scaleY = innerHeight / totalHeight;
+        // Calculate the actual content height (without legend)
+        const actualContentHeight = statorYokeHeight + slotDepth + toothHeight + airGapHeight + rotorHeight + secondRowHeight;
+        
+        // Calculate total height needed including legend
+        const legendSpace = 40; // Space needed for legend
+        const totalNeededHeight = actualContentHeight + legendSpace;
+        
+        // Determine scaling strategy
+        // If container is large enough, use it; otherwise, use full size and let container scroll
+        const minContainerHeight = 400; // Minimum container height before we start scaling
+        let scaleY: number;
+        let requiredHeight: number;
+        
+        if (containerHeight >= minContainerHeight && containerHeight >= totalNeededHeight + margin.top + margin.bottom) {
+            // Container is large enough - use container height, no scaling needed
+            scaleY = 1.0;
+            requiredHeight = containerHeight;
+        } else if (containerHeight >= minContainerHeight) {
+            // Container is reasonable size but content is too large - scale down to fit
+            const availableInnerHeight = containerHeight - margin.top - margin.bottom;
+            scaleY = Math.max((availableInnerHeight - legendSpace) / actualContentHeight, 0.5); // Minimum scale 0.5
+            const scaledContentHeight = actualContentHeight * scaleY;
+            requiredHeight = scaledContentHeight + legendSpace + margin.top + margin.bottom;
+        } else {
+            // Container is too small - use full size (1.0 scale), let container scroll
+            scaleY = 1.0;
+            requiredHeight = totalNeededHeight + margin.top + margin.bottom;
+        }
+        
+        // Update SVG height to fit all content
+        svg.attr("height", requiredHeight);
+        
+        // Calculate inner height for drawing
+        const innerHeight = requiredHeight - margin.top - margin.bottom;
         const scaledYoke = statorYokeHeight * scaleY;
         const scaledSlot = slotDepth * scaleY;
         const scaledTooth = toothHeight * scaleY;
         const scaledAirGap = airGapHeight * scaleY;
         const scaledRotor = rotorHeight * scaleY;
+        const scaledSecondRow = secondRowHeight * scaleY;
 
         // Draw Stator Yoke (top)
         g.append("rect")
@@ -129,7 +168,7 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry, coilPit
             .attr("stroke-width", 1);
 
         // Draw Slots and Teeth
-        for (let i = 0; i < geometry.slots; i++) {
+        for (let i = 0; i < Qs; i++) {
             const x = i * slotWidth;
             const slotX = x;
             const toothX = x + slotWidth * 0.6; // Tooth takes 60% of slot pitch
@@ -180,16 +219,6 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry, coilPit
                 .attr("fill", colors.textSecondary)
                 .text(`S${i + 1}`);
 
-            // Top conductor label (conductor number) - just above the conductor circle
-            g.append("text")
-                .attr("x", slotX + slotWidth / 2)
-                .attr("y", topY - conductorRadius - 3)
-                .attr("text-anchor", "middle")
-                .attr("font-size", "9px")
-                .attr("font-weight", "bold")
-                .attr("fill", colors.text)
-                .text(coil.topConductor !== null ? `${coil.topConductor}` : '');
-
             // Bottom conductor (always present, but no label)
             g.append("circle")
                 .attr("cx", slotX + slotWidth / 2)
@@ -223,9 +252,10 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry, coilPit
             .attr("stroke", colors.border)
             .attr("stroke-width", 1);
 
-        // Rotor poles indication
-        const poleWidth = innerWidth / geometry.poles;
-        for (let i = 0; i < geometry.poles; i++) {
+        // First row of rotor poles (p - for torque)
+        const poles = p * 2; // p is pole pairs, so total poles = p * 2
+        const poleWidth = innerWidth / poles;
+        for (let i = 0; i < poles; i++) {
             const poleX = i * poleWidth;
             g.append("rect")
                 .attr("x", poleX)
@@ -250,10 +280,39 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry, coilPit
                 .text(i % 2 === 0 ? "N" : "S");
         }
 
+        // Second row of magnets (ps - for suspension)
+        const secondRowY = airGapY + scaledRotor;
+        const suspensionPoles = ps * 2; // ps is pole pairs, so total poles = ps * 2
+        const suspensionPoleWidth = innerWidth / suspensionPoles;
+        for (let i = 0; i < suspensionPoles; i++) {
+            const poleX = i * suspensionPoleWidth;
+            g.append("rect")
+                .attr("x", poleX)
+                .attr("y", secondRowY)
+                .attr("width", suspensionPoleWidth)
+                .attr("height", scaledSecondRow)
+                .attr("fill", i % 2 === 0 
+                    ? (theme === 'dark' ? "#f59e0b" : "#d97706")
+                    : (theme === 'dark' ? "#10b981" : "#059669"))
+                .attr("opacity", 0.4)
+                .attr("stroke", colors.border)
+                .attr("stroke-width", 0.5);
+
+            // Suspension pole label
+            g.append("text")
+                .attr("x", poleX + suspensionPoleWidth / 2)
+                .attr("y", secondRowY + scaledSecondRow / 2)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "9px")
+                .attr("font-weight", "bold")
+                .attr("fill", colors.text)
+                .text(i % 2 === 0 ? "N" : "S");
+        }
+
         // Title
         const titleText = coilPitchY !== null && coilPitchY !== undefined
-            ? `Linear Machine View - ${geometry.slots} Slots, ${geometry.poles} Poles, coil_pitch_y = ${coilPitchY}`
-            : `Linear Machine View - ${geometry.slots} Slots, ${geometry.poles} Poles`;
+            ? `Linear Machine View - Qs=${Qs}, p=${p}, ps=${ps}, coil_pitch_y=${coilPitchY}`
+            : `Linear Machine View - Qs=${Qs}, p=${p}, ps=${ps}`;
         g.append("text")
             .attr("x", innerWidth / 2)
             .attr("y", -10)
@@ -263,12 +322,15 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry, coilPit
             .attr("fill", colors.text)
             .text(titleText);
 
-        // Legend
-        const legendY = innerHeight + 20;
+        // Legend - position at the bottom of the scaled content area
+        const scaledTotalContentHeight = actualContentHeight * scaleY;
+        const legendY = scaledTotalContentHeight + 10;
         const legendItems = [
             { label: "Conductor", color: colors.conductor },
             { label: "Stator Yoke", color: colors.statorYoke },
-            { label: "Stator Teeth", color: colors.statorTeeth }
+            { label: "Stator Teeth", color: colors.statorTeeth },
+            { label: `Torque Poles (p=${p})`, color: theme === 'dark' ? "#ef4444" : "#dc2626" },
+            { label: `Suspension Poles (ps=${ps})`, color: theme === 'dark' ? "#f59e0b" : "#d97706" }
         ];
 
         legendItems.forEach((item, i) => {
@@ -315,21 +377,20 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry, coilPit
         return () => {
             window.removeEventListener('resize', handleResize);
         };
-    }, [geometry, colors, coilDistribution, theme]);
+    }, [Qs, p, ps, colors, coilDistribution, theme, coilPitchY]);
 
     return (
-        <div className={`w-full rounded-lg border overflow-hidden ${
+        <div className={`w-full rounded-lg border overflow-auto ${
             theme === 'dark' 
                 ? 'bg-slate-900 border-slate-700' 
                 : 'bg-white border-slate-200'
-        }`}>
+        }`} style={{ minHeight: '500px' }}>
             <svg 
                 ref={svgRef} 
                 width="100%" 
-                height="100%" 
                 className="w-full"
-                style={{ minHeight: '350px', display: 'block' }}
-                preserveAspectRatio="xMidYMid meet"
+                style={{ display: 'block' }}
+                preserveAspectRatio="none"
             />
         </div>
     );
