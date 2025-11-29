@@ -7,9 +7,10 @@ import { useTheme } from '@/context/ThemeContext';
 
 interface LinearMachineViewProps {
     geometry: MachineGeometry;
+    coilPitchY?: number | null;
 }
 
-const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry }) => {
+const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry, coilPitchY }) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const { theme } = useTheme();
 
@@ -83,7 +84,8 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry }) => {
             // Get actual container dimensions
             const container = svgRef.current.parentElement;
             const containerWidth = container?.clientWidth || 800;
-            const containerHeight = 350; // Fixed height for consistency
+            // Auto-scale height based on container, but maintain aspect ratio
+            const containerHeight = container?.clientHeight || Math.max(350, containerWidth * 0.4);
             
             // Use container width for SVG, ensure minimum width
             const width = Math.max(containerWidth, 600);
@@ -168,7 +170,17 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry }) => {
                 .attr("stroke", colors.conductorStroke)
                 .attr("stroke-width", 1.5);
 
-            // Top conductor label
+            // Slot number - marked above the upper conductor
+            g.append("text")
+                .attr("x", slotX + slotWidth / 2)
+                .attr("y", topY - conductorRadius - 15)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "9px")
+                .attr("font-weight", "bold")
+                .attr("fill", colors.textSecondary)
+                .text(`S${i + 1}`);
+
+            // Top conductor label (conductor number) - just above the conductor circle
             g.append("text")
                 .attr("x", slotX + slotWidth / 2)
                 .attr("y", topY - conductorRadius - 3)
@@ -178,7 +190,7 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry }) => {
                 .attr("fill", colors.text)
                 .text(coil.topConductor !== null ? `${coil.topConductor}` : '');
 
-            // Bottom conductor (always present)
+            // Bottom conductor (always present, but no label)
             g.append("circle")
                 .attr("cx", slotX + slotWidth / 2)
                 .attr("cy", bottomY)
@@ -187,24 +199,7 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry }) => {
                 .attr("stroke", colors.conductorStroke)
                 .attr("stroke-width", 1.5);
 
-            // Bottom conductor label
-            g.append("text")
-                .attr("x", slotX + slotWidth / 2)
-                .attr("y", bottomY + conductorRadius + 12)
-                .attr("text-anchor", "middle")
-                .attr("font-size", "9px")
-                .attr("font-weight", "bold")
-                .attr("fill", colors.text)
-                .text(coil.bottomConductor !== null ? `${coil.bottomConductor}` : '');
-
-            // Slot number
-            g.append("text")
-                .attr("x", slotX + slotWidth / 2)
-                .attr("y", scaledYoke + scaledSlot + 15)
-                .attr("text-anchor", "middle")
-                .attr("font-size", "9px")
-                .attr("fill", colors.textSecondary)
-                .text(`S${i + 1}`);
+            // Bottom conductor label - REMOVED (only top conductors are labeled)
         }
 
         // Air gap line
@@ -256,6 +251,9 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry }) => {
         }
 
         // Title
+        const titleText = coilPitchY !== null && coilPitchY !== undefined
+            ? `Linear Machine View - ${geometry.slots} Slots, ${geometry.poles} Poles, coil_pitch_y = ${coilPitchY}`
+            : `Linear Machine View - ${geometry.slots} Slots, ${geometry.poles} Poles`;
         g.append("text")
             .attr("x", innerWidth / 2)
             .attr("y", -10)
@@ -263,7 +261,7 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry }) => {
             .attr("font-size", "14px")
             .attr("font-weight", "bold")
             .attr("fill", colors.text)
-            .text(`Linear Machine View - ${geometry.slots} Slots, ${geometry.poles} Poles`);
+            .text(titleText);
 
         // Legend
         const legendY = innerHeight + 20;
@@ -328,9 +326,10 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ geometry }) => {
             <svg 
                 ref={svgRef} 
                 width="100%" 
-                height="350" 
+                height="100%" 
                 className="w-full"
                 style={{ minHeight: '350px', display: 'block' }}
+                preserveAspectRatio="xMidYMid meet"
             />
         </div>
     );

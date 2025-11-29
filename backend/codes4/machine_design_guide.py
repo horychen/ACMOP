@@ -101,6 +101,49 @@ class Winding(object):
 
         # TODO: calculate winding factor
         self.kw1 = 0.933
+        derivation = self.get_winding_factor()
+        # Get all winding factor information and phase/sign/grouping data from self.derivation
+        # If self.derivation is a dict or an object with these attributes, extract them.
+        # Fallback to defaults if not present.
+
+        if self.derivation is not None:
+            # Try both dict and object attribute access
+            derivation = self.derivation
+            # Winding factor information
+            if hasattr(derivation, 'kw1'):
+                self.kw1 = derivation.kw1
+            elif isinstance(derivation, dict) and 'kw1' in derivation:
+                self.kw1 = derivation['kw1']
+            
+            # Layer X phases
+            if hasattr(derivation, 'layer_X_phases'):
+                self.layer_X_phases = derivation.layer_X_phases
+            elif isinstance(derivation, dict) and 'layer_X_phases' in derivation:
+                self.layer_X_phases = derivation['layer_X_phases']
+            
+            # Layer X signs
+            if hasattr(derivation, 'layer_X_signs'):
+                self.layer_X_signs = derivation.layer_X_signs
+            elif isinstance(derivation, dict) and 'layer_X_signs' in derivation:
+                self.layer_X_signs = derivation['layer_X_signs']
+
+            # Layer Y phases
+            if hasattr(derivation, 'layer_Y_phases'):
+                self.layer_Y_phases = derivation.layer_Y_phases
+            elif isinstance(derivation, dict) and 'layer_Y_phases' in derivation:
+                self.layer_Y_phases = derivation['layer_Y_phases']
+
+            # Layer Y signs
+            if hasattr(derivation, 'layer_Y_signs'):
+                self.layer_Y_signs = derivation.layer_Y_signs
+            elif isinstance(derivation, dict) and 'layer_Y_signs' in derivation:
+                self.layer_Y_signs = derivation['layer_Y_signs']
+
+            # grouping_AC
+            if hasattr(derivation, 'grouping_AC'):
+                self.grouping_AC = derivation.grouping_AC
+            elif isinstance(derivation, dict) and 'grouping_AC' in derivation:
+                self.grouping_AC = derivation['grouping_AC']
 
 
         # Excitation for DPNV
@@ -121,16 +164,15 @@ class Winding(object):
             self.CommutatingSequenceD = 1
             self.CommutatingSequenceB = 0
 
-
     def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self, layer_X_phases, coil_pitch):
         return layer_X_phases[-coil_pitch:] + layer_X_phases[:-coil_pitch]
     def infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self, layer_X_signs, coil_pitch):
         temp = layer_X_signs[-coil_pitch:] + layer_X_signs[:-coil_pitch]
         return [('-' if el == '+' else '+') for el in temp]
 
-    def get_wily_obsolete(self):
-        import winding_layout, PyX_Utility, math # for part_winding
-        self.wily = winding_layout.winding_layout_v2(DPNV_or_SEPA=self.bool_DPNVorSEPA, Qs=self.Qs, p=self.p, ps=self.ps, coil_pitch_y=self.coil_pitch_y)
+    def get_winding_factor(self):
+        import winding_layout_derivation_ismb2021_asymetry_no_drawing
+        self.derivation = winding_layout_derivation_ismb2021_asymetry_no_drawing.main_derivation(m=self.m, Qs=self.Qs, p=self.p, ps=self.ps, coil_pitch_y=self.coil_pitch_y)
 
     @staticmethod
     def draw_winding_in_the_slot(u, Qs, list_layer_phases, list_layer_signs, text=''):
@@ -375,12 +417,8 @@ class CairoDrawer(object):
         cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])*math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]))
         if 1.0 < cos夹角 < 1.0+EPS:
             cos夹角 = 1.0
-            # logger = logging.getLogger(__name__)
-            # logger.debug('cos夹角=%s', cos夹角)
         elif -1.0-EPS < cos夹角 < -1.0:
             cos夹角 = -1.0
-            # logger = logging.getLogger(__name__)
-            # logger.debug('cos夹角=%s', cos夹角)
         angle_between = math.acos(cos夹角)
 
         radius = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
@@ -411,6 +449,8 @@ class Modern_Machine_Designer(object):
 
     # Optimization
     counter: int = 0
+    counter_fitness_called: int = 0
+    counter_fitness_return: int = 0
 
     def __post_init__(self):
 
@@ -1051,21 +1091,40 @@ class Modern_Machine_Designer(object):
             raise Exception('[acm_designer.py] Wrong string of select_FEA_tool:', self.select_FEA_tool)
 
     def start_optimization(self):
-        ad = self.ad
-        ad.init_logger(prefix='acmdm')
 
-        # [4.1] Get bounds
-
-        # [4.3] MOO (need to share global variables to the Problem class)
-        from acm_designer import get_bad_fintess_values
-        import logging, builtins, utility_moo
-        logger = logging.getLogger(__name__)
+        import logging, datetime, os
+        import builtins, utility_moo
         import pygmo as pg
-        ad.counter_fitness_called = 0
-        ad.counter_fitness_return = 0
-        builtins.ad = ad # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable
+
+        builtins.ad = self # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable
+        ad = self
         import Problem_BearinglessSynchronousDesign # must import this after __builtins__.ad = ad
-        # print('[acmop.py]', builtins.ad)
+
+
+        def myLogger(dir_log, prefix='default_prefix_'): # This works even when the module is reloaded (which is not the case of the other answers) https://stackoverflow.com/questions/7173033/duplicate-log-output-when-using-python-logging-module
+
+            logger = logging.getLogger()
+            if not len(logger.handlers):
+                logger.setLevel(logging.DEBUG)
+                now = datetime.datetime.now()
+
+                if not os.path.isdir(dir_log):
+                    os.makedirs(dir_log)
+
+                # create a file handler
+                handler=logging.FileHandler(dir_log + prefix + '-' + now.strftime("%Y-%m-%d") +'.log')
+                handler.setLevel(logging.DEBUG)
+
+                # create a logging format
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                handler.setFormatter(formatter)
+
+                # add the handlers to the logger
+                logger.addHandler(handler)
+            return logger
+
+        self.logger = myLogger(self.path2SwarmData, prefix='acmdm')
+        logger = logging.getLogger(__name__)
 
         ################################################################
         # MOO Step 1:
@@ -1227,6 +1286,20 @@ class Modern_Machine_Designer(object):
 
     ''' 实用
     '''
+    def get_bad_fintess_values(self, machine_type='IM', ref=False):
+        # define bad values for different MOO objectives
+
+        if ref == False:
+            if 'IM' in machine_type:
+                return 0, 0, 99
+            elif 'PM' in machine_type:
+                return 9999, 0, 999
+        else:
+            if 'IM' in machine_type:
+                return 1,     10, 100
+            elif 'PM' in machine_type:
+                return 10000, 10, 1000
+
     def get_rotor_volume(self, stack_length=None):
         if stack_length is None:
             return math.pi*(self.mm_r_ro.value*1e-3)**2 * (self.EX['mm_stack_length_specified']*1e-3)
@@ -1252,8 +1325,28 @@ class Modern_Machine_Designer(object):
     def get_free_variables(self) -> List[Parameter]:
         return [param for param in self.get_parameter_fields().values() if param.type == 'free']
 
-    def get_free_variables_as_dict(self) -> Dict[str, Any]:
-        return {param.name: param.value for param in self.get_free_variables()}
+    def get_free_variables_as_dict(self) -> OrderedDict[str, Any]:
+        """
+        获取所有 free 类型参数的值字典（有序）
+        
+        Returns:
+            OrderedDict[str, Any]: 参数字典，键为参数名，值为参数值
+            顺序与 get_free_variable_bounds_dict() 保持一致
+        """
+        free_vars = self.get_free_variables()
+        return OrderedDict((param.name, param.value) for param in free_vars)
+
+    def get_free_variable_bounds_dict(self) -> OrderedDict[str, Any]:
+        """
+        获取所有 free 类型参数的边界值字典（有序）
+        
+        Returns:
+            OrderedDict[str, Any]: 参数字典，键为参数名，值为边界值（bounds）
+            如果参数没有边界值，则值为 None
+            顺序与 get_free_variables_as_dict() 保持一致
+        """
+        free_vars = self.get_free_variables()
+        return OrderedDict((param.name, param.bounds) for param in free_vars)
 
     def set_free_variables_from_dict(self, free_variables_dict: Dict[str, Any]) -> None:
         for name, value in free_variables_dict.items():
@@ -1288,10 +1381,11 @@ class Modern_Machine_Designer(object):
             Dict[str, Parameter]: 字段名到 Parameter 对象的映射
         """
         param_fields = {}
-        for field in fields(self):
-            field_value = getattr(self, field.name)
-            if isinstance(field_value, Parameter):
-                param_fields[field.name] = field_value
+        # 使用 vars(self) 或 self.__dict__ 来获取所有实例属性
+        # 因为参数是在 __post_init__ 中动态添加的，不是 dataclass 字段
+        for attr_name, attr_value in vars(self).items():
+            if isinstance(attr_value, Parameter):
+                param_fields[attr_name] = attr_value
         return param_fields
     
     def get_parameters_by_type(self, param_type: str) -> Dict[str, 'Modern_Machine_Designer.Parameter']:
@@ -1651,6 +1745,11 @@ class Modern_Machine_Designer(object):
             'has_wily': hasattr(self, 'wily') and self.wily is not None,
             'has_EX': hasattr(self, 'EX') and self.EX is not None,
             'serialization_version': '2.0',  # 版本号，用于未来兼容性
+            # 添加路径和项目信息到 metadata
+            'path2SwarmData': getattr(self, 'path2SwarmData', None),
+            'project_name': getattr(self, 'project_name', None),
+            'expected_project_file': getattr(self, 'expected_project_file', None),
+            'path2FEACsv': getattr(self, 'path2FEACsv', None),
         }
         
         return full_dict
@@ -1883,17 +1982,13 @@ if __name__ == "__main__":
 
     mmd.show_geometry()
     # print(dir(mmd.machineGeometry['statorCore']))
-
     mmd.drawer.visualization_points['Coils']['PCoil']
 
     mmd.FEA_evaluate()
-
     mmd.save_to_file('machine_designer.json')
     mmd.save_to_file_full('machine_designer_full.json') # 保存完整信息到文件（类似 pickle）
 
-
     mmd.start_optimization()
-
     quit()
 
 
@@ -1904,40 +1999,4 @@ if __name__ == "__main__":
     mmd3 = Modern_Machine_Designer.load_from_file_full('machine_designer_full.json')
     print("=== 已从完整文件恢复对象 ===")
 
-
-
-quit()
-
-if __name__ == "__main__":
-    # 创建实例
-    mmd = Modern_Machine_Designer()
-    
-    # 导出为 JSON
-    json_str = mmd.to_json()
-    print("=== JSON 输出 ===")
-    print(json_str)
-    
-    # 保存到文件
-    mmd.save_to_file('machine_designer.json')
-    print("\n=== 已保存到 machine_designer.json ===")
-    
-    # 从 JSON 字符串重建
-    mmd2 = Modern_Machine_Designer.from_json(json_str)
-    print(f"\n=== 从 JSON 重建的对象 ===")
-    print(mmd2)
-    
-    # 从文件加载
-    mmd3 = Modern_Machine_Designer.load_from_file('machine_designer.json')
-    print(f"\n=== 从文件加载的对象 ===")
-    print(mmd3)
-    
-    # 验证参数摘要
-    summary = mmd3.get_parameters_summary()
-    print(f"\n=== 参数摘要 ===")
-    print(f"总参数数: {summary['total_count']}")
-    print(f"按类型: {summary['by_type']}")
-    print(f"按单位: {summary['by_unit']}")
-    print(f"有值: {summary['with_values']}, 无值: {summary['without_values']}")
-
-    mmd.show_geometry()
 

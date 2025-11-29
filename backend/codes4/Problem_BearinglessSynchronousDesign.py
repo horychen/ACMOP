@@ -1,5 +1,5 @@
 import numpy as np
-from acm_designer import get_bad_fintess_values
+# from acm_designer import get_bad_fintess_values
 import utility
 import logging, os, shutil
 import pywintypes
@@ -85,9 +85,9 @@ class Problem_BearinglessSynchronousDesign(object):
             except utility.ExceptionBadNumberOfParts as error:
                 logger.error('ExceptionBadNumberOfParts captured: %s', str(error)) 
                 # print("Detail: {}".format(error.payload))
-                # f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
+                f1, f2, f3 = get_bad_fintess_values.get_bad_fintess_values(machine_type='PMSM')
                 # f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
-                f1, f2, f3 = get_bad_fintess_values(machine_type='CSPPM')
+                # f1, f2, f3 = builtins.ad.get_bad_fintess_values(machine_type='CSPPM')
                 # utility.send_notification(ad.solver.fea_config_dict['pc_name'] + '\n\nExceptionBadNumberOfParts:' + str(error) + '\n'*3)
                 raise error
 
@@ -207,11 +207,11 @@ class Problem_BearinglessSynchronousDesign(object):
     # Return bounds of decision variables (a.k.a. chromosome)
     def get_bounds(self):
         global ad
-        logger.debug('Problem_BearinglessSynchronousDesign.get_bounds: %s', ad.acm_template.SI["bounds_denorm_dict"])
-        bounds = list(ad.acm_template.SI["bounds_denorm_dict"].values())
-        min_b = [b[0] for b in bounds]
-        max_b = [b[1] for b in bounds]
-        return (min_b, max_b)
+        # logger.debug('Problem_BearinglessSynchronousDesign.get_bounds: %s', ad.acm_template.SI["bounds_denorm_dict"])
+        bounds = list(ad.get_free_variable_bounds_dict().values())
+        logger.debug('Problem_BearinglessSynchronousDesign.get_bounds: %s', ad.acm_template.bounds_denorm)
+        min_b, max_b = np.asarray(ad.acm_template.bounds_denorm).T 
+        return ( min_b.tolist(), max_b.tolist() )
 
     # Return function name
     def get_name(self):

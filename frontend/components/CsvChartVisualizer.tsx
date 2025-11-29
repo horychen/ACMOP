@@ -2,22 +2,26 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { EfficiencyChart } from './Charts';
 import { Loader2, FileText, AlertCircle } from 'lucide-react';
 import * as d3 from 'd3';
 
-interface CsvVisualizerProps {
-    projectName?: string;
+interface CsvChartVisualizerProps {
     path2FEACsv?: string;
+    projectName?: string;
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
-export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualizerProps) {
+interface ChartDataPoint {
+    time: number;
+    value: number;
+}
+
+export default function CsvChartVisualizer({ path2FEACsv, projectName }: CsvChartVisualizerProps) {
     const [csvFiles, setCsvFiles] = useState<string[]>([]);
     const [selectedFile, setSelectedFile] = useState<string>('');
-    const [chartData, setChartData] = useState<any[]>([]);
-    const [dataKeys, setDataKeys] = useState<string[]>([]);
+    const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -26,12 +30,10 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
             try {
                 let response;
                 if (path2FEACsv) {
-                    // Use path2FEACsv if provided
                     response = await axios.get(`${BACKEND_URL}/api/results/csv/list-from-path`, {
                         params: { path: path2FEACsv }
                     });
                 } else if (projectName) {
-                    // Fallback to project name
                     response = await axios.get(`${BACKEND_URL}/api/results/csv/list/${projectName}`);
                 } else {
                     setError("Either projectName or path2FEACsv must be provided");
@@ -62,12 +64,10 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
             try {
                 let response;
                 if (path2FEACsv) {
-                    // Use path2FEACsv if provided
                     response = await axios.get(`${BACKEND_URL}/api/results/csv/content-from-path`, {
                         params: { path: path2FEACsv, filename: selectedFile }
                     });
                 } else if (projectName) {
-                    // Fallback to project name
                     response = await axios.get(`${BACKEND_URL}/api/results/csv/content/${projectName}/${selectedFile}`);
                 } else {
                     setError("Either projectName or path2FEACsv must be provided");
@@ -90,31 +90,50 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
                 const parsedData = d3.csvParse(cleanCsvContent);
 
                 if (parsedData.length > 0) {
-                    // Filter out columns that are not suitable for plotting (e.g., non-numeric)
-                    // We assume 'Time(s)' is the X-axis.
-                    const keys = Object.keys(parsedData[0]).filter(key => key !== 'Time(s)' && !isNaN(parseFloat(parsedData[0][key] as string)));
-                    setDataKeys(keys);
+                    // Try to find speed and efficiency columns
+                    // Common column names: Speed, RPM, speed, Efficiency, efficiency, etc.
+                    const speedKey = Object.keys(parsedData[0]).find(
+                        key => key.toLowerCase().includes('speed') || 
+                               key.toLowerCase().includes('rpm') ||
+                               key === 'Speed' || key === 'speed'
+                    );
+                    
+                    const efficiencyKey = Object.keys(parsedData[0]).find(
+                        key => key.toLowerCase().includes('efficiency') ||
+                               key.toLowerCase().includes('eta') ||
+                               key === 'Efficiency' || key === 'efficiency'
+                    );
 
-                    // Convert values to numbers
-                    const formattedData = parsedData.map(row => {
-                        const newRow: any = { ...row };
-                        Object.keys(row).forEach(key => {
-                            const val = parseFloat(row[key] as string);
-                            if (!isNaN(val)) {
-                                newRow[key] = val;
-                            }
-                        });
-                        return newRow;
-                    });
-                    setChartData(formattedData);
+                    // Use Time(s) as x-axis and first numeric column (excluding Time(s)) as y-axis
+                    const timeKey = 'Time(s)';
+                    const numericKeys = Object.keys(parsedData[0]).filter(
+                        key => key !== timeKey && !isNaN(parseFloat(parsedData[0][key] as string))
+                    );
+                    
+                    if (numericKeys.length > 0) {
+                        // Use first numeric column as y-axis value
+                        const formattedData: ChartDataPoint[] = parsedData
+                            .map(row => {
+                                const time = parseFloat(row[timeKey] as string);
+                                const value = parseFloat(row[numericKeys[0]] as string);
+                                if (!isNaN(time) && !isNaN(value)) {
+                                    return { time, value };
+                                }
+                                return null;
+                            })
+                            .filter((item): item is ChartDataPoint => item !== null);
+                        
+                        setChartData(formattedData);
+                    } else {
+                        setChartData([]);
+                    }
                 } else {
                     setChartData([]);
-                    setDataKeys([]);
                 }
 
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Failed to fetch CSV content", err);
-                setError("Failed to load CSV content.");
+                setError(err.message || "Failed to load CSV content.");
             } finally {
                 setLoading(false);
             }
@@ -128,7 +147,7 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
             <div className="mb-4 flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                     <FileText className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">Select Result:</span>
+                    <span className="text-sm font-medium text-foreground">选择结果文件:</span>
                 </div>
                 <select
                     value={selectedFile}
@@ -149,41 +168,16 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
                 </div>
             )}
 
-            <div className="flex-1 min-h-[400px] bg-card rounded-lg border border-border p-4 relative">
+            <div className="flex-1 min-h-[300px]">
                 {chartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                            <XAxis
-                                dataKey="Time(s)"
-                                type="number"
-                                domain={['auto', 'auto']}
-                                tickFormatter={(tick) => tick.toFixed(4)}
-                                label={{ value: 'Time (s)', position: 'insideBottomRight', offset: -5 }}
-                            />
-                            <YAxis />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', color: '#f3f4f6' }}
-                            />
-                            <Legend />
-                            {dataKeys.map((key, index) => (
-                                <Line
-                                    key={key}
-                                    type="monotone"
-                                    dataKey={key}
-                                    stroke={`hsl(${index * 60}, 70%, 50%)`}
-                                    dot={false}
-                                    strokeWidth={2}
-                                />
-                            ))}
-                        </LineChart>
-                    </ResponsiveContainer>
+                    <EfficiencyChart data={chartData} title={selectedFile || undefined} />
                 ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                        {!loading && "No data to display"}
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                        {!loading && "无数据可显示"}
                     </div>
                 )}
             </div>
         </div>
     );
 }
+

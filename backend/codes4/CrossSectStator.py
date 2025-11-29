@@ -1,6 +1,6 @@
 from math import cos, sin, atan, sqrt; import numpy as np
 import math
-import logging
+import logging, builtins
 class CrossSectInnerRotorStator:
     # CrossSectInnerRotorStator Describes the inner rotor motor stator.
     #    Properties are set upon class creation and cannot be modified.

@@ -95,3 +95,90 @@ async def get_csv_content(project_name: str, filename: str):
         content = f.read()
         
     return {"content": content}
+
+@router.get("/csv/list-from-path")
+async def list_csv_files_from_path(path: str):
+    """List all CSV files from a given path (path2FEACsv)."""
+    if not path:
+        raise HTTPException(status_code=400, detail="Path parameter is required")
+    
+    # Normalize the path
+    csv_dir = os.path.normpath(path)
+    
+    if not os.path.exists(csv_dir):
+        raise HTTPException(status_code=404, detail=f"CSV directory not found: {csv_dir}")
+    
+    if not os.path.isdir(csv_dir):
+        raise HTTPException(status_code=400, detail=f"Path is not a directory: {csv_dir}")
+    
+    try:
+        csv_files = [f for f in os.listdir(csv_dir) if f.endswith('.csv')]
+        return csv_files
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading directory: {str(e)}")
+
+@router.get("/csv/content-from-path")
+async def get_csv_content_from_path(path: str, filename: str):
+    """Get the content of a specific CSV file from a given path."""
+    if not path or not filename:
+        raise HTTPException(status_code=400, detail="Path and filename parameters are required")
+    
+    # Normalize the path and join with filename
+    csv_dir = os.path.normpath(path)
+    csv_path = os.path.join(csv_dir, filename)
+    
+    # Security check: ensure the file is within the csv_dir
+    csv_path = os.path.normpath(csv_path)
+    if not csv_path.startswith(os.path.normpath(csv_dir)):
+        raise HTTPException(status_code=403, detail="Invalid file path")
+    
+    if not os.path.exists(csv_path):
+        raise HTTPException(status_code=404, detail=f"CSV file not found: {filename}")
+    
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return {"content": content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+@router.get("/pdf/machine-geometry")
+async def get_machine_geometry_pdf():
+    """Get the machine_geometry.pdf file."""
+    from fastapi.responses import FileResponse
+    
+    # Try to find the PDF in codes4 directory
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # results.py is in backend/app/routers/, so go up to backend/, then to codes4
+    backend_dir = os.path.join(current_dir, '..', '..')
+    codes4_dir = os.path.join(backend_dir, 'codes4')
+    pdf_path = os.path.join(codes4_dir, 'machine_geometry.pdf')
+    
+    # Normalize the path
+    pdf_path = os.path.normpath(os.path.abspath(pdf_path))
+    
+    if not os.path.exists(pdf_path):
+        raise HTTPException(status_code=404, detail=f"PDF file not found: {pdf_path}")
+    
+    from fastapi.responses import Response
+    import aiofiles
+    
+    # Read the PDF file and return it with inline content disposition
+    async def generate():
+        async with aiofiles.open(pdf_path, 'rb') as f:
+            content = await f.read()
+            return content
+    
+    # For now, use synchronous file reading with inline disposition
+    with open(pdf_path, 'rb') as f:
+        content = f.read()
+    
+    return Response(
+        content=content,
+        media_type='application/pdf',
+        headers={
+            'Content-Disposition': 'inline; filename="machine_geometry.pdf"',
+            'Content-Type': 'application/pdf'
+        }
+    )

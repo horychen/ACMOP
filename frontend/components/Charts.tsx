@@ -5,15 +5,16 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useTheme } from '@/context/ThemeContext';
 
 interface DataPoint {
-    speed: number;
-    efficiency: number;
+    time: number;
+    value: number;
 }
 
 interface EfficiencyChartProps {
     data: DataPoint[];
+    title?: string;
 }
 
-export const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ data }) => {
+export const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ data, title }) => {
     const { theme } = useTheme();
     
     const isDark = theme === 'dark';
@@ -26,7 +27,7 @@ export const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ data }) => {
         }`}>
             <h3 className={`text-sm font-semibold mb-4 ${
                 isDark ? 'text-slate-300' : 'text-slate-700'
-            }`}>Efficiency Map (%) vs Speed (RPM)</h3>
+            }`}>{title || 'Chart'}</h3>
             <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data}>
                     <defs>
@@ -40,11 +41,12 @@ export const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ data }) => {
                         stroke={isDark ? "#334155" : "#cbd5e1"} 
                     />
                     <XAxis
-                        dataKey="speed"
+                        dataKey="time"
                         stroke={isDark ? "#94a3b8" : "#64748b"}
                         tick={{ fontSize: 12, fill: isDark ? "#94a3b8" : "#64748b" }}
+                        tickFormatter={(value) => value.toFixed(4)}
                         label={{ 
-                            value: 'RPM', 
+                            value: 'Time (s)', 
                             position: 'insideBottomRight', 
                             offset: -5, 
                             fill: isDark ? "#94a3b8" : "#64748b" 
@@ -53,7 +55,8 @@ export const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ data }) => {
                     <YAxis
                         stroke={isDark ? "#94a3b8" : "#64748b"}
                         tick={{ fontSize: 12, fill: isDark ? "#94a3b8" : "#64748b" }}
-                        domain={[0, 100]}
+                        tickFormatter={(value) => value.toFixed(2)}
+                        domain={['auto', 'auto']}
                     />
                     <Tooltip
                         contentStyle={{ 
@@ -65,7 +68,7 @@ export const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ data }) => {
                     />
                     <Area
                         type="monotone"
-                        dataKey="efficiency"
+                        dataKey="value"
                         stroke="#0ea5e9"
                         fillOpacity={1}
                         fill="url(#colorEff)"
