@@ -14,7 +14,6 @@
       "value": 3,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -27,7 +26,6 @@
       "value": 12,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -40,7 +38,6 @@
       "value": 4,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -53,7 +50,6 @@
       "value": 5,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -66,7 +62,6 @@
       "value": 1,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -79,7 +74,6 @@
       "value": 123.5,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -92,7 +86,6 @@
       "value": 0.5,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -108,7 +101,6 @@
         6
       ],
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -121,7 +113,6 @@
       "value": 1.0,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -134,7 +125,6 @@
       "value": 1,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -150,14 +140,10 @@
         0.5
       ],
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        4
-      ],
       "_calc_info": {
         "has_calc": false,
-        "calc_bounds_source": "self.split_ratio: Parameter  = Parameter('split_ratio_r_si_slash_r_so', 'free', SR, calc_bounds=lambda p: [0.2, 0.5] if p < 10 else [0.15, 0.35], args=[p])",
+        "calc_bounds_source": "calc_bounds=lambda self_param: [0.2, 0.5] if self.p.value < 10 else [0.15, 0.35],",
         "has_calc_bounds": true
       }
     },
@@ -170,20 +156,10 @@
         21.82425146540659
       ],
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        123.5,
-        43.224999999999994,
-        [
-          0.25,
-          0.5
-        ],
-        12
-      ],
       "_calc_info": {
         "has_calc": false,
-        "calc_bounds_source": "self.mm_w_st: Parameter = Parameter('stator_tooth_width', 'free', calc_bounds=lambda mm_r_so, mm_r_si, tooth_split_ratio_at_middle_slot, Q: [el / Q * math.pi * (mm_r_so + mm_r_si) for el in tooth_split_ratio_at_middle_slot], args=[mm_r_so, mm_r_si_initial, tooth_split_ratio_at_middle_slot, Qs])",
+        "calc_bounds_source": "calc_bounds=lambda self_param: [\n                    el / self.Qs.value * math.pi * (\n                        self.mm_r_so.value + mm_r_si_initial\n                    )\n                    for el in tooth_split_ratio_at_middle_slot\n                ]",
         "has_calc_bounds": true
       }
     },
@@ -196,19 +172,10 @@
         36.12375
       ],
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        123.5,
-        43.224999999999994,
-        [
-          0.2,
-          0.45
-        ]
-      ],
       "_calc_info": {
         "has_calc": false,
-        "calc_bounds_source": "self.mm_d_sy: Parameter = Parameter('stator_yoke_depth', 'free', calc_bounds=lambda mm_r_so, mm_r_si, yoke_split_ratio_bounds: [el * (mm_r_so - mm_r_si) for el in yoke_split_ratio_bounds], args=[mm_r_so, mm_r_si_initial, yoke_split_ratio_bounds])",
+        "calc_bounds_source": "calc_bounds=lambda self_param: [\n                    el * (self.mm_r_so.value - mm_r_si_initial)\n                    for el in yoke_split_ratio_bounds\n                ]",
         "has_calc_bounds": true
       }
     },
@@ -221,7 +188,6 @@
         5
       ],
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -237,14 +203,10 @@
         30.0
       ],
       "unit": "deg",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        12
-      ],
       "_calc_info": {
         "has_calc": false,
-        "calc_bounds_source": "self.deg_alpha_st: Parameter = Parameter('stator_tooth_span_angle', 'free', calc_bounds=lambda Qs: [360/Qs*0.1, 360/Qs], unit='deg', args=[self.Qs.value])",
+        "calc_bounds_source": "calc_bounds=lambda self_param: [\n                        360 / self.Qs.value * 0.1,\n                        360 / self.Qs.value\n                    ],",
         "has_calc_bounds": true
       }
     },
@@ -254,14 +216,10 @@
       "value": 43.224999999999994,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        123.5,
-        0.35
-      ],
+      "_has_parameter_dict": true,
       "_calc_info": {
-        "source": "self.mm_r_si: Parameter      = Parameter('stator_inner_radius', 'derived', calc=lambda mm_r_so, split_ratio: mm_r_so * split_ratio, args=[self.mm_r_so.value, self.split_ratio.value])",
+        "source": "calc=lambda parameter_dict: parameter_dict['stator_outer_radius'].value * parameter_dict['split_ratio_r_si_slash_r_so'].value,",
         "has_calc": true,
         "has_calc_bounds": false
       }
@@ -272,16 +230,10 @@
       "value": 51.185625,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        123.5,
-        43.224999999999994,
-        26.089375000000004,
-        3.0
-      ],
+      "_has_parameter_dict": true,
       "_calc_info": {
-        "source": "self.mm_d_st: Parameter      = Parameter('stator_tooth_depth', 'derived', calc=lambda mm_r_so, mm_r_si, mm_d_sy, mm_d_sts: mm_r_so - mm_r_si - mm_d_sy - mm_d_sts, args=[self.mm_r_so.value, self.mm_r_si.value, self.mm_d_sy.value, self.mm_d_sts.value])",
+        "source": "calc=lambda parameter_dict: parameter_dict['stator_outer_radius'].value",
         "has_calc": true,
         "has_calc_bounds": false
       }
@@ -292,13 +244,10 @@
       "value": 4,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        3
-      ],
+      "_has_parameter_dict": true,
       "_calc_info": {
-        "source": "self.mm_d_ri: Parameter      = Parameter('rotor_iron (back iron) depth', 'derived', calc=lambda mm_d_pm: 4 if mm_d_pm < 4 else mm_d_pm, args=[self.mm_d_pm.value])",
+        "source": "calc=lambda parameter_dict: 4 if parameter_dict['magnet_depth'].value < 4 else parameter_dict['magnet_depth'].value,",
         "has_calc": true,
         "has_calc_bounds": false
       }
@@ -309,15 +258,10 @@
       "value": 41.724999999999994,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        43.224999999999994,
-        0.5,
-        1.0
-      ],
+      "_has_parameter_dict": true,
       "_calc_info": {
-        "source": "self.mm_r_ro: Parameter      = Parameter('rotor_outer_radius', 'derived', calc=lambda mm_r_si, mm_d_mech_air_gap, mm_d_sleeve: mm_r_si - mm_d_mech_air_gap - mm_d_sleeve, args=[self.mm_r_si.value, self.mm_d_mech_air_gap.value, self.mm_d_sleeve.value])",
+        "source": "calc=lambda parameter_dict: parameter_dict['stator_inner_radius'].value",
         "has_calc": true,
         "has_calc_bounds": false
       }
@@ -328,15 +272,10 @@
       "value": 34.724999999999994,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        41.724999999999994,
-        3,
-        4
-      ],
+      "_has_parameter_dict": true,
       "_calc_info": {
-        "source": "self.mm_r_ri: Parameter      = Parameter('rotor_inner_radius', 'derived', calc=lambda r_ro, mm_d_pm, mm_d_ri: r_ro-mm_d_pm-mm_d_ri, args=[self.mm_r_ro.value, self.mm_d_pm.value, self.mm_d_ri.value])",
+        "source": "calc=lambda parameter_dict: parameter_dict['rotor_outer_radius'].value",
         "has_calc": true,
         "has_calc_bounds": false
       }
@@ -347,13 +286,10 @@
       "value": 2.0010000000000003,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        3.0
-      ],
+      "_has_parameter_dict": true,
       "_calc_info": {
-        "source": "self.mm_d_sto: Parameter = Parameter('stator_tooth_open_depth', 'derived', calc=lambda mm_d_sts: mm_d_sts*0.667, args=[self.mm_d_sts.value])",
+        "source": "calc=lambda parameter_dict: parameter_dict['stator_tooth_shoe_depth'].value * 0.667,",
         "has_calc": true,
         "has_calc_bounds": false
       }
@@ -364,13 +300,10 @@
       "value": 8.25,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        16.5
-      ],
+      "_has_parameter_dict": true,
       "_calc_info": {
-        "source": "self.deg_alpha_sto: Parameter = Parameter('stator_tooth_open_angle', 'derived', calc=lambda deg_alpha_st: deg_alpha_st*0.5, args=[deg_alpha_st_value])",
+        "source": "calc=lambda parameter_dict: _deg_alpha_st_default(parameter_dict) * 0.5,",
         "has_calc": true,
         "has_calc_bounds": false
       }
@@ -384,7 +317,6 @@
         45.0
       ],
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -397,13 +329,10 @@
       "value": 38.25,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        38.25
-      ],
+      "_has_parameter_dict": true,
       "_calc_info": {
-        "source": "self.deg_alpha_rs: Parameter = Parameter('magnet_segment_span_angle', 'derived', calc=lambda deg_alpha_rm: deg_alpha_rm, args=[deg_alpha_rm_value])",
+        "source": "calc=lambda parameter_dict: _deg_alpha_rm_default(parameter_dict),",
         "has_calc": true,
         "has_calc_bounds": false
       }
@@ -414,13 +343,10 @@
       "value": 3,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
-      "args": [
-        3
-      ],
+      "_has_parameter_dict": true,
       "_calc_info": {
-        "source": "self.mm_d_rp: Parameter      = Parameter('inter_polar_iron_thickness', 'derived', calc=lambda mm_d_pm: mm_d_pm, args=[self.mm_d_pm.value])",
+        "source": "calc=lambda parameter_dict: parameter_dict['magnet_depth'].value,",
         "has_calc": true,
         "has_calc_bounds": false
       }
@@ -431,7 +357,6 @@
       "value": 0.0,
       "bounds": null,
       "unit": "mm",
-      "comment": null,
       "calc_dependencies": null,
       "_calc_info": {
         "has_calc": false,
@@ -446,7 +371,86 @@
     "suspension_pole_pair_number_ps": 5,
     "coil_pitch_y": 1,
     "number_of_parallel_branch": 2,
-    "kw1": 0.933
+    "kw1": 0.933,
+    "SPP": 0.5,
+    "deg_winding_U_phase_phase_axis_angle": 0.0,
+    "number_of_winding_layer": 2,
+    "bool_distributed_or_concentrated": false,
+    "bool_DPNVorSEPA": true,
+    "bool_3PhaseCurrentSource": false,
+    "bool_CustomizedCircuit": false,
+    "CommutatingSequenceD": 1,
+    "CommutatingSequenceB": 0,
+    "layer_X_phases": [
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W"
+    ],
+    "layer_X_signs": [
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+"
+    ],
+    "layer_Y_phases": [
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V"
+    ],
+    "layer_Y_signs": [
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-"
+    ],
+    "grouping_AC": [
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1
+    ]
   },
   "EX": {
     "mm_stack_length_specified": 50,
@@ -747,12 +751,12 @@
           -8.058762377954364
         ],
         "P6": [
-          84.03732165961543,
-          -48.51897028215412
+          93.73145292096895,
+          -25.115267115569427
         ],
         "P7": [
-          106.95413736737818,
-          -61.74999999999999
+          119.29183954669993,
+          -31.96415207016131
         ],
         "P8": [
           123.5,
@@ -865,9 +869,9 @@
     }
   },
   "path2SwarmData": "../_default/SPMSM/",
-  "project_name": "SPMSM-0",
-  "expected_project_file": "../_default/SPMSM/temp/SPMSM-0.jproj",
-  "path2FEACsv": "C:\\_Codes\\ACMOP\\backend\\_default\\SPMSM\\csv/",
+  "project_name": "SPMSM-ind0",
+  "expected_project_file": "../_default/SPMSM/temp/SPMSM-ind0.jproj",
+  "path2FEACsv": "C:\\_Codes\\ACMOP\\backend\\_default\\SPMSM\\csv/0/",
   "spec_performance_dict": {
     "x_denorm_dict": {
       "magnet_depth": 3,
@@ -878,38 +882,38 @@
       "stator_tooth_span_angle": 16.5,
       "magnet_pole_span_angle": 38.25
     },
-    "project_name": "SPMSM-0",
+    "project_name": "SPMSM-ind0",
     "individual_name": "SPMSM",
     "number_current_generation": 0,
     "individual_index": 0,
-    "f1": 99.95474181402207,
-    "f2": -0.8602135564576946,
-    "f3": 8.765527283422713,
-    "TRV": 55097.111269615365,
-    "FRW": 1.9536683798222114,
-    "torque_average": 15.067506837178126,
-    "ss_avg_force_magnitude": 41.15399845671338,
+    "f1": 99.95464870855227,
+    "f2": -0.8602133103859302,
+    "f3": 8.765588642958951,
+    "TRV": 55097.19150210306,
+    "FRW": 1.953706119406273,
+    "torque_average": 15.067528778501886,
+    "ss_avg_force_magnitude": 41.15479344055008,
     "rotor_weight": 21.064986710005766,
-    "normalized_torque_ripple": 0.1105245803300983,
-    "normalized_force_error_magnitude": 0.06730868057256316,
-    "force_error_angle": 5.208862065369484,
-    "coil_flux_linkage_peak2peak_value": 0.06794579258967501,
+    "normalized_torque_ripple": 0.11052504488832163,
+    "normalized_force_error_magnitude": 0.06729973647191455,
+    "force_error_angle": 5.2090930157542275,
+    "coil_flux_linkage_peak2peak_value": 0.0679459428670625,
     "mm2_slot_area": 1086.9538799701013,
-    "Cost": 99.95474181402207,
-    "Cost_Fe": 39.82183582902056,
+    "Cost": 99.95464870855227,
+    "Cost_Fe": 39.82177784049399,
     "Cost_Cu": 36.01742604631335,
-    "Cost_PM": 24.11547993868816,
-    "power_factor": 0.8218273442090226,
-    "rated_ratio": 1.0562792160093168,
-    "rated_stack_length_mm": 52.81396080046584,
-    "rated_total_loss": 8125.101173593282,
-    "rated_stator_copper_loss_along_stack": 89.85368865747434,
+    "Cost_PM": 24.115444821744912,
+    "power_factor": 0.8218271151298736,
+    "rated_ratio": 1.056277677856339,
+    "rated_stack_length_mm": 52.813883892816946,
+    "rated_total_loss": 8125.117800801938,
+    "rated_stator_copper_loss_along_stack": 89.85355781260238,
     "rated_rotor_copper_loss_along_stack": 0.0,
-    "rated_magnet_Joule_loss": 7750.954510769718,
+    "rated_magnet_Joule_loss": 7750.97123789039,
     "stator_copper_loss_in_end_turn": 80.19533462788087,
     "rotor_copper_loss_in_end_turn": 0,
-    "rated_iron_loss": 67.92420846835505,
-    "rated_windage_loss": 136.17343106985368,
+    "rated_iron_loss": 67.92441623630803,
+    "rated_windage_loss": 136.17325423475677,
     "select_FEA_tool": "JMAG Designer",
     "moo.fitness_OA": "Cost",
     "moo.fitness_OB": "Efficiency",
@@ -924,8 +928,8 @@
     "has_EX": true,
     "serialization_version": "2.0",
     "path2SwarmData": "../_default/SPMSM/",
-    "project_name": "SPMSM-0",
-    "expected_project_file": "../_default/SPMSM/temp/SPMSM-0.jproj",
-    "path2FEACsv": "C:\\_Codes\\ACMOP\\backend\\_default\\SPMSM\\csv/"
+    "project_name": "SPMSM-ind0",
+    "expected_project_file": "../_default/SPMSM/temp/SPMSM-ind0.jproj",
+    "path2FEACsv": "C:\\_Codes\\ACMOP\\backend\\_default\\SPMSM\\csv/0/"
   }
 }

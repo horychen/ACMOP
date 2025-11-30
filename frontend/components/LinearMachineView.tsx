@@ -10,9 +10,24 @@ interface LinearMachineViewProps {
     p: number;   // Pole pair number (for torque)
     ps: number;  // Suspension pole pair number
     coilPitchY?: number | null;
+    layer_X_phases?: string[] | null;  // Phase assignment for Layer X (upper conductors)
+    layer_Y_phases?: string[] | null;  // Phase assignment for Layer Y (lower conductors)
+    layer_X_signs?: string[] | null;  // Sign assignment for Layer X
+    layer_Y_signs?: string[] | null;  // Sign assignment for Layer Y
+    grouping_AC?: (number | boolean)[] | null;  // Grouping AC information
 }
 
-const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPitchY }) => {
+const LinearMachineView: React.FC<LinearMachineViewProps> = ({ 
+    Qs, 
+    p, 
+    ps, 
+    coilPitchY,
+    layer_X_phases,
+    layer_Y_phases,
+    layer_X_signs,
+    layer_Y_signs,
+    grouping_AC
+}) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const { theme } = useTheme();
 
@@ -50,6 +65,19 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
         
         return coils;
     }, [Qs, p]);
+
+    // Phase colors - different colors for U, V, W phases
+    const phaseColors = useMemo(() => theme === 'dark' ? {
+        U: { fill: "#ef4444", stroke: "#dc2626" },      // Red for U phase
+        V: { fill: "#3b82f6", stroke: "#2563eb" },     // Blue for V phase
+        W: { fill: "#10b981", stroke: "#059669" },     // Green for W phase
+        default: { fill: "#b87333", stroke: "#d97706" } // Copper for unknown
+    } : {
+        U: { fill: "#dc2626", stroke: "#b91c1c" },     // Red for U phase
+        V: { fill: "#2563eb", stroke: "#1d4ed8" },     // Blue for V phase
+        W: { fill: "#059669", stroke: "#047857" },     // Green for W phase
+        default: { fill: "#d97706", stroke: "#f59e0b" } // Amber for unknown
+    }, [theme]);
 
     // Color schemes based on theme
     const colors = useMemo(() => theme === 'dark' ? {
@@ -202,14 +230,41 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
             const topY = scaledYoke + scaledSlot * 0.3;
             const bottomY = scaledYoke + scaledSlot * 0.7;
 
-            // Top conductor (always present)
+            // Get phase information for this slot
+            const layerXPhase = layer_X_phases && i < layer_X_phases.length ? layer_X_phases[i] : null;
+            const layerYPhase = layer_Y_phases && i < layer_Y_phases.length ? layer_Y_phases[i] : null;
+            const layerXSign = layer_X_signs && i < layer_X_signs.length ? layer_X_signs[i] : null;
+            const layerYSign = layer_Y_signs && i < layer_Y_signs.length ? layer_Y_signs[i] : null;
+            const isAC = grouping_AC && i < grouping_AC.length ? (grouping_AC[i] === 1 || grouping_AC[i] === true) : false;
+
+            // Determine colors for conductors based on phase
+            const topPhaseColor = layerXPhase && phaseColors[layerXPhase as 'U' | 'V' | 'W'] 
+                ? phaseColors[layerXPhase as 'U' | 'V' | 'W'] 
+                : phaseColors.default;
+            const bottomPhaseColor = layerYPhase && phaseColors[layerYPhase as 'U' | 'V' | 'W'] 
+                ? phaseColors[layerYPhase as 'U' | 'V' | 'W'] 
+                : phaseColors.default;
+
+            // Top conductor (Layer X - upper conductor)
             g.append("circle")
                 .attr("cx", slotX + slotWidth / 2)
                 .attr("cy", topY)
                 .attr("r", conductorRadius)
-                .attr("fill", colors.conductor)
-                .attr("stroke", colors.conductorStroke)
+                .attr("fill", topPhaseColor.fill)
+                .attr("stroke", topPhaseColor.stroke)
                 .attr("stroke-width", 1.5);
+
+            // AC label for top conductor if grouping_AC is true
+            if (isAC) {
+                g.append("text")
+                    .attr("x", slotX + slotWidth / 2)
+                    .attr("y", topY + 3)
+                    .attr("text-anchor", "middle")
+                    .attr("font-size", "7px")
+                    .attr("font-weight", "bold")
+                    .attr("fill", theme === 'dark' ? "#ffffff" : "#000000")
+                    .text("AC");
+            }
 
             // Slot number - marked above the upper conductor
             g.append("text")
@@ -221,16 +276,27 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
                 .attr("fill", colors.textSecondary)
                 .text(`S${i + 1}`);
 
-            // Bottom conductor (always present, but no label)
+            // Bottom conductor (Layer Y - lower conductor)
             g.append("circle")
                 .attr("cx", slotX + slotWidth / 2)
                 .attr("cy", bottomY)
                 .attr("r", conductorRadius)
-                .attr("fill", colors.conductor)
-                .attr("stroke", colors.conductorStroke)
+                .attr("fill", bottomPhaseColor.fill)
+                .attr("stroke", bottomPhaseColor.stroke)
                 .attr("stroke-width", 1.5);
 
-            // Bottom conductor label - REMOVED (only top conductors are labeled)
+            // AC label for bottom conductor if grouping_AC is true
+            // Note: grouping_AC typically applies to Layer X, but we show it on both if needed
+            if (isAC) {
+                g.append("text")
+                    .attr("x", slotX + slotWidth / 2)
+                    .attr("y", bottomY + 3)
+                    .attr("text-anchor", "middle")
+                    .attr("font-size", "7px")
+                    .attr("font-weight", "bold")
+                    .attr("fill", theme === 'dark' ? "#ffffff" : "#000000")
+                    .text("AC");
+            }
         }
 
         // Air gap line
@@ -441,7 +507,6 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
         const scaledTotalContentHeight = actualContentHeight * scaleY;
         const legendY = scaledTotalContentHeight + 10;
         const legendItems = [
-            { label: "Conductor", color: colors.conductor },
             { label: "Stator Yoke", color: colors.statorYoke },
             { label: "Stator Teeth", color: colors.statorTeeth },
             { label: `Torque Poles (p=${p})`, color: theme === 'dark' ? "#ef4444" : "#dc2626" },
@@ -449,6 +514,15 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
             { label: "Net Force (Repulsion)", color: theme === 'dark' ? "#ef4444" : "#dc2626" },
             { label: "Net Force (Attraction)", color: theme === 'dark' ? "#10b981" : "#059669" }
         ];
+
+        // Add phase colors to legend if winding data is available
+        if (layer_X_phases || layer_Y_phases) {
+            legendItems.push(
+                { label: "Phase U", color: phaseColors.U.fill },
+                { label: "Phase V", color: phaseColors.V.fill },
+                { label: "Phase W", color: phaseColors.W.fill }
+            );
+        }
 
         legendItems.forEach((item, i) => {
             const x = 20 + i * 150;
@@ -494,7 +568,7 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
         return () => {
             window.removeEventListener('resize', handleResize);
         };
-    }, [Qs, p, ps, colors, coilDistribution, theme, coilPitchY]);
+    }, [Qs, p, ps, colors, coilDistribution, theme, coilPitchY, layer_X_phases, layer_Y_phases, layer_X_signs, layer_Y_signs, grouping_AC, phaseColors]);
 
     return (
         <div className={`w-full rounded-lg border overflow-auto ${

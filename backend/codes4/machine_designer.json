@@ -51,7 +51,86 @@
     "suspension_pole_pair_number_ps": 5,
     "coil_pitch_y": 1,
     "number_of_parallel_branch": 2,
-    "kw1": 0.933
+    "kw1": 0.933,
+    "SPP": 0.5,
+    "deg_winding_U_phase_phase_axis_angle": 0.0,
+    "number_of_winding_layer": 2,
+    "bool_distributed_or_concentrated": false,
+    "bool_DPNVorSEPA": true,
+    "bool_3PhaseCurrentSource": false,
+    "bool_CustomizedCircuit": false,
+    "CommutatingSequenceD": 1,
+    "CommutatingSequenceB": 0,
+    "layer_X_phases": [
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W"
+    ],
+    "layer_X_signs": [
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+",
+      "+"
+    ],
+    "layer_Y_phases": [
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V",
+      "W",
+      "U",
+      "V"
+    ],
+    "layer_Y_signs": [
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-"
+    ],
+    "grouping_AC": [
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1
+    ]
   },
   "EX": {
     "mm_stack_length_specified": 50,
@@ -93,7 +172,6 @@
     "value": 3,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "Qs": {
@@ -102,7 +180,6 @@
     "value": 12,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "p": {
@@ -111,7 +188,6 @@
     "value": 4,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "ps": {
@@ -120,7 +196,6 @@
     "value": 5,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "coil_pitch_y": {
@@ -129,7 +204,6 @@
     "value": 1,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_r_so": {
@@ -138,7 +212,6 @@
     "value": 123.5,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_d_mech_air_gap": {
@@ -147,7 +220,6 @@
     "value": 0.5,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_d_pm": {
@@ -159,7 +231,6 @@
       6
     ],
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_d_sleeve": {
@@ -168,7 +239,6 @@
     "value": 1.0,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "s": {
@@ -177,8 +247,232 @@
     "value": 1,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
+  },
+  "parameter_dict": {
+    "phase_number_m": {
+      "name": "phase_number_m",
+      "type": "fixed",
+      "value": 3,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "stator_slot_number_Qs": {
+      "name": "stator_slot_number_Qs",
+      "type": "fixed",
+      "value": 12,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "pole_pair_number_p": {
+      "name": "pole_pair_number_p",
+      "type": "fixed",
+      "value": 4,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "suspension_pole_pair_number_ps": {
+      "name": "suspension_pole_pair_number_ps",
+      "type": "fixed",
+      "value": 5,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "coil_pitch_y": {
+      "name": "coil_pitch_y",
+      "type": "fixed",
+      "value": 1,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "stator_outer_radius": {
+      "name": "stator_outer_radius",
+      "type": "fixed",
+      "value": 123.5,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "mechanical_air_gap_depth": {
+      "name": "mechanical_air_gap_depth",
+      "type": "fixed",
+      "value": 0.5,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "magnet_depth": {
+      "name": "magnet_depth",
+      "type": "free",
+      "value": 3,
+      "bounds": [
+        2,
+        6
+      ],
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "rotor_sleeve_depth": {
+      "name": "rotor_sleeve_depth",
+      "type": "fixed",
+      "value": 1.0,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "number_of_magnet_segments_per_pole": {
+      "name": "number_of_magnet_segments_per_pole",
+      "type": "fixed",
+      "value": 1,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    }
+  },
+  "parameter_dict_by_name": {
+    "phase_number_m": {
+      "name": "phase_number_m",
+      "type": "fixed",
+      "value": 3,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "stator_slot_number_Qs": {
+      "name": "stator_slot_number_Qs",
+      "type": "fixed",
+      "value": 12,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "pole_pair_number_p": {
+      "name": "pole_pair_number_p",
+      "type": "fixed",
+      "value": 4,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "suspension_pole_pair_number_ps": {
+      "name": "suspension_pole_pair_number_ps",
+      "type": "fixed",
+      "value": 5,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "coil_pitch_y": {
+      "name": "coil_pitch_y",
+      "type": "fixed",
+      "value": 1,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "stator_outer_radius": {
+      "name": "stator_outer_radius",
+      "type": "fixed",
+      "value": 123.5,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "mechanical_air_gap_depth": {
+      "name": "mechanical_air_gap_depth",
+      "type": "fixed",
+      "value": 0.5,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "magnet_depth": {
+      "name": "magnet_depth",
+      "type": "free",
+      "value": 3,
+      "bounds": [
+        2,
+        6
+      ],
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "rotor_sleeve_depth": {
+      "name": "rotor_sleeve_depth",
+      "type": "fixed",
+      "value": 1.0,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "number_of_magnet_segments_per_pole": {
+      "name": "number_of_magnet_segments_per_pole",
+      "type": "fixed",
+      "value": 1,
+      "bounds": null,
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "split_ratio_r_si_slash_r_so": {
+      "name": "split_ratio_r_si_slash_r_so",
+      "type": "free",
+      "value": 0.35,
+      "bounds": [
+        0.2,
+        0.5
+      ],
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "stator_tooth_width": {
+      "name": "stator_tooth_width",
+      "type": "free",
+      "value": 16.368188599054943,
+      "bounds": [
+        10.912125732703295,
+        21.82425146540659
+      ],
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "stator_yoke_depth": {
+      "name": "stator_yoke_depth",
+      "type": "free",
+      "value": 26.089375000000004,
+      "bounds": [
+        16.055000000000003,
+        36.12375
+      ],
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "stator_tooth_shoe_depth": {
+      "name": "stator_tooth_shoe_depth",
+      "type": "free",
+      "value": 3.0,
+      "bounds": [
+        1,
+        5
+      ],
+      "unit": "mm",
+      "calc_dependencies": null
+    },
+    "stator_tooth_span_angle": {
+      "name": "stator_tooth_span_angle",
+      "type": "free",
+      "value": 16.5,
+      "bounds": [
+        3.0,
+        30.0
+      ],
+      "unit": "deg",
+      "calc_dependencies": null
+    }
   },
   "split_ratio": {
     "name": "split_ratio_r_si_slash_r_so",
@@ -189,7 +483,6 @@
       0.5
     ],
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_w_st": {
@@ -201,7 +494,6 @@
       21.82425146540659
     ],
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_d_sy": {
@@ -213,7 +505,6 @@
       36.12375
     ],
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_d_sts": {
@@ -225,7 +516,6 @@
       5
     ],
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "deg_alpha_st": {
@@ -237,7 +527,6 @@
       30.0
     ],
     "unit": "deg",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_r_si": {
@@ -246,7 +535,6 @@
     "value": 43.224999999999994,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_d_st": {
@@ -255,7 +543,6 @@
     "value": 51.185625,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_d_ri": {
@@ -264,7 +551,6 @@
     "value": 4,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_r_ro": {
@@ -273,7 +559,6 @@
     "value": 41.724999999999994,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_r_ri": {
@@ -282,7 +567,6 @@
     "value": 34.724999999999994,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_d_sto": {
@@ -291,7 +575,6 @@
     "value": 2.0010000000000003,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "deg_alpha_sto": {
@@ -300,7 +583,6 @@
     "value": 8.25,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "deg_alpha_rm": {
@@ -312,7 +594,6 @@
       45.0
     ],
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "deg_alpha_rs": {
@@ -321,7 +602,6 @@
     "value": 38.25,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_d_rp": {
@@ -330,7 +610,6 @@
     "value": 3,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "mm_d_rs": {
@@ -339,7 +618,6 @@
     "value": 0.0,
     "bounds": null,
     "unit": "mm",
-    "comment": null,
     "calc_dependencies": null
   },
   "InitialRotationAngle": 3.375,
@@ -536,12 +814,12 @@
           -8.058762377954364
         ],
         "P6": [
-          84.03732165961543,
-          -48.51897028215412
+          93.73145292096895,
+          -25.115267115569427
         ],
         "P7": [
-          106.95413736737818,
-          -61.74999999999999
+          119.29183954669993,
+          -31.96415207016131
         ],
         "P8": [
           123.5,
@@ -641,50 +919,50 @@
       "_needs_rebuild": true
     }
   },
-  "drawer": "<__main__.CairoDrawer object at 0x000002036BF41B80>",
+  "drawer": "<__main__.CairoDrawer object at 0x0000025517B6CF40>",
   "path2SwarmData": "../_default/SPMSM/",
-  "project_name": "SPMSM-0",
-  "expected_project_file": "../_default/SPMSM/temp/SPMSM-0.jproj",
-  "path2FEACsv": "C:\\_Codes\\ACMOP\\backend\\_default\\SPMSM\\csv/",
-  "toolJd": "<JMAG.JMAG object at 0x000002036E4C8580>",
+  "project_name": "SPMSM-ind0",
+  "expected_project_file": "../_default/SPMSM/temp/SPMSM-ind0.jproj",
+  "path2FEACsv": "C:\\_Codes\\ACMOP\\backend\\_default\\SPMSM\\csv/0/",
+  "toolJd": "<JMAG.JMAG object at 0x000002551AC221F0>",
   "results_to_be_unpacked": [
     [
-      1.5161945149405018,
-      5.654788382954916
+      1.5161714944607996,
+      5.654654301780812
     ],
-    99.95474181402207,
-    -0.8602135564576946,
-    8.765527283422713,
-    1.9536683798222114,
-    0.1105245803300983,
-    0.06730868057256316,
-    5.208862065369484,
-    "SPMSM-0",
+    99.95464870855227,
+    -0.8602133103859302,
+    8.765588642958951,
+    1.953706119406273,
+    0.11052504488832163,
+    0.06729973647191455,
+    5.2090930157542275,
+    "SPMSM-ind0",
     "SPMSM",
     0,
     0,
-    0.8218273442090226,
-    1.0562792160093168,
-    52.81396080046584,
-    8125.101173593282,
-    89.85368865747434,
-    7750.954510769718,
+    0.8218271151298736,
+    1.056277677856339,
+    52.813883892816946,
+    8125.117800801938,
+    89.85355781260238,
+    7750.97123789039,
     0.0,
     80.19533462788087,
     0,
-    67.92420846835505,
-    136.17343106985368,
-    "\n-------\nSPMSM-0-SPMSM\n0,0,O1=1.51619,O2=5.65479,f1=99.9547,f2=-0.860214,f3=8.76553\n0.821827,0.860134,15.0675,0.110525,41.154,0.0673087,5.20886,9748.04,7337.98,64.3052,61.8645,2.44064,165.262,0,85.0662,0,4e+06,0,129.703,7697.25\n50000,0.860214,8125.1,89.8537,7750.95,0,80.1953,0,67.9242,136.173,0.000288863,52.814,50\nTransient\nAverage Torque: 15.0675 Nm\nNormalized Torque Ripple: 11.0525 %\nAverage Force Mag: 41.154 N\nNormalized Force Error Mag: 6.73087%, (+)6.73087% (-)-5.2229%\nMaximum Force Error Angle: 5.20886 [deg], (+)5.20886 deg (-)-5.13306 deg\nExtra Info:\n\tAverage Force Vector: (38.8053, 13.7041) N\n\tTorque Ripple (Peak-to-Peak): 1.66533 Nm\n\tForce Mag Ripple (Peak-to-Peak): 4.91945 N\n\tbasic info:('Case', 1.0)('freq', 2000.0)('0', 41.4427805379)\n\tjmag loss info: 9748.04, 7337.98, 64.3052, 61.8645, 2.44064\n\tfemm loss info: 165.262, 0, 85.0662, 0, 4e+06, 0\n\tPF: 0.821827\n\teta, windage, total_loss: 0.860134, 129.703, 7697.25",
+    67.92441623630803,
+    136.17325423475677,
+    "\n-------\nSPMSM-ind0-SPMSM\n0,0,O1=1.51617,O2=5.65465,f1=99.9546,f2=-0.860213,f3=8.76559\n0.821827,0.860134,15.0675,0.110525,41.1548,0.0672997,5.20909,9748.04,7338.01,64.3055,61.8648,2.44065,165.262,0,85.0662,0,4e+06,0,129.703,7697.28\n50000,0.860213,8125.12,89.8536,7750.97,0,80.1953,0,67.9244,136.173,0.000288862,52.8139,50\nTransient\nAverage Torque: 15.0675 Nm\nNormalized Torque Ripple: 11.0525 %\nAverage Force Mag: 41.1548 N\nNormalized Force Error Mag: 6.72997%, (+)6.72997% (-)-5.22184%\nMaximum Force Error Angle: 5.20909 [deg], (+)5.20909 deg (-)-5.13265 deg\nExtra Info:\n\tAverage Force Vector: (38.806, 13.7043) N\n\tTorque Ripple (Peak-to-Peak): 1.66534 Nm\n\tForce Mag Ripple (Peak-to-Peak): 4.91874 N\n\tbasic info:('Case', 1.0)('freq', 2000.0)('0', 41.4439393761)\n\tjmag loss info: 9748.04, 7338.01, 64.3055, 61.8648, 2.44065\n\tfemm loss info: 165.262, 0, 85.0662, 0, 4e+06, 0\n\tPF: 0.821827\n\teta, windage, total_loss: 0.860134, 129.703, 7697.28",
     1086.9538799701013,
-    0.06794579258967501,
-    55097.111269615365,
-    99.95474181402207,
-    39.82183582902056,
+    0.0679459428670625,
+    55097.19150210306,
+    99.95464870855227,
+    39.82177784049399,
     36.01742604631335,
-    24.11547993868816,
-    41.15399845671338,
+    24.115444821744912,
+    41.15479344055008,
     21.064986710005766,
-    15.067506837178126
+    15.067528778501886
   ],
   "spec_performance_dict": {
     "x_denorm_dict": {
@@ -696,38 +974,38 @@
       "stator_tooth_span_angle": 16.5,
       "magnet_pole_span_angle": 38.25
     },
-    "project_name": "SPMSM-0",
+    "project_name": "SPMSM-ind0",
     "individual_name": "SPMSM",
     "number_current_generation": 0,
     "individual_index": 0,
-    "f1": 99.95474181402207,
-    "f2": -0.8602135564576946,
-    "f3": 8.765527283422713,
-    "TRV": 55097.111269615365,
-    "FRW": 1.9536683798222114,
-    "torque_average": 15.067506837178126,
-    "ss_avg_force_magnitude": 41.15399845671338,
+    "f1": 99.95464870855227,
+    "f2": -0.8602133103859302,
+    "f3": 8.765588642958951,
+    "TRV": 55097.19150210306,
+    "FRW": 1.953706119406273,
+    "torque_average": 15.067528778501886,
+    "ss_avg_force_magnitude": 41.15479344055008,
     "rotor_weight": 21.064986710005766,
-    "normalized_torque_ripple": 0.1105245803300983,
-    "normalized_force_error_magnitude": 0.06730868057256316,
-    "force_error_angle": 5.208862065369484,
-    "coil_flux_linkage_peak2peak_value": 0.06794579258967501,
+    "normalized_torque_ripple": 0.11052504488832163,
+    "normalized_force_error_magnitude": 0.06729973647191455,
+    "force_error_angle": 5.2090930157542275,
+    "coil_flux_linkage_peak2peak_value": 0.0679459428670625,
     "mm2_slot_area": 1086.9538799701013,
-    "Cost": 99.95474181402207,
-    "Cost_Fe": 39.82183582902056,
+    "Cost": 99.95464870855227,
+    "Cost_Fe": 39.82177784049399,
     "Cost_Cu": 36.01742604631335,
-    "Cost_PM": 24.11547993868816,
-    "power_factor": 0.8218273442090226,
-    "rated_ratio": 1.0562792160093168,
-    "rated_stack_length_mm": 52.81396080046584,
-    "rated_total_loss": 8125.101173593282,
-    "rated_stator_copper_loss_along_stack": 89.85368865747434,
+    "Cost_PM": 24.115444821744912,
+    "power_factor": 0.8218271151298736,
+    "rated_ratio": 1.056277677856339,
+    "rated_stack_length_mm": 52.813883892816946,
+    "rated_total_loss": 8125.117800801938,
+    "rated_stator_copper_loss_along_stack": 89.85355781260238,
     "rated_rotor_copper_loss_along_stack": 0.0,
-    "rated_magnet_Joule_loss": 7750.954510769718,
+    "rated_magnet_Joule_loss": 7750.97123789039,
     "stator_copper_loss_in_end_turn": 80.19533462788087,
     "rotor_copper_loss_in_end_turn": 0,
-    "rated_iron_loss": 67.92420846835505,
-    "rated_windage_loss": 136.17343106985368,
+    "rated_iron_loss": 67.92441623630803,
+    "rated_windage_loss": 136.17325423475677,
     "select_FEA_tool": "JMAG Designer",
     "moo.fitness_OA": "Cost",
     "moo.fitness_OB": "Efficiency",
@@ -735,15 +1013,15 @@
   },
   "results_for_optimization": [
     [
-      1.5161945149405018,
-      5.654788382954916
+      1.5161714944607996,
+      5.654654301780812
     ],
-    99.95474181402207,
-    -0.8602135564576946,
-    8.765527283422713,
-    1.9536683798222114,
-    0.1105245803300983,
-    0.06730868057256316,
-    5.208862065369484
+    99.95464870855227,
+    -0.8602133103859302,
+    8.765588642958951,
+    1.953706119406273,
+    0.11052504488832163,
+    0.06729973647191455,
+    5.2090930157542275
   ]
 }

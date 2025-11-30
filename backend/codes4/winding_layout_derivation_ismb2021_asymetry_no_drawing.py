@@ -12,7 +12,7 @@ from utility import gcd
 BELT_BIAS = 5  # deg. elec. (用于相位带计算)
 
 # 全局 verbose 标志（用于控制是否打印输出）
-_verbose = True
+_verbose = False
 
 
 def _print(*args, **kwargs):

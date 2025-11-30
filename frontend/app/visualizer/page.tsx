@@ -47,6 +47,7 @@ export default function VisualizerPage() {
     const [coilPitchY, setCoilPitchY] = useState<number | null>(null);
     const [wilyData, setWilyData] = useState<Record<string, any> | null>(null);
     const [specPerformanceDict, setSpecPerformanceDict] = useState<Record<string, any> | null>(null);
+    const [showWindingInfo, setShowWindingInfo] = useState<boolean>(true);
 
     // Fetch available configurations on mount
     useEffect(() => {
@@ -480,21 +481,140 @@ export default function VisualizerPage() {
                             {/* Linear Geometry View - Full Width with More Space */}
                             {wilyData && (
                                 <div className="w-full mb-6">
-                                    <h4 className="text-sm font-medium text-foreground mb-4">
-                                        Linear View (Auto-scaled)
-                                        {coilPitchY !== null && (
-                                            <span className="ml-2 text-muted-foreground font-normal">
-                                                - coil_pitch_y = {coilPitchY}
-                                            </span>
-                                        )}
-                                    </h4>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-sm font-medium text-foreground">
+                                            Linear View (Auto-scaled)
+                                            {coilPitchY !== null && (
+                                                <span className="ml-2 text-muted-foreground font-normal">
+                                                    - coil_pitch_y = {coilPitchY}
+                                                </span>
+                                            )}
+                                        </h4>
+                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={showWindingInfo}
+                                                onChange={(e) => setShowWindingInfo(e.target.checked)}
+                                                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                                            />
+                                            <span className="text-xs text-muted-foreground">显示绕组信息</span>
+                                        </label>
+                                    </div>
                                     <div className="w-full bg-card rounded-lg border border-border p-4" style={{ minHeight: '700px' }}>
                                         <LinearMachineView 
                                             Qs={wilyData.stator_slot_number_Qs || wilyData.Qs || 12}
                                             p={wilyData.pole_pair_number_p || wilyData.p || 2}
                                             ps={wilyData.suspension_pole_pair_number_ps || wilyData.ps || 3}
-                                            coilPitchY={coilPitchY} 
+                                            coilPitchY={coilPitchY}
+                                            layer_X_phases={wilyData.layer_X_phases || null}
+                                            layer_Y_phases={wilyData.layer_Y_phases || null}
+                                            layer_X_signs={wilyData.layer_X_signs || null}
+                                            layer_Y_signs={wilyData.layer_Y_signs || null}
+                                            grouping_AC={wilyData.grouping_AC || null}
                                         />
+                                        {showWindingInfo && (
+                                            <div className="mt-6 pt-6 border-t border-border">
+                                                <h5 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">绕组信息 (Winding Information)</h5>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {/* Winding Factor */}
+                                                    {wilyData.kw1 !== undefined && (
+                                                        <div className="bg-muted/30 rounded p-3 border border-border/50">
+                                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">绕组因子 (kw1)</div>
+                                                            <div className="text-sm font-mono text-foreground">{typeof wilyData.kw1 === 'number' ? wilyData.kw1.toFixed(4) : String(wilyData.kw1)}</div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Layer X Phases */}
+                                                    {wilyData.layer_X_phases && Array.isArray(wilyData.layer_X_phases) && (
+                                                        <div className="bg-muted/30 rounded p-3 border border-border/50">
+                                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Layer X 相序</div>
+                                                            <div className="text-xs font-mono text-foreground break-all">
+                                                                {wilyData.layer_X_phases.map((phase: string, idx: number) => (
+                                                                    <span key={idx} className="inline-block mr-1">{phase || '-'}</span>
+                                                                )).join(' ')}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Layer X Signs */}
+                                                    {wilyData.layer_X_signs && Array.isArray(wilyData.layer_X_signs) && (
+                                                        <div className="bg-muted/30 rounded p-3 border border-border/50">
+                                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Layer X 符号</div>
+                                                            <div className="text-xs font-mono text-foreground break-all">
+                                                                {wilyData.layer_X_signs.map((sign: string, idx: number) => (
+                                                                    <span key={idx} className="inline-block mr-1">{sign || '-'}</span>
+                                                                )).join(' ')}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Layer Y Phases */}
+                                                    {wilyData.layer_Y_phases && Array.isArray(wilyData.layer_Y_phases) && (
+                                                        <div className="bg-muted/30 rounded p-3 border border-border/50">
+                                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Layer Y 相序</div>
+                                                            <div className="text-xs font-mono text-foreground break-all">
+                                                                {wilyData.layer_Y_phases.map((phase: string, idx: number) => (
+                                                                    <span key={idx} className="inline-block mr-1">{phase || '-'}</span>
+                                                                )).join(' ')}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Layer Y Signs */}
+                                                    {wilyData.layer_Y_signs && Array.isArray(wilyData.layer_Y_signs) && (
+                                                        <div className="bg-muted/30 rounded p-3 border border-border/50">
+                                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Layer Y 符号</div>
+                                                            <div className="text-xs font-mono text-foreground break-all">
+                                                                {wilyData.layer_Y_signs.map((sign: string, idx: number) => (
+                                                                    <span key={idx} className="inline-block mr-1">{sign || '-'}</span>
+                                                                )).join(' ')}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Grouping AC */}
+                                                    {wilyData.grouping_AC && Array.isArray(wilyData.grouping_AC) && (
+                                                        <div className="bg-muted/30 rounded p-3 border border-border/50">
+                                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Grouping AC</div>
+                                                            <div className="text-xs font-mono text-foreground break-all">
+                                                                {wilyData.grouping_AC.map((group: number | boolean, idx: number) => (
+                                                                    <span key={idx} className="inline-block mr-1">{group ? '1' : '0'}</span>
+                                                                )).join(' ')}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Additional Winding Information */}
+                                                    {wilyData.SIict_kw_els && typeof wilyData.SIict_kw_els === 'object' && (
+                                                        <div className="bg-muted/30 rounded p-3 border border-border/50 md:col-span-2 lg:col-span-3">
+                                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">绕组因子详情 (SIict_kw_els)</div>
+                                                            <div className="text-xs font-mono text-foreground space-y-1">
+                                                                {Object.entries(wilyData.SIict_kw_els).map(([key, value]: [string, any]) => (
+                                                                    <div key={key} className="flex justify-between">
+                                                                        <span className="text-muted-foreground">{key}:</span>
+                                                                        <span>{typeof value === 'number' ? value.toFixed(4) : String(value)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {wilyData.SIict_kw_cjh && typeof wilyData.SIict_kw_cjh === 'object' && (
+                                                        <div className="bg-muted/30 rounded p-3 border border-border/50 md:col-span-2 lg:col-span-3">
+                                                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">绕组因子详情 (SIict_kw_cjh)</div>
+                                                            <div className="text-xs font-mono text-foreground space-y-1">
+                                                                {Object.entries(wilyData.SIict_kw_cjh).map(([key, value]: [string, any]) => (
+                                                                    <div key={key} className="flex justify-between">
+                                                                        <span className="text-muted-foreground">{key}:</span>
+                                                                        <span>{typeof value === 'number' ? value.toFixed(4) : String(value)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}

@@ -7,153 +7,251 @@ import json, math, base64, pickle, cairo, os, jsonpickle, logging
 
 
 class Swarm_Data_Analyzer(object):
-    def __init__(self, fname, desired_x_denorm_dict, bool_filter_pareto_front=False):
+    """
+    分析群体优化数据的类，用于从 SwarmData.json 文件中读取和分析所有个体的设计参数和性能指标。
+    """
+    
+    @staticmethod
+    def decode_py_reduce_ordered_dict(x_denorm_dict_raw):
+        """
+        解码 jsonpickle 序列化的 OrderedDict (py/reduce 格式)
+        
+        Args:
+            x_denorm_dict_raw: 包含 py/reduce 格式的字典
+            
+        Returns:
+            OrderedDict: 解码后的有序字典
+        """
+        if not isinstance(x_denorm_dict_raw, dict) or 'py/reduce' not in x_denorm_dict_raw:
+            # 如果不是 py/reduce 格式，直接返回
+            return x_denorm_dict_raw
+        
+        try:
+            # py/reduce 格式: [type_info, tuple_info, None, None, data_tuple]
+            reduce_data = x_denorm_dict_raw['py/reduce']
+            if len(reduce_data) >= 5 and isinstance(reduce_data[4], dict) and 'py/tuple' in reduce_data[4]:
+                tuples = reduce_data[4]['py/tuple']
+                result = OrderedDict()
+                for item in tuples:
+                    if isinstance(item, dict) and 'py/tuple' in item:
+                        key_value_pair = item['py/tuple']
+                        if len(key_value_pair) >= 2:
+                            key = key_value_pair[0]
+                            value = key_value_pair[1]
+                            result[key] = value
+                return result
+        except (KeyError, IndexError, TypeError) as e:
+            logger = logging.getLogger(__name__)
+            logger.warning(f'Failed to decode py/reduce OrderedDict: {e}')
+            return OrderedDict()
+        
+        return OrderedDict()
+    
+    def __init__(self, fname, desired_x_denorm_dict=None, bool_filter_pareto_front=False):
+        """
+        初始化群体数据分析器
+        
+        Args:
+            fname: SwarmData.json 文件路径
+            desired_x_denorm_dict: 期望的设计参数字典（用于排序），如果为 None 则使用所有参数
+            bool_filter_pareto_front: 是否过滤帕累托前沿
+        """
         logger = logging.getLogger(__name__)
         logger.info('Swarm_Data_Analyzer: %s', fname)
+        
         if not os.path.exists(fname):
             self.number_of_chromosome = 0
             self.swarm_data_xf = None
-        else:
-            ''' 1. Load json file
-            '''
-            print(f'[acm_designer.py] read in {fname=}')
-            with open(fname, 'r') as f:
-                swarm_data_as_dict = json.load(f)
-                # buf = f.read()
-                # swarm_data_as_dict = json.loads('{'+buf[1:]+'}')
-                # del buf
-                # if 'Test' in swarm_data_as_dict.keys():
-                #     del swarm_data_as_dict['Test']
+            self.swarm_data_as_dict = {}
+            self.swarm_data_project_names = []
+            return
+        
+        ''' 1. Load json file
+        '''
+        print(f'[Swarm_Data_Analyzer] read in {fname=}')
+        with open(fname, 'r', encoding='utf-8') as f:
+            swarm_data_as_dict = json.load(f)
+        
+        if bool_filter_pareto_front:
+            swarm_data_as_dict = self.filter_data(swarm_data_as_dict, 'Geometric parameters', 'split_ratio', 'bigger', 0.45)
+
+        self.number_of_chromosome = len(swarm_data_as_dict)
+        self.swarm_data_as_dict = swarm_data_as_dict
+
+        ''' 2. Extract x_denorm_dict and performance metrics for each individual
+        '''
+        def sort_as_desired(x_denorm_dict, desired_x_denorm_dict=None):
+            """根据 desired_x_denorm_dict 的顺序提取参数值"""
+            if desired_x_denorm_dict is None:
+                # 如果没有指定顺序，按字典的原始顺序返回所有值
+                return list(x_denorm_dict.values())
+            else:
+                try:
+                    # 按照 desired_x_denorm_dict 的键顺序提取值
+                    return [x_denorm_dict[key] for key in desired_x_denorm_dict.keys()]
+                except KeyError as e:
+                    logger.warning(f'Error: some geometric parameters are renamed. Missing key: {e}')
+                    # 返回所有可用的值
+                    return list(x_denorm_dict.values())
+
+        # 处理每个个体
+        self.swarm_data_xf = []
+        for key, individual_data in swarm_data_as_dict.items():
+            # 解码 x_denorm_dict
+            x_denorm_dict_raw = individual_data.get('x_denorm_dict', {})
+            x_denorm_dict = self.decode_py_reduce_ordered_dict(x_denorm_dict_raw)
             
-            if bool_filter_pareto_front:
-                swarm_data_as_dict = self.filter_data(swarm_data_as_dict, 'Geometric parameters', 'split_ratio', 'bigger', 0.45)
-
-            self.number_of_chromosome = len(swarm_data_as_dict)
-            self.swarm_data_as_dict = swarm_data_as_dict
-
-            if False:
-                def sort_as_desired(x_denorm_dict, desired_x_denorm_dict=None):
-                    if desired_x_denorm_dict is None:
-                        return list(x_denorm_dict.values())
-                    else:
-                        try:
-                            return [x_denorm_dict[key] for key in desired_x_denorm_dict.keys()]
-                        except KeyError as e:
-                            print('Error Hint: some geometric parameters are renamed so the old json archive file now has different name from the new name.')
-                            raise e
-
-                    ''' 目前只支持重新跑优化的时候减少自由的几何参数，如果要增加自由的几何参数，则要从GP里面拿出来对应的参数的取值。其实也很简单啦。'''
-                    x_denorm = []
-                    for key in desired_x_denorm_dict.keys():
-                        if key not in x_denorm_dict:
-                            x_denorm.append(self.decode(v)['Geometric parameters'][key]) # pseudo code for showing the concept, this will not work.
-                        else:
-                            x_denorm.append(x_denorm_dict[key])
-                self.swarm_data_xf = [
-                                        sort_as_desired(self.decode(v)['x_denorm_dict'], desired_x_denorm_dict) + [ self.decode(v)['Performance']['f1'], self.decode(v)['Performance']['f2'], self.decode(v)['Performance']['f3'] ]
-                                        for v in swarm_data_as_dict.values() # v = {name:data}
-                                        ]
-
-            # 几个问题：一个是x_denorm_dict没有被更新成正确的值，
-            # 另一个是数据结构的问题，基础的参数在那边没问题，优化的结果应该只保留变化的值
-            self.swarm_data_xf = swarm_data_as_dict['x_denorm_dict'] + [swarm_data_as_dict['Performance']]
+            # 提取设计参数值
+            x_denorm = sort_as_desired(x_denorm_dict, desired_x_denorm_dict)
+            
+            # 提取性能指标 f1, f2, f3
+            f1 = individual_data.get('f1', 0.0)
+            f2 = individual_data.get('f2', 0.0)
+            f3 = individual_data.get('f3', 0.0)
+            
+            # 组合成 [x_denorm..., f1, f2, f3]
+            self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
+        
+        if len(self.swarm_data_xf) > 0:
             self.number_of_free_variables = len(self.swarm_data_xf[0]) - 3
+        else:
+            self.number_of_free_variables = 0
 
-            # DEBUG
-            # print('[acm_designer.py]')
-            # for ind, xf in enumerate(self.swarm_data_xf):
-            #     print(f'{ind:04d}', ',\t'.join([f'{el:.2f}' for el in xf]))
-
-            ''' 3. Get the list of other attribute by individuals (not needed for optimization)
-            '''
-                # self.swarm_data_project_names = [ self.decode(v)['Performance']['project_name'] for v in swarm_data_as_dict.values() ]
-                # self.prepare_data_for_post_processing(swarm_data_as_dict)
-            self.swarm_data_project_names = self.get_metric_of_the_whole_swarm('project_name')
-    
-    def filter_data(self, data, param_type, filter_key, direction, filter_value):
-        filtered_data = {}
-        for key in data.keys():
-            for motor_type in data[key].keys():
-                flag = False
-                for item in data[key][motor_type][param_type]:
-                    if filter_key in item.keys():
-                        if direction == "bigger" and item[filter_key]['value'] > filter_value:
-                            filtered_data[key] = data[key]
-                            flag = True
-                        if direction == "smaller" and item[filter_key]['value'] <= filter_value:
-                            filtered_data[key] = data[key]
-                            flag = True
-                        break
-                if flag:
-                    break
-        return filtered_data
-
-
-    @staticmethod
-    def decode(d):
-        return list(d.values())[0]
-
-    def get_metric_of_the_whole_swarm(self, metric):
-        return [ self.decode(v)['Performance'][metric] for v in self.swarm_data_as_dict.values() ]
-    def prepare_data_for_post_processing(self):
+        # DEBUG
+        # print('[Swarm_Data_Analyzer]')
+        # for ind, xf in enumerate(self.swarm_data_xf):
+        #     print(f'{ind:04d}', ',\t'.join([f'{el:.2f}' for el in xf]))
 
         ''' 3. Get the list of other attribute by individuals (not needed for optimization)
         '''
-        # self.machine_data.append([float(x) for x in raw[3].split(',')])
-        # self.rated_data.append(  [float(x) for x in raw[4].split(',')])
+        self.swarm_data_project_names = self.get_metric_of_the_whole_swarm('project_name')
+    
+    def filter_data(self, data, param_type, filter_key, direction, filter_value):
+        """
+        过滤数据（保留旧接口以兼容）
+        """
+        filtered_data = {}
+        for key in data.keys():
+            individual_data = data[key]
+            # 尝试从 x_denorm_dict 中获取参数值
+            x_denorm_dict_raw = individual_data.get('x_denorm_dict', {})
+            x_denorm_dict = self.decode_py_reduce_ordered_dict(x_denorm_dict_raw)
+            
+            if filter_key in x_denorm_dict:
+                value = x_denorm_dict[filter_key]
+                flag = False
+                if direction == "bigger" and value > filter_value:
+                    filtered_data[key] = individual_data
+                    flag = True
+                elif direction == "smaller" and value <= filter_value:
+                    filtered_data[key] = individual_data
+                    flag = True
+        return filtered_data
+
+    @staticmethod
+    def decode(d):
+        """解码函数（保留旧接口以兼容）"""
+        if isinstance(d, dict):
+            return list(d.values())[0] if len(d) > 0 else d
+        return d
+
+    def get_metric_of_the_whole_swarm(self, metric):
+        """
+        获取整个群体中所有个体的某个指标
+        
+        Args:
+            metric: 指标名称（如 'f1', 'f2', 'Cost', 'TRV' 等）
+            
+        Returns:
+            list: 所有个体的该指标值列表
+        """
+        result = []
+        for key, individual_data in self.swarm_data_as_dict.items():
+            value = individual_data.get(metric, None)
+            if value is not None:
+                result.append(value)
+            else:
+                logger = logging.getLogger(__name__)
+                logger.warning(f'Metric "{metric}" not found in individual {key}')
+                result.append(0.0)  # 默认值
+        return result
+    def prepare_data_for_post_processing(self):
+        """
+        准备后处理数据，收集所有个体的各种性能指标
+        """
+        # 基本性能指标
         self.FRW = self.get_metric_of_the_whole_swarm('FRW')
         self.Em = self.get_metric_of_the_whole_swarm('normalized_force_error_magnitude')
         self.Ea = self.get_metric_of_the_whole_swarm('force_error_angle')
         self.Tripple = self.get_metric_of_the_whole_swarm('normalized_torque_ripple')
-        # self.RatedVol = self.get_metric_of_the_whole_swarm('rated_rotor_volume')
-        # self.RatedWeight = self.get_metric_of_the_whole_swarm('rated_rotor_weight')
         self.RatedStkLen = self.get_metric_of_the_whole_swarm('rated_stack_length_mm')
 
-        # self.f1 = [raw[-3] for raw in self.swarm_data_xf]
-        # self.f2 = [raw[-2] for raw in self.swarm_data_xf]
-        # self.f3 = [raw[-1] for raw in self.swarm_data_xf]
+        # 从 swarm_data_xf 提取 f1, f2, f3
+        if self.swarm_data_xf is not None and len(self.swarm_data_xf) > 0:
+            self.f1 = [raw[-3] for raw in self.swarm_data_xf]
+            self.f2 = [raw[-2] for raw in self.swarm_data_xf]
+            self.f3 = [raw[-1] for raw in self.swarm_data_xf]
+        else:
+            self.f1 = []
+            self.f2 = []
+            self.f3 = []
 
-        # [power_factor, efficiency, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle]
-        self.PowerFactor            = self.get_metric_of_the_whole_swarm('power_factor')
+        # 功率因数和效率相关
+        self.PowerFactor = self.get_metric_of_the_whole_swarm('power_factor')
+        
+        # Cost 和 TRV
         try:
-            self.Cost                = self.get_metric_of_the_whole_swarm('Cost')
+            self.Cost = self.get_metric_of_the_whole_swarm('Cost')
         except:
-            self.Cost                = np.array(self.get_metric_of_the_whole_swarm('f1'))
+            import numpy as np
+            self.Cost = np.array(self.get_metric_of_the_whole_swarm('f1'))
+        
         try:
-            self.TRV                = self.get_metric_of_the_whole_swarm('TRV')
+            self.TRV = self.get_metric_of_the_whole_swarm('TRV')
         except:
-            self.TRV                = - np.array(self.get_metric_of_the_whole_swarm('f1'))
+            import numpy as np
+            self.TRV = -np.array(self.get_metric_of_the_whole_swarm('f1'))
+        
+        # 效率
         try:
-            self.RatedEfficiency    = self.get_metric_of_the_whole_swarm('RatedEfficiency')
+            self.RatedEfficiency = self.get_metric_of_the_whole_swarm('RatedEfficiency')
         except:
-            self.RatedEfficiency    = - np.array(self.get_metric_of_the_whole_swarm('f2'))
-        self.TorqueRipple           = self.get_metric_of_the_whole_swarm('normalized_torque_ripple')
-        # self.torque_average                   = [raw[2] for raw in self.machine_data]
-        # self.ss_avg_force_magnitude           = [raw[4] for raw in self.machine_data]
-        # self.normalized_force_error_magnitude = [raw[5] for raw in self.machine_data]
-        # self.force_error_angle                = [raw[6] for raw in self.machine_data]
+            import numpy as np
+            self.RatedEfficiency = -np.array(self.get_metric_of_the_whole_swarm('f2'))
+        
+        self.TorqueRipple = self.get_metric_of_the_whole_swarm('normalized_torque_ripple')
+        
+        # 其他性能指标
+        self.torque_average = self.get_metric_of_the_whole_swarm('torque_average')
+        self.ss_avg_force_magnitude = self.get_metric_of_the_whole_swarm('ss_avg_force_magnitude')
+        self.normalized_force_error_magnitude = self.get_metric_of_the_whole_swarm('normalized_force_error_magnitude')
+        self.force_error_angle = self.get_metric_of_the_whole_swarm('force_error_angle')
 
-        # self.l_rated_shaft_power                    = [raw[0] for raw in self.rated_data]
-        # self.l_rated_efficiency                     = [raw[1] for raw in self.rated_data]
-        self.l_rated_total_loss                     = self.get_metric_of_the_whole_swarm('rated_total_loss') # [raw[2] for raw in self.rated_data]
-        self.l_rated_stator_copper_loss_along_stack = self.get_metric_of_the_whole_swarm('rated_stator_copper_loss_along_stack') # [raw[3] for raw in self.rated_data]
-        self.l_rated_rotor_copper_loss_along_stack  = self.get_metric_of_the_whole_swarm('rated_rotor_copper_loss_along_stack') # [raw[4] for raw in self.rated_data]
-        self.l_stator_copper_loss_in_end_turn       = self.get_metric_of_the_whole_swarm('stator_copper_loss_in_end_turn') # [raw[5] for raw in self.rated_data]
-        self.l_rotor_copper_loss_in_end_turn        = self.get_metric_of_the_whole_swarm('rotor_copper_loss_in_end_turn') # [raw[6] for raw in self.rated_data]
-        self.l_rated_iron_loss                      = self.get_metric_of_the_whole_swarm('rated_iron_loss') # [raw[7] for raw in self.rated_data]
-        self.l_rated_windage_loss                   = self.get_metric_of_the_whole_swarm('rated_windage_loss') # [raw[8] for raw in self.rated_data]
-        # self.l_rated_magnet_Joule_loss              = self.get_metric_of_the_whole_swarm('rated_magnet_Joule_loss')
-        # self.l_rated_rotor_volume                   = self.get_metric_of_the_whole_swarm('rated_rotor_volume') # [raw[9] for raw in self.rated_data]
-        # self.l_rated_rotor_weight                   = self.get_metric_of_the_whole_swarm('rated_rotor_weight') # [(V*8050*9.8) for V in self.l_rated_rotor_volume] # density of rotor is estimated to be that of steraw of 8050 g/cm^3
-        self.l_rated_stack_length                   = self.get_metric_of_the_whole_swarm('rated_stack_length_mm') # [raw[10] for raw in self.rated_data] # new!
-        # self.l_original_stack_length                = [raw[11] for raw in self.rated_data] # new!
-        # self.l_original_rotor_weight                = [weight/rated*ori for weight, rated, ori in zip(self.l_rated_rotor_weight, self.l_rated_stack_length, self.l_original_stack_length)]
-
-        # TODO: change to EX['mec_power'] and EX['the_speed']
-        # required_torque = 50e3 / (30000/60*2*math.pi)         # TODO: should use rated stack length and torque average to compute this
-        # self.l_TRV = [required_torque/raw for raw in self.l_rated_rotor_volume]
-        # self.l_FRW = [F/W for W, F in zip(self.l_original_rotor_weight, self.l_ss_avg_force_magnitude)] # FRW
-        pass
+        # 损耗相关
+        self.l_rated_total_loss = self.get_metric_of_the_whole_swarm('rated_total_loss')
+        self.l_rated_stator_copper_loss_along_stack = self.get_metric_of_the_whole_swarm('rated_stator_copper_loss_along_stack')
+        self.l_rated_rotor_copper_loss_along_stack = self.get_metric_of_the_whole_swarm('rated_rotor_copper_loss_along_stack')
+        self.l_stator_copper_loss_in_end_turn = self.get_metric_of_the_whole_swarm('stator_copper_loss_in_end_turn')
+        self.l_rotor_copper_loss_in_end_turn = self.get_metric_of_the_whole_swarm('rotor_copper_loss_in_end_turn')
+        self.l_rated_iron_loss = self.get_metric_of_the_whole_swarm('rated_iron_loss')
+        self.l_rated_windage_loss = self.get_metric_of_the_whole_swarm('rated_windage_loss')
+        self.l_rated_magnet_Joule_loss = self.get_metric_of_the_whole_swarm('rated_magnet_Joule_loss')
+        self.l_rated_stack_length = self.get_metric_of_the_whole_swarm('rated_stack_length_mm')
+        
+        # 成本和重量相关
+        try:
+            self.Cost_Fe = self.get_metric_of_the_whole_swarm('Cost_Fe')
+            self.Cost_Cu = self.get_metric_of_the_whole_swarm('Cost_Cu')
+            self.Cost_PM = self.get_metric_of_the_whole_swarm('Cost_PM')
+        except:
+            self.Cost_Fe = []
+            self.Cost_Cu = []
+            self.Cost_PM = []
+        
+        try:
+            self.rotor_weight = self.get_metric_of_the_whole_swarm('rotor_weight')
+        except:
+            self.rotor_weight = []
 
 class swarm_data_container(object):
     def __init__(self, swarm_data_raw, fea_config_dict, swarm_data_json=None):
@@ -1001,7 +1099,6 @@ class Parameter(object):
             'value': self.value,
             'bounds': self.bounds,
             'unit': self.unit,
-            'comment': self.comment,
             # calc 函数无法序列化，保存为 None，前端可以设置 calc_dependencies
             'calc_dependencies': None,  # 可以扩展为保存依赖的参数名列表
         }
@@ -1056,9 +1153,7 @@ class Winding(object):
         # If self.derivation is a dict or an object with these attributes, extract them.
         # Fallback to defaults if not present.
 
-        if self.derivation is not None:
-            # Try both dict and object attribute access
-            derivation = self.derivation
+        if derivation is not None:
             # Winding factor information
             if hasattr(derivation, 'kw1'):
                 self.kw1 = derivation.kw1
@@ -1122,7 +1217,8 @@ class Winding(object):
 
     def get_winding_factor(self):
         import winding_layout_derivation_ismb2021_asymetry_no_drawing
-        self.derivation = winding_layout_derivation_ismb2021_asymetry_no_drawing.main_derivation(m=self.m, Qs=self.Qs, p=self.p, ps=self.ps, coil_pitch_y=self.coil_pitch_y)
+        derivation = winding_layout_derivation_ismb2021_asymetry_no_drawing.main_derivation(m=self.m, Qs=self.Qs, p=self.p, ps=self.ps, coil_pitch_y=self.coil_pitch_y)
+        return derivation
 
     @staticmethod
     def draw_winding_in_the_slot(u, Qs, list_layer_phases, list_layer_signs, text=''):
@@ -1181,8 +1277,8 @@ class Winding(object):
         plt.show()
 
     def to_dict(self) -> Dict[str, Any]:
-        """将 Winding 对象转换为字典"""
-        return {
+        """将 Winding 对象转换为字典，导出所有成员变量"""
+        result = {
             'phase_number_m': self.m,
             'stator_slot_number_Qs': self.Qs,
             'pole_pair_number_p': self.p,
@@ -1191,6 +1287,47 @@ class Winding(object):
             'number_of_parallel_branch': self.number_of_parallel_branch,
             'kw1': self.kw1,
         }
+        
+        # 导出所有其他成员变量
+        additional_attrs = [
+            'SPP', 'deg_winding_U_phase_phase_axis_angle', 'number_of_winding_layer',
+            'bool_distributed_or_concentrated', 'bool_DPNVorSEPA', 
+            'bool_3PhaseCurrentSource', 'bool_CustomizedCircuit',
+            'CommutatingSequenceD', 'CommutatingSequenceB',
+            'layer_X_phases', 'layer_X_signs', 'layer_Y_phases', 'layer_Y_signs',
+            'grouping_AC'
+        ]
+        
+        for attr in additional_attrs:
+            if hasattr(self, attr):
+                value = getattr(self, attr)
+                # 只序列化可序列化的类型
+                if isinstance(value, (int, float, str, bool, list, tuple, type(None))):
+                    result[attr] = value
+                elif isinstance(value, dict):
+                    result[attr] = value
+                else:
+                    # 对于其他类型，尝试转换为字符串或跳过
+                    try:
+                        result[attr] = str(value)
+                    except Exception:
+                        pass  # 跳过无法序列化的属性
+        
+        # 导出 derivation（如果存在且可序列化）
+        if hasattr(self, 'derivation') and self.derivation is not None:
+            try:
+                if isinstance(self.derivation, dict):
+                    result['derivation'] = self.derivation
+                elif hasattr(self.derivation, '__dict__'):
+                    # 尝试将对象转换为字典
+                    result['derivation'] = {k: v for k, v in self.derivation.__dict__.items() 
+                                          if isinstance(v, (int, float, str, bool, list, tuple, dict, type(None)))}
+                else:
+                    result['derivation'] = str(self.derivation)
+            except Exception:
+                result['derivation'] = None
+        
+        return result
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Winding':
@@ -1481,13 +1618,13 @@ class Modern_Machine_Designer(object):
                 self.s: Parameter            = Parameter('number_of_magnet_segments_per_pole', 'fixed', 1)
 
         # 更新 parameter_dict 以包含新创建的参数
-        self.parameter_dict = self.get_parameter_dict()
+        self.parameter_dict = self.get_parameter_dict_by_name()
         self.parameter_dict_by_name = self.get_parameter_dict_by_name()
 
         '''Free variables'''
         if True:
             # 先创建 parameter_dict 的占位符，稍后会被更新
-            self.parameter_dict = self.get_parameter_dict()
+            self.parameter_dict = self.get_parameter_dict_by_name()
             
             self.split_ratio: Parameter  = Parameter(
                 'split_ratio_r_si_slash_r_so',
@@ -1498,6 +1635,7 @@ class Modern_Machine_Designer(object):
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             # "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30)")
 
+            # Later there is a dependency on mm_r_si, so it should be defined right after split_ratio and mm_r_so are defined
             # 计算 mm_r_si 的初始值用于 calc_bounds
             mm_r_si_initial = mm_r_so * SR
 
@@ -1506,8 +1644,7 @@ class Modern_Machine_Designer(object):
                 'free',
                 calc_bounds=lambda self_param: [
                     el / self.Qs.value * math.pi * (
-                        self.mm_r_so.value +
-                        (self.mm_r_si.value if hasattr(self, "mm_r_si") and self.mm_r_si.value is not None else mm_r_si_initial)
+                        self.mm_r_so.value + mm_r_si_initial
                     )
                     for el in tooth_split_ratio_at_middle_slot
                 ]
@@ -1517,10 +1654,7 @@ class Modern_Machine_Designer(object):
                 'stator_yoke_depth',
                 'free',
                 calc_bounds=lambda self_param: [
-                    el * (
-                        self.mm_r_so.value -
-                        (self.mm_r_si.value if hasattr(self, "mm_r_si") and self.mm_r_si.value is not None else mm_r_si_initial)
-                    )
+                    el * (self.mm_r_so.value - mm_r_si_initial)
                     for el in yoke_split_ratio_bounds
                 ]
             )
@@ -1528,24 +1662,27 @@ class Modern_Machine_Designer(object):
             self.mm_d_sts: Parameter = Parameter('stator_tooth_shoe_depth', 'free', bounds=[1, 5])
 
             if not self.bool_StatorSlotClosed:
-                self.deg_alpha_st: Parameter = Parameter('stator_tooth_span_angle', 'free', 
-                    calc_bounds=lambda parameter_dict: [360/parameter_dict['stator_slot_number_Qs'].value*0.1, 360/parameter_dict['stator_slot_number_Qs'].value], 
-                    unit='deg', 
-                    parameter_dict=self.parameter_dict_by_name)
+                self.deg_alpha_st: Parameter = Parameter(
+                    'stator_tooth_span_angle',
+                    'free',
+                    calc_bounds=lambda self_param: [
+                        360 / self.Qs.value * 0.1,
+                        360 / self.Qs.value
+                    ],
+                    unit='deg'
+                )
 
-        # 更新 parameter_dict 以包含新创建的参数
-        self.parameter_dict = self.get_parameter_dict()
-        # 创建以参数名为键的字典，用于 calc 和 calc_bounds 函数
+        # 创建以参数名为键的字典，用于 calc 函数，每次调用这个函数都会刷新 self.parameter_dict_by_name，引入新定义的 Parameter 对象
         self.parameter_dict_by_name = self.get_parameter_dict_by_name()
 
         '''Derived variables have dependency on the other geometric parameters'''
         if True:
             # NOTE: Use parameter_dict_by_name to look up dependencies for all derived parameters
-            # parameter_dict_by_name 的键是 Parameter.name，用于 calc 和 calc_bounds 函数
+            # parameter_dict_by_name 的键是 Parameter.name，用于 calc 函数
             self.mm_r_si: Parameter      = Parameter(
                 'stator_inner_radius', 'derived', 
                 calc=lambda parameter_dict: parameter_dict['stator_outer_radius'].value * parameter_dict['split_ratio_r_si_slash_r_so'].value,
-                parameter_dict=self.parameter_dict_by_name
+                parameter_dict=self.get_parameter_dict_by_name()
             )
             self.mm_d_st: Parameter      = Parameter(
                 'stator_tooth_depth', 'derived',
@@ -1553,34 +1690,34 @@ class Modern_Machine_Designer(object):
                                             - parameter_dict['stator_inner_radius'].value
                                             - parameter_dict['stator_yoke_depth'].value
                                             - parameter_dict['stator_tooth_shoe_depth'].value,
-                parameter_dict=self.parameter_dict_by_name
+                parameter_dict=self.get_parameter_dict_by_name()
             )
             if self.bool_PermanentMagnet:
                 self.mm_d_ri: Parameter = Parameter(
                     'rotor_iron (back iron) depth', 'derived',
                     calc=lambda parameter_dict: 4 if parameter_dict['magnet_depth'].value < 4 else parameter_dict['magnet_depth'].value,
-                    parameter_dict=self.parameter_dict_by_name
+                    parameter_dict=self.get_parameter_dict_by_name()
                 )
                 self.mm_r_ro: Parameter = Parameter(
                     'rotor_outer_radius', 'derived',
                     calc=lambda parameter_dict: parameter_dict['stator_inner_radius'].value
                                                 - parameter_dict['mechanical_air_gap_depth'].value
                                                 - parameter_dict['rotor_sleeve_depth'].value,
-                    parameter_dict=self.parameter_dict_by_name
+                    parameter_dict=self.get_parameter_dict_by_name()
                 )
                 self.mm_r_ri: Parameter = Parameter(
                     'rotor_inner_radius', 'derived',
                     calc=lambda parameter_dict: parameter_dict['rotor_outer_radius'].value
                                                 - parameter_dict['magnet_depth'].value
                                                 - parameter_dict['rotor_iron (back iron) depth'].value,
-                    parameter_dict=self.parameter_dict_by_name
+                    parameter_dict=self.get_parameter_dict_by_name()
                 )
 
             if not self.bool_StatorSlotClosed:
                 self.mm_d_sto: Parameter = Parameter(
                     'stator_tooth_open_depth', 'derived',
                     calc=lambda parameter_dict: parameter_dict['stator_tooth_shoe_depth'].value * 0.667,
-                    parameter_dict=self.parameter_dict_by_name
+                    parameter_dict=self.get_parameter_dict_by_name()
                 )
                 # deg_alpha_sto 依赖于 deg_alpha_st，使用 deg_alpha_st 的当前值（如果已计算）或使用 bounds 的中间值
                 def _deg_alpha_st_default(parameter_dict):
@@ -1594,7 +1731,7 @@ class Modern_Machine_Designer(object):
                 self.deg_alpha_sto: Parameter = Parameter(
                     'stator_tooth_open_angle', 'derived',
                     calc=lambda parameter_dict: _deg_alpha_st_default(parameter_dict) * 0.5,
-                    parameter_dict=self.parameter_dict_by_name
+                    parameter_dict=self.get_parameter_dict_by_name()
                 )
 
             if self.bool_RotorNotched:
@@ -1612,21 +1749,17 @@ class Modern_Machine_Designer(object):
                 self.deg_alpha_rs: Parameter = Parameter(
                     'magnet_segment_span_angle', 'derived',
                     calc=lambda parameter_dict: _deg_alpha_rm_default(parameter_dict),
-                    parameter_dict=self.parameter_dict_by_name
+                    parameter_dict=self.get_parameter_dict_by_name()
                 )
 
                 self.mm_d_rp: Parameter = Parameter(
                     'inter_polar_iron_thickness', 'derived',
                     calc=lambda parameter_dict: parameter_dict['magnet_depth'].value,
-                    parameter_dict=self.parameter_dict_by_name
+                    parameter_dict=self.get_parameter_dict_by_name()
                 )
                 self.mm_d_rs: Parameter = Parameter(
                     'inter_segment_iron_thickness', 'fixed', 0.0
                 )
-
-            # update parameter_dict to include derived variables
-            self.parameter_dict = self.get_parameter_dict()
-            self.parameter_dict_by_name = self.get_parameter_dict_by_name()
 
         # Initialize all derived variables
         for i, param in enumerate(self.get_parameters_by_type('derived').values()):
@@ -1634,7 +1767,7 @@ class Modern_Machine_Designer(object):
                 try:
                     param.value = param.calc(param.parameter_dict)
                 except Exception as e:
-                    print(f"Warning: Failed to initialize derived parameter '{param.name}': {e}")
+                    print(f"Warning: Failed to initialize derived parameter '{param.name}' due to KeyError: {e}")
 
         # Collect all parameters whose initialized is False
         uninitialized_params = [param for param in self.get_parameters_by_type('derived').values() 
@@ -1742,15 +1875,15 @@ class Modern_Machine_Designer(object):
                     CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
                         name="rotorCore",
                         color="#FE840E",
-                        mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
-                        deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
+                        mm_d_pm=self.mm_d_pm.value,
+                        deg_alpha_rm=self.deg_alpha_rm.value,
                         deg_alpha_rs=self.deg_alpha_rm.value if self.s.value==1 else self.deg_alpha_rs.value,
-                        mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 8,
-                        mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 40,
-                        mm_d_rp=self.mm_d_rp.value if hasattr(self, "mm_d_rp") and self.mm_d_rp.value is not None else 5,
-                        mm_d_rs=self.mm_d_rs.value if hasattr(self, "mm_d_rs") and self.mm_d_rs.value is not None else 3,
-                        p=self.p.value if hasattr(self, "p") and self.p.value is not None else 2,
-                        s=self.s.value if hasattr(self, "s") and self.s.value is not None else 4
+                        mm_d_ri=self.mm_d_ri.value,
+                        mm_r_ri=self.mm_r_ri.value,
+                        mm_d_rp=self.mm_d_rp.value,
+                        mm_d_rs=self.mm_d_rs.value,
+                        p=self.p.value,
+                        s=self.s.value
                     ).draw(drawer, **kwargs)
                 )
             ),
@@ -1761,15 +1894,15 @@ class Modern_Machine_Designer(object):
                         name="shaft",
                         color="#0EE0E2",
                         rotorCore=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
-                            mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
-                            deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
+                            mm_d_pm=self.mm_d_pm.value,
+                            deg_alpha_rm=self.deg_alpha_rm.value,
                             deg_alpha_rs=self.deg_alpha_rm.value if self.s.value==1 else self.deg_alpha_rs.value,
-                            mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 8,
-                            mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 40,
-                            mm_d_rp=self.mm_d_rp.value if hasattr(self, "mm_d_rp") and self.mm_d_rp.value is not None else 5,
-                            mm_d_rs=self.mm_d_rs.value if hasattr(self, "mm_d_rs") and self.mm_d_rs.value is not None else 3,
-                            p=self.p.value if hasattr(self, "p") and self.p.value is not None else 2,
-                            s=self.s.value if hasattr(self, "s") and self.s.value is not None else 4
+                            mm_d_ri=self.mm_d_ri.value,
+                            mm_r_ri=self.mm_r_ri.value,
+                            mm_d_rp=self.mm_d_rp.value,
+                            mm_d_rs=self.mm_d_rs.value,
+                            p=self.p.value,
+                            s=self.s.value
                         )
                     ).draw(drawer, **kwargs)
                 )
@@ -1785,15 +1918,15 @@ class Modern_Machine_Designer(object):
                         name="rotorMagnet",
                         color="#1C96E0",
                         rotorCore=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
-                            mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
-                            deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
+                            mm_d_pm=self.mm_d_pm.value,
+                            deg_alpha_rm=self.deg_alpha_rm.value,
                             deg_alpha_rs=self.deg_alpha_rm.value if self.s.value==1 else self.deg_alpha_rs.value,
-                            mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 8,
-                            mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 40,
-                            mm_d_rp=self.mm_d_rp.value if hasattr(self, "mm_d_rp") and self.mm_d_rp.value is not None else 5,
-                            mm_d_rs=self.mm_d_rs.value if hasattr(self, "mm_d_rs") and self.mm_d_rs.value is not None else 3,
-                            p=self.p.value if hasattr(self, "p") and self.p.value is not None else 2,
-                            s=self.s.value if hasattr(self, "s") and self.s.value is not None else 4
+                            mm_d_ri=self.mm_d_ri.value,
+                            mm_r_ri=self.mm_r_ri.value,
+                            mm_d_rp=self.mm_d_rp.value,
+                            mm_d_rs=self.mm_d_rs.value,
+                            p=self.p.value,
+                            s=self.s.value
                         )
                     ).draw(drawer, **kwargs)
                 ),
@@ -1807,11 +1940,11 @@ class Modern_Machine_Designer(object):
                 },
                 draw_function=lambda drawer, **kwargs: (
                     CrossSectInnerNotchedRotor.CrossSectSleeve(
-                        mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 5,
-                        mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 5,
-                        mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 3,
-                        p=self.p.value if hasattr(self, "p") and self.p.value is not None else 4,
-                        d_sleeve=self.d_sleeve.value if hasattr(self, "d_sleeve") and self.d_sleeve.value is not None else 1
+                        mm_r_ri=self.mm_r_ri.value,
+                        mm_d_ri=self.mm_d_ri.value,
+                        mm_d_pm=self.mm_d_pm.value,
+                        p=self.p.value,
+                        d_sleeve=self.mm_d_sleeve.value
                     ).draw(drawer, **kwargs)
                 )
             ),
@@ -1833,15 +1966,15 @@ class Modern_Machine_Designer(object):
                     CrossSectStator.CrossSectInnerRotorStator(
                         name="statorCore",
                         color="#BAFA01",
-                        deg_alpha_st=self.deg_alpha_st.value if hasattr(self, "deg_alpha_st") and self.deg_alpha_st.value is not None else 40,
-                        deg_alpha_sto=self.deg_alpha_sto.value if hasattr(self, "deg_alpha_sto") and self.deg_alpha_sto.value is not None else 20,
-                        mm_r_si=self.mm_r_si.value if hasattr(self, "mm_r_si") and self.mm_r_si.value is not None else 40,
-                        mm_d_sto=self.mm_d_sto.value if hasattr(self, "mm_d_sto") and self.mm_d_sto.value is not None else 5,
-                        mm_d_sts=self.mm_d_sts.value if hasattr(self, "mm_d_sts") and self.mm_d_sts.value is not None else 10,
-                        mm_d_st=self.mm_d_st.value if hasattr(self, "mm_d_st") and self.mm_d_st.value is not None else 15,
-                        mm_d_sy=self.mm_d_sy.value if hasattr(self, "mm_d_sy") and self.mm_d_sy.value is not None else 15,
-                        mm_w_st=self.mm_w_st.value if hasattr(self, "mm_w_st") and self.mm_w_st.value is not None else 13,
-                        Q=self.Q.value if hasattr(self, "Q") and self.Q.value is not None else 6,
+                        deg_alpha_st=self.deg_alpha_st.value,
+                        deg_alpha_sto=self.deg_alpha_sto.value,
+                        mm_r_si=self.mm_r_si.value,
+                        mm_d_sto=self.mm_d_sto.value,
+                        mm_d_sts=self.mm_d_sts.value,
+                        mm_d_st=self.mm_d_st.value,
+                        mm_d_sy=self.mm_d_sy.value,
+                        mm_w_st=self.mm_w_st.value,
+                        Q=self.Qs.value
                     ).draw(drawer, **kwargs)
                 ),
             ),
@@ -1880,29 +2013,15 @@ class Modern_Machine_Designer(object):
     def show_geometry(self, filename=None) -> None:
         bool_draw_whole_model = True
         
-        # 确保 machineGeometry 已初始化
-        if not hasattr(self, 'machineGeometry') or self.machineGeometry is None:
-            # 如果 machineGeometry 不存在，调用 __post_init__ 来创建
-            self.__post_init__()
-
         def draw_spmsm(lw, width_in_points, height_in_points, filename='machine_geometry.svg', bool_draw_whole_model=True):
             self.drawer = drawer = CairoDrawer(width_in_points, height_in_points, filename=filename)
 
-            # 检查 machineGeometry 是否存在且包含必要的键
-            if not hasattr(self, 'machineGeometry') or self.machineGeometry is None:
-                raise ValueError("machineGeometry is not initialized. Please ensure __post_init__ was called.")
-
-            # 安全地调用 draw 方法
-            if  'rotorCore' in self.machineGeometry and self.machineGeometry['rotorCore'] is not None\
-            and 'shaft' in self.machineGeometry and self.machineGeometry['shaft'] is not None\
-            and 'rotorMagnet' in self.machineGeometry and self.machineGeometry['rotorMagnet'] is not None\
-            and 'statorCore' in self.machineGeometry and self.machineGeometry['statorCore'] is not None\
-            and 'coils' in self.machineGeometry and self.machineGeometry['coils'] is not None:
-                list_regions = self.machineGeometry['rotorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-                list_regions = self.machineGeometry['shaft'].draw(drawer)
-                list_regions = self.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-                list_regions = self.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-                list_regions = self.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            # 直接调用 draw 方法，如果 machineGeometry 不存在或缺少必要的键，会直接报错
+            list_regions = self.machineGeometry['rotorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.machineGeometry['shaft'].draw(drawer)
+            list_regions = self.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
 
             drawer.apply_stroke(lw=lw)
             drawer.convert_to_pdf()
@@ -1917,19 +2036,12 @@ class Modern_Machine_Designer(object):
 
 
         # mm_r_ro 只在 bool_PermanentMagnet 为 True 时存在
-        if hasattr(self, 'mm_r_ro') and self.mm_r_ro.value is not None:
-            lw = 0.1 if self.mm_r_ro.value < 15 else 0.5
-        else:
-            # 使用默认值
-            lw = 0.5
-        # 检查必要的参数是否存在
-        if not hasattr(self, 'mm_r_so') or self.mm_r_so.value is None:
-            raise ValueError("mm_r_so parameter is required but not found or has no value")
+        lw = 0.1 if self.mm_r_ro.value < 15 else 0.5
         width_in_points  = self.mm_r_so.value*2.1
         height_in_points = self.mm_r_so.value*2.1
         draw_spmsm(lw, width_in_points, height_in_points)
 
-    def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True, x_denorm=None, counter=None, counter_loop=None):
+    def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True, x_denorm=None, counter=None, counter_loop=0):
 
         def update_geometric_parameters(x_denorm):
             for i, param in enumerate(self.get_free_variables()):
@@ -2155,7 +2267,7 @@ class Modern_Machine_Designer(object):
                 individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
                 results2file = {f'spec_performance_dict-gen{number_current_generation}-ind{individual_index}' : spec_performance_dict}
 
-                json_file_path = self.path2SwarmData + self.name + f'.json'
+                json_file_path = self.path2SwarmData + f'SwarmData.json'
                 # INSERT_YOUR_CODE
                 # Load existing JSON file (if any), append the new results and write back using jsonpickle.
                 try:
@@ -2921,7 +3033,7 @@ class Modern_Machine_Designer(object):
             
             # 保存 parameter_dict 的引用标记（用于重建 lambda 函数）
             # 注意：parameter_dict 本身不序列化，因为它包含循环引用
-            # 在反序列化时，parameter_dict 会从对象的 get_parameter_dict() 方法获取
+            # 在反序列化时，parameter_dict 会从对象的 get_parameter_dict_by_name() 方法获取
             if hasattr(param, 'parameter_dict') and param.parameter_dict is not None:
                 param_dict['_has_parameter_dict'] = True
             
@@ -3151,14 +3263,14 @@ class Modern_Machine_Designer(object):
         instance.__post_init__()
         
         # 更新所有参数的 parameter_dict 引用
-        parameter_dict = instance.get_parameter_dict()
+        parameter_dict = instance.get_parameter_dict_by_name()
         parameter_dict_by_name = instance.get_parameter_dict_by_name()
         for field_name, param in instance.get_parameter_fields().items():
             # 对于需要参数名作为键的参数（derived 参数和 calc_bounds），使用 parameter_dict_by_name
             if param.calc is not None or param.calc_bounds is not None:
                 param.parameter_dict = parameter_dict_by_name
             elif hasattr(param, 'parameter_dict'):
-                # 其他情况使用字段名作为键的字典
+                # 其他情况也使用参数名作为键的字典
                 param.parameter_dict = parameter_dict
         
         # 恢复保存的参数值（如果 __post_init__ 覆盖了它们）
@@ -3301,9 +3413,9 @@ if __name__ == "__main__":
     # print(dir(mmd.machineGeometry['statorCore']))
     mmd.drawer.visualization_points['Coils']['PCoil']
 
-    # mmd.FEA_evaluate()
-    # mmd.save_to_file('machine_designer.json')
-    # mmd.save_to_file_full('machine_designer_full.json') # 保存完整信息到文件（类似 pickle）
+    mmd.FEA_evaluate()
+    mmd.save_to_file('machine_designer.json')
+    mmd.save_to_file_full('machine_designer_full.json') # 保存完整信息到文件（类似 pickle）
 
     mmd.start_optimization()
     quit()
