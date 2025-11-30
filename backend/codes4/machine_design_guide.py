@@ -1,10 +1,952 @@
 from dataclasses import dataclass, fields
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
-import json, math, base64, pickle, cairo, os, jsonpickle
+import json, math, base64, pickle, cairo, os, jsonpickle, logging
+
+
+
+
+class Swarm_Data_Analyzer(object):
+    def __init__(self, fname, desired_x_denorm_dict, bool_filter_pareto_front=False):
+        logger = logging.getLogger(__name__)
+        logger.info('Swarm_Data_Analyzer: %s', fname)
+        if not os.path.exists(fname):
+            self.number_of_chromosome = 0
+            self.swarm_data_xf = None
+        else:
+            ''' 1. Load json file
+            '''
+            print(f'[acm_designer.py] read in {fname=}')
+            with open(fname, 'r') as f:
+                swarm_data_as_dict = json.load(f)
+                # buf = f.read()
+                # swarm_data_as_dict = json.loads('{'+buf[1:]+'}')
+                # del buf
+                # if 'Test' in swarm_data_as_dict.keys():
+                #     del swarm_data_as_dict['Test']
+            
+            if bool_filter_pareto_front:
+                swarm_data_as_dict = self.filter_data(swarm_data_as_dict, 'Geometric parameters', 'split_ratio', 'bigger', 0.45)
+
+            self.number_of_chromosome = len(swarm_data_as_dict)
+            self.swarm_data_as_dict = swarm_data_as_dict
+
+            if False:
+                def sort_as_desired(x_denorm_dict, desired_x_denorm_dict=None):
+                    if desired_x_denorm_dict is None:
+                        return list(x_denorm_dict.values())
+                    else:
+                        try:
+                            return [x_denorm_dict[key] for key in desired_x_denorm_dict.keys()]
+                        except KeyError as e:
+                            print('Error Hint: some geometric parameters are renamed so the old json archive file now has different name from the new name.')
+                            raise e
+
+                    ''' 目前只支持重新跑优化的时候减少自由的几何参数，如果要增加自由的几何参数，则要从GP里面拿出来对应的参数的取值。其实也很简单啦。'''
+                    x_denorm = []
+                    for key in desired_x_denorm_dict.keys():
+                        if key not in x_denorm_dict:
+                            x_denorm.append(self.decode(v)['Geometric parameters'][key]) # pseudo code for showing the concept, this will not work.
+                        else:
+                            x_denorm.append(x_denorm_dict[key])
+                self.swarm_data_xf = [
+                                        sort_as_desired(self.decode(v)['x_denorm_dict'], desired_x_denorm_dict) + [ self.decode(v)['Performance']['f1'], self.decode(v)['Performance']['f2'], self.decode(v)['Performance']['f3'] ]
+                                        for v in swarm_data_as_dict.values() # v = {name:data}
+                                        ]
+
+            # 几个问题：一个是x_denorm_dict没有被更新成正确的值，
+            # 另一个是数据结构的问题，基础的参数在那边没问题，优化的结果应该只保留变化的值
+            self.swarm_data_xf = swarm_data_as_dict['x_denorm_dict'] + [swarm_data_as_dict['Performance']]
+            self.number_of_free_variables = len(self.swarm_data_xf[0]) - 3
+
+            # DEBUG
+            # print('[acm_designer.py]')
+            # for ind, xf in enumerate(self.swarm_data_xf):
+            #     print(f'{ind:04d}', ',\t'.join([f'{el:.2f}' for el in xf]))
+
+            ''' 3. Get the list of other attribute by individuals (not needed for optimization)
+            '''
+                # self.swarm_data_project_names = [ self.decode(v)['Performance']['project_name'] for v in swarm_data_as_dict.values() ]
+                # self.prepare_data_for_post_processing(swarm_data_as_dict)
+            self.swarm_data_project_names = self.get_metric_of_the_whole_swarm('project_name')
+    
+    def filter_data(self, data, param_type, filter_key, direction, filter_value):
+        filtered_data = {}
+        for key in data.keys():
+            for motor_type in data[key].keys():
+                flag = False
+                for item in data[key][motor_type][param_type]:
+                    if filter_key in item.keys():
+                        if direction == "bigger" and item[filter_key]['value'] > filter_value:
+                            filtered_data[key] = data[key]
+                            flag = True
+                        if direction == "smaller" and item[filter_key]['value'] <= filter_value:
+                            filtered_data[key] = data[key]
+                            flag = True
+                        break
+                if flag:
+                    break
+        return filtered_data
+
+
+    @staticmethod
+    def decode(d):
+        return list(d.values())[0]
+
+    def get_metric_of_the_whole_swarm(self, metric):
+        return [ self.decode(v)['Performance'][metric] for v in self.swarm_data_as_dict.values() ]
+    def prepare_data_for_post_processing(self):
+
+        ''' 3. Get the list of other attribute by individuals (not needed for optimization)
+        '''
+        # self.machine_data.append([float(x) for x in raw[3].split(',')])
+        # self.rated_data.append(  [float(x) for x in raw[4].split(',')])
+        self.FRW = self.get_metric_of_the_whole_swarm('FRW')
+        self.Em = self.get_metric_of_the_whole_swarm('normalized_force_error_magnitude')
+        self.Ea = self.get_metric_of_the_whole_swarm('force_error_angle')
+        self.Tripple = self.get_metric_of_the_whole_swarm('normalized_torque_ripple')
+        # self.RatedVol = self.get_metric_of_the_whole_swarm('rated_rotor_volume')
+        # self.RatedWeight = self.get_metric_of_the_whole_swarm('rated_rotor_weight')
+        self.RatedStkLen = self.get_metric_of_the_whole_swarm('rated_stack_length_mm')
+
+        # self.f1 = [raw[-3] for raw in self.swarm_data_xf]
+        # self.f2 = [raw[-2] for raw in self.swarm_data_xf]
+        # self.f3 = [raw[-1] for raw in self.swarm_data_xf]
+
+        # [power_factor, efficiency, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle]
+        self.PowerFactor            = self.get_metric_of_the_whole_swarm('power_factor')
+        try:
+            self.Cost                = self.get_metric_of_the_whole_swarm('Cost')
+        except:
+            self.Cost                = np.array(self.get_metric_of_the_whole_swarm('f1'))
+        try:
+            self.TRV                = self.get_metric_of_the_whole_swarm('TRV')
+        except:
+            self.TRV                = - np.array(self.get_metric_of_the_whole_swarm('f1'))
+        try:
+            self.RatedEfficiency    = self.get_metric_of_the_whole_swarm('RatedEfficiency')
+        except:
+            self.RatedEfficiency    = - np.array(self.get_metric_of_the_whole_swarm('f2'))
+        self.TorqueRipple           = self.get_metric_of_the_whole_swarm('normalized_torque_ripple')
+        # self.torque_average                   = [raw[2] for raw in self.machine_data]
+        # self.ss_avg_force_magnitude           = [raw[4] for raw in self.machine_data]
+        # self.normalized_force_error_magnitude = [raw[5] for raw in self.machine_data]
+        # self.force_error_angle                = [raw[6] for raw in self.machine_data]
+
+        # self.l_rated_shaft_power                    = [raw[0] for raw in self.rated_data]
+        # self.l_rated_efficiency                     = [raw[1] for raw in self.rated_data]
+        self.l_rated_total_loss                     = self.get_metric_of_the_whole_swarm('rated_total_loss') # [raw[2] for raw in self.rated_data]
+        self.l_rated_stator_copper_loss_along_stack = self.get_metric_of_the_whole_swarm('rated_stator_copper_loss_along_stack') # [raw[3] for raw in self.rated_data]
+        self.l_rated_rotor_copper_loss_along_stack  = self.get_metric_of_the_whole_swarm('rated_rotor_copper_loss_along_stack') # [raw[4] for raw in self.rated_data]
+        self.l_stator_copper_loss_in_end_turn       = self.get_metric_of_the_whole_swarm('stator_copper_loss_in_end_turn') # [raw[5] for raw in self.rated_data]
+        self.l_rotor_copper_loss_in_end_turn        = self.get_metric_of_the_whole_swarm('rotor_copper_loss_in_end_turn') # [raw[6] for raw in self.rated_data]
+        self.l_rated_iron_loss                      = self.get_metric_of_the_whole_swarm('rated_iron_loss') # [raw[7] for raw in self.rated_data]
+        self.l_rated_windage_loss                   = self.get_metric_of_the_whole_swarm('rated_windage_loss') # [raw[8] for raw in self.rated_data]
+        # self.l_rated_magnet_Joule_loss              = self.get_metric_of_the_whole_swarm('rated_magnet_Joule_loss')
+        # self.l_rated_rotor_volume                   = self.get_metric_of_the_whole_swarm('rated_rotor_volume') # [raw[9] for raw in self.rated_data]
+        # self.l_rated_rotor_weight                   = self.get_metric_of_the_whole_swarm('rated_rotor_weight') # [(V*8050*9.8) for V in self.l_rated_rotor_volume] # density of rotor is estimated to be that of steraw of 8050 g/cm^3
+        self.l_rated_stack_length                   = self.get_metric_of_the_whole_swarm('rated_stack_length_mm') # [raw[10] for raw in self.rated_data] # new!
+        # self.l_original_stack_length                = [raw[11] for raw in self.rated_data] # new!
+        # self.l_original_rotor_weight                = [weight/rated*ori for weight, rated, ori in zip(self.l_rated_rotor_weight, self.l_rated_stack_length, self.l_original_stack_length)]
+
+        # TODO: change to EX['mec_power'] and EX['the_speed']
+        # required_torque = 50e3 / (30000/60*2*math.pi)         # TODO: should use rated stack length and torque average to compute this
+        # self.l_TRV = [required_torque/raw for raw in self.l_rated_rotor_volume]
+        # self.l_FRW = [F/W for W, F in zip(self.l_original_rotor_weight, self.l_ss_avg_force_magnitude)] # FRW
+        pass
+
+class swarm_data_container(object):
+    def __init__(self, swarm_data_raw, fea_config_dict, swarm_data_json=None):
+
+        self.swarm_data_raw = swarm_data_raw
+        self.fea_config_dict = fea_config_dict
+
+        # x, f(x)
+        self.swarm_data_xf = []
+        self.project_names = []
+        self.machine_data = []
+        self.rated_data = []
+        self.Trip = []
+        self.FRW = []
+        self.Em = []
+        self.Ea = []
+        self.RatedVol = []
+        self.RatedWeight = []
+        self.RatedStkLen = []
+        #IM 
+            # if len(bound_filter) == 9: # This is induction motor
+            #     for raw in swarm_data_raw:
+
+            #         design_parameters_denorm = [float(x) for x in raw[5].split(',')]
+            #         # print(design_parameters_denorm, len(design_parameters_denorm))
+            #         # quit()
+
+            #         loc1 = raw[2].find('f1')
+            #         loc2 = raw[2].find('f2')
+            #         loc3 = raw[2].find('f3')
+            #         f1 = float(raw[2][loc1+3:loc2-1])
+            #         f2 = float(raw[2][loc2+3:loc3-1])
+            #         f3 = float(raw[2][loc3+3:])
+
+            #         x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
+            #         self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
+            #         # print(self.swarm_data_xf)
+            #         # quit()
+
+            #         self.project_names.append(raw[1][:-1])
+            #         self.machine_data.append([float(x) for x in raw[3].split(',')])
+            #         self.rated_data.append(  [float(x) for x in raw[4].split(',')])
+
+            #         individual_Trip = [float(x) for x in raw[3].split(',')][3]
+            #         self.Trip.append(individual_Trip)
+
+            #         # Get FRW
+            #         individual_ss_avg_force_magnitude = [float(x) for x in raw[3].split(',')][4]
+            #         individual_Em                     = [float(x) for x in raw[3].split(',')][5]
+            #         individual_Ea                     = [float(x) for x in raw[3].split(',')][6]
+            #         individual_rated_rotor_volume     = [float(x) for x in raw[4].split(',')][9]
+            #         individual_rated_rotor_weight     = (individual_rated_rotor_volume*8050*9.8)
+            #         individual_rated_stack_length     = [float(x) for x in raw[4].split(',')][10]
+            #         individual_original_stack_length  = [float(x) for x in raw[4].split(',')][11]
+            #         individual_original_rotor_weight  = individual_rated_rotor_weight/individual_rated_stack_length*individual_original_stack_length
+            #         individual_FRW = individual_ss_avg_force_magnitude/individual_original_rotor_weight
+            #         self.FRW.append(individual_FRW)
+            #         self.Em.append(individual_Em)
+            #         self.Ea.append(individual_Ea)
+            #         self.RatedVol.append(individual_rated_rotor_volume)
+            #         self.RatedWeight.append(individual_rated_rotor_weight)
+            #         self.RatedStkLen.append(individual_rated_stack_length)
+        # else: # This is PM motor
+        if True:
+            # self.swarm_data_raw = swarm_data_raw
+            # self.fea_config_dict = fea_config_dict
+
+            # x, f(x)
+            # self.swarm_data_xf = []
+            # self.project_names = []
+
+            # self.machine_data = []
+            # self.rated_data = []
+            # self.Trip = []
+            # self.FRW = []
+            # self.Em = []
+            # self.Ea = []
+            # self.RatedVol = []
+            # self.RatedWeight = []
+            # self.RatedStkLen = []
+            self.deg_alpha_st = []
+            self.mm_w_st = []
+            self.mm_r_si = []
+
+            # TODO: use swarm_data_json over raw
+            if swarm_data_json is not None:
+                for key in swarm_data_json.keys():
+                    # print(swarm_data_json[key])
+                    logger = logging.getLogger(__name__)
+                    logger.debug('DEBUG (swarm_data_json) %s', list(swarm_data_json[key].keys()))
+                    # print('DEBUG', list(swarm_data_json[key].values()))
+
+                    the_variant_dict = list(swarm_data_json[key].values())
+                    x_denorm = list( the_variant_dict[0]['x_denorm_dict'].values() )
+                    # x_denorm = [val for val in list(swarm_data_json[key].values())['x_denorm_dict'].items()]
+                    # print(x_denorm)
+                    # quit()
+            if True:
+                for raw in self.swarm_data_raw:
+
+                    # spmsm_template.design_parameters = [
+                    #                                   0 spmsm_template.deg_alpha_st 
+                    #                                   1 spmsm_template.deg_alpha_sto 
+                    #                                   2 spmsm_template.mm_r_si      
+                    #                                   3 spmsm_template.mm_d_sto      
+                    #                                   4 spmsm_template.mm_d_sts      
+                    #                                   5 spmsm_template.mm_d_st      
+                    #                                   6 spmsm_template.mm_d_sy      
+                    #                                   7 spmsm_template.mm_w_st      
+                    #                                   8 spmsm_template.mm_r_st      
+                    #                                   9 spmsm_template.mm_r_sf      
+                    #                                  10 spmsm_template.mm_r_sb      
+                    #                                  11 spmsm_template.Q            
+                    #                                  12 spmsm_template.sleeve_length
+                    #                                  13 spmsm_template.fixed_air_gap_length
+                    #                                  14 spmsm_template.mm_d_pm      
+                    #                                  15 spmsm_template.deg_alpha_rm 
+                    #                                  16 spmsm_template.deg_alpha_rs 
+                    #                                  17 spmsm_template.mm_d_ri      
+                    #                                  18 spmsm_template.mm_r_ri      
+                    #                                  19 spmsm_template.mm_d_rp      
+                    #                                  20 spmsm_template.mm_d_rs      
+                    #                                  21 spmsm_template.p
+                    #                                  22 spmsm_template.s
+                    #                                 ]
+                    design_parameters_denorm = [float(x) for x in raw[5].split(',')]
+                    self.deg_alpha_st.append(design_parameters_denorm[0] )
+                    self.mm_w_st.append(     design_parameters_denorm[7] )
+                    self.mm_r_si.append(   design_parameters_denorm[2])
+
+                    loc1 = raw[2].find('f1')
+                    loc2 = raw[2].find('f2')
+                    loc3 = raw[2].find('f3')
+                    f1 = float(raw[2][loc1+3:loc2-1])
+                    f2 = float(raw[2][loc2+3:loc3-1])
+                    f3 = float(raw[2][loc3+3:])
+
+                    if len(design_parameters_denorm) > 20:
+                        ''' 永磁电机 复古 '''
+
+                        # 在 acmop 里，我们已经放弃了使用 bound_filter 的概念。
+                        # x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
+
+                        """ This is consistent with bopt-python """
+                        # x_denorm = [None]*11
+                        # x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
+                        # x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_sto         
+                        # x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
+                        # x_denorm[3]  = design_parameters_denorm[7] # spmsm_template.mm_w_st         
+                        # x_denorm[4]  = design_parameters_denorm[12] # spmsm_template.sleeve_length   
+                        # x_denorm[5]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm         
+                        # x_denorm[6]  = design_parameters_denorm[15] # spmsm_template.deg_alpha_rm    
+                        # x_denorm[7]  = design_parameters_denorm[16] # spmsm_template.deg_alpha_rs    
+                        # x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
+                        # x_denorm[9]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
+                        # x_denorm[10] = design_parameters_denorm[20] # spmsm_template.mm_d_rs         
+
+                        if False:
+                            """ This is consistent with ACMOP """
+                            x_denorm = [None]*11
+                            x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
+                            x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_sto         
+                            x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
+                            x_denorm[3]  = sum([design_parameters_denorm[i] for i in (2,4,5,6)]) # outer_stator_radius mm_r_so
+                            x_denorm[4]  = design_parameters_denorm[7] # spmsm_template.mm_w_st   
+                            x_denorm[5]  = design_parameters_denorm[12] #            mm_d_sleeve
+                            r_si = design_parameters_denorm[2] # 2 spmsm_template.mm_r_si      
+                            try:
+                                x_denorm[6]  = r_si /  x_denorm[3] # split_ratio     r_is_slash_r_os 
+                            except ZeroDivisionError as e:
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                raise e
+                            x_denorm[7]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm      
+                            x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
+                            # childGP
+                            x_denorm[9]  = design_parameters_denorm[15] # spmsm_template.deg_alpha_rm    
+                            x_denorm[10]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
+                            # x_denorm[11]  = design_parameters_denorm[16] # spmsm_template.deg_alpha_rs    
+                            # x_denorm[12] = design_parameters_denorm[20] # spmsm_template.mm_d_rs         
+
+                            # DEBUG
+                            # odict_keys(['deg_alpha_st', 'mm_d_sto', 'mm_d_st', 'mm_r_so', 'mm_w_st', 'mm_d_sleeve', 'split_ratio', 'mm_d_pm', 'mm_d_ri', 'deg_alpha_rm', 'mm_d_rp'])
+                            # deg_alpha_st 11.1183
+                            # mm_d_sto 1.50079
+                            # mm_d_st 42.9701
+                            # mm_r_so 16.099
+                            # mm_w_st 5.89091
+                            # mm_d_sleeve 5.19948
+                            # split_ratio 44.9638
+                            # mm_d_pm 44.9638
+                            # mm_d_ri 3.67901
+                            # deg_alpha_rm 5.19948
+                            # mm_d_rp 0.0
+                        else:
+                            """ This is consistent with ACMOP """
+                            x_denorm = [None]*11
+                            x_denorm[0]  = design_parameters_denorm[0] # spmsm_template.deg_alpha_st 
+                            x_denorm[1]  = design_parameters_denorm[3] # spmsm_template.mm_d_sto         
+                            x_denorm[2]  = design_parameters_denorm[5] # spmsm_template.mm_d_st
+                            x_denorm[3]  = sum([design_parameters_denorm[i] for i in (2,4,5,6)]) # outer_stator_radius mm_r_so
+                            print(f'{x_denorm[1]=}, {x_denorm[0]/2=}')
+                            x_denorm[4]  = design_parameters_denorm[7] # spmsm_template.mm_w_st   
+                            x_denorm[5]  = design_parameters_denorm[12] #            mm_d_sleeve
+                            r_si = design_parameters_denorm[2] # 2 spmsm_template.mm_r_si      
+                            try:
+                                x_denorm[6]  = r_si /  x_denorm[3] # split_ratio     r_is_slash_r_os 
+                                # print(f'{x_denorm[6]=}, {r_si=}')
+                            except ZeroDivisionError as e:
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                print('Error: You need to clean up the swarm_data.txt file. There is a design with zero element in design_parameters (which is intended with ACMOP).')
+                                raise e
+                            x_denorm[7]  = design_parameters_denorm[14] # spmsm_template.mm_d_pm      
+                            x_denorm[8]  = design_parameters_denorm[17] # spmsm_template.mm_d_ri         
+                            # childGP
+                            x_denorm[9]  = design_parameters_denorm[15] # spmsm_template.deg_alpha_rm    
+                            x_denorm[10]  = design_parameters_denorm[19] # spmsm_template.mm_d_rp         
+
+                    else:
+                        '''感应电机 复古 '''
+                        raise Exception('not implemented')
+
+                    # print(design_parameters_denorm, f1, f2, f3)
+                    # THERE IS A BUT HERE: slot_tip_open_ratio is less than 0.2---Not possible
+                        # free_variables[0]  = design_parameters[0] # spmsm_template.deg_alpha_st 
+                        # free_variables[4]  = design_parameters[7] # spmsm_template.mm_w_st         
+                        # free_variables[10] = sum([design_parameters[i] for i in (18,17,19)]) # spmsm_template.mm_r_ri + spmsm_template.mm_d_ri + spmsm_template.mm_d_rp
+                        # self.deg_alpha_st.append(x_denorm[0] ) 
+                        # self.mm_w_st.append(x_denorm[4] ) 
+                        # self.mm_radius.append(x_denorm[10]) 
+
+                    self.project_names.append(raw[1][:-1])
+                    self.machine_data.append([float(x) for x in raw[3].split(',')])
+                    self.rated_data.append(  [float(x) for x in raw[4].split(',')])
+
+                    individual_Trip = [float(x) for x in raw[3].split(',')][3]
+                    self.Trip.append(individual_Trip)
+
+                    # Get FRW
+                    individual_ss_avg_force_magnitude = [float(x) for x in raw[3].split(',')][4]
+                    individual_Em                     = [float(x) for x in raw[3].split(',')][5]
+                    individual_Ea                     = [float(x) for x in raw[3].split(',')][6]
+                    individual_rated_rotor_volume     = [float(x) for x in raw[4].split(',')][9]
+                    individual_rated_rotor_weight     = (individual_rated_rotor_volume*8050*9.8)
+                    individual_rated_stack_length     = [float(x) for x in raw[4].split(',')][10]
+                    individual_original_stack_length  = [float(x) for x in raw[4].split(',')][11]
+                    individual_original_rotor_weight  = individual_rated_rotor_weight/individual_rated_stack_length*individual_original_stack_length
+                    individual_FRW = individual_ss_avg_force_magnitude/individual_original_rotor_weight
+                    self.FRW.append(individual_FRW)
+                    self.Em.append(individual_Em)
+                    self.Ea.append(individual_Ea)
+                    self.RatedVol.append(individual_rated_rotor_volume)
+                    self.RatedWeight.append(individual_rated_rotor_weight)
+                    self.RatedStkLen.append(individual_rated_stack_length)
+
+                    # Add FRW to xf (This will cause re-starting error)
+                    # self.swarm_data_xf.append(x_denorm + [individual_FRW, f1, f2, f3])
+
+                    self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
+
+        self.number_of_free_variables = len(x_denorm)
+        print('\tCount of individuals:', len(self.swarm_data_raw))
+
+        self.l_OA = [raw[-3] for raw in self.swarm_data_xf]
+        self.l_OB = [raw[-2] for raw in self.swarm_data_xf]
+        self.l_OC = [raw[-1] for raw in self.swarm_data_xf]
+        self.l_design_parameters = [raw[:-3] for raw in self.swarm_data_xf]
+
+        # [power_factor, efficiency, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle]
+        self.l_power_factor                     = [raw[0] for raw in self.machine_data]
+        self.l_efficiency                       = [raw[1] for raw in self.machine_data]
+        self.l_torque_average                   = [raw[2] for raw in self.machine_data]
+        self.l_normalized_torque_ripple         = [raw[3] for raw in self.machine_data]
+        self.l_ss_avg_force_magnitude           = [raw[4] for raw in self.machine_data]
+        self.l_normalized_force_error_magnitude = [raw[5] for raw in self.machine_data]
+        self.l_force_error_angle                = [raw[6] for raw in self.machine_data]
+
+        self.l_rated_shaft_power                    = [raw[0] for raw in self.rated_data]
+        self.l_rated_efficiency                     = [raw[1] for raw in self.rated_data]
+        self.l_rated_total_loss                     = [raw[2] for raw in self.rated_data]
+        self.l_rated_stator_copper_loss_along_stack = [raw[3] for raw in self.rated_data]
+        self.l_rated_rotor_copper_loss_along_stack  = [raw[4] for raw in self.rated_data]
+        self.l_stator_copper_loss_in_end_turn       = [raw[5] for raw in self.rated_data]
+        self.l_rotor_copper_loss_in_end_turn        = [raw[6] for raw in self.rated_data]
+        self.l_rated_iron_loss                      = [raw[7] for raw in self.rated_data]
+        self.l_rated_windage_loss                   = [raw[8] for raw in self.rated_data]
+        self.l_rated_rotor_volume                   = [raw[9] for raw in self.rated_data]
+        self.l_rated_rotor_weight                   = [(V*8050*9.8) for V in self.l_rated_rotor_volume] # density of rotor is estimated to be that of steraw of 8050 g/cm^3
+        self.l_rated_stack_length                   = [raw[10] for raw in self.rated_data] # new!
+        self.l_original_stack_length                = [raw[11] for raw in self.rated_data] # new!
+        self.l_original_rotor_weight                = [weight/rated*ori for weight, rated, ori in zip(self.l_rated_rotor_weight, self.l_rated_stack_length, self.l_original_stack_length)]
+
+        # TODO: change to EX['mec_power'] and EX['the_speed']
+        required_torque = 50e3 / (30000/60*2*math.pi)         # TODO: should use rated stack length and torque average to compute this
+        self.l_TRV = [required_torque/raw for raw in self.l_rated_rotor_volume]
+        self.l_FRW = [F/W for W, F in zip(self.l_original_rotor_weight, self.l_ss_avg_force_magnitude)] # FRW
+
+    def get_list_y_data(self):
+
+        list_y_data = [ self.l_TRV, ##self.l_rated_stack_length,
+                        [100*raw for raw in self.l_OB], 
+                        self.l_force_error_angle,
+                        ]
+        return list_y_data
+
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    # Utility
+    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+
+    def get_x_denorm_from_design_parameters(self, design_parameters, bound_filter=None):
+        if bound_filter is None:
+            x_denorm = design_parameters
+            return x_denorm
+
+        if len(bound_filter) == 13:
+            # step 1: get free_variables from design_parameters
+            free_variables = [None]*13
+            free_variables[0]  = design_parameters[0] # spmsm_template.deg_alpha_st 
+            free_variables[1]  = design_parameters[3] # spmsm_template.mm_d_sto         
+            free_variables[2]  = design_parameters[5] # spmsm_template.mm_d_st
+            free_variables[3]  = sum([design_parameters[i] for i in (2,4,5,6)]) # spmsm_template.mm_r_si + spmsm_template.mm_d_sts + spmsm_template.mm_d_st + spmsm_template.mm_d_sy # stator outer radius
+            free_variables[4]  = design_parameters[7] # spmsm_template.mm_w_st         
+            free_variables[5]  = design_parameters[12] # spmsm_template.sleeve_length   
+            free_variables[6]  = design_parameters[14] # spmsm_template.mm_d_pm         
+            free_variables[7]  = design_parameters[15] # spmsm_template.deg_alpha_rm    
+            free_variables[8]  = design_parameters[16] # spmsm_template.deg_alpha_rs    
+            free_variables[9]  = design_parameters[17] # spmsm_template.mm_d_ri         
+            free_variables[10] = sum([design_parameters[i] for i in (18,17,19)]) # spmsm_template.mm_r_ri + spmsm_template.mm_d_ri + spmsm_template.mm_d_rp -> rotor_outer_steel_radius
+            free_variables[11] = design_parameters[19] # spmsm_template.mm_d_rp         
+            free_variables[12] = design_parameters[20] # spmsm_template.mm_d_rs         
+        elif len(bound_filter) == 9:
+            free_variables = design_parameters # For IM, free_variables are design_parameters (even always having the same length)
+            # print(free_variables)
+
+        # step 2: get x_denorm from free_variables
+        x_denorm = []
+        for idx, boo in enumerate(bound_filter):
+            if boo == 1:
+                # print(idx)
+                x_denorm.append( free_variables[idx] )
+        return x_denorm
+
+    def sensitivity_bar_charts(self):
+        number_of_variant = self.fea_config_dict['local_sensitivity_analysis_number_of_variants'] + 1
+        number_of_free_variables = self.number_of_free_variables
+
+        from pylab import subplots, mpl, plt
+        mpl.style.use('classic')
+        mpl.rcParams['legend.fontsize'] = 12
+        # mpl.rcParams['legend.family'] = 'Times New Roman'
+        mpl.rcParams['font.family'] = ['Times New Roman']
+        # mpl.rcParams['font.size'] = 15.0
+        font = {'family' : 'Times New Roman', #'serif',
+                'color' : 'darkblue',
+                'weight' : 'normal',
+                'size' : 14,}
+        textfont = {'family' : 'Times New Roman', #'serif',
+                    'color' : 'darkblue',
+                    'weight' : 'normal',
+                    'size' : 11.5,}
+
+        fig, axeses = subplots(4, 2, sharex=True, dpi=150, figsize=(16*0.75, 8*0.75), facecolor='w', edgecolor='k', constrained_layout=True)
+        ax_list = []
+        for i in range(4):
+            ax_list.extend(axeses[i].tolist())
+        # O2_prototype_ax.plot(O2_prototype_data[1], 'o-', lw=0.75, alpha=0.5, label=r'$\delta$'         )
+        # O2_prototype_ax.plot(O2_prototype_data[0], 'v-', lw=0.75, alpha=0.5, label=r'$b_{\rm tooth,s}$')
+        # O2_prototype_ax.plot(O2_prototype_data[3], 's-', lw=0.75, alpha=0.5, label=r'$b_{\rm tooth,r}$')
+        # O2_prototype_ax.plot(O2_prototype_data[5], '^-', lw=0.75, alpha=0.5, label=r'$w_{\rm open,s}$')
+        # O2_prototype_ax.plot(O2_prototype_data[2], 'd-', lw=0.75, alpha=0.5, label=r'$w_{\rm open,r}$')
+        # O2_prototype_ax.plot(O2_prototype_data[6], '*-', lw=0.75, alpha=0.5, label=r'$h_{\rm head,s}$')
+        # O2_prototype_ax.plot(O2_prototype_data[4], 'X-', lw=0.75, alpha=0.5, label=r'$h_{\rm head,r}$')
+
+        # Extract data
+        free_param_list = [
+        r'$L_g$',        
+        r'$w_{st}$',     
+        r'$w_{rt}$',     
+        r'$\theta_{so}$',
+        r'$w_{ro}$',
+        r'$d_{so}$',
+        r'$d_{ro}$']
+        y_label_list = ['PF', r'$\eta$ [100%]', r'$T_{em} [N]$', r'$T_{rip}$ [100%]', r'$|F|$ [N]', r'$E_m$ [100%]', r'$E_a$ [deg]', 
+                        r'$P_{Cu,s,JMAG}$', r'$P_{Cu,r,JMAG}$', r'$P_{Fe}$ [W]', r'$P_{eddy}$', r'$P_{hyst}$', r'$P_{Cu,s,FEMM}$', r'$P_{Cu,r,FEMM}$', 
+                        r'Windage loss', r'Total loss']
+
+        list_y_label = [r'$O_A$ [$\rm kNm/m^3$]', 
+                         '$O_C$ [1]', 
+                         'FRW [p.u.]',
+                         '$E_a$ [deg]', 
+                         '$O_B$ [%]', 
+                         '$E_m$ [%]', 
+                         r'$P_{\rm loss}$ [W]',
+                         r'$T_{\rm rip}$ [%]',
+                         # 'Rotor Weight [N]', #'Power Factor [1]',
+                         ]
+        list_y_data_max = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
+        list_y_data_min = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
+
+        list_y_data = [ [el/1e3 for el in self.l_OA], 
+                        self.l_OC,
+                        [F/W for W, F in zip(self.l_original_rotor_weight, self.l_ss_avg_force_magnitude)], # FRW
+                        self.l_force_error_angle,
+                        [100*el for el in self.l_OB], 
+                        [100*el for el in self.l_normalized_force_error_magnitude],
+                        self.l_rated_total_loss,
+                        [100*el for el in self.l_normalized_torque_ripple],
+                        # self.l_rated_rotor_weight,
+                        ]
+        for i in range(len(list_y_label)):
+            ax = ax_list[i]
+            y_data = list_y_data[i]
+            y_value_reference = y_data[0]
+            ax.plot(y_value_reference*np.ones(len(y_data)), '-k', alpha=1, zorder=10)
+            y_data = y_data[1:]
+            number_of_points_per_geometry_variable = len(y_data)/number_of_free_variables
+            for idx, part_of_y_data in enumerate([y_data[int(number_of_points_per_geometry_variable*_)\
+                                                        :int(number_of_points_per_geometry_variable*(_+1))]\
+                                                        for _ in range(number_of_free_variables)]):
+                if idx%2 == 0:
+                    line_style = '--bo'
+                else:
+                    line_style = '--ro'
+                ax.plot(list(range(len(y_data)))[int(number_of_points_per_geometry_variable*idx)\
+                                                :int(number_of_points_per_geometry_variable*(idx+1))], 
+                                                part_of_y_data, line_style, alpha=0.33)
+
+            low, high = ax.get_ylim()
+            # ax.legend()
+            ax.grid()
+            ax.set_ylabel(list_y_label[i], **font)
+            ax.set_xlim([0,140])
+            for j in range(number_of_free_variables):
+                if j%2==0:
+                    alpha = 0.05
+                else:
+                    alpha = 0.15
+                ax.axvspan(j*number_of_variant-0.5, (j+1)*number_of_variant-0.5, facecolor='k', alpha=alpha)
+                ax.text(0.33*number_of_free_variables+j*number_of_variant, high-(high-low)*0.125, free_param_list[j])
+
+            if i == 0:
+                ax.set_yticks([-24, -22, -20, -18, -16])
+            list_y_data_max[i].append(max(y_data))
+            list_y_data_min[i].append(min(y_data))
+
+        ax_list[-2].set_xlabel('Count of design variant', **font)
+        ax_list[-1].set_xlabel('Count of design variant', **font)
+        fig.savefig(r'C:\Users\horyc\Desktop/'+ 'LSA_curves.png', dpi=300)
+        # plt.show()
+        return
+
+
+
+
+
+
+
+
+
+
+
+
+
+        INDEX_TOTAL_LOSS = 15 + 4 # index of total loss in the machine_data list
+
+        # ------------------------------------ Sensitivity Analysis Bar Chart Scripts
+
+        # print next(self.get_list_objective_function())
+        data_max = []
+        data_min = []
+        eta_at_50kW_max = []
+        eta_at_50kW_min = []
+        O1_max   = []
+        O1_min   = []
+        for ind, i in enumerate(list(range(7))+[INDEX_TOTAL_LOSS]):
+            print('\n-----------', y_label_list[i])
+            l = list(self.get_certain_objective_function(i))
+            y = l
+            print('ind=', ind, 'i=', i, 'len(y)=', len(y))
+
+            data_max.append([])
+            data_min.append([])
+
+            for j in range(int(len(y)/number_of_variant)): # iterate design parameters
+                y_vs_design_parameter = y[j*number_of_variant:(j+1)*number_of_variant]
+
+                try:
+                    # if j == 6:
+                    ax_list[ind].plot(y_vs_design_parameter, 'o-', lw=0.75, label=str(j)+' '+param_list[j], alpha=0.5)
+                except IndexError as e:
+                    print('Check the length of y should be 7*(%d+1)=%d, or else you should remove the redundant results in swarm_data.txt (they are produced because of the interrupted/resumed script run.)'%(number_of_variant, 7*number_of_variant))
+                    raise e
+                print('\tj=', j, param_list[j], '\t\t Max-Min:', max(y_vs_design_parameter) - min(y_vs_design_parameter))
+
+                data_max[ind].append(max(y_vs_design_parameter))
+                data_min[ind].append(min(y_vs_design_parameter))            
+
+            if i==1:
+                ax_list[ind].legend(prop={'family':'Times New Roman'})
+            ax_list[ind].grid()
+            ax_list[ind].set_ylabel(y_label_list[i], **font)
+
+        print('\nObjectives vs. geometry variables:')
+        for ind, el in enumerate(data_max):
+            print(ind, 'Max', el)
+        print('\nObjectives vs. geometry variables:')
+        for ind, el in enumerate(data_min):
+            print(ind, 'Min', el)
+
+        if self.reference_design is not None:
+            print('\n-------------------- Here goes the reference design:')
+            for el in self.reference_design[1:]:
+                print(el, end=' ')
+            self.reference_data = [float(el) for el in self.reference_design[3].split(',')]
+            O2_ref = fobj_scalar(self.reference_data[2],
+                                 self.reference_data[4],
+                                 self.reference_data[3],
+                                 self.reference_data[5],
+                                 self.reference_data[6],
+                                 self.reference_data[INDEX_TOTAL_LOSS],
+                                 weights=use_weights('O2'), rotor_volume=self.rotor_volume, rotor_weight=self.rotor_weight)
+            O1_ref = fobj_scalar(self.reference_data[2],
+                                 self.reference_data[4],
+                                 self.reference_data[3],
+                                 self.reference_data[5],
+                                 self.reference_data[6],
+                                 self.reference_data[INDEX_TOTAL_LOSS],
+                                 weights=use_weights('O1'), rotor_volume=self.rotor_volume, rotor_weight=self.rotor_weight)
+        else:
+            raise Exception('self.reference_design is None.')
+
+        print('Objective function 1')
+        O1 = fobj_list( list(self.get_certain_objective_function(2)), 
+                        list(self.get_certain_objective_function(4)), 
+                        list(self.get_certain_objective_function(3)), 
+                        list(self.get_certain_objective_function(5)), 
+                        list(self.get_certain_objective_function(6)), 
+                        np.array(list(self.get_certain_objective_function(9))) + np.array(list(self.get_certain_objective_function(12))) + np.array(list(self.get_certain_objective_function(13))),
+                        weights=use_weights('O1'), rotor_volume=self.rotor_volume, rotor_weight=self.rotor_weight)
+        O1_max = []
+        O1_min = []
+        from pylab import figure
+        O1_ax  = figure().gca()
+        O2_prototype_data = []
+        results_for_refining_bounds = {}
+        results_for_refining_bounds['O1'] = []
+        for j in range(int(len(O1)/number_of_variant)): # iterate design parameters
+            O1_vs_design_parameter = O1[j*number_of_variant:(j+1)*number_of_variant]
+            O2_prototype_data.append(O1_vs_design_parameter)
+
+            O1_ax.plot(O1_vs_design_parameter, label=str(j)+' '+param_list[j], alpha=0.5)
+            print('\t', j, param_list[j], '\t\t max O1 - min O1:', max(O1_vs_design_parameter) - min(O1_vs_design_parameter), '\t\t', end=' ')
+
+            # narrow bounds (refine bounds)
+            results_for_refining_bounds['O1'].append( [ind for ind, el in enumerate(O1_vs_design_parameter) if el < O1_ref*1.0] )
+            print(results_for_refining_bounds['O1'][j]) #'<- to derive new original_bounds.'
+
+            O1_max.append(max(O1_vs_design_parameter))
+            O1_min.append(min(O1_vs_design_parameter))            
+        O1_ax.legend()
+        O1_ax.grid()
+        O1_ax.set_ylabel('O1 [1]', **font)
+        O1_ax.set_xlabel('Count of design variants', **font)
+
+        # fig_prototype = figure(500, figsize=(10, 5), facecolor='w', edgecolor='k')
+        # O2_prototype_ax = fig_prototype.gca()
+        # O2_prototype_ax.plot(list(range(-1, 22)), O1_ref*np.ones(23), 'k--', label='Reference design')
+        # O2_prototype_ax.plot(O2_prototype_data[1], 'o-', lw=0.75, alpha=0.5, label=r'$L_g$')
+        # O2_prototype_ax.plot(O2_prototype_data[0], 'v-', lw=0.75, alpha=0.5, label=r'$w_{st}$')
+        # O2_prototype_ax.plot(O2_prototype_data[3], 's-', lw=0.75, alpha=0.5, label=r'$w_{rt}$')
+        # O2_prototype_ax.plot(O2_prototype_data[5], '^-', lw=0.75, alpha=0.5, label=r'$\theta_{so}$')
+        # O2_prototype_ax.plot(O2_prototype_data[2], 'd-', lw=0.75, alpha=0.5, label=r'$w_{ro}$')
+        # O2_prototype_ax.plot(O2_prototype_data[6], '*-', lw=0.75, alpha=0.5, label=r'$d_{so}$')
+        # O2_prototype_ax.plot(O2_prototype_data[4], 'X-', lw=0.75, alpha=0.5, label=r'$d_{ro}$')
+        # O2_prototype_ax.legend()
+        # O2_prototype_ax.set_ylabel('$O_2(x)$ [1]', **font)
+
+        #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+        # O2
+        #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+        print('Objective function 2')
+        O2 = fobj_list( list(self.get_certain_objective_function(2)), 
+                        list(self.get_certain_objective_function(4)), 
+                        list(self.get_certain_objective_function(3)), 
+                        list(self.get_certain_objective_function(5)), 
+                        list(self.get_certain_objective_function(6)), 
+                        np.array(list(self.get_certain_objective_function(9))) + np.array(list(self.get_certain_objective_function(12))) + np.array(list(self.get_certain_objective_function(13))),
+                        weights=use_weights('O2'), rotor_volume=self.rotor_volume, rotor_weight=self.rotor_weight )
+        O2_max = []
+        O2_min = []
+        O2_ax  = figure().gca()
+        O2_ecce_data = []
+        results_for_refining_bounds['O2'] = []
+        for j in range(int(len(O2)/number_of_variant)): # iterate design parameters: range(7)
+            O2_vs_design_parameter = O2[j*number_of_variant:(j+1)*number_of_variant]
+            O2_ecce_data.append(O2_vs_design_parameter)
+
+            # narrow bounds (refine bounds)
+            O2_ax.plot(O2_vs_design_parameter, 'o-', label=str(j)+' '+param_list[j], alpha=0.5)
+            print('\t', j, param_list[j], '\t\t max O2 - min O2:', max(O2_vs_design_parameter) - min(O2_vs_design_parameter), '\t\t', end=' ')
+            results_for_refining_bounds['O2'].append( [ind for ind, el in enumerate(O2_vs_design_parameter) if el < O2_ref*1.0] )
+            print(results_for_refining_bounds['O2'][j]) #'<- to derive new original_bounds.'
+
+            O2_max.append(max(O2_vs_design_parameter))
+            O2_min.append(min(O2_vs_design_parameter))
+        O2_ax.legend()
+        O2_ax.grid()
+        O2_ax.set_ylabel('O2 [1]', **font)
+        O2_ax.set_xlabel('Count of design variants', **font)
+
+        # for ecce digest
+        fig_ecce = figure(figsize=(10, 5), facecolor='w', edgecolor='k')
+        O2_ecce_ax = fig_ecce.gca()
+        O2_ecce_ax.plot(list(range(-1, 22)), O2_ref*np.ones(23), 'k--', label='Reference design')
+        O2_ecce_ax.plot(O2_ecce_data[1], 'o-', lw=0.75, alpha=0.5,      label=r'$L_g$')
+        O2_ecce_ax.plot(O2_ecce_data[0], 'v-', lw=0.75, alpha=0.5,      label=r'$w_{st}$')
+        O2_ecce_ax.plot(O2_ecce_data[3], 's-', lw=0.75, alpha=0.5,      label=r'$w_{rt}$')
+        O2_ecce_ax.plot(O2_ecce_data[5], '^-', lw=0.75, alpha=0.5,      label=r'$\theta_{so}$')
+        O2_ecce_ax.plot(O2_ecce_data[2], 'd-', lw=0.75, alpha=0.5,      label=r'$w_{ro}$')
+        O2_ecce_ax.plot(O2_ecce_data[6], '*-', lw=0.75, alpha=0.5,      label=r'$d_{so}$')
+        O2_ecce_ax.plot(O2_ecce_data[4], 'X-', lw=0.75, alpha=0.5,      label=r'$d_{ro}$')
+
+        myfontsize = 12.5
+        from pylab import plt
+        plt.rcParams.update({'font.size': myfontsize})
+
+
+        # Reference candidate design
+        ref = np.zeros(8)
+            # ref[0] = 0.635489                                   # PF
+            # ref[1] = 0.963698                                   # eta
+            # ref[1] = efficiency_at_50kW(1817.22+216.216+224.706)# eta@50kW
+
+        if self.reference_design is not None:
+            list_plotting_weights = [8, 3, self.required_torque, 0.1, self.rotor_weight, 0.2, 10, 2500]
+            ref[0] = O2_ref                  / list_plotting_weights[0] 
+            ref[1] = O1_ref                  / list_plotting_weights[1] 
+            ref[2] = self.reference_data[2]  / list_plotting_weights[2]  # 100%
+            ref[3] = self.reference_data[3]  / list_plotting_weights[3]  # 100%
+            ref[4] = self.reference_data[4]  / list_plotting_weights[4]  # 100% = FRW
+            ref[5] = self.reference_data[5]  / list_plotting_weights[5]  # 100%
+            ref[6] = self.reference_data[6]  / list_plotting_weights[6]  # deg
+            ref[7] = self.reference_data[INDEX_TOTAL_LOSS] / list_plotting_weights[7]  # W
+
+        O1_ax.plot(list(range(-1, 22)), O1_ref*np.ones(23), 'k--')
+        O2_ax.plot(list(range(-1, 22)), O2_ref*np.ones(23), 'k--')
+        O2_ecce_ax.legend()
+        O2_ecce_ax.grid()
+        O2_ecce_ax.set_xticks(list(range(21)))
+        O2_ecce_ax.annotate('Lower bound', xytext=(0.5, 5.5), xy=(0, 4), xycoords='data', arrowprops=dict(arrowstyle="->"))
+        O2_ecce_ax.annotate('Upper bound', xytext=(18.0, 5.5),  xy=(20, 4), xycoords='data', arrowprops=dict(arrowstyle="->"))
+        O2_ecce_ax.set_xlim((-0.5,20.5))
+        O2_ecce_ax.set_ylim((0,14)) # 4,14
+        O2_ecce_ax.set_xlabel(r'Number of design variant', **font)
+        O2_ecce_ax.set_ylabel(r'$O_2(x)$ [1]', **font)
+        fig_ecce.tight_layout()
+        # fig_ecce.savefig(r'D:\OneDrive\[00]GetWorking\32 blimopti\p2019_ecce_bearingless_induction_full_paper\images\O2_vs_params.png', dpi=150)
+        # plt.show()
+        # quit() ###################################
+
+
+        # Maximum
+        data_max = np.array(data_max)
+        O1_max   = np.array(O1_max)
+        O2_max   = np.array(O2_max)
+            # data_max[0] = (data_max[0])                   # PF
+            # data_max[1] = (data_max[1])                   # eta
+            # data_max[1] = efficiency_at_50kW(data_max[7]) # eta@50kW # should use data_min[7] because less loss, higher efficiency
+        data_max[0] = O2_max       / list_plotting_weights[0]  
+        data_max[1] = O1_max       / list_plotting_weights[1]  
+        data_max[2] = (data_max[2])/ list_plotting_weights[2]  # 100%
+        data_max[3] = (data_max[3])/ list_plotting_weights[3]  # 100%
+        data_max[4] = (data_max[4])/ list_plotting_weights[4]  # 100% = FRW
+        data_max[5] = (data_max[5])/ list_plotting_weights[5]  # 100%
+        data_max[6] = (data_max[6])/ list_plotting_weights[6]  # deg
+        data_max[7] = (data_max[7])/ list_plotting_weights[7]  # W
+        y_max_vs_design_parameter_0 = [el[0] for el in data_max]
+        y_max_vs_design_parameter_1 = [el[1] for el in data_max]
+        y_max_vs_design_parameter_2 = [el[2] for el in data_max]
+        y_max_vs_design_parameter_3 = [el[3] for el in data_max]
+        y_max_vs_design_parameter_4 = [el[4] for el in data_max]
+        y_max_vs_design_parameter_5 = [el[5] for el in data_max]
+        y_max_vs_design_parameter_6 = [el[6] for el in data_max]
+
+        # Minimum
+        data_min = np.array(data_min)
+        O1_min   = np.array(O1_min)
+        O2_min   = np.array(O2_min)
+            # data_min[0] = (data_min[0])                    # PF
+            # data_min[1] = (data_min[1])                    # eta
+            # data_min[1] = efficiency_at_50kW(data_min[7])  # eta@50kW
+        data_min[0] = O2_min        / list_plotting_weights[0] 
+        data_min[1] = O1_min        / list_plotting_weights[1] 
+        data_min[2] = (data_min[2]) / list_plotting_weights[2] # 100%
+        data_min[3] = (data_min[3]) / list_plotting_weights[3] # 100%
+        data_min[4] = (data_min[4]) / list_plotting_weights[4] # 100% = FRW
+        data_min[5] = (data_min[5]) / list_plotting_weights[5] # 100%
+        data_min[6] = (data_min[6]) / list_plotting_weights[6] # deg
+        data_min[7] = (data_min[7]) / list_plotting_weights[7] # W
+        y_min_vs_design_parameter_0 = [el[0] for el in data_min]
+        y_min_vs_design_parameter_1 = [el[1] for el in data_min]
+        y_min_vs_design_parameter_2 = [el[2] for el in data_min]
+        y_min_vs_design_parameter_3 = [el[3] for el in data_min]
+        y_min_vs_design_parameter_4 = [el[4] for el in data_min]
+        y_min_vs_design_parameter_5 = [el[5] for el in data_min]
+        y_min_vs_design_parameter_6 = [el[6] for el in data_min]
+
+        count = np.arange(len(y_max_vs_design_parameter_0))  # the x locations for the groups
+        width = 1.0  # the width of the bar
+
+        fig = figure(dpi=150, figsize=(16, 8), facecolor='w', edgecolor='k')
+        ax = fig.gca()
+        # fig, ax = plt.subplots(dpi=150, figsize=(16, 8), facecolor='w', edgecolor='k')                                      #  #1034A
+        rects1 = ax.bar(count - 3*width/8, y_min_vs_design_parameter_0, width/8, alpha=0.5, label=r'$L_g$, Air gap length', color='#6593F5')
+        rects2 = ax.bar(count - 2*width/8, y_min_vs_design_parameter_1, width/8, alpha=0.5, label=r'$b_{st}$, Stator tooth width', color='#1D2951') # https://digitalsynopsis.com/design/beautiful-color-palettes-combinations-schemes/
+        rects3 = ax.bar(count - 1*width/8, y_min_vs_design_parameter_2, width/8, alpha=0.5, label=r'$b_{rt}$, Rotor tooth width', color='#03396c')
+        rects4 = ax.bar(count - 0*width/8, y_min_vs_design_parameter_3, width/8, alpha=0.5, label=r'$\theta_{so}$, Stator open width', color='#6497b1')
+        rects5 = ax.bar(count + 1*width/8, y_min_vs_design_parameter_4, width/8, alpha=0.5, label=r'$w_{ro}$, Rotor open width',  color='#0E4D92')
+        rects6 = ax.bar(count + 2*width/8, y_min_vs_design_parameter_5, width/8, alpha=0.5, label=r'$d_{so}$, Stator open depth', color='#005b96')
+        rects7 = ax.bar(count + 3*width/8, y_min_vs_design_parameter_6, width/8, alpha=0.5, label=r'$d_{ro}$, Rotor open depth', color='#b3cde0') 
+        print('ylim=', ax.get_ylim())
+        autolabel(ax, rects1, bias=-0.10, textfont=textfont)
+        autolabel(ax, rects2, bias=-0.10, textfont=textfont)
+        autolabel(ax, rects3, bias=-0.10, textfont=textfont)
+        autolabel(ax, rects4, bias=-0.10, textfont=textfont)
+        autolabel(ax, rects5, bias=-0.10, textfont=textfont)
+        autolabel(ax, rects6, bias=-0.10, textfont=textfont)
+        autolabel(ax, rects7, bias=-0.10, textfont=textfont)
+        one_one = np.array([1, 1])
+        minus_one_one = np.array([-1, 1])
+        ax.plot(rects4[0].get_x() + 0.5*width*minus_one_one, ref[0]*one_one, 'k--', lw=1.0, alpha=0.6, label='Reference design' )
+        ax.plot(rects4[1].get_x() + 0.5*width*minus_one_one, ref[1]*one_one, 'k--', lw=1.0, alpha=0.6 )
+        ax.plot(rects4[2].get_x() + 0.5*width*minus_one_one, ref[2]*one_one, 'k--', lw=1.0, alpha=0.6 )
+        ax.plot(rects4[3].get_x() + 0.5*width*minus_one_one, ref[3]*one_one, 'k--', lw=1.0, alpha=0.6 )
+        ax.plot(rects4[4].get_x() + 0.5*width*minus_one_one, ref[4]*one_one, 'k--', lw=1.0, alpha=0.6 )
+        ax.plot(rects4[5].get_x() + 0.5*width*minus_one_one, ref[5]*one_one, 'k--', lw=1.0, alpha=0.6 )
+        ax.plot(rects4[6].get_x() + 0.5*width*minus_one_one, ref[6]*one_one, 'k--', lw=1.0, alpha=0.6 )
+        ax.plot(rects4[7].get_x() + 0.5*width*minus_one_one, ref[7]*one_one, 'k--', lw=1.0, alpha=0.6 )
+        ax.legend(loc='upper right', prop={'family':'Times New Roman'})
+        # text for indicating reference values
+        ax.text(rects4[0].get_x() - 3.5/8*width, ref[0]*1.01, '%.2f'%(ref[0]), ha='center', va='bottom', rotation=90, **textfont)
+        ax.text(rects4[1].get_x() - 3.5/8*width, ref[1]*1.01, '%.2f'%(ref[1]), ha='center', va='bottom', rotation=90, **textfont)
+        ax.text(rects4[2].get_x() - 3.5/8*width, ref[2]*1.01, '%.2f'%(ref[2]), ha='center', va='bottom', rotation=90, **textfont)
+        ax.text(rects4[3].get_x() - 3.5/8*width, ref[3]*1.01, '%.2f'%(ref[3]), ha='center', va='bottom', rotation=90, **textfont)
+        ax.text(rects4[4].get_x() - 3.5/8*width, ref[4]*1.01, '%.2f'%(ref[4]), ha='center', va='bottom', rotation=90, **textfont)
+        ax.text(rects4[5].get_x() - 3.5/8*width, ref[5]*1.01, '%.2f'%(ref[5]), ha='center', va='bottom', rotation=90, **textfont)
+        ax.text(rects4[6].get_x() - 3.5/8*width, ref[6]*1.01, '%.2f'%(ref[6]), ha='center', va='bottom', rotation=90, **textfont)
+        ax.text(rects4[7].get_x() - 3.5/8*width, ref[7]*1.01, '%.2f'%(ref[7]), ha='center', va='bottom', rotation=90, **textfont)
+
+        rects1 = ax.bar(count - 3*width/8, y_max_vs_design_parameter_0, width/8, alpha=0.5, label=r'$L_g$,         Air gap length', color='#6593F5')    # bottom=y_min_vs_design_parameter_0, 
+        rects2 = ax.bar(count - 2*width/8, y_max_vs_design_parameter_1, width/8, alpha=0.5, label=r'$b_{st}$, Stator tooth width', color='#1D2951')     # bottom=y_min_vs_design_parameter_1, 
+        rects3 = ax.bar(count - 1*width/8, y_max_vs_design_parameter_2, width/8, alpha=0.5, label=r'$b_{rt}$, Rotor tooth width', color='#03396c')      # bottom=y_min_vs_design_parameter_2, 
+        rects4 = ax.bar(count - 0*width/8, y_max_vs_design_parameter_3, width/8, alpha=0.5, label=r'$\theta_{so}$, Stator open width', color='#6497b1') # bottom=y_min_vs_design_parameter_3, 
+        rects5 = ax.bar(count + 1*width/8, y_max_vs_design_parameter_4, width/8, alpha=0.5, label=r'$w_{ro}$, Rotor open width',  color='#0E4D92')      # bottom=y_min_vs_design_parameter_4, 
+        rects6 = ax.bar(count + 2*width/8, y_max_vs_design_parameter_5, width/8, alpha=0.5, label=r'$d_{so}$, Stator open depth', color='#005b96')      # bottom=y_min_vs_design_parameter_5, 
+        rects7 = ax.bar(count + 3*width/8, y_max_vs_design_parameter_6, width/8, alpha=0.5, label=r'$d_{ro}$, Rotor open depth', color='#b3cde0')       # bottom=y_min_vs_design_parameter_6, 
+        autolabel(ax, rects1, textfont=textfont)
+        autolabel(ax, rects2, textfont=textfont)
+        autolabel(ax, rects3, textfont=textfont)
+        autolabel(ax, rects4, textfont=textfont)
+        autolabel(ax, rects5, textfont=textfont)
+        autolabel(ax, rects6, textfont=textfont)
+        autolabel(ax, rects7, textfont=textfont)
+
+        # Add some text for labels, title and custom x-axis tick labels, etc.
+        ax.set_ylabel('Normalized Objective Functions', **font)
+        ax.set_xticks(count)
+        # ax.set_xticklabels(('Power Factor [100%]', r'$\eta$@$T_{em}$ [100%]', r'$T_{em}$ [15.9 N]', r'$T_{rip}$ [10%]', r'$|F|$ [51.2 N]', r'    $E_m$ [20%]', r'      $E_a$ [10 deg]', r'$P_{\rm Cu,Fe}$ [2.5 kW]')))
+        # ax.set_xticklabels(('Power Factor [100%]', r'$O_1$ [3]', r'$T_{em}$ [15.9 N]', r'$T_{rip}$ [10%]', r'$|F|$ [51.2 N]', r'    $E_m$ [20%]', r'      $E_a$ [10 deg]', r'$P_{\rm Cu,Fe}$ [2.5 kW]'))
+        ax.set_xticklabels(('$O_2$ [%g]'               %(list_plotting_weights[0]), 
+                            '$O_1$ [%g]'               %(list_plotting_weights[1]), 
+                            '$T_{em}$ [%g Nm]'         %(list_plotting_weights[2]), 
+                            '$T_{rip}$ [%g%%]'         %(list_plotting_weights[3]*100), 
+                            '$|F|$ [%g N]'             %(list_plotting_weights[4]), 
+                            '    $E_m$ [%g%%]'         %(list_plotting_weights[5]*100), 
+                            '      $E_a$ [%g deg]'     %(list_plotting_weights[6]), 
+                            '$P_{\\rm Cu,Fe}$ [%g kW]' %(list_plotting_weights[7]*1e-3) ), **font)
+        ax.grid()
+        ax.set_ylim([0,4])
+        # fig.tight_layout()
+        # fig.savefig(r'D:\OneDrive\[00]GetWorking\32 blimopti\p2019_ecce_bearingless_induction\images\sensitivity_results.png', dpi=150)
+
+        # plt.show()
+        return results_for_refining_bounds
+
+
+
+
 
 class Parameter(object):
-    def __init__(self, name, type, value=None, bounds=None, calc=None, calc_bounds=None, unit='mm', comment=None, args=None) -> None:
+    def __init__(self, name, type, value=None, bounds=None, calc=None, calc_bounds=None, unit='mm', parameter_dict=None) -> None:
         self.name = name
         self.type = type
         self.value = value
@@ -12,20 +954,28 @@ class Parameter(object):
         self.unit = unit
         self.calc = calc
         self.calc_bounds = calc_bounds
-        self.comment = comment
-        self.args = args
+        self.parameter_dict = parameter_dict
         # todo: add validation for the type, value, bounds, calc, unit, comment
-        if self.calc is not None:
-            if self.args is not None:
-                self.value = self.calc(*self.args)
-            else:
-                self.value = self.calc()
+        if self.calc is not None and self.parameter_dict is not None:
+            try: 
+                self.value = self.calc(self.parameter_dict)
+                self.initialized = True
+            except KeyError as e:
+                print(f"The derivation of {self.name} failed due to KeyError: {e}. Need to run calc method again later.")
+                self.initialized = False
 
         if self.calc_bounds is not None:
-            if self.args is not None:
-                self.bounds = self.calc_bounds(*self.args)
-            else:
-                self.bounds = self.calc_bounds()
+            try:
+                # 如果 parameter_dict 是 None，lambda 函数可能使用闭包中的 self
+                # 在这种情况下，传递 None 作为参数，lambda 函数会使用闭包中的 self
+                if self.parameter_dict is None:
+                    # 尝试调用 calc_bounds，lambda 函数会使用闭包中的 self
+                    self.bounds = self.calc_bounds(None)
+                else:
+                    self.bounds = self.calc_bounds(self.parameter_dict)
+            except Exception as e:
+                # 如果 calc_bounds 失败，保持原有 bounds
+                print(f"Warning: calc_bounds failed for parameter '{self.name}': {e}")
 
         if type == 'free' and value is None and self.bounds is not None:
             if isinstance(self.bounds, (list, tuple)) and len(self.bounds) == 2:
@@ -76,7 +1026,7 @@ class Parameter(object):
             comment=data.get('comment'),
             calc=None,  # calc 函数需要从其他地方重建
             calc_bounds=None,  # calc_bounds 函数需要从其他地方重建
-            args=data.get('args')  # 保存 args，用于重建 lambda 函数
+            parameter_dict=data.get('parameter_dict')  # 保存 parameter_dict，用于重建 lambda 函数
         )
 
 class Winding(object):
@@ -516,57 +1466,188 @@ class Modern_Machine_Designer(object):
         tooth_split_ratio_at_middle_slot: list[float] = [0.25, 0.50] # TODO: 下界需要考虑到w_st的宽度和半径的值
 
         '''Fixed variables'''
-        self.m: Parameter            = Parameter('phase_number_m', 'fixed', m)
-        self.Qs: Parameter           = Parameter('stator_slot_number_Qs', 'fixed', Qs)
-        self.p: Parameter            = Parameter('pole_pair_number_p', 'fixed', p)
-        self.ps: Parameter           = Parameter('suspension_pole_pair_number_ps', 'fixed', ps)
-        self.coil_pitch_y: Parameter = Parameter('coil_pitch_y', 'fixed', coil_pitch_y)
-        self.mm_r_so: Parameter      = Parameter('stator_outer_radius', 'fixed', mm_r_so)
-        self.mm_d_mech_air_gap: Parameter = Parameter('mechanical_air_gap_depth', 'fixed', 0.5)
+        if True:
+            self.m: Parameter            = Parameter('phase_number_m', 'fixed', m)
+            self.Qs: Parameter           = Parameter('stator_slot_number_Qs', 'fixed', Qs)
+            self.p: Parameter            = Parameter('pole_pair_number_p', 'fixed', p)
+            self.ps: Parameter           = Parameter('suspension_pole_pair_number_ps', 'fixed', ps)
+            self.coil_pitch_y: Parameter = Parameter('coil_pitch_y', 'fixed', coil_pitch_y)
+            self.mm_r_so: Parameter      = Parameter('stator_outer_radius', 'fixed', mm_r_so)
+            self.mm_d_mech_air_gap: Parameter = Parameter('mechanical_air_gap_depth', 'fixed', 0.5)
 
-        if self.bool_PermanentMagnet:
-            self.mm_d_pm: Parameter      = Parameter('magnet_depth', 'free', 3, bounds=[2, 6])
-            self.mm_d_sleeve: Parameter  = Parameter('rotor_sleeve_depth', 'fixed', 1.0)
-            self.s: Parameter            = Parameter('number_of_magnet_segments_per_pole', 'fixed', 1)
+            if self.bool_PermanentMagnet:
+                self.mm_d_pm: Parameter      = Parameter('magnet_depth', 'free', 3, bounds=[2, 6])
+                self.mm_d_sleeve: Parameter  = Parameter('rotor_sleeve_depth', 'fixed', 1.0)
+                self.s: Parameter            = Parameter('number_of_magnet_segments_per_pole', 'fixed', 1)
+
+        # 更新 parameter_dict 以包含新创建的参数
+        self.parameter_dict = self.get_parameter_dict()
+        self.parameter_dict_by_name = self.get_parameter_dict_by_name()
 
         '''Free variables'''
-        self.split_ratio: Parameter  = Parameter('split_ratio_r_si_slash_r_so', 'free', SR, calc_bounds=lambda p: [0.2, 0.5] if p < 10 else [0.15, 0.35], args=[p])
+        if True:
+            # 先创建 parameter_dict 的占位符，稍后会被更新
+            self.parameter_dict = self.get_parameter_dict()
+            
+            self.split_ratio: Parameter  = Parameter(
+                'split_ratio_r_si_slash_r_so',
+                'free',
+                SR,
+                calc_bounds=lambda self_param: [0.2, 0.5] if self.p.value < 10 else [0.15, 0.35],
+            )
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
-            # "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30>)")
+            # "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30)")
 
-        # 计算 mm_r_si 的初始值用于 calc_bounds
-        mm_r_si_initial = mm_r_so * SR
-        self.mm_w_st: Parameter = Parameter('stator_tooth_width', 'free', calc_bounds=lambda mm_r_so, mm_r_si, tooth_split_ratio_at_middle_slot, Q: [el / Q * math.pi * (mm_r_so + mm_r_si) for el in tooth_split_ratio_at_middle_slot], args=[mm_r_so, mm_r_si_initial, tooth_split_ratio_at_middle_slot, Qs])
-        self.mm_d_sy: Parameter = Parameter('stator_yoke_depth', 'free', calc_bounds=lambda mm_r_so, mm_r_si, yoke_split_ratio_bounds: [el * (mm_r_so - mm_r_si) for el in yoke_split_ratio_bounds], args=[mm_r_so, mm_r_si_initial, yoke_split_ratio_bounds])
-        self.mm_d_sts: Parameter = Parameter('stator_tooth_shoe_depth', 'free', bounds=[1, 5])
+            # 计算 mm_r_si 的初始值用于 calc_bounds
+            mm_r_si_initial = mm_r_so * SR
 
-        if not self.bool_StatorSlotClosed:
-            self.deg_alpha_st: Parameter = Parameter('stator_tooth_span_angle', 'free', calc_bounds=lambda Qs: [360/Qs*0.1, 360/Qs], unit='deg', args=[self.Qs.value])
+            self.mm_w_st: Parameter = Parameter(
+                'stator_tooth_width',
+                'free',
+                calc_bounds=lambda self_param: [
+                    el / self.Qs.value * math.pi * (
+                        self.mm_r_so.value +
+                        (self.mm_r_si.value if hasattr(self, "mm_r_si") and self.mm_r_si.value is not None else mm_r_si_initial)
+                    )
+                    for el in tooth_split_ratio_at_middle_slot
+                ]
+            )
 
-        '''derived variables have dependency on the other geometric parameters'''
-        self.mm_r_si: Parameter      = Parameter('stator_inner_radius', 'derived', calc=lambda mm_r_so, split_ratio: mm_r_so * split_ratio, args=[self.mm_r_so.value, self.split_ratio.value])
-        self.mm_d_st: Parameter      = Parameter('stator_tooth_depth', 'derived', calc=lambda mm_r_so, mm_r_si, mm_d_sy, mm_d_sts: mm_r_so - mm_r_si - mm_d_sy - mm_d_sts, args=[self.mm_r_so.value, self.mm_r_si.value, self.mm_d_sy.value, self.mm_d_sts.value])
-        if self.bool_PermanentMagnet:
-            self.mm_d_ri: Parameter      = Parameter('rotor_iron (back iron) depth', 'derived', calc=lambda mm_d_pm: 4 if mm_d_pm < 4 else mm_d_pm, args=[self.mm_d_pm.value])
-            self.mm_r_ro: Parameter      = Parameter('rotor_outer_radius', 'derived', calc=lambda mm_r_si, mm_d_mech_air_gap, mm_d_sleeve: mm_r_si - mm_d_mech_air_gap - mm_d_sleeve, args=[self.mm_r_si.value, self.mm_d_mech_air_gap.value, self.mm_d_sleeve.value])
-            self.mm_r_ri: Parameter      = Parameter('rotor_inner_radius', 'derived', calc=lambda r_ro, mm_d_pm, mm_d_ri: r_ro-mm_d_pm-mm_d_ri, args=[self.mm_r_ro.value, self.mm_d_pm.value, self.mm_d_ri.value])
+            self.mm_d_sy: Parameter = Parameter(
+                'stator_yoke_depth',
+                'free',
+                calc_bounds=lambda self_param: [
+                    el * (
+                        self.mm_r_so.value -
+                        (self.mm_r_si.value if hasattr(self, "mm_r_si") and self.mm_r_si.value is not None else mm_r_si_initial)
+                    )
+                    for el in yoke_split_ratio_bounds
+                ]
+            )
 
-        if not self.bool_StatorSlotClosed:
-            self.mm_d_sto: Parameter = Parameter('stator_tooth_open_depth', 'derived', calc=lambda mm_d_sts: mm_d_sts*0.667, args=[self.mm_d_sts.value])
-            # deg_alpha_sto 依赖于 deg_alpha_st，使用 deg_alpha_st 的当前值（如果已计算）或使用 bounds 的中间值
-            deg_alpha_st_value = self.deg_alpha_st.value if self.deg_alpha_st.value is not None else (self.deg_alpha_st.bounds[0] + self.deg_alpha_st.bounds[1]) / 2 if self.deg_alpha_st.bounds else 360/12*0.1*0.5
-            self.deg_alpha_sto: Parameter = Parameter('stator_tooth_open_angle', 'derived', calc=lambda deg_alpha_st: deg_alpha_st*0.5, args=[deg_alpha_st_value])
+            self.mm_d_sts: Parameter = Parameter('stator_tooth_shoe_depth', 'free', bounds=[1, 5])
 
-        if self.bool_RotorNotched:
-            self.deg_alpha_rm: Parameter = Parameter('magnet_pole_span_angle', 'free', bounds=[180/self.p.value*0.7, 180/self.p.value])
+            if not self.bool_StatorSlotClosed:
+                self.deg_alpha_st: Parameter = Parameter('stator_tooth_span_angle', 'free', 
+                    calc_bounds=lambda parameter_dict: [360/parameter_dict['stator_slot_number_Qs'].value*0.1, 360/parameter_dict['stator_slot_number_Qs'].value], 
+                    unit='deg', 
+                    parameter_dict=self.parameter_dict_by_name)
 
-            # deg_alpha_rs 依赖于 deg_alpha_rm，使用 deg_alpha_rm 的当前值（如果已计算）或使用 bounds 的中间值
-            deg_alpha_rm_value = self.deg_alpha_rm.value if self.deg_alpha_rm.value is not None else (self.deg_alpha_rm.bounds[0] + self.deg_alpha_rm.bounds[1]) / 2 if self.deg_alpha_rm.bounds else 360/12*0.1
-            self.deg_alpha_rs: Parameter = Parameter('magnet_segment_span_angle', 'derived', calc=lambda deg_alpha_rm: deg_alpha_rm, args=[deg_alpha_rm_value])
+        # 更新 parameter_dict 以包含新创建的参数
+        self.parameter_dict = self.get_parameter_dict()
+        # 创建以参数名为键的字典，用于 calc 和 calc_bounds 函数
+        self.parameter_dict_by_name = self.get_parameter_dict_by_name()
 
-            self.mm_d_rp: Parameter      = Parameter('inter_polar_iron_thickness', 'derived', calc=lambda mm_d_pm: mm_d_pm, args=[self.mm_d_pm.value])
-            self.mm_d_rs: Parameter      = Parameter('inter_segment_iron_thickness', 'fixed', 0.0)
+        '''Derived variables have dependency on the other geometric parameters'''
+        if True:
+            # NOTE: Use parameter_dict_by_name to look up dependencies for all derived parameters
+            # parameter_dict_by_name 的键是 Parameter.name，用于 calc 和 calc_bounds 函数
+            self.mm_r_si: Parameter      = Parameter(
+                'stator_inner_radius', 'derived', 
+                calc=lambda parameter_dict: parameter_dict['stator_outer_radius'].value * parameter_dict['split_ratio_r_si_slash_r_so'].value,
+                parameter_dict=self.parameter_dict_by_name
+            )
+            self.mm_d_st: Parameter      = Parameter(
+                'stator_tooth_depth', 'derived',
+                calc=lambda parameter_dict: parameter_dict['stator_outer_radius'].value
+                                            - parameter_dict['stator_inner_radius'].value
+                                            - parameter_dict['stator_yoke_depth'].value
+                                            - parameter_dict['stator_tooth_shoe_depth'].value,
+                parameter_dict=self.parameter_dict_by_name
+            )
+            if self.bool_PermanentMagnet:
+                self.mm_d_ri: Parameter = Parameter(
+                    'rotor_iron (back iron) depth', 'derived',
+                    calc=lambda parameter_dict: 4 if parameter_dict['magnet_depth'].value < 4 else parameter_dict['magnet_depth'].value,
+                    parameter_dict=self.parameter_dict_by_name
+                )
+                self.mm_r_ro: Parameter = Parameter(
+                    'rotor_outer_radius', 'derived',
+                    calc=lambda parameter_dict: parameter_dict['stator_inner_radius'].value
+                                                - parameter_dict['mechanical_air_gap_depth'].value
+                                                - parameter_dict['rotor_sleeve_depth'].value,
+                    parameter_dict=self.parameter_dict_by_name
+                )
+                self.mm_r_ri: Parameter = Parameter(
+                    'rotor_inner_radius', 'derived',
+                    calc=lambda parameter_dict: parameter_dict['rotor_outer_radius'].value
+                                                - parameter_dict['magnet_depth'].value
+                                                - parameter_dict['rotor_iron (back iron) depth'].value,
+                    parameter_dict=self.parameter_dict_by_name
+                )
 
+            if not self.bool_StatorSlotClosed:
+                self.mm_d_sto: Parameter = Parameter(
+                    'stator_tooth_open_depth', 'derived',
+                    calc=lambda parameter_dict: parameter_dict['stator_tooth_shoe_depth'].value * 0.667,
+                    parameter_dict=self.parameter_dict_by_name
+                )
+                # deg_alpha_sto 依赖于 deg_alpha_st，使用 deg_alpha_st 的当前值（如果已计算）或使用 bounds 的中间值
+                def _deg_alpha_st_default(parameter_dict):
+                    par = parameter_dict['stator_tooth_span_angle']
+                    if par.value is not None:
+                        return par.value
+                    elif par.bounds:
+                        return (par.bounds[0] + par.bounds[1]) / 2
+                    else:
+                        return 360/12*0.1*0.5
+                self.deg_alpha_sto: Parameter = Parameter(
+                    'stator_tooth_open_angle', 'derived',
+                    calc=lambda parameter_dict: _deg_alpha_st_default(parameter_dict) * 0.5,
+                    parameter_dict=self.parameter_dict_by_name
+                )
+
+            if self.bool_RotorNotched:
+                self.deg_alpha_rm: Parameter = Parameter('magnet_pole_span_angle', 'free', bounds=[180/self.p.value*0.7, 180/self.p.value])
+
+                # deg_alpha_rs 依赖于 deg_alpha_rm，使用 deg_alpha_rm 的当前值（如果已计算）或使用 bounds 的中间值
+                def _deg_alpha_rm_default(parameter_dict):
+                    par = parameter_dict['magnet_pole_span_angle']
+                    if par.value is not None:
+                        return par.value
+                    elif par.bounds:
+                        return (par.bounds[0] + par.bounds[1]) / 2
+                    else:
+                        return 360/12*0.1
+                self.deg_alpha_rs: Parameter = Parameter(
+                    'magnet_segment_span_angle', 'derived',
+                    calc=lambda parameter_dict: _deg_alpha_rm_default(parameter_dict),
+                    parameter_dict=self.parameter_dict_by_name
+                )
+
+                self.mm_d_rp: Parameter = Parameter(
+                    'inter_polar_iron_thickness', 'derived',
+                    calc=lambda parameter_dict: parameter_dict['magnet_depth'].value,
+                    parameter_dict=self.parameter_dict_by_name
+                )
+                self.mm_d_rs: Parameter = Parameter(
+                    'inter_segment_iron_thickness', 'fixed', 0.0
+                )
+
+            # update parameter_dict to include derived variables
+            self.parameter_dict = self.get_parameter_dict()
+            self.parameter_dict_by_name = self.get_parameter_dict_by_name()
+
+        # Initialize all derived variables
+        for i, param in enumerate(self.get_parameters_by_type('derived').values()):
+            if param.calc is not None and param.parameter_dict is not None:
+                try:
+                    param.value = param.calc(param.parameter_dict)
+                except Exception as e:
+                    print(f"Warning: Failed to initialize derived parameter '{param.name}': {e}")
+
+        # Collect all parameters whose initialized is False
+        uninitialized_params = [param for param in self.get_parameters_by_type('derived').values() 
+                                if not getattr(param, 'initialized', True)]
+        # Try to initialize their values again
+        for param in uninitialized_params:
+            if param.calc is not None and param.parameter_dict is not None:
+                try:
+                    param.value = param.calc(param.parameter_dict)
+                    print('[DEBUG] Re-initialized derived parameter: ', param.name)
+                except Exception as e:
+                    # Optionally, log or print this if initialization fails
+                    print(f"Warning: Failed to re-initialize derived parameter '{param.name}': {e}")
 
         V_stator_phase_voltage_amp = math.sqrt(2) *EX['DCBusVoltage'] / (math.sqrt(3) if bool_WyeConnectOrDeltaConnect else 1.0) 
         V_desired_emf_Em = 0.95 * V_stator_phase_voltage_amp
@@ -663,7 +1744,7 @@ class Modern_Machine_Designer(object):
                         color="#FE840E",
                         mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
                         deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
-                        deg_alpha_rs=self.deg_alpha_rs.value if hasattr(self, "deg_alpha_rs") and self.deg_alpha_rs.value is not None else 10,
+                        deg_alpha_rs=self.deg_alpha_rm.value if self.s.value==1 else self.deg_alpha_rs.value,
                         mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 8,
                         mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 40,
                         mm_d_rp=self.mm_d_rp.value if hasattr(self, "mm_d_rp") and self.mm_d_rp.value is not None else 5,
@@ -682,7 +1763,7 @@ class Modern_Machine_Designer(object):
                         rotorCore=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
                             mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
                             deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
-                            deg_alpha_rs=self.deg_alpha_rs.value if hasattr(self, "deg_alpha_rs") and self.deg_alpha_rs.value is not None else 10,
+                            deg_alpha_rs=self.deg_alpha_rm.value if self.s.value==1 else self.deg_alpha_rs.value,
                             mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 8,
                             mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 40,
                             mm_d_rp=self.mm_d_rp.value if hasattr(self, "mm_d_rp") and self.mm_d_rp.value is not None else 5,
@@ -706,7 +1787,7 @@ class Modern_Machine_Designer(object):
                         rotorCore=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
                             mm_d_pm=self.mm_d_pm.value if hasattr(self, "mm_d_pm") and self.mm_d_pm.value is not None else 6,
                             deg_alpha_rm=self.deg_alpha_rm.value if hasattr(self, "deg_alpha_rm") and self.deg_alpha_rm.value is not None else 60,
-                            deg_alpha_rs=self.deg_alpha_rs.value if hasattr(self, "deg_alpha_rs") and self.deg_alpha_rs.value is not None else 10,
+                            deg_alpha_rs=self.deg_alpha_rm.value if self.s.value==1 else self.deg_alpha_rs.value,
                             mm_d_ri=self.mm_d_ri.value if hasattr(self, "mm_d_ri") and self.mm_d_ri.value is not None else 8,
                             mm_r_ri=self.mm_r_ri.value if hasattr(self, "mm_r_ri") and self.mm_r_ri.value is not None else 40,
                             mm_d_rp=self.mm_d_rp.value if hasattr(self, "mm_d_rp") and self.mm_d_rp.value is not None else 5,
@@ -848,12 +1929,30 @@ class Modern_Machine_Designer(object):
         height_in_points = self.mm_r_so.value*2.1
         draw_spmsm(lw, width_in_points, height_in_points)
 
-    def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True):
+    def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True, x_denorm=None, counter=None, counter_loop=None):
+
+        def update_geometric_parameters(x_denorm):
+            for i, param in enumerate(self.get_free_variables()):
+                param.value = x_denorm[i]
+            # 更新 parameter_dict_by_name 以确保所有引用都是最新的
+            self.parameter_dict_by_name = self.get_parameter_dict_by_name()
+            for i, param in enumerate(self.get_parameters_by_type('derived').values()):
+                if param.calc is not None and param.parameter_dict is not None:
+                    param.value = param.calc(param.parameter_dict)
+
+        # 更新决策变量，同时刷新依赖于决策变量的导出参数。
+        if x_denorm is not None:
+            update_geometric_parameters(x_denorm)
 
         if self.fea_config_dict is None:
             with open((os.path.dirname(__file__))+'/machine_simulation.json', 'r') as f:
                 raw_fea_config_dicts = json.load(f)
                 self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
+        
+        if counter is None:
+            counter = self.counter
+        else:
+            self.counter = counter
 
         ''' 工程和文件路径 '''
         def get_pc_name():
@@ -872,11 +1971,12 @@ class Modern_Machine_Designer(object):
         self.path2SwarmData = project_loc + self.name.replace(' ', '_')+'/'
         if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
 
-        self.project_name = self.name + '-' + str(self.counter)
+        # define project_name using counter and counter_loop
+        self.project_name = self.name + f'-ind{counter}'
+        self.project_name += f'-redo{counter_loop}' if counter_loop > 1 else ''
         self.expected_project_file = self.path2SwarmData + "temp/%s.jproj"%(self.project_name)
 
-        self.path2FEACsv = os.path.abspath(self.path2SwarmData + 'csv/') + '/'
-
+        self.path2FEACsv = os.path.abspath(self.path2SwarmData + 'csv/') + f'/{self.counter}/'
         if not os.path.isdir(self.path2FEACsv): os.makedirs(self.path2FEACsv)
 
         if 'JMAG' in self.select_FEA_tool:
@@ -1053,29 +2153,30 @@ class Modern_Machine_Designer(object):
 
                 number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
                 individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
-                # self.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
-                json_file_path = self.path2SwarmData + self.name + f'-gen{number_current_generation}-ind{individual_index}.json'
+                results2file = {f'spec_performance_dict-gen{number_current_generation}-ind{individual_index}' : spec_performance_dict}
 
-                # Read the possibly-existing current json data
+                json_file_path = self.path2SwarmData + self.name + f'.json'
+                # INSERT_YOUR_CODE
+                # Load existing JSON file (if any), append the new results and write back using jsonpickle.
                 try:
-                    if os.path.getsize(json_file_path) > 0:
+                    # Try loading the existing JSON file
+                    if os.path.exists(json_file_path) and os.path.getsize(json_file_path) > 0:
                         with open(json_file_path, 'r') as rf:
-                            loaded_json = json.load(rf)
+                            existing_data = jsonpickle.decode(rf.read())
+                            if not isinstance(existing_data, dict):
+                                existing_data = {}
                     else:
-                        loaded_json = {}
+                        existing_data = {}
                 except Exception:
-                    loaded_json = {}
+                    existing_data = {}
 
-                # Compose new key
-                # key = f'gen{number_current_generation}-ind{individual_index}'
-                # loaded_json[key] = self.visualize_dict
+                # Add/overwrite the results for the current generation/individual
+                existing_data.update(results2file)
 
-                json_string = jsonpickle.encode(loaded_json, indent=4)
-                with open(json_file_path, 'w+') as f:
-                    f.write(json_string)
-
-                number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
-                individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
+                # Write the updated data back to the file
+                json_string = jsonpickle.encode(existing_data, indent=4)
+                with open(json_file_path, 'w') as wf:
+                    wf.write(json_string)
 
                 # this is for optimization
                 self.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
@@ -1089,6 +2190,194 @@ class Modern_Machine_Designer(object):
             # return acm_variant
         else:
             raise Exception('[acm_designer.py] Wrong string of select_FEA_tool:', self.select_FEA_tool)
+
+
+
+    def evaluate_design_json_wrapper(self, x_denorm, counter=1, counter_loop=1):
+        # This is a wrapper for the wrapper, in order to build up a json profile for the design variant
+
+        # 这里应该返回新获得的设计，然后可以获得geometry_dict，然后包括x_denorm的信息方便重构设计。
+        acm_variant = self.FEA_evaluate(x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+
+        if 'FEMM' in self.select_fea_config_dict:
+            acm_variant.results_for_optimization = acm_variant.analyzer.build_results_for_optimization()
+
+            # Save spec_performance_dict and others to disk
+            GP = acm_variant.template.d['GP']
+            EX = acm_variant.template.d['EX']
+            self.save_to_disk(acm_variant, acm_variant.analyzer.spec_performance_dict, GP, EX)
+
+            # Save also the object (acm_variant) to disk, but this takes a lot of disk space!
+            if self.fea_config_dict['moo.save_acm_variant_object_as_jsonpickle'] == True:
+                utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
+
+            # Save time domain data to disk
+            acm_variant.analyzer.save_time_domain_data(self.fea_config_dict['output_dir']+self.select_spec+f'-ind{counter}.pkl') # counter could be string
+
+            return acm_variant
+
+        elif 'JMAG' in self.select_fea_config_dict:
+
+            cost_function, f1, f2, f3, FRW, \
+            normalized_torque_ripple, \
+            normalized_force_error_magnitude, \
+            force_error_angle, \
+            project_name, individual_name, \
+            number_current_generation, individual_index,\
+            power_factor, \
+            rated_ratio, \
+            rated_stack_length_mm, \
+            rated_total_loss, \
+            rated_stator_copper_loss_along_stack, \
+            rated_magnet_Joule_loss, \
+            rated_rotor_copper_loss_along_stack, \
+            stator_copper_loss_in_end_turn, \
+            rotor_copper_loss_in_end_turn, \
+            rated_iron_loss, \
+            rated_windage_loss, \
+            str_results, \
+            mm2_slot_area, \
+            coil_flux_linkage_peak2peak_value, \
+            TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
+            ss_avg_force_magnitude, rotor_weight, torque_average = acm_variant.results_to_be_unpacked
+
+            # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
+
+            spec_performance_dict = dict()
+            spec_performance_dict['x_denorm_dict'] = self.get_free_variables_as_dict()
+            spec_performance_dict['project_name'] = project_name
+            spec_performance_dict['individual_name'] = individual_name
+            spec_performance_dict['number_current_generation'] = number_current_generation
+            spec_performance_dict['individual_index'] = individual_index
+            # spec_performance_dict['cost_function'] = cost_function
+            spec_performance_dict['f1'] = f1
+            spec_performance_dict['f2'] = f2
+            spec_performance_dict['f3'] = float(f3)
+            spec_performance_dict['TRV'] = TRV
+            spec_performance_dict['FRW'] = FRW
+            spec_performance_dict['torque_average'] = torque_average
+            spec_performance_dict['ss_avg_force_magnitude'] = ss_avg_force_magnitude
+            spec_performance_dict['rotor_weight'] = rotor_weight
+            spec_performance_dict['normalized_torque_ripple'] = float(normalized_torque_ripple)
+            spec_performance_dict['normalized_force_error_magnitude'] = float(normalized_force_error_magnitude)
+            spec_performance_dict['force_error_angle'] = float(force_error_angle)
+            spec_performance_dict['coil_flux_linkage_peak2peak_value'] = float(coil_flux_linkage_peak2peak_value)
+            spec_performance_dict['mm2_slot_area'] = mm2_slot_area
+            spec_performance_dict['Cost'] = Cost
+            spec_performance_dict['Cost_Fe'] = Cost_Fe
+            spec_performance_dict['Cost_Cu'] = Cost_Cu
+            spec_performance_dict['Cost_PM'] = Cost_PM
+            spec_performance_dict['power_factor'] = power_factor
+            spec_performance_dict['rated_ratio'] = rated_ratio
+            spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
+            spec_performance_dict['rated_total_loss'] = rated_total_loss
+            spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
+            spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
+            spec_performance_dict['rated_magnet_Joule_loss'] = rated_magnet_Joule_loss
+            spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
+            spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
+            spec_performance_dict['rated_iron_loss'] = rated_iron_loss
+            spec_performance_dict['rated_windage_loss'] = rated_windage_loss
+            # spec_performance_dict['str_results'] = str_results
+            spec_performance_dict['select_fea_config_dict'] = self.select_fea_config_dict
+            spec_performance_dict['moo.fitness_OA'] = self.fea_config_dict['moo.fitness_OA']
+            spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
+            spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
+
+            GP = acm_variant.template.SI['GP']
+            EX = acm_variant.template.SI['EX']
+
+            # Save to disk
+            # self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
+
+            number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
+            individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
+            builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
+            json_file_path = self.fea_config_dict['output_dir'] + self.select_spec + '.json'
+
+            # Read the possibly-existing current json data
+            try:
+                if os.path.getsize(json_file_path) > 0:
+                    with open(json_file_path, 'r') as rf:
+                        loaded_json = json.load(rf)
+                else:
+                    loaded_json = {}
+            except Exception:
+                loaded_json = {}
+
+            # Compose new key
+            key = f'gen{number_current_generation}-ind{individual_index}'
+            loaded_json[key] = builtins.ad.visualize_dict
+
+            json_string = jsonpickle.encode(loaded_json, indent=4)
+            with open(json_file_path, 'w+') as f:
+                f.write(json_string)
+
+            number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
+            individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
+
+            # save object (acm_variant) to disk
+            # utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
+
+            # this is for optimization
+            acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
+
+            builtins.ad.visualize_dict['FEA_Evaluated_Performance'] = spec_performance_dict
+            builtins.ad.visualize_dict[f'results_for_optimization+{number_current_generation}-{individual_index}'] = acm_variant.results_for_optimization
+                #= int(acm_variant.counter//popsize), 
+                #= acm_variant.counter
+
+            # this is for comparison to FEMM
+            def compare_with_FEMM(acm_variant):
+                EX = acm_variant.template.d['EX']
+                acm_variant.analyzer = FEMM_SlidingMesh.Individual_Analyzer_FEMM_Edition(p=EX['wily'].p)
+                basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list, \
+                    DisplacementAngle_list, \
+                    circuit_current_GroupACU, \
+                    circuit_current_GroupACV, \
+                    circuit_current_GroupACW, \
+                    circuit_current_GroupBDU, \
+                    circuit_current_GroupBDV, \
+                    circuit_current_GroupBDW, \
+                    terminal_voltage_GroupACU, \
+                    terminal_voltage_GroupACV, \
+                    terminal_voltage_GroupACW, \
+                    terminal_voltage_GroupBDU, \
+                    terminal_voltage_GroupBDV, \
+                    terminal_voltage_GroupBDW, \
+                    coil_fluxLinkage_GroupACU, \
+                    coil_fluxLinkage_GroupACV, \
+                    coil_fluxLinkage_GroupACW, \
+                    coil_fluxLinkage_GroupBDU, \
+                    coil_fluxLinkage_GroupBDV, \
+                    coil_fluxLinkage_GroupBDW = self.toolJd.dm.unpack(bool_more_info=True)
+                electrical_period = acm_variant.template.fea_config_dict['designer.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
+                number_of_steps   = acm_variant.template.fea_config_dict['designer.number_of_steps_2ndTSS']
+                step_size_sec = electrical_period / number_of_steps
+                step_size_mech_deg = EX['Omega'] * step_size_sec / math.pi * 180
+
+                for index in range(-self.toolJd.dm.number_of_steps_at_steady_state, 0):
+                    time                         = float(time_list[index])
+                    RotorAngle_MechanicalDegrees = float(DisplacementAngle_list[index])
+                    torque = float(TorCon_list[index])
+                    forces = ( float(ForConX_list[index]), float(ForConY_list[index]) )
+                    energy = 0.0
+                    circuitProperties = ( [ circuit_current_GroupACU[index], terminal_voltage_GroupACU[index], coil_fluxLinkage_GroupACU[index] ],
+                                        [ circuit_current_GroupACV[index], terminal_voltage_GroupACV[index], coil_fluxLinkage_GroupACV[index] ],
+                                        [ circuit_current_GroupACW[index], terminal_voltage_GroupACW[index], coil_fluxLinkage_GroupACW[index] ],
+                                        [ circuit_current_GroupBDU[index], terminal_voltage_GroupBDU[index], coil_fluxLinkage_GroupBDU[index] ],
+                                        [ circuit_current_GroupBDV[index], terminal_voltage_GroupBDV[index], coil_fluxLinkage_GroupBDV[index] ],
+                                        [ circuit_current_GroupBDW[index], terminal_voltage_GroupBDW[index], coil_fluxLinkage_GroupBDW[index] ] )
+                    acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
+                acm_variant.analyzer.get_ss_data()
+
+            # compare_with_FEMM(acm_variant)
+            # acm_variant.analyzer.save_time_domain_data(counter) # TODO
+
+            return acm_variant
+
+
+
 
     def start_optimization(self):
 
@@ -1123,8 +2412,14 @@ class Modern_Machine_Designer(object):
                 logger.addHandler(handler)
             return logger
 
+        self.path2SwarmData = fr'../_default/' + self.name.replace(' ', '_')+'/'
         self.logger = myLogger(self.path2SwarmData, prefix='acmdm')
         logger = logging.getLogger(__name__)
+
+        if self.fea_config_dict is None:
+            with open((os.path.dirname(__file__))+'/machine_simulation.json', 'r') as f:
+                raw_fea_config_dicts = json.load(f)
+                self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
 
         ################################################################
         # MOO Step 1:
@@ -1145,15 +2440,26 @@ class Modern_Machine_Designer(object):
 
             # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
             # logger.info(f'Check for swarm data from: {self.select_spec}.json ...')
-            self.ad.acm_template.build_x_denorm()
-            # quit()
-            swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
+            self.x_denorm = list(ad.get_free_variables_as_dict().values())
+            self.x_denorm_dict = ad.get_free_variables_as_dict()
+            self.bounds_denorm = list(ad.get_free_variable_bounds_dict().values())
+
+            def read_swarm_data_json(select_spec, desired_x_denorm_dict=None):
+                ''' In case of desired_x_denorm_dict being None, your swarm_data_xf must be of the same size.
+                '''
+                if select_spec is None: select_spec = self.select_spec
+                self.analyzer = Swarm_Data_Analyzer(self.path2SwarmData + select_spec + '.json', desired_x_denorm_dict)
+                self.swarm_data = self.analyzer.swarm_data_xf
+                self.swarm_data_file = self.path2SwarmData + select_spec + '.json'
+                return self.swarm_data_file
+
+            swarm_data_file = read_swarm_data_json(self.name, self.x_denorm_dict)
             
-            number_of_chromosome = ad.analyzer.number_of_chromosome
+            number_of_chromosome = self.analyzer.number_of_chromosome
             # print(number_of_chromosome)
             # quit()
-            for index, (k, v) in enumerate(self.ad.acm_template.x_denorm_dict.items()):
-                logger.info(f'x_denorm_dict variable no. {index} is {k} = {v} with bounds: {ad.acm_template.bounds_denorm[index]}')
+            for index, (k, v) in enumerate(self.x_denorm_dict.items()):
+                logger.info(f'x_denorm_dict variable no. {index} is {k} = {v} with bounds: {self.bounds_denorm[index]}')
             # quit()
             # case 1: swarm_data.txt exists # Restarting feature related codes
             if number_of_chromosome != 0:
@@ -1382,7 +2688,7 @@ class Modern_Machine_Designer(object):
         """
         param_fields = {}
         # 使用 vars(self) 或 self.__dict__ 来获取所有实例属性
-        # 因为参数是在 __post_init__ 中动态添加的，不是 dataclass 字段
+        # 因为参数是在 __post_init__ 中动态添加的，不是 dataclass 字段，所以用fields是不全的。
         for attr_name, attr_value in vars(self).items():
             if isinstance(attr_value, Parameter):
                 param_fields[attr_name] = attr_value
@@ -1436,9 +2742,18 @@ class Modern_Machine_Designer(object):
         获取所有参数的 OrderedDict（兼容旧代码风格）
         
         Returns:
-            OrderedDict: 参数的有序字典
+            OrderedDict: 参数的有序字典，键为字段名
         """
         return OrderedDict(self.get_parameter_fields())
+    
+    def get_parameter_dict_by_name(self) -> OrderedDict:
+        """
+        获取所有参数的 OrderedDict，以参数名（Parameter.name）为键
+        
+        Returns:
+            OrderedDict: 参数的有序字典，键为参数名（Parameter.name）
+        """
+        return OrderedDict((param.name, param) for param in self.get_parameter_fields().values())
     
     def list_parameters(self, param_type: Optional[str] = None) -> List[str]:
         """
@@ -1604,20 +2919,11 @@ class Modern_Machine_Designer(object):
             """完整序列化 Parameter 对象，包括 lambda 函数的信息"""
             param_dict = param.to_dict()
             
-            # 保存 args（用于重建 lambda 函数）
-            if param.args is not None:
-                # 序列化 args，将 Parameter 对象转换为名称引用
-                serialized_args = []
-                for arg in param.args:
-                    if isinstance(arg, Parameter):
-                        serialized_args.append({'_type': 'Parameter', 'name': arg.name})
-                    elif isinstance(arg, (int, float, str, bool, type(None))):
-                        serialized_args.append(arg)
-                    elif isinstance(arg, (list, tuple)):
-                        serialized_args.append([serialize_parameter_full(a) if isinstance(a, Parameter) else a for a in arg])
-                    else:
-                        serialized_args.append(str(arg))
-                param_dict['args'] = serialized_args
+            # 保存 parameter_dict 的引用标记（用于重建 lambda 函数）
+            # 注意：parameter_dict 本身不序列化，因为它包含循环引用
+            # 在反序列化时，parameter_dict 会从对象的 get_parameter_dict() 方法获取
+            if hasattr(param, 'parameter_dict') and param.parameter_dict is not None:
+                param_dict['_has_parameter_dict'] = True
             
             # 尝试保存 lambda 函数的源代码（如果可能）
             calc_info = {}
@@ -1844,6 +3150,17 @@ class Modern_Machine_Designer(object):
         # 调用 __post_init__ 重建所有内容
         instance.__post_init__()
         
+        # 更新所有参数的 parameter_dict 引用
+        parameter_dict = instance.get_parameter_dict()
+        parameter_dict_by_name = instance.get_parameter_dict_by_name()
+        for field_name, param in instance.get_parameter_fields().items():
+            # 对于需要参数名作为键的参数（derived 参数和 calc_bounds），使用 parameter_dict_by_name
+            if param.calc is not None or param.calc_bounds is not None:
+                param.parameter_dict = parameter_dict_by_name
+            elif hasattr(param, 'parameter_dict'):
+                # 其他情况使用字段名作为键的字典
+                param.parameter_dict = parameter_dict
+        
         # 恢复保存的参数值（如果 __post_init__ 覆盖了它们）
         for field_name, saved_value in saved_param_values.items():
             param = getattr(instance, field_name, None)
@@ -1984,9 +3301,9 @@ if __name__ == "__main__":
     # print(dir(mmd.machineGeometry['statorCore']))
     mmd.drawer.visualization_points['Coils']['PCoil']
 
-    mmd.FEA_evaluate()
-    mmd.save_to_file('machine_designer.json')
-    mmd.save_to_file_full('machine_designer_full.json') # 保存完整信息到文件（类似 pickle）
+    # mmd.FEA_evaluate()
+    # mmd.save_to_file('machine_designer.json')
+    # mmd.save_to_file_full('machine_designer_full.json') # 保存完整信息到文件（类似 pickle）
 
     mmd.start_optimization()
     quit()

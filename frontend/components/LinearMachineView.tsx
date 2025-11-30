@@ -90,6 +90,7 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
             const airGapHeight = 10;
             const rotorHeight = 60;
             const secondRowHeight = 40; // Height for second row of magnets (ps)
+            const netForceRowHeight = 35; // Height for net force visualization row
             const legendHeight = 30; // Space for legend
             const titleHeight = 30; // Space for title
             
@@ -117,7 +118,7 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
         const slotWidth = innerWidth / Qs;
 
         // Calculate the actual content height (without legend)
-        const actualContentHeight = statorYokeHeight + slotDepth + toothHeight + airGapHeight + rotorHeight + secondRowHeight;
+        const actualContentHeight = statorYokeHeight + slotDepth + toothHeight + airGapHeight + rotorHeight + secondRowHeight + netForceRowHeight;
         
         // Calculate total height needed including legend
         const legendSpace = 40; // Space needed for legend
@@ -156,6 +157,7 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
         const scaledAirGap = airGapHeight * scaleY;
         const scaledRotor = rotorHeight * scaleY;
         const scaledSecondRow = secondRowHeight * scaleY;
+        const scaledNetForceRow = netForceRowHeight * scaleY;
 
         // Draw Stator Yoke (top)
         g.append("rect")
@@ -309,6 +311,119 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
                 .text(i % 2 === 0 ? "N" : "S");
         }
 
+        // Net Force Row - visualize the interaction between torque and suspension poles
+        const netForceRowY = secondRowY + scaledSecondRow;
+        
+        // Calculate net force segments across the width
+        // We'll create segments based on the least common multiple of pole counts for accurate visualization
+        const forceSegments = Math.max(poles, suspensionPoles) * 4; // Enough segments for smooth visualization
+        const segmentWidth = innerWidth / forceSegments;
+        
+        // Draw net force visualization as segmented bars
+        for (let i = 0; i < forceSegments; i++) {
+            const x = i * segmentWidth;
+            const position = x / innerWidth; // Normalized position (0 to 1)
+            
+            // Determine which torque pole and suspension pole are at this position
+            const torquePoleIndex = Math.floor(position * poles) % poles;
+            const suspensionPoleIndex = Math.floor(position * suspensionPoles) % suspensionPoles;
+            
+            // Determine pole polarities
+            // Torque: even index = N (0), odd index = S (1)
+            const torquePoleType = torquePoleIndex % 2 === 0 ? 'N' : 'S';
+            // Suspension: even index = N (0), odd index = S (1)
+            const suspensionPoleType = suspensionPoleIndex % 2 === 0 ? 'N' : 'S';
+            
+            // Calculate net force
+            // N + N = repulsion (negative force, minimum) - Red
+            // S + S = repulsion (negative force, minimum) - Red
+            // N + S = attraction (positive force, maximum) - Green
+            // S + N = attraction (positive force, maximum) - Green
+            const isRepulsion = (torquePoleType === 'N' && suspensionPoleType === 'N') || 
+                               (torquePoleType === 'S' && suspensionPoleType === 'S');
+            
+            // Draw force segment
+            // Repulsion: extends upward from center (negative force)
+            // Attraction: extends downward from center (positive force)
+            const centerY = netForceRowY + scaledNetForceRow / 2;
+            const forceHeight = scaledNetForceRow * 0.4; // 40% of row height for force visualization
+            
+            if (isRepulsion) {
+                // Repulsion - red, extends upward
+                g.append("rect")
+                    .attr("x", x)
+                    .attr("y", centerY - forceHeight)
+                    .attr("width", segmentWidth)
+                    .attr("height", forceHeight)
+                    .attr("fill", theme === 'dark' ? "#ef4444" : "#dc2626")
+                    .attr("opacity", 0.7)
+                    .attr("stroke", colors.border)
+                    .attr("stroke-width", 0.5);
+                
+                // Up arrow indicator for repulsion
+                if (i % Math.floor(forceSegments / 8) === 0) {
+                    g.append("path")
+                        .attr("d", `M ${x + segmentWidth / 2} ${centerY - forceHeight * 0.8} L ${x + segmentWidth / 2 - 3} ${centerY - forceHeight * 0.6} L ${x + segmentWidth / 2 + 3} ${centerY - forceHeight * 0.6} Z`)
+                        .attr("fill", theme === 'dark' ? "#ef4444" : "#dc2626")
+                        .attr("opacity", 0.9);
+                }
+            } else {
+                // Attraction - green, extends downward
+                g.append("rect")
+                    .attr("x", x)
+                    .attr("y", centerY)
+                    .attr("width", segmentWidth)
+                    .attr("height", forceHeight)
+                    .attr("fill", theme === 'dark' ? "#10b981" : "#059669")
+                    .attr("opacity", 0.7)
+                    .attr("stroke", colors.border)
+                    .attr("stroke-width", 0.5);
+                
+                // Down arrow indicator for attraction
+                if (i % Math.floor(forceSegments / 8) === 0) {
+                    g.append("path")
+                        .attr("d", `M ${x + segmentWidth / 2} ${centerY + forceHeight * 0.8} L ${x + segmentWidth / 2 - 3} ${centerY + forceHeight * 0.6} L ${x + segmentWidth / 2 + 3} ${centerY + forceHeight * 0.6} Z`)
+                        .attr("fill", theme === 'dark' ? "#10b981" : "#059669")
+                        .attr("opacity", 0.9);
+                }
+            }
+        }
+        
+        // Draw center line (neutral force reference)
+        g.append("line")
+            .attr("x1", 0)
+            .attr("y1", netForceRowY + scaledNetForceRow / 2)
+            .attr("x2", innerWidth)
+            .attr("y2", netForceRowY + scaledNetForceRow / 2)
+            .attr("stroke", colors.border)
+            .attr("stroke-width", 1.5)
+            .attr("stroke-dasharray", "3,3")
+            .attr("opacity", 0.6);
+        
+        // Add label for net force row
+        g.append("text")
+            .attr("x", 5)
+            .attr("y", netForceRowY + scaledNetForceRow / 2 + 4)
+            .attr("font-size", "10px")
+            .attr("font-weight", "bold")
+            .attr("fill", colors.textSecondary)
+            .text("Net Force");
+        
+        // Add force magnitude labels
+        g.append("text")
+            .attr("x", innerWidth - 80)
+            .attr("y", netForceRowY + scaledNetForceRow * 0.25)
+            .attr("font-size", "8px")
+            .attr("fill", theme === 'dark' ? "#ef4444" : "#dc2626")
+            .text("Min (Repulsion)");
+        
+        g.append("text")
+            .attr("x", innerWidth - 80)
+            .attr("y", netForceRowY + scaledNetForceRow * 0.75)
+            .attr("font-size", "8px")
+            .attr("fill", theme === 'dark' ? "#10b981" : "#059669")
+            .text("Max (Attraction)");
+
         // Title
         const titleText = coilPitchY !== null && coilPitchY !== undefined
             ? `Linear Machine View - Qs=${Qs}, p=${p}, ps=${ps}, coil_pitch_y=${coilPitchY}`
@@ -330,7 +445,9 @@ const LinearMachineView: React.FC<LinearMachineViewProps> = ({ Qs, p, ps, coilPi
             { label: "Stator Yoke", color: colors.statorYoke },
             { label: "Stator Teeth", color: colors.statorTeeth },
             { label: `Torque Poles (p=${p})`, color: theme === 'dark' ? "#ef4444" : "#dc2626" },
-            { label: `Suspension Poles (ps=${ps})`, color: theme === 'dark' ? "#f59e0b" : "#d97706" }
+            { label: `Suspension Poles (ps=${ps})`, color: theme === 'dark' ? "#f59e0b" : "#d97706" },
+            { label: "Net Force (Repulsion)", color: theme === 'dark' ? "#ef4444" : "#dc2626" },
+            { label: "Net Force (Attraction)", color: theme === 'dark' ? "#10b981" : "#059669" }
         ];
 
         legendItems.forEach((item, i) => {

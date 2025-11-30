@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Loader2, FileText, AlertCircle } from 'lucide-react';
 import * as d3 from 'd3';
+import { useTheme } from '@/context/ThemeContext';
 
 interface CsvVisualizerProps {
     projectName?: string;
@@ -14,12 +15,30 @@ interface CsvVisualizerProps {
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
 export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualizerProps) {
+    const { theme } = useTheme();
     const [csvFiles, setCsvFiles] = useState<string[]>([]);
     const [selectedFile, setSelectedFile] = useState<string>('');
     const [chartData, setChartData] = useState<any[]>([]);
     const [dataKeys, setDataKeys] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Chart colors based on theme
+    const chartColors = useMemo(() => {
+        const isDark = theme === 'dark';
+        return {
+            // Light mode: softer, more elegant colors with better contrast
+            // Dark mode: maintains current professional look
+            gridStroke: isDark ? '#4b5563' : '#e5e7eb', // Slate 600 for dark, Slate 200 for light (softer grid)
+            tooltipBg: isDark ? '#1f2937' : '#ffffff', // Slate 800 for dark, pure white for light
+            tooltipBorder: isDark ? '#374151' : '#d1d5db', // Slate 700 for dark, Slate 300 for light (subtle border)
+            tooltipText: isDark ? '#f3f4f6' : '#111827', // Slate 100 for dark, Gray 900 for light (better contrast)
+            axisStroke: isDark ? '#9ca3af' : '#6b7280', // Slate 400 for dark, Gray 500 for light (balanced visibility)
+            axisTick: isDark ? '#9ca3af' : '#6b7280', // Same as axis stroke
+            lineLightness: isDark ? 50 : 35, // Lighter lines for dark mode, darker for light mode (more visible)
+            lineSaturation: isDark ? 70 : 85, // More vibrant, saturated colors in light mode
+        };
+    }, [theme]);
 
     useEffect(() => {
         const fetchCsvList = async () => {
@@ -143,17 +162,27 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
                 {chartData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.gridStroke} />
                             <XAxis
                                 dataKey="Time(s)"
                                 type="number"
                                 domain={['auto', 'auto']}
                                 tickFormatter={(tick) => tick.toFixed(4)}
                                 label={{ value: 'Time (s)', position: 'insideBottomRight', offset: -5 }}
+                                stroke={chartColors.axisStroke}
+                                tick={{ fill: chartColors.axisTick }}
                             />
-                            <YAxis />
+                            <YAxis 
+                                stroke={chartColors.axisStroke}
+                                tick={{ fill: chartColors.axisTick }}
+                            />
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', color: '#f3f4f6' }}
+                                contentStyle={{ 
+                                    backgroundColor: chartColors.tooltipBg, 
+                                    border: `1px solid ${chartColors.tooltipBorder}`, 
+                                    color: chartColors.tooltipText,
+                                    borderRadius: '6px'
+                                }}
                             />
                             <Legend />
                             {dataKeys.map((key, index) => (
@@ -161,7 +190,7 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
                                     key={key}
                                     type="monotone"
                                     dataKey={key}
-                                    stroke={`hsl(${index * 60}, 70%, 50%)`}
+                                    stroke={`hsl(${index * 60}, ${chartColors.lineSaturation}%, ${chartColors.lineLightness}%)`}
                                     dot={false}
                                     strokeWidth={2}
                                 />

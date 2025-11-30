@@ -54,7 +54,7 @@ class Problem_BearinglessSynchronousDesign(object):
 
             # if True:
             try:
-                acm_variant = ad.evaluate_design_json_wrapper(ad.acm_template, x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
+                acm_variant = ad.evaluate_design_json_wrapper(x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
                 cost_function, f1, f2, f3, FRW, \
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader2, Filter, Check } from 'lucide-react';
@@ -8,6 +8,7 @@ import * as d3 from 'd3';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTheme } from '@/context/ThemeContext';
 
 interface MultiCsvVisualizerProps {
     projectName: string;
@@ -20,11 +21,29 @@ interface ChartData {
 }
 
 export default function MultiCsvVisualizer({ projectName }: MultiCsvVisualizerProps) {
+    const { theme } = useTheme();
     const [csvFiles, setCsvFiles] = useState<string[]>([]);
     const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
     const [chartsData, setChartsData] = useState<ChartData[]>([]);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
+
+    // Chart colors based on theme
+    const chartColors = useMemo(() => {
+        const isDark = theme === 'dark';
+        return {
+            // Light mode: softer, more elegant colors with better contrast
+            // Dark mode: maintains current professional look
+            gridStroke: isDark ? '#4b5563' : '#e5e7eb', // Slate 600 for dark, Slate 200 for light (softer grid)
+            tooltipBg: isDark ? '#1f2937' : '#ffffff', // Slate 800 for dark, pure white for light
+            tooltipBorder: isDark ? '#374151' : '#d1d5db', // Slate 700 for dark, Slate 300 for light (subtle border)
+            tooltipText: isDark ? '#f3f4f6' : '#111827', // Slate 100 for dark, Gray 900 for light (better contrast)
+            axisStroke: isDark ? '#9ca3af' : '#6b7280', // Slate 400 for dark, Gray 500 for light (balanced visibility)
+            axisTick: isDark ? '#9ca3af' : '#6b7280', // Same as axis stroke
+            lineLightness: isDark ? 50 : 35, // Lighter lines for dark mode, darker for light mode (more visible)
+            lineSaturation: isDark ? 70 : 85, // More vibrant, saturated colors in light mode
+        };
+    }, [theme]);
 
     // Fetch file list
     useEffect(() => {
@@ -191,27 +210,35 @@ export default function MultiCsvVisualizer({ projectName }: MultiCsvVisualizerPr
                         <div className="flex-1 min-h-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={chart.data}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.gridStroke} />
                                     <XAxis
                                         dataKey="Time(s)"
                                         type="number"
                                         domain={['auto', 'auto']}
-                                        tick={{ fontSize: 10 }}
+                                        tick={{ fontSize: 10, fill: chartColors.axisTick }}
                                         tickFormatter={(tick) => tick.toFixed(3)}
+                                        stroke={chartColors.axisStroke}
                                     />
                                     <YAxis
                                         width={50}
-                                        tick={{ fontSize: 10 }}
+                                        tick={{ fontSize: 10, fill: chartColors.axisTick }}
                                         domain={['auto', 'auto']}
+                                        stroke={chartColors.axisStroke}
                                         label={{
                                             value: chart.keys[0],
                                             angle: -90,
                                             position: 'insideLeft',
-                                            style: { textAnchor: 'middle', fontSize: '10px' }
+                                            style: { textAnchor: 'middle', fontSize: '10px', fill: chartColors.axisTick }
                                         }}
                                     />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', color: '#f3f4f6', fontSize: '12px' }}
+                                        contentStyle={{ 
+                                            backgroundColor: chartColors.tooltipBg, 
+                                            border: `1px solid ${chartColors.tooltipBorder}`, 
+                                            color: chartColors.tooltipText, 
+                                            fontSize: '12px',
+                                            borderRadius: '6px'
+                                        }}
                                         labelFormatter={(label) => `Time: ${Number(label).toFixed(4)}s`}
                                     />
                                     {chart.keys.map((key, index) => (
@@ -219,7 +246,7 @@ export default function MultiCsvVisualizer({ projectName }: MultiCsvVisualizerPr
                                             key={key}
                                             type="monotone"
                                             dataKey={key}
-                                            stroke={`hsl(${index * 137.5}, 70%, 50%)`} // Golden angle for distinct colors
+                                            stroke={`hsl(${index * 137.5}, ${chartColors.lineSaturation}%, ${chartColors.lineLightness}%)`} // Golden angle for distinct colors
                                             dot={false}
                                             strokeWidth={1.5}
                                         />

@@ -279,7 +279,7 @@ class CrossSectInnerNotchedMagnet(object):
         if d_pm + 2*EPS < d_rp:
             logger = logging.getLogger(__name__)
             logger.warning('[class CrossSectInnerNotchedMagnet] Detect d_rp is too close to d_pm. To avoid small line entity error in JMAG, set d_pm equal to d_rp because rotor core is plotted already.')
-            raise ExceptionBadDesign('[Error] Magnet depth d_pm is too close to inter-pole notch depth d_rp.')
+            raise ExceptionBadDesign(f'[Error] Magnet depth {d_pm=} is too close to inter-pole notch depth {d_rp=}.')
 
         P1 = [r_ri, 0]
 
