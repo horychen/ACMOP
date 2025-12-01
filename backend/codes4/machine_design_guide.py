@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
-import json, math, base64, pickle, cairo, os, jsonpickle, logging
+import json, math, base64, pickle, cairo, os, jsonpickle, logging, utility
 
 
 
@@ -14,18 +14,26 @@ class Swarm_Data_Analyzer(object):
     @staticmethod
     def decode_py_reduce_ordered_dict(x_denorm_dict_raw):
         """
-        解码 jsonpickle 序列化的 OrderedDict (py/reduce 格式)
+        解码 jsonpickle 序列化的 OrderedDict (py/reduce 格式) 或普通字典
         
         Args:
-            x_denorm_dict_raw: 包含 py/reduce 格式的字典
+            x_denorm_dict_raw: 包含 py/reduce 格式的字典或普通字典
             
         Returns:
             OrderedDict: 解码后的有序字典
         """
-        if not isinstance(x_denorm_dict_raw, dict) or 'py/reduce' not in x_denorm_dict_raw:
-            # 如果不是 py/reduce 格式，直接返回
-            return x_denorm_dict_raw
+        # 如果是空字典，直接返回
+        if not isinstance(x_denorm_dict_raw, dict):
+            return OrderedDict()
         
+        if len(x_denorm_dict_raw) == 0:
+            return OrderedDict()
+        
+        # 如果是普通字典（不是 py/reduce 格式），直接转换为 OrderedDict
+        if 'py/reduce' not in x_denorm_dict_raw:
+            return OrderedDict(x_denorm_dict_raw)
+        
+        # 处理 py/reduce 格式
         try:
             # py/reduce 格式: [type_info, tuple_info, None, None, data_tuple]
             reduce_data = x_denorm_dict_raw['py/reduce']
@@ -70,7 +78,13 @@ class Swarm_Data_Analyzer(object):
         '''
         print(f'[Swarm_Data_Analyzer] read in {fname=}')
         with open(fname, 'r', encoding='utf-8') as f:
-            swarm_data_as_dict = json.load(f)
+            try:
+                # 尝试使用 jsonpickle 解码（如果文件是用 jsonpickle 保存的）
+                swarm_data_as_dict = jsonpickle.decode(f.read())
+            except Exception:
+                # 如果 jsonpickle 解码失败，尝试使用标准 json 加载
+                f.seek(0)  # 重置文件指针
+                swarm_data_as_dict = json.load(f)
         
         if bool_filter_pareto_front:
             swarm_data_as_dict = self.filter_data(swarm_data_as_dict, 'Geometric parameters', 'split_ratio', 'bigger', 0.45)
@@ -101,15 +115,45 @@ class Swarm_Data_Analyzer(object):
             x_denorm_dict_raw = individual_data.get('x_denorm_dict', {})
             x_denorm_dict = self.decode_py_reduce_ordered_dict(x_denorm_dict_raw)
             
+            # 如果 x_denorm_dict 为空，尝试从 desired_x_denorm_dict 获取默认值
+            if not x_denorm_dict and desired_x_denorm_dict is not None:
+                # 如果字典为空，使用 desired_x_denorm_dict 的当前值作为占位符
+                # 这通常发生在数据保存时 x_denorm_dict 没有被正确序列化
+                logger.warning(f'x_denorm_dict is empty for {key}, using current parameter values as placeholder')
+                x_denorm_dict = desired_x_denorm_dict.copy()
+            
             # 提取设计参数值
             x_denorm = sort_as_desired(x_denorm_dict, desired_x_denorm_dict)
             
             # 提取性能指标 f1, f2, f3
-            f1 = individual_data.get('f1', 0.0)
-            f2 = individual_data.get('f2', 0.0)
-            f3 = individual_data.get('f3', 0.0)
+            # 处理 f1, f2, f3 可能是空字典 {} 的情况
+            def get_value_or_default(value, default=0.0):
+                """如果值是空字典，返回默认值；否则返回实际值"""
+                if isinstance(value, dict) and len(value) == 0:
+                    return default
+                elif value is None:
+                    return default
+                else:
+                    return float(value) if value != {} else default
+            
+            f1 = get_value_or_default(individual_data.get('f1'), 0.0)
+            f2 = get_value_or_default(individual_data.get('f2'), 0.0)
+            f3 = get_value_or_default(individual_data.get('f3'), 0.0)
             
             # 组合成 [x_denorm..., f1, f2, f3]
+            # 确保 x_denorm 的长度与 desired_x_denorm_dict 一致
+            if desired_x_denorm_dict is not None and len(x_denorm) != len(desired_x_denorm_dict):
+                logger.warning(f'x_denorm length mismatch for {key}: expected {len(desired_x_denorm_dict)}, got {len(x_denorm)}')
+                # 如果长度不匹配，使用 desired_x_denorm_dict 的当前值填充
+                if len(x_denorm) == 0:
+                    x_denorm = list(desired_x_denorm_dict.values())
+                elif len(x_denorm) < len(desired_x_denorm_dict):
+                    # 如果长度不足，用当前值填充
+                    x_denorm = x_denorm + list(desired_x_denorm_dict.values())[len(x_denorm):]
+                else:
+                    # 如果长度超出，截断
+                    x_denorm = x_denorm[:len(desired_x_denorm_dict)]
+            
             self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
         
         if len(self.swarm_data_xf) > 0:
@@ -254,12 +298,45 @@ class Swarm_Data_Analyzer(object):
             self.rotor_weight = []
 
 class swarm_data_container(object):
-    def __init__(self, swarm_data_raw, fea_config_dict, swarm_data_json=None):
-
+    """
+    群体数据容器类，用于从原始文本数据或 JSON 文件读取和分析群体优化数据。
+    支持两种数据源：
+    1. 原始文本格式（swarm_data_raw）
+    2. JSON 格式（swarm_data_json 或从 JSON 文件读取）
+    """
+    
+    def __init__(self, swarm_data_raw=None, fea_config_dict=None, swarm_data_json=None, swarm_data_json_file_path=None):
+        """
+        初始化群体数据容器
+        
+        Args:
+            swarm_data_raw: 原始文本数据（列表格式，向后兼容）
+            fea_config_dict: FEA 配置字典
+            swarm_data_json: JSON 格式的数据字典（如果提供，将优先使用）
+            swarm_data_json_file_path: JSON 文件路径（如果提供，将从文件读取）
+        """
         self.swarm_data_raw = swarm_data_raw
-        self.fea_config_dict = fea_config_dict
-
-        # x, f(x)
+        self.fea_config_dict = fea_config_dict or {}
+        
+        # 如果提供了 JSON 文件路径，从文件读取
+        if swarm_data_json_file_path is not None and os.path.exists(swarm_data_json_file_path):
+            logger = logging.getLogger(__name__)
+            logger.info(f'Loading swarm data from JSON file: {swarm_data_json_file_path}')
+            with open(swarm_data_json_file_path, 'r', encoding='utf-8') as f:
+                swarm_data_json = json.load(f)
+        
+        # 如果提供了 JSON 数据，使用 JSON 数据源
+        if swarm_data_json is not None:
+            self._load_from_json(swarm_data_json)
+        elif swarm_data_raw is not None:
+            self._load_from_raw(swarm_data_raw)
+        else:
+            logger = logging.getLogger(__name__)
+            logger.warning('No data source provided (neither swarm_data_raw nor swarm_data_json/swarm_data_json_file_path)')
+            self._initialize_empty()
+    
+    def _initialize_empty(self):
+        """初始化空的数据结构"""
         self.swarm_data_xf = []
         self.project_names = []
         self.machine_data = []
@@ -271,86 +348,224 @@ class swarm_data_container(object):
         self.RatedVol = []
         self.RatedWeight = []
         self.RatedStkLen = []
-        #IM 
-            # if len(bound_filter) == 9: # This is induction motor
-            #     for raw in swarm_data_raw:
-
-            #         design_parameters_denorm = [float(x) for x in raw[5].split(',')]
-            #         # print(design_parameters_denorm, len(design_parameters_denorm))
-            #         # quit()
-
-            #         loc1 = raw[2].find('f1')
-            #         loc2 = raw[2].find('f2')
-            #         loc3 = raw[2].find('f3')
-            #         f1 = float(raw[2][loc1+3:loc2-1])
-            #         f2 = float(raw[2][loc2+3:loc3-1])
-            #         f3 = float(raw[2][loc3+3:])
-
-            #         x_denorm = self.get_x_denorm_from_design_parameters(design_parameters_denorm, bound_filter)
-            #         self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
-            #         # print(self.swarm_data_xf)
-            #         # quit()
-
-            #         self.project_names.append(raw[1][:-1])
-            #         self.machine_data.append([float(x) for x in raw[3].split(',')])
-            #         self.rated_data.append(  [float(x) for x in raw[4].split(',')])
-
-            #         individual_Trip = [float(x) for x in raw[3].split(',')][3]
-            #         self.Trip.append(individual_Trip)
-
-            #         # Get FRW
-            #         individual_ss_avg_force_magnitude = [float(x) for x in raw[3].split(',')][4]
-            #         individual_Em                     = [float(x) for x in raw[3].split(',')][5]
-            #         individual_Ea                     = [float(x) for x in raw[3].split(',')][6]
-            #         individual_rated_rotor_volume     = [float(x) for x in raw[4].split(',')][9]
-            #         individual_rated_rotor_weight     = (individual_rated_rotor_volume*8050*9.8)
-            #         individual_rated_stack_length     = [float(x) for x in raw[4].split(',')][10]
-            #         individual_original_stack_length  = [float(x) for x in raw[4].split(',')][11]
-            #         individual_original_rotor_weight  = individual_rated_rotor_weight/individual_rated_stack_length*individual_original_stack_length
-            #         individual_FRW = individual_ss_avg_force_magnitude/individual_original_rotor_weight
-            #         self.FRW.append(individual_FRW)
-            #         self.Em.append(individual_Em)
-            #         self.Ea.append(individual_Ea)
-            #         self.RatedVol.append(individual_rated_rotor_volume)
-            #         self.RatedWeight.append(individual_rated_rotor_weight)
-            #         self.RatedStkLen.append(individual_rated_stack_length)
-        # else: # This is PM motor
-        if True:
-            # self.swarm_data_raw = swarm_data_raw
-            # self.fea_config_dict = fea_config_dict
-
-            # x, f(x)
-            # self.swarm_data_xf = []
-            # self.project_names = []
-
-            # self.machine_data = []
-            # self.rated_data = []
-            # self.Trip = []
-            # self.FRW = []
-            # self.Em = []
-            # self.Ea = []
-            # self.RatedVol = []
-            # self.RatedWeight = []
-            # self.RatedStkLen = []
-            self.deg_alpha_st = []
-            self.mm_w_st = []
-            self.mm_r_si = []
-
-            # TODO: use swarm_data_json over raw
-            if swarm_data_json is not None:
-                for key in swarm_data_json.keys():
-                    # print(swarm_data_json[key])
-                    logger = logging.getLogger(__name__)
-                    logger.debug('DEBUG (swarm_data_json) %s', list(swarm_data_json[key].keys()))
-                    # print('DEBUG', list(swarm_data_json[key].values()))
-
-                    the_variant_dict = list(swarm_data_json[key].values())
-                    x_denorm = list( the_variant_dict[0]['x_denorm_dict'].values() )
-                    # x_denorm = [val for val in list(swarm_data_json[key].values())['x_denorm_dict'].items()]
-                    # print(x_denorm)
-                    # quit()
-            if True:
-                for raw in self.swarm_data_raw:
+        self.deg_alpha_st = []
+        self.mm_w_st = []
+        self.mm_r_si = []
+        self.number_of_free_variables = 0
+        
+        # 性能指标列表
+        self.l_OA = []
+        self.l_OB = []
+        self.l_OC = []
+        self.l_design_parameters = []
+        self.l_power_factor = []
+        self.l_efficiency = []
+        self.l_torque_average = []
+        self.l_normalized_torque_ripple = []
+        self.l_ss_avg_force_magnitude = []
+        self.l_normalized_force_error_magnitude = []
+        self.l_force_error_angle = []
+        self.l_rated_shaft_power = []
+        self.l_rated_efficiency = []
+        self.l_rated_total_loss = []
+        self.l_rated_stator_copper_loss_along_stack = []
+        self.l_rated_rotor_copper_loss_along_stack = []
+        self.l_stator_copper_loss_in_end_turn = []
+        self.l_rotor_copper_loss_in_end_turn = []
+        self.l_rated_iron_loss = []
+        self.l_rated_windage_loss = []
+        self.l_rated_rotor_volume = []
+        self.l_rated_rotor_weight = []
+        self.l_rated_stack_length = []
+        self.l_original_stack_length = []
+        self.l_original_rotor_weight = []
+        self.l_TRV = []
+        self.l_FRW = []
+    
+    def _load_from_json(self, swarm_data_json):
+        """
+        从 JSON 格式的数据加载
+        
+        Args:
+            swarm_data_json: JSON 格式的群体数据字典
+        """
+        logger = logging.getLogger(__name__)
+        logger.info(f'Loading {len(swarm_data_json)} individuals from JSON data')
+        
+        # 初始化数据结构
+        self._initialize_empty()
+        
+        # 使用 Swarm_Data_Analyzer 的解码方法
+        decoder = Swarm_Data_Analyzer.__new__(Swarm_Data_Analyzer)  # 创建实例但不调用 __init__
+        
+        for key, individual_data in swarm_data_json.items():
+            # 解码 x_denorm_dict
+            x_denorm_dict_raw = individual_data.get('x_denorm_dict', {})
+            x_denorm_dict = Swarm_Data_Analyzer.decode_py_reduce_ordered_dict(x_denorm_dict_raw)
+            
+            # 提取设计参数值（按顺序）
+            x_denorm = list(x_denorm_dict.values())
+            
+            # 提取性能指标
+            f1 = individual_data.get('f1', 0.0)
+            f2 = individual_data.get('f2', 0.0)
+            f3 = individual_data.get('f3', 0.0)
+            
+            # 组合成 [x_denorm..., f1, f2, f3]
+            self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
+            
+            # 提取项目名称
+            project_name = individual_data.get('project_name', key)
+            self.project_names.append(project_name)
+            
+            # 构建 machine_data（模拟原始格式）
+            # [power_factor, efficiency, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle]
+            machine_data_item = [
+                individual_data.get('power_factor', 0.0),
+                individual_data.get('RatedEfficiency', -f2 if f2 < 0 else 0.0),  # 效率可能是负的 f2
+                individual_data.get('torque_average', 0.0),
+                individual_data.get('normalized_torque_ripple', 0.0),
+                individual_data.get('ss_avg_force_magnitude', 0.0),
+                individual_data.get('normalized_force_error_magnitude', 0.0),
+                individual_data.get('force_error_angle', 0.0),
+            ]
+            self.machine_data.append(machine_data_item)
+            
+            # 构建 rated_data（模拟原始格式）
+            rated_data_item = [
+                individual_data.get('rated_shaft_power', 0.0),
+                individual_data.get('RatedEfficiency', -f2 if f2 < 0 else 0.0),
+                individual_data.get('rated_total_loss', 0.0),
+                individual_data.get('rated_stator_copper_loss_along_stack', 0.0),
+                individual_data.get('rated_rotor_copper_loss_along_stack', 0.0),
+                individual_data.get('stator_copper_loss_in_end_turn', 0.0),
+                individual_data.get('rotor_copper_loss_in_end_turn', 0),
+                individual_data.get('rated_iron_loss', 0.0),
+                individual_data.get('rated_windage_loss', 0.0),
+                individual_data.get('rated_rotor_volume', 0.0),
+                individual_data.get('rated_stack_length_mm', 0.0),
+                individual_data.get('original_stack_length', 0.0),
+            ]
+            self.rated_data.append(rated_data_item)
+            
+            # 提取其他指标
+            self.Trip.append(individual_data.get('normalized_torque_ripple', 0.0))
+            
+            # 计算 FRW（如果需要）
+            ss_avg_force = individual_data.get('ss_avg_force_magnitude', 0.0)
+            rotor_weight = individual_data.get('rotor_weight', 0.0)
+            if rotor_weight > 0:
+                individual_FRW = ss_avg_force / rotor_weight
+            else:
+                individual_FRW = 0.0
+            self.FRW.append(individual_FRW)
+            
+            self.Em.append(individual_data.get('normalized_force_error_magnitude', 0.0))
+            self.Ea.append(individual_data.get('force_error_angle', 0.0))
+            
+            # 体积和重量
+            rated_rotor_volume = individual_data.get('rated_rotor_volume', 0.0)
+            if rated_rotor_volume == 0.0:
+                # 如果没有直接提供，尝试从其他数据计算
+                rated_rotor_volume = 0.0  # 需要更多信息才能计算
+            self.RatedVol.append(rated_rotor_volume)
+            
+            # 转子重量（密度 8050 kg/m^3，转换为 N）
+            if rated_rotor_volume > 0:
+                individual_rated_rotor_weight = rated_rotor_volume * 8050 * 9.8  # N
+            else:
+                individual_rated_rotor_weight = individual_data.get('rotor_weight', 0.0)
+            self.RatedWeight.append(individual_rated_rotor_weight)
+            
+            rated_stack_length = individual_data.get('rated_stack_length_mm', 0.0)
+            self.RatedStkLen.append(rated_stack_length)
+            
+            # 提取特定设计参数（如果存在）
+            if 'magnet_depth' in x_denorm_dict:
+                # 尝试从 x_denorm_dict 中提取特定参数
+                pass  # 这些参数可能不在 x_denorm_dict 中
+        
+        # 设置自由变量数量
+        if len(self.swarm_data_xf) > 0:
+            self.number_of_free_variables = len(self.swarm_data_xf[0]) - 3
+        else:
+            self.number_of_free_variables = 0
+        
+        # 提取所有性能指标列表
+        self._extract_performance_lists()
+        
+        logger.info(f'Loaded {len(self.swarm_data_xf)} individuals, {self.number_of_free_variables} free variables')
+    
+    def _extract_performance_lists(self):
+        """从 machine_data 和 rated_data 提取所有性能指标列表"""
+        # 从 swarm_data_xf 提取目标函数值
+        if len(self.swarm_data_xf) > 0:
+            self.l_OA = [raw[-3] for raw in self.swarm_data_xf]  # f1
+            self.l_OB = [raw[-2] for raw in self.swarm_data_xf]  # f2
+            self.l_OC = [raw[-1] for raw in self.swarm_data_xf]  # f3
+            self.l_design_parameters = [raw[:-3] for raw in self.swarm_data_xf]
+        
+        # 从 machine_data 提取
+        if len(self.machine_data) > 0:
+            self.l_power_factor = [raw[0] for raw in self.machine_data]
+            self.l_efficiency = [raw[1] for raw in self.machine_data]
+            self.l_torque_average = [raw[2] for raw in self.machine_data]
+            self.l_normalized_torque_ripple = [raw[3] for raw in self.machine_data]
+            self.l_ss_avg_force_magnitude = [raw[4] for raw in self.machine_data]
+            self.l_normalized_force_error_magnitude = [raw[5] for raw in self.machine_data]
+            self.l_force_error_angle = [raw[6] for raw in self.machine_data]
+        
+        # 从 rated_data 提取
+        if len(self.rated_data) > 0:
+            self.l_rated_shaft_power = [raw[0] for raw in self.rated_data]
+            self.l_rated_efficiency = [raw[1] for raw in self.rated_data]
+            self.l_rated_total_loss = [raw[2] for raw in self.rated_data]
+            self.l_rated_stator_copper_loss_along_stack = [raw[3] for raw in self.rated_data]
+            self.l_rated_rotor_copper_loss_along_stack = [raw[4] for raw in self.rated_data]
+            self.l_stator_copper_loss_in_end_turn = [raw[5] for raw in self.rated_data]
+            self.l_rotor_copper_loss_in_end_turn = [raw[6] for raw in self.rated_data]
+            self.l_rated_iron_loss = [raw[7] for raw in self.rated_data]
+            self.l_rated_windage_loss = [raw[8] for raw in self.rated_data]
+            self.l_rated_rotor_volume = [raw[9] for raw in self.rated_data]
+            self.l_rated_rotor_weight = [(V*8050*9.8) for V in self.l_rated_rotor_volume]  # N
+            self.l_rated_stack_length = [raw[10] for raw in self.rated_data]
+            self.l_original_stack_length = [raw[11] for raw in self.rated_data]
+            self.l_original_rotor_weight = [weight/rated*ori if rated > 0 else 0 
+                                            for weight, rated, ori in zip(self.l_rated_rotor_weight, 
+                                                                          self.l_rated_stack_length, 
+                                                                          self.l_original_stack_length)]
+        
+        # 计算 TRV 和 FRW
+        import numpy as np
+        required_torque = 50e3 / (30000/60*2*math.pi)  # TODO: 应该使用额定堆叠长度和平均转矩计算
+        self.l_TRV = [required_torque/raw if raw > 0 else 0 for raw in self.l_rated_rotor_volume]
+        self.l_FRW = [F/W if W > 0 else 0 for W, F in zip(self.l_original_rotor_weight, self.l_ss_avg_force_magnitude)]
+    
+    def _load_from_raw(self, swarm_data_raw):
+        """
+        从原始文本数据加载（保持向后兼容）
+        
+        Args:
+            swarm_data_raw: 原始文本数据列表，每个元素是一个列表，包含：
+                raw[0]: 索引或其他信息
+                raw[1]: 项目名称
+                raw[2]: 包含 f1, f2, f3 的字符串
+                raw[3]: 机器数据（逗号分隔的字符串）
+                raw[4]: 额定数据（逗号分隔的字符串）
+                raw[5]: 设计参数（逗号分隔的字符串）
+        """
+        logger = logging.getLogger(__name__)
+        logger.info(f'Loading {len(swarm_data_raw)} individuals from raw text data')
+        
+        # 初始化数据结构
+        self._initialize_empty()
+        
+        self.deg_alpha_st = []
+        self.mm_w_st = []
+        self.mm_r_si = []
+        
+        # 处理每个个体
+        for raw in swarm_data_raw:
 
                     # spmsm_template.design_parameters = [
                     #                                   0 spmsm_template.deg_alpha_st 
@@ -514,8 +729,16 @@ class swarm_data_container(object):
 
                     self.swarm_data_xf.append(x_denorm + [f1, f2, f3])
 
-        self.number_of_free_variables = len(x_denorm)
-        print('\tCount of individuals:', len(self.swarm_data_raw))
+        # 设置自由变量数量
+        if len(self.swarm_data_xf) > 0:
+            self.number_of_free_variables = len(self.swarm_data_xf[0]) - 3
+        else:
+            self.number_of_free_variables = 0
+        
+        logger.info(f'Loaded {len(self.swarm_data_xf)} individuals from raw data, {self.number_of_free_variables} free variables')
+        
+        # 提取所有性能指标列表
+        self._extract_performance_lists()
 
         self.l_OA = [raw[-3] for raw in self.swarm_data_xf]
         self.l_OB = [raw[-2] for raw in self.swarm_data_xf]
@@ -1383,6 +1606,75 @@ class Geometry(object):
         for i, (name, gp) in enumerate(self.GP.items()):
             if isinstance(gp, Parameter):
                 exec(f"self.{name} = {gp.value}")
+    
+    def update_from_GP(self):
+        """
+        从 GP 字典中的 Parameter 对象更新所有实例属性值
+        当 Parameter 的值更新后，调用此方法来同步 Geometry 对象的属性值
+        """
+        if isinstance(self.GP, dict):
+            for name, gp in self.GP.items():
+                if isinstance(gp, Parameter):
+                    # 更新实例属性值为 Parameter 的当前值
+                    setattr(self, name, gp.value)
+    
+    def __repr__(self):
+        """返回 Geometry 对象的基本信息"""
+        gp_info = {}
+        if isinstance(self.GP, dict):
+            for k, v in self.GP.items():
+                if isinstance(v, Parameter):
+                    gp_info[k] = f"Parameter(name='{v.name}', value={v.value}, unit='{v.unit}')"
+                else:
+                    gp_info[k] = str(v)
+        return f"Geometry(name='{self.name}', color='{self.color}', GP={gp_info})"
+    
+    def print_parameters(self):
+        """打印所有参数值，包括 GP 中的参数和实例属性"""
+        print(f"\n=== Geometry: {self.name} ===")
+        print(f"Color: {self.color}")
+        
+        # 打印 GP 中的参数
+        if self.GP:
+            print("\nGP Parameters:")
+            if isinstance(self.GP, dict):
+                for param_name, param_value in self.GP.items():
+                    if isinstance(param_value, Parameter):
+                        print(f"  {param_name}: Parameter(name='{param_value.name}', type='{param_value.type}', value={param_value.value}, bounds={param_value.bounds}, unit='{param_value.unit}')")
+                    else:
+                        print(f"  {param_name}: {param_value}")
+            elif isinstance(self.GP, list):
+                for i, gp in enumerate(self.GP):
+                    if isinstance(gp, Parameter):
+                        print(f"  [{i}]: Parameter(name='{gp.name}', type='{gp.type}', value={gp.value}, bounds={gp.bounds}, unit='{gp.unit}')")
+                    else:
+                        print(f"  [{i}]: {gp}")
+        
+        # 打印所有实例属性（排除 GP 和 draw_function）
+        print("\nInstance Attributes:")
+        for attr_name, attr_value in self.__dict__.items():
+            if attr_name not in ['GP', 'draw_function']:
+                if isinstance(attr_value, Parameter):
+                    print(f"  {attr_name}: Parameter(name='{attr_value.name}', type='{attr_value.type}', value={attr_value.value}, bounds={attr_value.bounds}, unit='{attr_value.unit}')")
+                elif isinstance(attr_value, (int, float, str, bool, type(None))):
+                    print(f"  {attr_name}: {attr_value}")
+                elif isinstance(attr_value, (list, tuple)):
+                    print(f"  {attr_name}: {attr_value}")
+                elif isinstance(attr_value, dict):
+                    print(f"  {attr_name}: {attr_value}")
+                else:
+                    print(f"  {attr_name}: {type(attr_value).__name__} object")
+        
+        # 打印 visualization_points（如果存在）
+        if hasattr(self, 'visualization_points') and self.visualization_points:
+            print("\nVisualization Points:")
+            if isinstance(self.visualization_points, dict):
+                for key, value in self.visualization_points.items():
+                    print(f"  {key}: {value}")
+            else:
+                print(f"  {self.visualization_points}")
+        
+        print("=" * 50)
     def to_dict(self) -> Dict[str, Any]:
         # INSERT_YOUR_CODE
         """
@@ -1530,7 +1822,8 @@ class Modern_Machine_Designer(object):
     bool_RotorNotched: bool = True
 
     select_FEA_tool: str = 'JMAG Designer' # FEMM
-    select_fea_config_dict: str = '#0213 JMAG Bearingless Sub-hamonics'
+    # select_fea_config_dict: str = '#0213 JMAG Bearingless Sub-hamonics'
+    select_fea_config_dict: str = '#02 JMAG Bearingless Fast Evaluation'
     fea_config_dict: dict = None
     bool_jmagDeleteResultsAfterCalculation: bool = False
 
@@ -1540,6 +1833,24 @@ class Modern_Machine_Designer(object):
     counter_fitness_return: int = 0
 
     def __post_init__(self):
+
+        ''' 工程和文件路径 '''
+        def get_pc_name():
+            import platform, socket
+            n1 = platform.node()
+            n2 = socket.gethostname()
+            n3 = os.environ["COMPUTERNAME"]
+            if n1 == n2 == n3:
+                return n1
+            else:
+                raise Exception(f"Computer names are not equal to each other. {n1,n2,n3}")
+        self.dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
+        self.dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
+        self.pc_name = get_pc_name()
+        self.path2SwarmData = fr'../_default/' + self.name.replace(' ', '_') + '/'
+        self.swarm_data_json_file_path = self.path2SwarmData + f'SwarmData.json'
+        if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
+
 
         # 绕组
         m : int = 3
@@ -1561,6 +1872,7 @@ class Modern_Machine_Designer(object):
 
         RatedPower: float = 50e3 # W
         RatedSpeed: float = 30000 # rpm
+        self.name = self.name + f'-{RatedPower}W-{RatedSpeed}rpm'
         ExcitationFreqSimulated: float = RatedSpeed / 60 * p
 
         TORQUE_CURRENT_RATIO: float = 0.95
@@ -1981,18 +2293,18 @@ class Modern_Machine_Designer(object):
             "coils": None
         }
         self.machineGeometry['coils'] = Geometry(name='coils',
-                GP={
-                    'mm_r_so': self.mm_r_so,
-                    'mm_d_sy': self.mm_d_sy,
-                    'mm_w_st': self.mm_w_st,
-                    'mm_d_st': self.mm_d_st,
-                },
-                draw_function=lambda drawer, **kwargs: (
-                    CrossSectStator.CrossSectInnerRotorStatorWinding(
-                        stator_core=self.machineGeometry['statorCore'],
-                    ).draw(drawer, **kwargs)
-                )
+            GP={
+                'mm_r_so': self.mm_r_so,
+                'mm_d_sy': self.mm_d_sy,
+                'mm_w_st': self.mm_w_st,
+                'mm_d_st': self.mm_d_st,
+            },
+            draw_function=lambda drawer, **kwargs: (
+                CrossSectStator.CrossSectInnerRotorStatorWinding(
+                    stator_core=self.machineGeometry['statorCore'],
+                ).draw(drawer, **kwargs)
             )
+        )
 
 
     def get_InitialRotationAngle(self):
@@ -2041,6 +2353,14 @@ class Modern_Machine_Designer(object):
         height_in_points = self.mm_r_so.value*2.1
         draw_spmsm(lw, width_in_points, height_in_points)
 
+    def update_machine_geometry(self):
+        """
+        更新 machineGeometry 中所有 Geometry 对象的参数值
+        当几何参数更新后，调用此方法来同步 machineGeometry 中的值
+        """
+        for geo_name, geo in self.machineGeometry.items():
+            geo.update_from_GP()
+
     def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True, x_denorm=None, counter=None, counter_loop=0):
 
         def update_geometric_parameters(x_denorm):
@@ -2051,6 +2371,8 @@ class Modern_Machine_Designer(object):
             for i, param in enumerate(self.get_parameters_by_type('derived').values()):
                 if param.calc is not None and param.parameter_dict is not None:
                     param.value = param.calc(param.parameter_dict)
+            # 更新 machineGeometry 中所有 Geometry 对象的参数值
+            self.update_machine_geometry()
 
         # 更新决策变量，同时刷新依赖于决策变量的导出参数。
         if x_denorm is not None:
@@ -2065,23 +2387,6 @@ class Modern_Machine_Designer(object):
             counter = self.counter
         else:
             self.counter = counter
-
-        ''' 工程和文件路径 '''
-        def get_pc_name():
-            import platform, socket
-            n1 = platform.node()
-            n2 = socket.gethostname()
-            n3 = os.environ["COMPUTERNAME"]
-            if n1 == n2 == n3:
-                return n1
-            else:
-                raise Exception(f"Computer names are not equal to each other. {n1,n2,n3}")
-        dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
-        dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
-        pc_name = get_pc_name()
-        # os.chdir(dir_codes)
-        self.path2SwarmData = project_loc + self.name.replace(' ', '_')+'/'
-        if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
 
         # define project_name using counter and counter_loop
         self.project_name = self.name + f'-ind{counter}'
@@ -2098,7 +2403,7 @@ class Modern_Machine_Designer(object):
             def build_jmag_project(study_name):
                 import JMAG
                 toolJd = JMAG.JMAG()
-                toolJd.open(Steel_name=self.EX['SteelMaterial'], expected_project_file_path=self.expected_project_file, pc_name=pc_name, dir_parent=dir_parent, bool_jmagDesignerShow=bool_jmagDesignerShow)
+                toolJd.open(Steel_name=self.EX['SteelMaterial'], expected_project_file_path=self.expected_project_file, pc_name=self.pc_name, dir_parent=self.dir_parent, bool_jmagDesignerShow=bool_jmagDesignerShow)
                 return toolJd
 
             def draw_spmsm(toolJd):
@@ -2214,43 +2519,46 @@ class Modern_Machine_Designer(object):
                 TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
                 ss_avg_force_magnitude, rotor_weight, torque_average = self.results_to_be_unpacked
 
+                import rich
+                rich.print(self.results_to_be_unpacked)
+
                 # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
                 self.spec_performance_dict = spec_performance_dict = dict()
-                spec_performance_dict['x_denorm_dict'] = self.get_free_variables_as_dict() # ['x_denorm_dict']
+                spec_performance_dict['x_denorm_dict'] = {k: float(v) for k, v in self.get_free_variables_as_dict().items()}
                 spec_performance_dict['project_name'] = project_name
                 spec_performance_dict['individual_name'] = individual_name
                 spec_performance_dict['number_current_generation'] = number_current_generation
                 spec_performance_dict['individual_index'] = individual_index
                 # spec_performance_dict['cost_function'] = cost_function
-                spec_performance_dict['f1'] = f1
-                spec_performance_dict['f2'] = f2
+                spec_performance_dict['f1'] = float(f1)
+                spec_performance_dict['f2'] = float(f2)
                 spec_performance_dict['f3'] = float(f3)
-                spec_performance_dict['TRV'] = TRV
-                spec_performance_dict['FRW'] = FRW
+                spec_performance_dict['TRV'] = float(TRV)
+                spec_performance_dict['FRW'] = float(FRW)
                 spec_performance_dict['torque_average'] = torque_average
                 spec_performance_dict['ss_avg_force_magnitude'] = ss_avg_force_magnitude
-                spec_performance_dict['rotor_weight'] = rotor_weight
+                spec_performance_dict['rotor_weight'] = float(rotor_weight)
                 spec_performance_dict['normalized_torque_ripple'] = float(normalized_torque_ripple)
                 spec_performance_dict['normalized_force_error_magnitude'] = float(normalized_force_error_magnitude)
                 spec_performance_dict['force_error_angle'] = float(force_error_angle)
                 spec_performance_dict['coil_flux_linkage_peak2peak_value'] = float(coil_flux_linkage_peak2peak_value)
                 spec_performance_dict['mm2_slot_area'] = mm2_slot_area
-                spec_performance_dict['Cost'] = Cost
-                spec_performance_dict['Cost_Fe'] = Cost_Fe
-                spec_performance_dict['Cost_Cu'] = Cost_Cu
-                spec_performance_dict['Cost_PM'] = Cost_PM
+                spec_performance_dict['Cost'] = float(Cost)
+                spec_performance_dict['Cost_Fe'] = float(Cost_Fe)
+                spec_performance_dict['Cost_Cu'] = float(Cost_Cu)
+                spec_performance_dict['Cost_PM'] = float(Cost_PM)
                 spec_performance_dict['power_factor'] = power_factor
                 spec_performance_dict['rated_ratio'] = rated_ratio
                 spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
-                spec_performance_dict['rated_total_loss'] = rated_total_loss
+                spec_performance_dict['rated_total_loss'] = float(rated_total_loss)
                 spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
                 spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
                 spec_performance_dict['rated_magnet_Joule_loss'] = rated_magnet_Joule_loss
-                spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
-                spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
+                spec_performance_dict['stator_copper_loss_in_end_turn'] = float(stator_copper_loss_in_end_turn)
+                spec_performance_dict['rotor_copper_loss_in_end_turn']  = float(rotor_copper_loss_in_end_turn)
                 spec_performance_dict['rated_iron_loss'] = rated_iron_loss
-                spec_performance_dict['rated_windage_loss'] = rated_windage_loss
+                spec_performance_dict['rated_windage_loss'] = float(rated_windage_loss)
                 # spec_performance_dict['str_results'] = str_results
                 spec_performance_dict['select_FEA_tool'] = self.select_FEA_tool
                 spec_performance_dict['moo.fitness_OA'] = self.fea_config_dict['moo.fitness_OA']
@@ -2267,13 +2575,12 @@ class Modern_Machine_Designer(object):
                 individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
                 results2file = {f'spec_performance_dict-gen{number_current_generation}-ind{individual_index}' : spec_performance_dict}
 
-                json_file_path = self.path2SwarmData + f'SwarmData.json'
                 # INSERT_YOUR_CODE
                 # Load existing JSON file (if any), append the new results and write back using jsonpickle.
                 try:
                     # Try loading the existing JSON file
-                    if os.path.exists(json_file_path) and os.path.getsize(json_file_path) > 0:
-                        with open(json_file_path, 'r') as rf:
+                    if os.path.exists(self.swarm_data_json_file_path) and os.path.getsize(self.swarm_data_json_file_path) > 0:
+                        with open(self.swarm_data_json_file_path, 'r') as rf:
                             existing_data = jsonpickle.decode(rf.read())
                             if not isinstance(existing_data, dict):
                                 existing_data = {}
@@ -2287,7 +2594,7 @@ class Modern_Machine_Designer(object):
 
                 # Write the updated data back to the file
                 json_string = jsonpickle.encode(existing_data, indent=4)
-                with open(json_file_path, 'w') as wf:
+                with open(self.swarm_data_json_file_path, 'w') as wf:
                     wf.write(json_string)
 
                 # this is for optimization
@@ -2309,24 +2616,24 @@ class Modern_Machine_Designer(object):
         # This is a wrapper for the wrapper, in order to build up a json profile for the design variant
 
         # 这里应该返回新获得的设计，然后可以获得geometry_dict，然后包括x_denorm的信息方便重构设计。
-        acm_variant = self.FEA_evaluate(x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        self.FEA_evaluate(x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
 
         if 'FEMM' in self.select_fea_config_dict:
-            acm_variant.results_for_optimization = acm_variant.analyzer.build_results_for_optimization()
+            self.results_for_optimization = self.analyzer.build_results_for_optimization()
 
             # Save spec_performance_dict and others to disk
-            GP = acm_variant.template.d['GP']
-            EX = acm_variant.template.d['EX']
-            self.save_to_disk(acm_variant, acm_variant.analyzer.spec_performance_dict, GP, EX)
+            GP = self.template.d['GP']
+            EX = self.template.d['EX']
+            self.save_to_disk(self, self.analyzer.spec_performance_dict, GP, EX)
 
-            # Save also the object (acm_variant) to disk, but this takes a lot of disk space!
-            if self.fea_config_dict['moo.save_acm_variant_object_as_jsonpickle'] == True:
-                utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
+            # Save also the object (self) to disk, but this takes a lot of disk space!
+            if self.fea_config_dict['moo.save_self_object_as_jsonpickle'] == True:
+                utility_json.to_json_recursively(self, self.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
 
             # Save time domain data to disk
-            acm_variant.analyzer.save_time_domain_data(self.fea_config_dict['output_dir']+self.select_spec+f'-ind{counter}.pkl') # counter could be string
+            self.analyzer.save_time_domain_data(self.fea_config_dict['output_dir']+self.select_spec+f'-ind{counter}.pkl') # counter could be string
 
-            return acm_variant
+            return self
 
         elif 'JMAG' in self.select_fea_config_dict:
 
@@ -2351,12 +2658,12 @@ class Modern_Machine_Designer(object):
             mm2_slot_area, \
             coil_flux_linkage_peak2peak_value, \
             TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
-            ss_avg_force_magnitude, rotor_weight, torque_average = acm_variant.results_to_be_unpacked
+            ss_avg_force_magnitude, rotor_weight, torque_average = self.results_to_be_unpacked
 
-            # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
+            # self.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
             spec_performance_dict = dict()
-            spec_performance_dict['x_denorm_dict'] = self.get_free_variables_as_dict()
+            spec_performance_dict['x_denorm_dict'] = dict(self.get_free_variables_as_dict())
             spec_performance_dict['project_name'] = project_name
             spec_performance_dict['individual_name'] = individual_name
             spec_performance_dict['number_current_generation'] = number_current_generation
@@ -2396,21 +2703,19 @@ class Modern_Machine_Designer(object):
             spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
             spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
 
-            GP = acm_variant.template.SI['GP']
-            EX = acm_variant.template.SI['EX']
 
             # Save to disk
-            # self.save_to_disk(acm_variant, spec_performance_dict, GP, EX)
+            # self.save_to_disk(self, spec_performance_dict, GP, EX)
 
-            number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
-            individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
-            builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
-            json_file_path = self.fea_config_dict['output_dir'] + self.select_spec + '.json'
+            number_current_generation = spec_performance_dict['number_current_generation'] #= int(self.counter//popsize), 
+            individual_index = spec_performance_dict['individual_index'] #= self.counter
+            # builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
+
 
             # Read the possibly-existing current json data
             try:
-                if os.path.getsize(json_file_path) > 0:
-                    with open(json_file_path, 'r') as rf:
+                if os.path.getsize(self.swarm_data_json_file_path) > 0:
+                    with open(self.swarm_data_json_file_path, 'r') as rf:
                         loaded_json = json.load(rf)
                 else:
                     loaded_json = {}
@@ -2418,31 +2723,23 @@ class Modern_Machine_Designer(object):
                 loaded_json = {}
 
             # Compose new key
-            key = f'gen{number_current_generation}-ind{individual_index}'
-            loaded_json[key] = builtins.ad.visualize_dict
+            # key = f'gen{number_current_generation}-ind{individual_index}'
+            # loaded_json[key] = builtins.ad.visualize_dict
 
             json_string = jsonpickle.encode(loaded_json, indent=4)
-            with open(json_file_path, 'w+') as f:
+            with open(self.swarm_data_json_file_path, 'w+') as f:
                 f.write(json_string)
 
-            number_current_generation = spec_performance_dict['number_current_generation'] #= int(acm_variant.counter//popsize), 
-            individual_index = spec_performance_dict['individual_index'] #= acm_variant.counter
-
-            # save object (acm_variant) to disk
-            # utility_json.to_json_recursively(acm_variant, acm_variant.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
+            # save object (self) to disk
+            # utility_json.to_json_recursively(self, self.name, save_here=self.fea_config_dict['output_dir']+'jsonpickle/')
 
             # this is for optimization
-            acm_variant.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
-
-            builtins.ad.visualize_dict['FEA_Evaluated_Performance'] = spec_performance_dict
-            builtins.ad.visualize_dict[f'results_for_optimization+{number_current_generation}-{individual_index}'] = acm_variant.results_for_optimization
-                #= int(acm_variant.counter//popsize), 
-                #= acm_variant.counter
+            self.results_for_optimization = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
 
             # this is for comparison to FEMM
-            def compare_with_FEMM(acm_variant):
-                EX = acm_variant.template.d['EX']
-                acm_variant.analyzer = FEMM_SlidingMesh.Individual_Analyzer_FEMM_Edition(p=EX['wily'].p)
+            def compare_with_FEMM(self):
+                EX = self.template.d['EX']
+                self.analyzer = FEMM_SlidingMesh.Individual_Analyzer_FEMM_Edition(p=EX['wily'].p)
                 basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list, \
                     DisplacementAngle_list, \
                     circuit_current_GroupACU, \
@@ -2463,8 +2760,8 @@ class Modern_Machine_Designer(object):
                     coil_fluxLinkage_GroupBDU, \
                     coil_fluxLinkage_GroupBDV, \
                     coil_fluxLinkage_GroupBDW = self.toolJd.dm.unpack(bool_more_info=True)
-                electrical_period = acm_variant.template.fea_config_dict['designer.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
-                number_of_steps   = acm_variant.template.fea_config_dict['designer.number_of_steps_2ndTSS']
+                electrical_period = self.template.fea_config_dict['designer.number_cycles_in_2ndTSS']/EX['DriveW_Freq']
+                number_of_steps   = self.template.fea_config_dict['designer.number_of_steps_2ndTSS']
                 step_size_sec = electrical_period / number_of_steps
                 step_size_mech_deg = EX['Omega'] * step_size_sec / math.pi * 180
 
@@ -2480,30 +2777,38 @@ class Modern_Machine_Designer(object):
                                         [ circuit_current_GroupBDU[index], terminal_voltage_GroupBDU[index], coil_fluxLinkage_GroupBDU[index] ],
                                         [ circuit_current_GroupBDV[index], terminal_voltage_GroupBDV[index], coil_fluxLinkage_GroupBDV[index] ],
                                         [ circuit_current_GroupBDW[index], terminal_voltage_GroupBDW[index], coil_fluxLinkage_GroupBDW[index] ] )
-                    acm_variant.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
-                acm_variant.analyzer.get_ss_data()
+                    self.analyzer.add(time, RotorAngle_MechanicalDegrees, torque, forces, energy, circuitProperties)
+                self.analyzer.get_ss_data()
 
-            # compare_with_FEMM(acm_variant)
-            # acm_variant.analyzer.save_time_domain_data(counter) # TODO
+            # compare_with_FEMM(self)
+            # self.analyzer.save_time_domain_data(counter) # TODO
 
-            return acm_variant
-
-
-
+            return self.results_for_optimization
 
     def start_optimization(self):
-
+        """
+        启动多目标优化过程
+        
+        主要功能：
+        1. 读取现有的群体数据（从 SwarmData.json）
+        2. 评估帕累托前沿并基于拥挤距离选择最优个体
+        3. 初始化种群并开始优化迭代
+        """
         import logging, datetime, os
-        import builtins, utility_moo
+        import builtins
         import pygmo as pg
 
-        builtins.ad = self # share global variable between modules # https://stackoverflow.com/questions/142545/how-to-make-a-cross-module-variable
+
+        builtins.ad = self  # share global variable between modules
         ad = self
-        import Problem_BearinglessSynchronousDesign # must import this after __builtins__.ad = ad
+        import Problem_BearinglessSynchronousDesign  # must import this after __builtins__.ad = ad
 
-
-        def myLogger(dir_log, prefix='default_prefix_'): # This works even when the module is reloaded (which is not the case of the other answers) https://stackoverflow.com/questions/7173033/duplicate-log-output-when-using-python-logging-module
-
+        def myLogger(dir_log, prefix='default_prefix_'):
+            """创建日志记录器"""
+            # Disable matplotlib DEBUG logging to reduce log noise
+            logging.getLogger('matplotlib').setLevel(logging.WARNING)
+            logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
+            
             logger = logging.getLogger()
             if not len(logger.handlers):
                 logger.setLevel(logging.DEBUG)
@@ -2513,7 +2818,7 @@ class Modern_Machine_Designer(object):
                     os.makedirs(dir_log)
 
                 # create a file handler
-                handler=logging.FileHandler(dir_log + prefix + '-' + now.strftime("%Y-%m-%d") +'.log')
+                handler = logging.FileHandler(dir_log + prefix + '-' + now.strftime("%Y-%m-%d") + '.log')
                 handler.setLevel(logging.DEBUG)
 
                 # create a logging format
@@ -2524,179 +2829,166 @@ class Modern_Machine_Designer(object):
                 logger.addHandler(handler)
             return logger
 
-        self.path2SwarmData = fr'../_default/' + self.name.replace(' ', '_')+'/'
+        # 设置路径和日志
         self.logger = myLogger(self.path2SwarmData, prefix='acmdm')
         logger = logging.getLogger(__name__)
 
+        # 加载 FEA 配置
         if self.fea_config_dict is None:
-            with open((os.path.dirname(__file__))+'/machine_simulation.json', 'r') as f:
+            with open((os.path.dirname(__file__)) + '/machine_simulation.json', 'r') as f:
                 raw_fea_config_dicts = json.load(f)
                 self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
+                self.nobj = sum(1 for k, v in self.fea_config_dict.items() if k.startswith("moo.fitness") and v is not None)
+                self.obj_names = [v for k, v in self.fea_config_dict.items() if k.startswith("moo.fitness") and v is not None]
+                logger.info(f'Number of objectives is {self.nobj}')
+                logger.info(f'Objectives names are {self.obj_names}')
 
         ################################################################
-        # MOO Step 1:
-        #   Create UserDefinedProblem and create population
-        #   The magic method __init__ cannot be fined for UDP class
+        # MOO Step 1: 创建问题并初始化种群
         ################################################################
-        # [4.3.1] Basic setup
+        # [4.3.1] 基本设置
         _, prob = Problem_BearinglessSynchronousDesign.get_prob()
         popsize = self.fea_config_dict["moo.popsize"]
         logger.info(f'Pop size is {popsize}')
-        # print('[acmop.py]', '-'*40 + '\n[acmop.py] Pop size is', popsize)
 
-        # [4.3.2] Generate the pop
-        if False:
-            pop = pg.population(prob, size=popsize) 
-        # Add Restarting Feature when generating pop
-        else:
+        # [4.3.2] 准备设计参数信息
+        self.x_denorm = list(ad.get_free_variables_as_dict().values())
+        self.x_denorm_dict = ad.get_free_variables_as_dict()
+        self.bounds_denorm = list(ad.get_free_variable_bounds_dict().values())
 
-            # 检查swarm_data.txt，如果有至少一个数据，返回就不是None。
-            # logger.info(f'Check for swarm data from: {self.select_spec}.json ...')
-            self.x_denorm = list(ad.get_free_variables_as_dict().values())
-            self.x_denorm_dict = ad.get_free_variables_as_dict()
-            self.bounds_denorm = list(ad.get_free_variable_bounds_dict().values())
+        for index, (k, v) in enumerate(self.x_denorm_dict.items()):
+            logger.info(f'x_denorm_dict variable no. {index} is {k} = {v} with bounds: {self.bounds_denorm[index]}')
 
-            def read_swarm_data_json(select_spec, desired_x_denorm_dict=None):
-                ''' In case of desired_x_denorm_dict being None, your swarm_data_xf must be of the same size.
-                '''
-                if select_spec is None: select_spec = self.select_spec
-                self.analyzer = Swarm_Data_Analyzer(self.path2SwarmData + select_spec + '.json', desired_x_denorm_dict)
-                self.swarm_data = self.analyzer.swarm_data_xf
-                self.swarm_data_file = self.path2SwarmData + select_spec + '.json'
-                return self.swarm_data_file
+        # [4.3.3] 读取现有的群体数据
+        logger.info(f'Reading swarm data from: {self.swarm_data_json_file_path}')
+        
+        self.analyzer = Swarm_Data_Analyzer(self.swarm_data_json_file_path, self.x_denorm_dict)
+        self.swarm_data = self.analyzer.swarm_data_xf
 
-            swarm_data_file = read_swarm_data_json(self.name, self.x_denorm_dict)
+        import rich   
+        print('--------------------------SWARM DATA--------------------------')
+        rich.print(self.swarm_data)
+
+        number_of_chromosome = self.analyzer.number_of_chromosome
+
+        # [4.3.4] 根据是否有现有数据来决定初始化策略
+        if number_of_chromosome != 0:
+            # Case 1: 存在现有数据 - 从档案中选择最优个体
+            logger.info(f'Found {number_of_chromosome} chromosomes in archive. This is a restart.')
             
-            number_of_chromosome = self.analyzer.number_of_chromosome
-            # print(number_of_chromosome)
-            # quit()
-            for index, (k, v) in enumerate(self.x_denorm_dict.items()):
-                logger.info(f'x_denorm_dict variable no. {index} is {k} = {v} with bounds: {self.bounds_denorm[index]}')
-            # quit()
-            # case 1: swarm_data.txt exists # Restarting feature related codes
-            if number_of_chromosome != 0:
+            number_of_finished_iterations = number_of_chromosome // popsize
+            number_of_finished_chromosome_in_current_generation = number_of_chromosome % popsize
 
-                number_of_finished_iterations                       = number_of_chromosome // popsize
-                number_of_finished_chromosome_in_current_generation = number_of_chromosome % popsize
+            # 如果刚好整除，把余数0改为popsize
+            if number_of_finished_chromosome_in_current_generation == 0:
+                number_of_finished_chromosome_in_current_generation = popsize
+                logger.info(f'\tThere are {number_of_chromosome} chromosomes found in {self.swarm_data_file}.')
+                logger.info('\tWhat is the odds! The script just stopped when the evaluation of the whole pop is finished.')
+                logger.info(f'\tSet number_of_finished_chromosome_in_current_generation to popsize {number_of_finished_chromosome_in_current_generation}')
 
-                # 如果刚好整除，把余数0改为popsize
-                if number_of_finished_chromosome_in_current_generation == 0:
-                    number_of_finished_chromosome_in_current_generation = popsize
-                    logger.info(f'\tThere are {number_of_chromosome} chromosomes found in {ad.swarm_data_file}.')
-                    logger.info('\tWhat is the odds! The script just stopped when the evaluation of the whole pop is finished.')
-                    logger.info('\tSet number_of_finished_chromosome_in_current_generation to popsize %d'%(number_of_finished_chromosome_in_current_generation))
+            logger.info('This is a restart of ' + self.path2SwarmData)
+            logger.info(f'\tNumber of finished iterations is {number_of_finished_iterations}')
 
-                logger.info('This is a restart of '+ self.path2SwarmData)
-                logger.info('\tNumber of finished iterations is %d'%(number_of_finished_iterations))
-                # print('This means the initialization of the population class is interrupted. So the pop in swarm_data.txt is used as the survivor.')
+            # 设置计数器
+            ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome
+            logger.info('ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome = %d', number_of_chromosome)
 
-                # 这些计数器的值永远都是评估过的chromosome的个数。
-                ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome
-                logger.info('ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome = %d', number_of_chromosome)
+            # 禁止在初始化pop时运行有限元
+            ad.flag_do_not_evaluate_when_init_pop = True
 
-                # 禁止在初始化pop时运行有限元
-                ad.flag_do_not_evaluate_when_init_pop = True
+            # 初始化种群（此时所有个体的fitness都是[0,0,0]）
+            pop = pg.population(prob, size=popsize)
 
-                # 初始化population，如果ad.flag_do_not_evaluate_when_init_pop是False，那么就说明是 new run，否则，整代个体的fitness都是[0,0,0]。
-                pop = pg.population(prob, size=popsize)
-                # quit()
-                # 如果整代个体的fitness都是[0,0,0]，那就需要调用set_xf，把txt文件中的数据写入pop。如果发现数据的个数不够，那就调用set_x()来产生数据，形成初代个体。
-                if ad.flag_do_not_evaluate_when_init_pop == True:
-                    pop_array = pop.get_x()
-                    # print(pop_array)
-                    # quit()
-                    if number_of_chromosome <= popsize: # 个体数不够一代的情况
-                        for i in range(popsize):
-                            if i < number_of_chromosome: #number_of_finished_chromosome_in_current_generation:
-                                pop.set_xf(i, ad.   swarm_data[i][:-3], ad.   swarm_data[i][-3:])
-                                # print(pop.set_xf(i, ad.   swarm_data[i][:-3], ad.   swarm_data[i][-3:]))
-                                # quit()
-                            else:
-                                logger.info('Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
-                                ad.flag_do_not_evaluate_when_init_pop = False
-                                logger.info('Calling pop.set_x()---this is a restart for individual#%d during pop initialization.', i)
-                                logger.info('i=%d: call get_fevals: %s', i, prob.get_fevals()) # https://esa.github.io/pygmo2/problem.html?highlight=get_fevals#pygmo.problem.get_fevals
-                                pop.set_x(i, pop_array[i]) # evaluate this guy
-                    else:
-                        # 新办法，直接从swarm_data.txt（相当于archive）中判断出当前最棒的群体
-                        swarm_data_on_pareto_front = utility_moo.learn_about_the_archive(prob, ad.   swarm_data, popsize, self.fea_config_dict)
-                        # print(swarm_data_on_pareto_front)
-                        # quit()
-                        for i in range(popsize):
-                            pop.set_xf(i, swarm_data_on_pareto_front[i][:-3], swarm_data_on_pareto_front[i][-3:])
-                            # quit()
-                    # 必须放到这个if的最后，因为在 learn_about_the_archive 中是有初始化一个 pop_archive 的，会调用fitness方法。
-                    ad.flag_do_not_evaluate_when_init_pop = False
+            if ad.flag_do_not_evaluate_when_init_pop == True:
+                pop_array = pop.get_x()
 
-            # case 2: swarm_data.txt does not exist
-            else:
-                number_of_finished_chromosome_in_current_generation = None
-                number_of_finished_iterations = 0 # 实际上跑起来它不是零，而是一，因为我们认为初始化的一代也是一代。或者，我们定义number_of_finished_iterations = number_of_chromosome // popsize
+                if number_of_chromosome <= popsize:
+                    # 个体数不够一代的情况
+                    for i in range(popsize):
+                        if i < number_of_chromosome:
+                            pop.set_xf(i, ad.swarm_data[i][:-3], ad.swarm_data[i][-3:])
+                        else:
+                            logger.info('Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
+                            ad.flag_do_not_evaluate_when_init_pop = False
+                            logger.info('Calling pop.set_x()---this is a restart for individual#%d during pop initialization.', i)
+                            logger.info('i=%d: call get_fevals: %s', i, prob.get_fevals())
+                            pop.set_x(i, pop_array[i])  # evaluate this guy
+                else:
+                    # 使用 learn_about_the_archive 从档案中选择具有高拥挤距离的个体
+                    logger.info('Using learn_about_the_archive to select individuals with high crowding distance from archive.')
+                    swarm_data_selected = self.learn_about_the_archive(prob, ad.swarm_data, popsize)
+                    
+                    # 将选中的个体设置到种群中
+                    for i in range(popsize):
+                        pop.set_xf(i, swarm_data_selected[i][:-3], swarm_data_selected[i][-3:])
+                    
+                    logger.info(f'Selected {popsize} individuals from archive based on Pareto front and crowding distance.')
 
-                # case 2-A: swarm_data.txt does not exist and this is a whole new run.
-                logger.info('Nothing exists in the archival json file. This is a whole new run.')
+                # 必须放到这个if的最后
                 ad.flag_do_not_evaluate_when_init_pop = False
-                pop = pg.population(prob, size=popsize)
 
-            # this flag must be false before moving on
+        else:
+            # Case 2: 没有现有数据 - 全新运行
+            number_of_finished_chromosome_in_current_generation = None
+            number_of_finished_iterations = 0
+
+            logger.info('Nothing exists in the archival json file. This is a whole new run.')
             ad.flag_do_not_evaluate_when_init_pop = False
+            pop = pg.population(prob, size=popsize)
+            ad.counter_fitness_called = ad.counter_fitness_return = 0
+
+        # 确保这个标志在继续之前是 False
+        ad.flag_do_not_evaluate_when_init_pop = False
 
         logger.info(f'Pop is initialized:\n {pop}')
-        # hv = pg.hypervolume(pop)
-        # quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
-        # logger.info('[acmop.py] quality_measure: %g'%(quality_measure))
-        # raise KeyboardInterrupt
 
-        # 初始化以后，pop.problem.get_fevals()就是popsize，但是如果大于popsize，说明“pop.set_x(i, pop_array[i]) # evaluate this guy”被调用了，说明还没输出过 survivors 数据，那么就写一下。
+        # 如果初始化后评估次数大于popsize，说明有新的评估，需要写入survivors
         if pop.problem.get_fevals() > popsize:
             logger.info('Write survivors.')
-            ad.   write_swarm_survivor(pop, ad.counter_fitness_return)
-
+            ad.write_swarm_survivor(pop, ad.counter_fitness_return)
 
         ################################################################
-        # MOO Step 2:
-        #   Select algorithm (another option is pg.nsga2())
+        # MOO Step 2: 选择算法
         ################################################################
-        # [4.3.3] Selecting algorithm
-        # Don't forget to change neighbours to be below popsize (default is 20) decomposition="bi"
-        algo = pg.algorithm(pg.moead(gen=1, weight_generation="grid", decomposition="tchebycheff", 
-                                     neighbours=int(popsize/4), 
-                                     CR=1, F=0.5, eta_m=20, 
-                                     realb=0.9, 
-                                     limit=2, preserve_diversity=True)) # https://esa.github.io/pagmo2/docs/python/algorithms/py_algorithms.html#pygmo.moead
+        # [4.3.5] 选择算法
+        algo = pg.algorithm(pg.moead(gen=1, weight_generation="grid", decomposition="tchebycheff",
+                                     neighbours=int(popsize / 4),
+                                     CR=1, F=0.5, eta_m=20,
+                                     realb=0.9,
+                                     limit=2, preserve_diversity=True))
         logger.info(f'{algo}')
-        logger.info(f'\t MOEA/D neighbourhood size is set to 1/4 of the popsize as {int(popsize/4)}')
-        # quit()
+        logger.info(f'\t MOEA/D neighbourhood size is set to 1/4 of the popsize as {int(popsize / 4)}')
 
         ################################################################
-        # MOO Step 3:
-        #   Begin optimization
+        # MOO Step 3: 开始优化迭代
         ################################################################
-        # [4.3.4] Begin optimization
-        # number_of_chromosome = ad.   read_swarm_data(self.select_spec)
-        # swarm_data_file = ad.   read_swarm_data_json(self.select_spec, self.ad.acm_template.x_denorm_dict)
+        # [4.3.6] 开始优化
         number_of_chromosome = ad.analyzer.number_of_chromosome
         number_of_finished_iterations = number_of_chromosome // popsize
         number_of_iterations = 500
 
-        for _ in range(number_of_finished_iterations, number_of_iterations):
-            msg = '[acmop.py] This is iteration #%d. '%(_)
-            # print(msg)
+        for iteration in range(number_of_finished_iterations, number_of_iterations):
+            msg = '[acmop.py] This is iteration #%d. ' % iteration
             logger.info(msg)
             pop = algo.evolve(pop)
 
             msg += 'Write survivors to file. '
-            ad.   write_swarm_survivor(pop, ad.counter_fitness_return)
+            ad.write_swarm_survivor(pop, ad.counter_fitness_return)
 
+            # 计算超体积指标
             hv = pg.hypervolume(pop)
-            quality_measure = hv.compute(ref_point=get_bad_fintess_values(machine_type='PMSM', ref=True)) # ref_point must be dominated by the pop's pareto front
-            msg += 'Quality measure by hyper-volume: %g'% (quality_measure)
-            # print('[acmop.py]', msg)
+            quality_measure = hv.compute(ref_point=self.get_bad_fintess_values(machine_type='PMSM', ref=True))
+            msg += 'Quality measure by hyper-volume: %g' % quality_measure
             logger.info(msg)
 
-            utility_moo.my_print(ad, pop, _)
-            # my_plot(fits, vectors, ndf)
-        pass
+            # 打印当前种群信息（如果 utility_moo 模块可用）
+            try:
+                import utility_moo
+                utility_moo.my_print(ad, pop, iteration)
+            except ImportError:
+                logger.warning('utility_moo module not available, skipping my_print')
+        
+        logger.info('Optimization completed.')
 
 
 
@@ -2704,6 +2996,105 @@ class Modern_Machine_Designer(object):
 
     ''' 实用
     '''
+    def learn_about_the_archive(self, prob, swarm_data, popsize, bool_plot_and_show=False, bool_more_info=False):
+        """
+        从群体数据中学习帕累托前沿，并基于支配排序和拥挤距离选择最优个体
+        
+        Args:
+            prob: pygmo problem 对象
+            swarm_data: 群体数据列表，每个元素是 [x_denorm..., f1, f2, f3]
+            popsize: 种群大小
+            bool_plot_and_show: 是否绘制并显示帕累托前沿
+            bool_more_info: 是否返回额外信息
+            
+        Returns:
+            如果 bool_more_info=False: 返回排序后的群体数据（前 popsize 个个体）
+            如果 bool_more_info=True: 返回 (排序后的群体数据, 额外信息)
+        """
+        import pygmo as pg
+        logger = logging.getLogger(__name__)
+        
+        number_of_chromosome = len(swarm_data)
+        logger.info('Archive size: %d', number_of_chromosome)
+        
+        # 创建 archive 种群
+        pop_archive = pg.population(prob, size=number_of_chromosome)
+        for i in range(number_of_chromosome):
+            pop_archive.set_xf(i, swarm_data[i][:-3], swarm_data[i][-3:])
+        
+        # 使用 sort_population_mo 对种群进行排序（基于支配排序和拥挤距离）
+        sorted_index = pg.sort_population_mo(points=pop_archive.get_f())
+        logger.info('Sorted by domination rank and crowding distance: %d', len(sorted_index))
+        logger.debug('\t %s', sorted_index)
+        
+        # 获取非支配排序信息
+        fits, vectors = pop_archive.get_f(), pop_archive.get_x()
+        ndf, dl, dc, ndr = pg.fast_non_dominated_sorting(fits)
+        
+        more_info = []
+        ind1, ind2 = 0, 0
+        for rank_minus_1, front in enumerate(ndf):
+            ind2 += len(front)
+            sorted_index_at_this_front = sorted_index[ind1:ind2]
+            fits_at_this_front = [fits[point] for point in sorted_index_at_this_front]
+            
+            # Rank 1 Pareto Front
+            if ind1 == 0:
+                rank1_ParetoPoints = fits_at_this_front
+                if len(front) < popsize:
+                    logger.warning('There are not enough chromosomes (%d) belonging to domination rank 1 (the best Pareto front). Will use rank 2 or lower to reach popsize of %d.', len(front), popsize)
+            
+            # 计算拥挤距离
+            if len(fits_at_this_front) >= 2:
+                crwdst = pg.crowding_distance(fits_at_this_front)
+            else:
+                logger.warning('A non dominated front must contain at least two points: 1 detected.')
+                crwdst = [999999]
+            
+            more_info.append((rank_minus_1+1, len(front), len(sorted_index_at_this_front)))
+            ind1 = ind2
+        
+        # 获取排序后的向量和适应度值
+        sorted_vectors = [vectors[index].tolist() for index in sorted_index]
+        sorted_fits = [fits[index].tolist() for index in sorted_index]
+        
+        # 组合成完整的群体数据格式 [x_denorm..., f1, f2, f3]
+        swarm_data_on_pareto_front = [design_parameters_denorm + fits 
+                                      for design_parameters_denorm, fits in zip(sorted_vectors, sorted_fits)]
+        
+        # 只返回前 popsize 个个体（这些是具有高拥挤距离值的个体）
+        swarm_data_selected = swarm_data_on_pareto_front[:popsize]
+        
+        if bool_plot_and_show:
+            from pylab import plt
+            # 可以在这里添加绘图代码
+            pass
+        
+        if bool_more_info:
+            return swarm_data_selected, more_info
+        else:
+            return swarm_data_selected
+    
+    def write_swarm_survivor(self, pop, counter_fitness_return):
+        """
+        将种群中的幸存者写入文件
+        
+        Args:
+            pop: pygmo population 对象
+            counter_fitness_return: 计数器值
+        """
+        if not hasattr(self, 'path2SwarmData'):
+            logger = logging.getLogger(__name__)
+            logger.warning('path2SwarmData not set, cannot write swarm_survivor')
+            return
+        
+        survivor_file = os.path.join(self.path2SwarmData, 'swarm_survivor.txt')
+        with open(survivor_file, 'a', encoding='utf-8') as f:
+            f.write('\n---------%d\n' % counter_fitness_return)
+            for el in zip(pop.get_x(), pop.get_f()):
+                line = ','.join('%.16f' % x for x in el[0].tolist() + el[1].tolist())
+                f.write(line + '\n')
+    
     def get_bad_fintess_values(self, machine_type='IM', ref=False):
         # define bad values for different MOO objectives
 
@@ -3413,9 +3804,9 @@ if __name__ == "__main__":
     # print(dir(mmd.machineGeometry['statorCore']))
     mmd.drawer.visualization_points['Coils']['PCoil']
 
-    mmd.FEA_evaluate()
-    mmd.save_to_file('machine_designer.json')
-    mmd.save_to_file_full('machine_designer_full.json') # 保存完整信息到文件（类似 pickle）
+    # mmd.FEA_evaluate()
+    # mmd.save_to_file('machine_designer.json')
+    # mmd.save_to_file_full('machine_designer_full.json') # 保存完整信息到文件（类似 pickle）
 
     mmd.start_optimization()
     quit()

@@ -39,13 +39,6 @@ class Problem_BearinglessSynchronousDesign(object):
         counter_loop = 0
         stuck_at = 0
         while True:
-            if 'bool_re_evaluate' in ad.fea_config_dict.keys() and ad.fea_config_dict['bool_re_evaluate']:
-                if ad.counter_fitness_return >= len(ad.solver.swarm_data):
-                    raise Exception('ad.counter_fitness_return >= len(ad.solver.swarm_data)')
-                    quit()
-                x_denorm = ad.solver.swarm_data[ad.counter_fitness_return][:-3]
-                logger.debug('swarm_data[%d]: %s', ad.counter_fitness_return, ad.solver.swarm_data[ad.counter_fitness_return])
-
             if stuck_at < ad.counter_fitness_called:
                 stuck_at = ad.counter_fitness_called
                 counter_loop = 0 # reset
@@ -54,22 +47,21 @@ class Problem_BearinglessSynchronousDesign(object):
 
             # if True:
             try:
-                acm_variant = ad.evaluate_design_json_wrapper(x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
                 cost_function, f1, f2, f3, FRW, \
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \
-                force_error_angle = acm_variant.results_for_optimization
+                force_error_angle = ad.evaluate_design_json_wrapper(x_denorm, ad.counter_fitness_called, counter_loop=counter_loop)
 
                 # For JMAG, remove folder ".jfiles" to save space (we have to generate it first in JMAG Designer to have field data and voltage profiles)
-                if 'JMAG' in ad.select_fea_config_dict:
-                    if ad.   folder_to_be_deleted is not None and os.path.isdir(ad.   folder_to_be_deleted):
-                        try:
-                            shutil.rmtree(ad.   folder_to_be_deleted) # .jfiles directory
-                        except PermissionError as error:
-                            logger.warning('PermissionError: %s', error)
-                            logger.warning('Skip deleting this folder...')
-                    # update to be deleted when JMAG releases the use
-                    ad.   folder_to_be_deleted = ad.   expected_project_file[:-5]+'jfiles'
+                # if 'JMAG' in ad.select_fea_config_dict:
+                #     if ad.folder_to_be_deleted is not None and os.path.isdir(ad.folder_to_be_deleted):
+                #         try:
+                #             shutil.rmtree(ad.   folder_to_be_deleted) # .jfiles directory
+                #         except PermissionError as error:
+                #             logger.warning('PermissionError: %s', error)
+                #             logger.warning('Skip deleting this folder...')
+                #     # update to be deleted when JMAG releases the use
+                #     ad.folder_to_be_deleted = ad.expected_project_file[:-5]+'jfiles'
 
             except KeyboardInterrupt as error:
                 raise error
@@ -85,9 +77,7 @@ class Problem_BearinglessSynchronousDesign(object):
             except utility.ExceptionBadNumberOfParts as error:
                 logger.error('ExceptionBadNumberOfParts captured: %s', str(error)) 
                 # print("Detail: {}".format(error.payload))
-                f1, f2, f3 = get_bad_fintess_values.get_bad_fintess_values(machine_type='PMSM')
-                # f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
-                # f1, f2, f3 = builtins.ad.get_bad_fintess_values(machine_type='CSPPM')
+                f1, f2, f3 = self.get_bad_fintess_values(machine_type=ad.name)
                 # utility.send_notification(ad.solver.fea_config_dict['pc_name'] + '\n\nExceptionBadNumberOfParts:' + str(error) + '\n'*3)
                 raise error
 
@@ -172,7 +162,7 @@ class Problem_BearinglessSynchronousDesign(object):
                 f3 
                 logger.debug('f1,f2,f3: %s, %s, %s', f1, f2, f3)
 
-                if ad.acm_template.fea_config_dict['moo.apply_constraints']==True:
+                if ad.fea_config_dict['moo.apply_constraints']==True:
                     # Constraints (Em<0.2 and Ea<10 deg):
                     # if abs(normalized_torque_ripple)>=0.2 or abs(normalized_force_error_magnitude) >= 0.2 or abs(force_error_angle) > 10 or SafetyFactor < 1.5:
                     # if abs(normalized_torque_ripple)>=0.2 or abs(normalized_force_error_magnitude) >= 0.2 or abs(force_error_angle) > 10 or FRW < 1:
@@ -189,7 +179,7 @@ class Problem_BearinglessSynchronousDesign(object):
                             logger.warning('\tFRW < 0.5 | (=%f)', FRW)
                         # f1, f2, f3 = get_bad_fintess_values(machine_type='PMSM')
                         # f1, f2, f3 = get_bad_fintess_values(machine_type='CPPM')
-                        f1, f2, f3 = get_bad_fintess_values(machine_type='CSPPM')
+                        f1, f2, f3 = ad.get_bad_fintess_values(machine_type='CSPPM')
                     logger.debug('f1,f2,f3: %s, %s, %s', f1, f2, f3)
 
                 break
@@ -203,8 +193,7 @@ class Problem_BearinglessSynchronousDesign(object):
     # Return number of objectives
     def get_nobj(self):
         global ad
-        x_denorm = list(ad.get_free_variables_as_dict().values())
-        return len(x_denorm)
+        return ad.nobj
 
     # Return bounds of decision variables (a.k.a. chromosome)
     def get_bounds(self):

@@ -13,14 +13,15 @@ import ExcitationViewer from './ExcitationViewer';
 import GeometryDetails from './GeometryDetails';
 import GeometryPlayground from './GeometryPlayground';
 import GPViewer from './GPViewer';
-import { Maximize2, Minimize2, Layout, Activity, Settings, Zap, Database } from 'lucide-react';
+import WindingDiagrams from './WindingDiagrams';
+import { Maximize2, Minimize2, Layout, Activity, Settings, Zap, Database, CircleDashed } from 'lucide-react';
 
 interface DesignVisualizerClientProps {
     data: DesignData;
 }
 
 type MainViewMode = 'cross-section' | 'winding';
-type SidebarTab = 'details' | 'performance' | 'excitation' | 'gp';
+type SidebarTab = 'details' | 'performance' | 'excitation' | 'gp' | 'diagrams';
 
 export default function DesignVisualizerClient({ data }: DesignVisualizerClientProps) {
     const [mainView, setMainView] = useState<MainViewMode>('cross-section');
@@ -89,7 +90,12 @@ export default function DesignVisualizerClient({ data }: DesignVisualizerClientP
                                     onVisibilityChange={setVisibility}
                                 />
                             ) : (
-                                <WindingLayoutViewer exUserData={data["EX-user"]} Qs={data.Qs} p={data.p} />
+                                <WindingLayoutViewer
+                                    exUserData={data["EX-user"]}
+                                    Qs={data.Qs}
+                                    p={data.p}
+                                    m={data.m}
+                                />
                             )}
                         </div>
                     </div>
@@ -120,11 +126,12 @@ export default function DesignVisualizerClient({ data }: DesignVisualizerClientP
                 <div className="w-[400px] border-l bg-background flex flex-col shrink-0">
                     <Tabs value={sidebarTab} onValueChange={(v) => setSidebarTab(v as SidebarTab)} className="flex-1 flex flex-col">
                         <div className="px-2 pt-2 border-b">
-                            <TabsList className="w-full grid grid-cols-4">
+                            <TabsList className="w-full grid grid-cols-5">
                                 <TabsTrigger value="details" title="Geometry Details"><Layout className="w-4 h-4" /></TabsTrigger>
                                 <TabsTrigger value="performance" title="Parameters"><Settings className="w-4 h-4" /></TabsTrigger>
                                 <TabsTrigger value="excitation" title="Excitation"><Zap className="w-4 h-4" /></TabsTrigger>
                                 <TabsTrigger value="gp" title="GP"><Database className="w-4 h-4" /></TabsTrigger>
+                                <TabsTrigger value="diagrams" title="Diagrams"><CircleDashed className="w-4 h-4" /></TabsTrigger>
                             </TabsList>
                         </div>
 
@@ -166,6 +173,20 @@ export default function DesignVisualizerClient({ data }: DesignVisualizerClientP
                                             <p className="text-xs text-muted-foreground">Optimization bounds and values</p>
                                         </div>
                                         <GPViewer data={data.GP} />
+                                    </TabsContent>
+
+                                    <TabsContent value="diagrams" className="mt-0 space-y-4">
+                                        <div className="space-y-1">
+                                            <h3 className="font-semibold">Winding Diagrams</h3>
+                                            <p className="text-xs text-muted-foreground">Star of Slots and Connection Star</p>
+                                        </div>
+                                        <WindingDiagrams
+                                            Qs={data.Qs}
+                                            p={data.p}
+                                            m={data.m || 3}
+                                            layer_X_phases={data["EX-user"]?.wily?.layer_X_phases || []}
+                                            layer_X_signs={data["EX-user"]?.wily?.layer_X_signs || []}
+                                        />
                                     </TabsContent>
                                 </div>
                             </ScrollArea>

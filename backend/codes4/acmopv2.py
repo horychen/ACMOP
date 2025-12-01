@@ -622,6 +622,195 @@ async def get_optimization_results(request: AnalysisRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"获取优化结果时出错: {str(e)}")
 
 
+@router.get("/pareto-front")
+async def get_pareto_front(
+    path2SwarmData: str = None,
+    path2MachineDesignerFull: str = None
+) -> Dict[str, Any]:
+    """
+    获取Pareto前沿数据和优化配置
+    
+    Args:
+        path2SwarmData: SwarmData.json文件路径（相对于codes4目录）
+        path2MachineDesignerFull: machine_designer_full.json文件路径（相对于codes4目录）
+    
+    Returns:
+        Pareto前沿个体列表、优化配置等信息
+    """
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # 读取 machine_designer_full.json
+        if path2MachineDesignerFull:
+            machine_designer_path = os.path.join(current_dir, path2MachineDesignerFull)
+        else:
+            machine_designer_path = os.path.join(current_dir, "machine_designer_full.json")
+        
+        if not os.path.exists(machine_designer_path):
+            raise HTTPException(
+                status_code=404,
+                detail=f"machine_designer_full.json 文件不存在: {machine_designer_path}"
+            )
+        
+        with open(machine_designer_path, 'r', encoding='utf-8') as f:
+            machine_designer_data = json.load(f)
+        
+        # 获取 select_fea_config_dict
+        select_fea_config_dict = machine_designer_data.get("select_fea_config_dict", None)
+        if not select_fea_config_dict:
+            raise HTTPException(
+                status_code=400,
+                detail="machine_designer_full.json 中缺少 select_fea_config_dict"
+            )
+        
+        # 读取 machine_simulation.json 获取优化配置
+        simulation_config_path = os.path.join(current_dir, "machine_simulation.json")
+        if not os.path.exists(simulation_config_path):
+            raise HTTPException(
+                status_code=404,
+                detail=f"machine_simulation.json 文件不存在: {simulation_config_path}"
+            )
+        
+        with open(simulation_config_path, 'r', encoding='utf-8') as f:
+            simulation_configs = json.load(f)
+        
+        # 获取对应的优化配置
+        fea_config_dict = simulation_configs.get(select_fea_config_dict, {})
+        if not fea_config_dict:
+            raise HTTPException(
+                status_code=404,
+                detail=f"在 machine_simulation.json 中找不到配置: {select_fea_config_dict}"
+            )
+        
+        # 提取 moo.* 配置
+        moo_config = {
+            k: v for k, v in fea_config_dict.items() 
+            if k.startswith("moo.")
+        }
+        
+        # 读取 SwarmData.json
+        if path2SwarmData:
+            swarm_data_path = os.path.join(current_dir, path2SwarmData, "SwarmData.json")
+        else:
+            path2SwarmData_rel = machine_designer_data.get("path2SwarmData", "../_default/SPMSM/")
+            swarm_data_path = os.path.join(current_dir, path2SwarmData_rel, "SwarmData.json")
+        
+        if not os.path.exists(swarm_data_path):
+            # 如果文件不存在，返回空数据
+            return {
+                "paretoFront": [],
+                "allIndividuals": [],
+                "mooConfig": moo_config,
+                "objectives": [moo_config.get("moo.fitness_OA"), moo_config.get("moo.fitness_OB"), moo_config.get("moo.fitness_OC")],
+                "select_fea_config_dict": select_fea_config_dict,
+                "message": f"SwarmData.json 文件不存在: {swarm_data_path}"
+            }
+        
+        with open(swarm_data_path, 'r', encoding='utf-8') as f:
+            swarm_data = json.load(f)
+        
+        # 计算 Pareto 前沿
+        from codes4.machine_design_guide import Swarm_Data_Analyzer
+        from codes4.Problem_BearinglessSynchronousDesign import Problem_BearinglessSynchronousDesign
+        import pygmo as pg
+        
+        # 获取设计参数字典
+        x_denorm_dict = machine_designer_data.get("spec_performance_dict", {}).get("x_denorm_dict", {})
+        
+        # 创建分析器
+        analyzer = Swarm_Data_Analyzer(swarm_data_path, x_denorm_dict)
+        
+        if analyzer.swarm_data_xf is None or len(analyzer.swarm_data_xf) == 0:
+            return {
+                "paretoFront": [],
+                "allIndividuals": [],
+                "mooConfig": moo_config,
+                "objectives": [moo_config.get("moo.fitness_OA"), moo_config.get("moo.fitness_OB"), moo_config.get("moo.fitness_OC")],
+                "select_fea_config_dict": select_fea_config_dict,
+                "message": "SwarmData.json 中没有数据"
+            }
+        
+        # 提取目标函数值
+        fits = [ind[-3:] for ind in analyzer.swarm_data_xf]
+        
+        # 计算非支配排序
+        fronts, _, _, _ = pg.fast_non_dominated_sorting(fits)
+        
+        # 获取 Rank 1 Pareto 前沿
+        rank1_front = fronts[0] if len(fronts) > 0 else []
+        
+        # 将 swarm_data 转换为列表以保持顺序
+        swarm_data_items = list(swarm_data.items())
+        
+        # 构建 Pareto 前沿个体列表
+        pareto_individuals = []
+        for idx in rank1_front:
+            if idx < len(swarm_data_items):
+                individual_key, individual_data = swarm_data_items[idx]
+            else:
+                individual_key = f"ind_{idx}"
+                individual_data = {}
+            
+            pareto_individuals.append({
+                "index": idx,
+                "key": individual_key,
+                "project_name": individual_data.get("project_name", ""),
+                "individual_index": individual_data.get("individual_index", idx),
+                "generation": individual_data.get("number_current_generation", 0),
+                "objectives": {
+                    "f1": individual_data.get("f1", 0),
+                    "f2": individual_data.get("f2", 0),
+                    "f3": individual_data.get("f3", 0)
+                },
+                "performance": {
+                    k: v for k, v in individual_data.items() 
+                    if k not in ["x_denorm_dict", "project_name", "individual_index", "number_current_generation", "f1", "f2", "f3"]
+                },
+                "parameters": individual_data.get("x_denorm_dict", {})
+            })
+        
+        # 构建所有个体列表（用于选择）
+        all_individuals = []
+        for idx, (key, individual_data) in enumerate(swarm_data_items):
+            all_individuals.append({
+                "index": idx,
+                "key": key,
+                "project_name": individual_data.get("project_name", ""),
+                "individual_index": individual_data.get("individual_index", idx),
+                "generation": individual_data.get("number_current_generation", 0),
+                "is_pareto": idx in rank1_front,
+                "objectives": {
+                    "f1": individual_data.get("f1", 0),
+                    "f2": individual_data.get("f2", 0),
+                    "f3": individual_data.get("f3", 0)
+                }
+            })
+        
+        # 按索引排序
+        all_individuals.sort(key=lambda x: x["index"])
+        
+        return {
+            "paretoFront": pareto_individuals,
+            "allIndividuals": all_individuals,
+            "mooConfig": moo_config,
+            "objectives": [
+                moo_config.get("moo.fitness_OA"),
+                moo_config.get("moo.fitness_OB"),
+                moo_config.get("moo.fitness_OC")
+            ],
+            "select_fea_config_dict": select_fea_config_dict,
+            "path2FEACsv": machine_designer_data.get("path2FEACsv", ""),
+            "path2SwarmData": os.path.dirname(swarm_data_path)
+        }
+        
+    except Exception as e:
+        import traceback
+        raise HTTPException(
+            status_code=500,
+            detail=f"获取Pareto前沿数据时出错: {str(e)}\n{traceback.format_exc()}"
+        )
+
+
 # ==================== 辅助函数 ====================
 
 def get_codes4_path():

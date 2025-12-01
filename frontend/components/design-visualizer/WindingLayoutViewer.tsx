@@ -3,14 +3,17 @@
 import React from 'react';
 import { WindingLayout } from '@/lib/DesignData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import WindingDiagrams from './WindingDiagrams';
 
 interface WindingLayoutViewerProps {
     exUserData: any; // ExUser type
     Qs: number;
     p?: number; // Pole pairs
+    m?: number; // Phases
 }
 
-export default function WindingLayoutViewer({ exUserData, Qs, p = 1 }: WindingLayoutViewerProps) {
+export default function WindingLayoutViewer({ exUserData, Qs, p = 1, m = 3 }: WindingLayoutViewerProps) {
     const data = exUserData.wily;
     const phases = ['U', 'V', 'W'];
     const colors: Record<string, string> = {
@@ -136,177 +139,6 @@ export default function WindingLayoutViewer({ exUserData, Qs, p = 1 }: WindingLa
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Winding Visualization</CardTitle>
-                    <CardDescription>
-                        Stator slots (Layer X/Y), Rotor poles, and Coil connections.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="overflow-x-auto">
-                    <svg width={totalWidth} height={totalHeight} className="min-w-full">
-                        <defs>
-                            <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                                <path d="M0,0 L0,6 L9,3 z" fill="black" />
-                            </marker>
-                        </defs>
-
-                        {/* Stator Slots */}
-                        {Array.from({ length: Qs }).map((_, i) => {
-                            const x = startX + i * (slotWidth + slotGap);
-                            const phaseX = data.layer_X_phases[i];
-                            const signX = data.layer_X_signs[i];
-                            const phaseY = data.layer_Y_phases[i];
-                            const signY = data.layer_Y_signs[i];
-                            const groupAC = grouping_AC[i];
-
-                            return (
-                                <g key={`slot-${i}`}>
-                                    {/* Slot Number */}
-                                    <text x={x + slotWidth / 2} y={startY - 5} textAnchor="middle" className="text-xs fill-muted-foreground">
-                                        {i + 1}
-                                    </text>
-
-                                    {/* Slot Outline (Teeth) */}
-                                    <rect
-                                        x={x}
-                                        y={startY}
-                                        width={slotWidth}
-                                        height={slotHeight}
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1"
-                                        className="text-slate-300"
-                                    />
-
-                                    {/* Layer X (Top) */}
-                                    <rect
-                                        x={x + 2}
-                                        y={startY + 2}
-                                        width={slotWidth - 4}
-                                        height={slotHeight / 2 - 4}
-                                        fill={colors[phaseX] || '#ccc'}
-                                        rx="2"
-                                    />
-                                    <text
-                                        x={x + slotWidth / 2}
-                                        y={startY + slotHeight / 4 - 5}
-                                        textAnchor="middle"
-                                        dominantBaseline="middle"
-                                        className={`text-xs font-bold ${phaseX ? 'fill-white' : 'fill-slate-700'}`}
-                                    >
-                                        {phaseX}{signX}
-                                    </text>
-                                    {/* Group AC indicator for Layer X */}
-                                    {groupAC !== undefined && (
-                                        <text
-                                            x={x + slotWidth / 2}
-                                            y={startY + slotHeight / 4 + 8}
-                                            textAnchor="middle"
-                                            dominantBaseline="middle"
-                                            className={`text-[10px] font-semibold ${phaseX ? 'fill-white' : 'fill-slate-700'}`}
-                                        >
-                                            {groupAC === 0 ? 'TI' : 'SI'}
-                                        </text>
-                                    )}
-
-                                    {/* Layer Y (Bottom) */}
-                                    <rect
-                                        x={x + 2}
-                                        y={startY + slotHeight / 2 + 2}
-                                        width={slotWidth - 4}
-                                        height={slotHeight / 2 - 4}
-                                        fill={colors[phaseY] || '#ccc'}
-                                        rx="2"
-                                    />
-                                    <text
-                                        x={x + slotWidth / 2}
-                                        y={startY + 3 * slotHeight / 4}
-                                        textAnchor="middle"
-                                        dominantBaseline="middle"
-                                        className={`text-xs font-bold ${phaseY ? 'fill-white' : 'fill-slate-700'}`}
-                                    >
-                                        {phaseY}{signY}
-                                    </text>
-                                </g>
-                            );
-                        })}
-
-                        {/* Coil Connections */}
-                        {renderConnections()}
-
-                        {/* Rotor Poles */}
-                        <g transform={`translate(${startX}, ${startY + slotHeight + 20})`}>
-                            {Array.from({ length: numPoles }).map((_, i) => {
-                                const x = i * poleWidth;
-                                const isN = i % 2 === 0;
-                                return (
-                                    <g key={`pole-${i}`}>
-                                        <rect
-                                            x={x}
-                                            y={0}
-                                            width={poleWidth}
-                                            height={40}
-                                            fill={isN ? '#ef4444' : '#3b82f6'} // Red for N, Blue for S
-                                            opacity="0.8"
-                                            stroke="white"
-                                            strokeWidth="1"
-                                        />
-                                        <text x={x + poleWidth / 2} y={25} textAnchor="middle" className="text-sm font-bold fill-white">
-                                            {isN ? 'N' : 'S'}
-                                        </text>
-                                    </g>
-                                );
-                            })}
-                            <text x={-10} y={25} textAnchor="end" className="text-xs font-semibold fill-muted-foreground">Rotor</text>
-                        </g>
-
-                        <text x={startX - 10} y={startY + slotHeight / 4} textAnchor="end" className="text-xs font-semibold fill-muted-foreground">Layer X</text>
-                        <text x={startX - 10} y={startY + 3 * slotHeight / 4} textAnchor="end" className="text-xs font-semibold fill-muted-foreground">Layer Y</text>
-
-                        {/* Angular Axes */}
-                        <g transform={`translate(${startX}, ${startY + slotHeight + 80})`}>
-                            {/* Axis Line */}
-                            <line x1={0} y1={0} x2={totalLength} y2={0} stroke="currentColor" strokeWidth="1" className="text-slate-400" />
-
-                            {/* Ticks and Labels */}
-                            {Array.from({ length: Qs + 1 }).map((_, i) => {
-                                const x = i * (slotWidth + slotGap);
-                                // Mechanical Angle
-                                const mechAngle = (i * 360 / Qs).toFixed(0);
-                                // Electrical Angle
-                                const elecAngle = (i * 360 * p / Qs).toFixed(0);
-
-                                return (
-                                    <g key={`axis-${i}`}>
-                                        <line x1={x} y1={0} x2={x} y2={5} stroke="currentColor" strokeWidth="1" className="text-slate-400" />
-
-                                        {/* Mechanical Angle Label */}
-                                        <text x={x} y={20} textAnchor="middle" className="text-[10px] fill-muted-foreground">
-                                            {mechAngle}°
-                                        </text>
-
-                                        {/* Electrical Angle Label */}
-                                        <text x={x} y={35} textAnchor="middle" className="text-[10px] fill-muted-foreground font-medium">
-                                            {elecAngle}°
-                                        </text>
-                                    </g>
-                                );
-                            })}
-
-                            {/* Axis Titles */}
-                            <text x={-10} y={20} textAnchor="end" className="text-xs font-semibold fill-muted-foreground">
-                                Mech. Θ
-                            </text>
-                            <text x={-10} y={35} textAnchor="end" className="text-xs font-semibold fill-muted-foreground">
-                                Elec. α
-                            </text>
-                        </g>
-
-                    </svg>
-                </CardContent>
-            </Card>
-
             {/* Winding Parameters */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg">
@@ -342,6 +174,198 @@ export default function WindingLayoutViewer({ exUserData, Qs, p = 1 }: WindingLa
                     <div className="text-lg font-semibold">{BeariW_CurrentAmp.toFixed(2)} A</div>
                 </div>
             </div>
+
+            <Tabs defaultValue="linear" className="w-full">
+                <div className="flex items-center justify-between mb-4">
+                    <TabsList>
+                        <TabsTrigger value="linear">Linear Layout</TabsTrigger>
+                        <TabsTrigger value="phasor">Phasor Diagrams</TabsTrigger>
+                    </TabsList>
+                </div>
+
+                <TabsContent value="linear">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Winding Visualization</CardTitle>
+                            <CardDescription>
+                                Stator slots (Layer X/Y), Rotor poles, and Coil connections.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="overflow-x-auto">
+                            <svg width={totalWidth} height={totalHeight} className="min-w-full">
+                                <defs>
+                                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                                        <path d="M0,0 L0,6 L9,3 z" fill="black" />
+                                    </marker>
+                                </defs>
+
+                                {/* Stator Slots */}
+                                {Array.from({ length: Qs }).map((_, i) => {
+                                    const x = startX + i * (slotWidth + slotGap);
+                                    const phaseX = data.layer_X_phases[i];
+                                    const signX = data.layer_X_signs[i];
+                                    const phaseY = data.layer_Y_phases[i];
+                                    const signY = data.layer_Y_signs[i];
+                                    const groupAC = grouping_AC[i];
+
+                                    return (
+                                        <g key={`slot-${i}`}>
+                                            {/* Slot Number */}
+                                            <text x={x + slotWidth / 2} y={startY - 5} textAnchor="middle" className="text-xs fill-muted-foreground">
+                                                {i + 1}
+                                            </text>
+
+                                            {/* Slot Outline (Teeth) */}
+                                            <rect
+                                                x={x}
+                                                y={startY}
+                                                width={slotWidth}
+                                                height={slotHeight}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="1"
+                                                className="text-slate-300"
+                                            />
+
+                                            {/* Layer X (Top) */}
+                                            <rect
+                                                x={x + 2}
+                                                y={startY + 2}
+                                                width={slotWidth - 4}
+                                                height={slotHeight / 2 - 4}
+                                                fill={colors[phaseX] || '#ccc'}
+                                                rx="2"
+                                            />
+                                            <text
+                                                x={x + slotWidth / 2}
+                                                y={startY + slotHeight / 4 - 5}
+                                                textAnchor="middle"
+                                                dominantBaseline="middle"
+                                                className={`text-xs font-bold ${phaseX ? 'fill-white' : 'fill-slate-700'}`}
+                                            >
+                                                {phaseX}{signX}
+                                            </text>
+                                            {/* Group AC indicator for Layer X */}
+                                            {groupAC !== undefined && (
+                                                <text
+                                                    x={x + slotWidth / 2}
+                                                    y={startY + slotHeight / 4 + 8}
+                                                    textAnchor="middle"
+                                                    dominantBaseline="middle"
+                                                    className={`text-[10px] font-semibold ${phaseX ? 'fill-white' : 'fill-slate-700'}`}
+                                                >
+                                                    {groupAC === 0 ? 'TI' : 'SI'}
+                                                </text>
+                                            )}
+
+                                            {/* Layer Y (Bottom) */}
+                                            <rect
+                                                x={x + 2}
+                                                y={startY + slotHeight / 2 + 2}
+                                                width={slotWidth - 4}
+                                                height={slotHeight / 2 - 4}
+                                                fill={colors[phaseY] || '#ccc'}
+                                                rx="2"
+                                            />
+                                            <text
+                                                x={x + slotWidth / 2}
+                                                y={startY + 3 * slotHeight / 4}
+                                                textAnchor="middle"
+                                                dominantBaseline="middle"
+                                                className={`text-xs font-bold ${phaseY ? 'fill-white' : 'fill-slate-700'}`}
+                                            >
+                                                {phaseY}{signY}
+                                            </text>
+                                        </g>
+                                    );
+                                })}
+
+                                {/* Coil Connections */}
+                                {renderConnections()}
+
+                                {/* Rotor Poles */}
+                                <g transform={`translate(${startX}, ${startY + slotHeight + 20})`}>
+                                    {Array.from({ length: numPoles }).map((_, i) => {
+                                        const x = i * poleWidth;
+                                        const isN = i % 2 === 0;
+                                        return (
+                                            <g key={`pole-${i}`}>
+                                                <rect
+                                                    x={x}
+                                                    y={0}
+                                                    width={poleWidth}
+                                                    height={40}
+                                                    fill={isN ? '#ef4444' : '#3b82f6'} // Red for N, Blue for S
+                                                    opacity="0.8"
+                                                    stroke="white"
+                                                    strokeWidth="1"
+                                                />
+                                                <text x={x + poleWidth / 2} y={25} textAnchor="middle" className="text-sm font-bold fill-white">
+                                                    {isN ? 'N' : 'S'}
+                                                </text>
+                                            </g>
+                                        );
+                                    })}
+                                    <text x={-10} y={25} textAnchor="end" className="text-xs font-semibold fill-muted-foreground">Rotor</text>
+                                </g>
+
+                                <text x={startX - 10} y={startY + slotHeight / 4} textAnchor="end" className="text-xs font-semibold fill-muted-foreground">Layer X</text>
+                                <text x={startX - 10} y={startY + 3 * slotHeight / 4} textAnchor="end" className="text-xs font-semibold fill-muted-foreground">Layer Y</text>
+
+                                {/* Angular Axes */}
+                                <g transform={`translate(${startX}, ${startY + slotHeight + 80})`}>
+                                    {/* Axis Line */}
+                                    <line x1={0} y1={0} x2={totalLength} y2={0} stroke="currentColor" strokeWidth="1" className="text-slate-400" />
+
+                                    {/* Ticks and Labels */}
+                                    {Array.from({ length: Qs + 1 }).map((_, i) => {
+                                        const x = i * (slotWidth + slotGap);
+                                        // Mechanical Angle
+                                        const mechAngle = (i * 360 / Qs).toFixed(0);
+                                        // Electrical Angle
+                                        const elecAngle = (i * 360 * p / Qs).toFixed(0);
+
+                                        return (
+                                            <g key={`axis-${i}`}>
+                                                <line x1={x} y1={0} x2={x} y2={5} stroke="currentColor" strokeWidth="1" className="text-slate-400" />
+
+                                                {/* Mechanical Angle Label */}
+                                                <text x={x} y={20} textAnchor="middle" className="text-[10px] fill-muted-foreground">
+                                                    {mechAngle}°
+                                                </text>
+
+                                                {/* Electrical Angle Label */}
+                                                <text x={x} y={35} textAnchor="middle" className="text-[10px] fill-muted-foreground font-medium">
+                                                    {elecAngle}°
+                                                </text>
+                                            </g>
+                                        );
+                                    })}
+
+                                    {/* Axis Titles */}
+                                    <text x={-10} y={20} textAnchor="end" className="text-xs font-semibold fill-muted-foreground">
+                                        Mech. Θ
+                                    </text>
+                                    <text x={-10} y={35} textAnchor="end" className="text-xs font-semibold fill-muted-foreground">
+                                        Elec. α
+                                    </text>
+                                </g>
+
+                            </svg>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="phasor">
+                    <WindingDiagrams
+                        Qs={Qs}
+                        p={p}
+                        m={m}
+                        layer_X_phases={data.layer_X_phases}
+                        layer_X_signs={data.layer_X_signs}
+                    />
+                </TabsContent>
+            </Tabs>
 
             <div className="space-y-2">
                 <div className="flex gap-4 text-sm justify-center">

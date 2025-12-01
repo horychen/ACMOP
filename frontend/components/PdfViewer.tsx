@@ -11,7 +11,7 @@ interface PdfViewerProps {
 export default function PdfViewer({ pdfUrl, className = "" }: PdfViewerProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [scale, setScale] = useState(1.0);
+    const [scale, setScale] = useState(1.5); // Default zoom: 150%
     const iframeRef = React.useRef<HTMLIFrameElement>(null);
     const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -41,7 +41,7 @@ export default function PdfViewer({ pdfUrl, className = "" }: PdfViewerProps) {
     };
 
     const handleReset = () => {
-        setScale(1.0);
+        setScale(1.5); // Reset to default 150%
     };
 
     return (
@@ -117,7 +117,7 @@ export default function PdfViewer({ pdfUrl, className = "" }: PdfViewerProps) {
                                     }}
                                     title="Machine Geometry PDF"
                                     style={{ 
-                                        width: '100%', 
+                                        width: '60%', 
                                         height: '600px',
                                         minHeight: '600px',
                                         backgroundColor: 'white'

@@ -12,6 +12,7 @@ import axios from 'axios';
 import CsvVisualizer from '../../components/CsvVisualizer';
 import CsvChartVisualizer from '../../components/CsvChartVisualizer';
 import PdfViewer from '../../components/PdfViewer';
+import WindingDiagrams from '../../components/WindingDiagrams';
 
 const DEFAULT_SPECS: DesignSpecs = {
     ratedPower: 5, // 5 kW
@@ -72,7 +73,7 @@ export default function VisualizerPage() {
             try {
                 const response = await axios.get('/api/machine-designer/full');
                 console.log("Full response data:", response.data);
-                
+
                 if (response.data) {
                     // Extract metadata fields (lines 2-10 from JSON)
                     const meta = {
@@ -92,7 +93,7 @@ export default function VisualizerPage() {
                         path2FEACsv: response.data.path2FEACsv
                     };
                     setMetadata(meta);
-                    
+
                     // Extract EX data (lines 20-53 from JSON)
                     if (response.data.EX && typeof response.data.EX === 'object') {
                         console.log("EX data found:", response.data.EX);
@@ -101,14 +102,14 @@ export default function VisualizerPage() {
                         console.warn("EX data not found or invalid. Available keys:", Object.keys(response.data || {}));
                         setExData(null);
                     }
-                    
+
                     // Extract path2FEACsv
                     if (response.data.path2FEACsv) {
                         setPath2FEACsv(response.data.path2FEACsv);
                     } else {
                         setPath2FEACsv(null);
                     }
-                    
+
                     // Extract wily data (including coil_pitch_y, Qs, p, ps)
                     if (response.data.wily && typeof response.data.wily === 'object') {
                         setWilyData(response.data.wily);
@@ -121,7 +122,7 @@ export default function VisualizerPage() {
                         setWilyData(null);
                         setCoilPitchY(null);
                     }
-                    
+
                     // Extract spec_performance_dict
                     if (response.data.spec_performance_dict && typeof response.data.spec_performance_dict === 'object') {
                         console.log("spec_performance_dict found:", response.data.spec_performance_dict);
@@ -130,7 +131,7 @@ export default function VisualizerPage() {
                         console.warn("spec_performance_dict not found or invalid");
                         setSpecPerformanceDict(null);
                     }
-                    
+
                     // Load PDF URL
                     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
                     setPdfUrl(`${backendUrl}/api/results/pdf/machine-geometry`);
@@ -303,7 +304,7 @@ export default function VisualizerPage() {
                                         <BarChart3 className="w-4 h-4 mr-2" /> CSV 图表可视化
                                     </h2>
                                     <div className="h-[300px]">
-                                        <CsvChartVisualizer 
+                                        <CsvChartVisualizer
                                             path2FEACsv={path2FEACsv}
                                             projectName={metadata?.name}
                                         />
@@ -323,10 +324,10 @@ export default function VisualizerPage() {
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-medium text-foreground">Geometry</h3>
                             </div>
-                            
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                                {/* PDF Cross Section Viewer */}
-                                <div className="h-[500px] bg-card rounded-lg border border-border overflow-hidden">
+
+                            <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 mb-6">
+                                {/* PDF Cross Section Viewer - 30% width (3 columns, 60% of original 50%) */}
+                                <div className="lg:col-span-3 h-[500px] bg-card rounded-lg border border-border overflow-hidden">
                                     {pdfUrl ? (
                                         <PdfViewer pdfUrl={pdfUrl} />
                                     ) : isLoadingMetadata ? (
@@ -346,8 +347,8 @@ export default function VisualizerPage() {
                                     )}
                                 </div>
 
-                                {/* Parameters Display - Classified by Type */}
-                                <div className="h-[500px] bg-card rounded-lg border border-border overflow-y-auto">
+                                {/* Parameters Display - Classified by Type - 70% width (7 columns) */}
+                                <div className="lg:col-span-7 h-[500px] bg-card rounded-lg border border-border overflow-y-auto">
                                     {isLoadingMetadata ? (
                                         <div className="h-full flex items-center justify-center">
                                             <div className="text-center">
@@ -383,7 +384,7 @@ export default function VisualizerPage() {
                                                                     <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
                                                                     Fixed Parameters ({fixedParams.length})
                                                                 </h5>
-                                                                <div className="grid grid-cols-5 gap-1.5">
+                                                                <div className="grid grid-cols-7 gap-1.5">
                                                                     {fixedParams.map(([key, param]) => (
                                                                         <div key={key} className="bg-muted/30 rounded p-1 border border-border/50">
                                                                             <div className="flex flex-col">
@@ -409,7 +410,7 @@ export default function VisualizerPage() {
                                                                     <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
                                                                     Free Parameters ({freeParams.length})
                                                                 </h5>
-                                                                <div className="grid grid-cols-5 gap-1.5">
+                                                                <div className="grid grid-cols-7 gap-1.5">
                                                                     {freeParams.map(([key, param]) => (
                                                                         <div key={key} className="bg-muted/30 rounded p-1 border border-border/50">
                                                                             <div className="flex flex-col">
@@ -440,7 +441,7 @@ export default function VisualizerPage() {
                                                                     <span className="w-2 h-2 rounded-full bg-purple-500 mr-2"></span>
                                                                     Derived Parameters ({derivedParams.length})
                                                                 </h5>
-                                                                <div className="grid grid-cols-5 gap-1.5">
+                                                                <div className="grid grid-cols-7 gap-1.5">
                                                                     {derivedParams.map(([key, param]) => (
                                                                         <div key={key} className="bg-muted/30 rounded p-1 border border-border/50">
                                                                             <div className="flex flex-col">
@@ -501,7 +502,7 @@ export default function VisualizerPage() {
                                         </label>
                                     </div>
                                     <div className="w-full bg-card rounded-lg border border-border p-4" style={{ minHeight: '700px' }}>
-                                        <LinearMachineView 
+                                        <LinearMachineView
                                             Qs={wilyData.stator_slot_number_Qs || wilyData.Qs || 12}
                                             p={wilyData.pole_pair_number_p || wilyData.p || 2}
                                             ps={wilyData.suspension_pole_pair_number_ps || wilyData.ps || 3}
@@ -523,67 +524,117 @@ export default function VisualizerPage() {
                                                             <div className="text-sm font-mono text-foreground">{typeof wilyData.kw1 === 'number' ? wilyData.kw1.toFixed(4) : String(wilyData.kw1)}</div>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Layer X Phases */}
                                                     {wilyData.layer_X_phases && Array.isArray(wilyData.layer_X_phases) && (
                                                         <div className="bg-muted/30 rounded p-3 border border-border/50">
                                                             <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Layer X 相序</div>
                                                             <div className="text-xs font-mono text-foreground break-all">
-                                                                {wilyData.layer_X_phases.map((phase: string, idx: number) => (
-                                                                    <span key={idx} className="inline-block mr-1">{phase || '-'}</span>
-                                                                )).join(' ')}
+                                                                {wilyData.layer_X_phases.map((phase: any, idx: number) => {
+                                                                    let phaseStr = '-';
+                                                                    if (phase === null || phase === undefined) {
+                                                                        phaseStr = '-';
+                                                                    } else if (typeof phase === 'string') {
+                                                                        phaseStr = phase;
+                                                                    } else if (typeof phase === 'number') {
+                                                                        phaseStr = String(phase);
+                                                                    } else if (typeof phase === 'object') {
+                                                                        // Try to extract meaningful value from object
+                                                                        phaseStr = phase.toString ? phase.toString() : (phase.value || phase.phase || JSON.stringify(phase));
+                                                                    } else {
+                                                                        phaseStr = String(phase);
+                                                                    }
+                                                                    return <span key={idx} className="inline-block mr-1">{phaseStr}</span>;
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Layer X Signs */}
                                                     {wilyData.layer_X_signs && Array.isArray(wilyData.layer_X_signs) && (
                                                         <div className="bg-muted/30 rounded p-3 border border-border/50">
                                                             <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Layer X 符号</div>
                                                             <div className="text-xs font-mono text-foreground break-all">
-                                                                {wilyData.layer_X_signs.map((sign: string, idx: number) => (
-                                                                    <span key={idx} className="inline-block mr-1">{sign || '-'}</span>
-                                                                )).join(' ')}
+                                                                {wilyData.layer_X_signs.map((sign: any, idx: number) => {
+                                                                    let signStr = '-';
+                                                                    if (sign === null || sign === undefined) {
+                                                                        signStr = '-';
+                                                                    } else if (typeof sign === 'string') {
+                                                                        signStr = sign;
+                                                                    } else if (typeof sign === 'number') {
+                                                                        signStr = String(sign);
+                                                                    } else if (typeof sign === 'object') {
+                                                                        signStr = sign.toString ? sign.toString() : (sign.value || sign.sign || JSON.stringify(sign));
+                                                                    } else {
+                                                                        signStr = String(sign);
+                                                                    }
+                                                                    return <span key={idx} className="inline-block mr-1">{signStr}</span>;
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Layer Y Phases */}
                                                     {wilyData.layer_Y_phases && Array.isArray(wilyData.layer_Y_phases) && (
                                                         <div className="bg-muted/30 rounded p-3 border border-border/50">
                                                             <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Layer Y 相序</div>
                                                             <div className="text-xs font-mono text-foreground break-all">
-                                                                {wilyData.layer_Y_phases.map((phase: string, idx: number) => (
-                                                                    <span key={idx} className="inline-block mr-1">{phase || '-'}</span>
-                                                                )).join(' ')}
+                                                                {wilyData.layer_Y_phases.map((phase: any, idx: number) => {
+                                                                    let phaseStr = '-';
+                                                                    if (phase === null || phase === undefined) {
+                                                                        phaseStr = '-';
+                                                                    } else if (typeof phase === 'string') {
+                                                                        phaseStr = phase;
+                                                                    } else if (typeof phase === 'number') {
+                                                                        phaseStr = String(phase);
+                                                                    } else if (typeof phase === 'object') {
+                                                                        phaseStr = phase.toString ? phase.toString() : (phase.value || phase.phase || JSON.stringify(phase));
+                                                                    } else {
+                                                                        phaseStr = String(phase);
+                                                                    }
+                                                                    return <span key={idx} className="inline-block mr-1">{phaseStr}</span>;
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Layer Y Signs */}
                                                     {wilyData.layer_Y_signs && Array.isArray(wilyData.layer_Y_signs) && (
                                                         <div className="bg-muted/30 rounded p-3 border border-border/50">
                                                             <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Layer Y 符号</div>
                                                             <div className="text-xs font-mono text-foreground break-all">
-                                                                {wilyData.layer_Y_signs.map((sign: string, idx: number) => (
-                                                                    <span key={idx} className="inline-block mr-1">{sign || '-'}</span>
-                                                                )).join(' ')}
+                                                                {wilyData.layer_Y_signs.map((sign: any, idx: number) => {
+                                                                    let signStr = '-';
+                                                                    if (sign === null || sign === undefined) {
+                                                                        signStr = '-';
+                                                                    } else if (typeof sign === 'string') {
+                                                                        signStr = sign;
+                                                                    } else if (typeof sign === 'number') {
+                                                                        signStr = String(sign);
+                                                                    } else if (typeof sign === 'object') {
+                                                                        signStr = sign.toString ? sign.toString() : (sign.value || sign.sign || JSON.stringify(sign));
+                                                                    } else {
+                                                                        signStr = String(sign);
+                                                                    }
+                                                                    return <span key={idx} className="inline-block mr-1">{signStr}</span>;
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Grouping AC */}
                                                     {wilyData.grouping_AC && Array.isArray(wilyData.grouping_AC) && (
                                                         <div className="bg-muted/30 rounded p-3 border border-border/50">
                                                             <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Grouping AC</div>
                                                             <div className="text-xs font-mono text-foreground break-all">
-                                                                {wilyData.grouping_AC.map((group: number | boolean, idx: number) => (
-                                                                    <span key={idx} className="inline-block mr-1">{group ? '1' : '0'}</span>
-                                                                )).join(' ')}
+                                                                {wilyData.grouping_AC.map((group: any, idx: number) => {
+                                                                    const groupValue = group === 1 || group === true || group === '1' ? '1' : '0';
+                                                                    return <span key={idx} className="inline-block mr-1">{groupValue}</span>;
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Additional Winding Information */}
                                                     {wilyData.SIict_kw_els && typeof wilyData.SIict_kw_els === 'object' && (
                                                         <div className="bg-muted/30 rounded p-3 border border-border/50 md:col-span-2 lg:col-span-3">
@@ -598,7 +649,7 @@ export default function VisualizerPage() {
                                                             </div>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {wilyData.SIict_kw_cjh && typeof wilyData.SIict_kw_cjh === 'object' && (
                                                         <div className="bg-muted/30 rounded p-3 border border-border/50 md:col-span-2 lg:col-span-3">
                                                             <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">绕组因子详情 (SIict_kw_cjh)</div>
@@ -612,6 +663,18 @@ export default function VisualizerPage() {
                                                             </div>
                                                         </div>
                                                     )}
+                                                </div>
+
+                                                {/* Winding Diagrams */}
+                                                <div className="mt-6 pt-6 border-t border-border">
+                                                    <h5 className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">绕组相量图 (Winding Phasor Diagrams)</h5>
+                                                    <WindingDiagrams
+                                                        Qs={wilyData.stator_slot_number_Qs || wilyData.Qs || 12}
+                                                        p={wilyData.pole_pair_number_p || wilyData.p || 2}
+                                                        m={wilyData.m || 3}
+                                                        layer_X_phases={wilyData.layer_X_phases || []}
+                                                        layer_X_signs={wilyData.layer_X_signs || []}
+                                                    />
                                                 </div>
                                             </div>
                                         )}
@@ -692,13 +755,13 @@ export default function VisualizerPage() {
                                         <div className="space-y-0.5">
                                             <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">参数数量</div>
                                             <div className="text-xs font-mono text-foreground">
-                                                {metadata.parameters && typeof metadata.parameters === 'object' 
-                                                    ? Object.keys(metadata.parameters).length 
+                                                {metadata.parameters && typeof metadata.parameters === 'object'
+                                                    ? Object.keys(metadata.parameters).length
                                                     : 0}
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Path and Project Information (lines 867-870) */}
                                     <div className="border-t border-border pt-3 mt-3">
                                         <h4 className="text-xs font-semibold text-foreground mb-2 flex items-center">
@@ -968,7 +1031,7 @@ export default function VisualizerPage() {
                         <div className="mb-8">
                             <h3 className="text-lg font-medium text-foreground mb-4">Simulation Results (CSV)</h3>
                             <div className="h-[500px]">
-                                <CsvVisualizer 
+                                <CsvVisualizer
                                     path2FEACsv={path2FEACsv || undefined}
                                 />
                             </div>
@@ -1182,7 +1245,7 @@ export default function VisualizerPage() {
                                                     </div>
                                                 )}
                                             </div>
-                                            
+
                                             {/* Donut Chart */}
                                             <div className="h-[300px]">
                                                 {(() => {
@@ -1217,7 +1280,7 @@ export default function VisualizerPage() {
                                                             value: specPerformanceDict.rated_windage_loss
                                                         });
                                                     }
-                                                    
+
                                                     return lossData.length > 0 ? (
                                                         <DonutChart data={lossData} title="Loss Distribution" />
                                                     ) : (

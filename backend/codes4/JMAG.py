@@ -1,9 +1,9 @@
 import win32com.client, os, logging, utility, numpy
 import pythoncom  # 用于 COM 初始化
 from pylab import np, plt, mpl; import math
-logger = logging.getLogger(__name__)
-logger.debug('The mpl backend is %s', mpl.rcParams['backend'])
-mpl.use('Agg') # ('pdf') #   # https://github.com/matplotlib/matplotlib/issues/21950
+# logger = logging.getLogger(__name__)
+# logger.debug('The mpl backend is %s', mpl.rcParams['backend'])
+# mpl.use('Agg') # ('pdf') #   # https://github.com/matplotlib/matplotlib/issues/21950
 EPS=0.01 # mm
 
 class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveBase
@@ -260,14 +260,17 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # sel = view.GetCurrentSelection()
         # sel.SelectPart(123)
         # sel.SetBlockUpdateView(False)
-            
+
         EX = acm_variant.EX
         p = acm_variant.p.value
         s = acm_variant.s.value if acm_variant.bool_PermanentMagnet else 1
         Q = acm_variant.Qs.value
                                 #   轴 转子 永磁体  护套 定子 绕组
         if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
-            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) + self.show(acm_variant,toString=False)
+            msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) 
+            #+ self.show(acm_variant,toString=False)
+            app.View().Fit()
+            app.ExportImageWithSize(acm_variant.path2SwarmData + acm_variant.project_name + "-BadNumberOfParts.png", 640, 480)
             print(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
 
@@ -1528,9 +1531,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         #             + '\n' + '--'*10 + '\n- Template:\n\t' \
         #             + ', \n\t'.join("%s = %s" % item for item in template_tuple_list)
 
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    # 从硬盘提取数据
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     @staticmethod
     def add_plots(axeses, dm, title=None, label=None, zorder=None, time_list=None, sfv=None, torque=None, range_ss=None, alpha=0.7):
 
@@ -1563,20 +1563,20 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         info += '\n\tTorque Ripple (Peak-to-Peak): %g Nm'% ( max(torque[-range_ss:]) - min(torque[-range_ss:]))
         info += '\n\tForce Mag Ripple (Peak-to-Peak): %g N'% (sfv.ss_max_force_err_abs[0] - sfv.ss_max_force_err_abs[1])
 
-        if axeses is not None:
-            # plot for torque and force
-            ax = axeses[0][0]; ax.plot(time_list, torque,                                           alpha=alpha, label=label, zorder=zorder)
-            ax.plot(time_list, np.ones(len(time_list)) * torque_average, 'k-')
-            ax = axeses[0][1]; ax.plot(time_list, sfv.force_abs,                                    alpha=alpha, label=label, zorder=zorder)
-            ax.plot(time_list, sfv.force_x,                                      alpha=alpha, label=label, zorder=zorder)
-            ax.plot(time_list, sfv.force_y,                                      alpha=alpha, label=label, zorder=zorder)
-            ax.plot(time_list, np.ones(len(time_list)) * sfv.ss_avg_force_magnitude, 'k-')
-            ax = axeses[1][0]; ax.plot(time_list, 100*sfv.force_err_abs/sfv.ss_avg_force_magnitude, label=label, alpha=alpha, zorder=zorder)
-            ax = axeses[1][1]; 
-            ax.plot(time_list, sfv.force_err_ang_old_way,                        label=label, alpha=alpha, zorder=zorder)
-            ax.plot(time_list, sfv.force_err_ang_new_way,                        label=label, alpha=alpha, zorder=zorder)
-            ax.plot(time_list, sfv.force_ang,                        label=label, alpha=alpha, zorder=zorder)
-            ax.plot(time_list, np.ones(len(time_list)) * sfv.ss_avg_force_angle, 'k-')
+        # if axeses is not None:
+        #     # plot for torque and force
+        #     ax = axeses[0][0]; ax.plot(time_list, torque,                                           alpha=alpha, label=label, zorder=zorder)
+        #     ax.plot(time_list, np.ones(len(time_list)) * torque_average, 'k-')
+        #     ax = axeses[0][1]; ax.plot(time_list, sfv.force_abs,                                    alpha=alpha, label=label, zorder=zorder)
+        #     ax.plot(time_list, sfv.force_x,                                      alpha=alpha, label=label, zorder=zorder)
+        #     ax.plot(time_list, sfv.force_y,                                      alpha=alpha, label=label, zorder=zorder)
+        #     ax.plot(time_list, np.ones(len(time_list)) * sfv.ss_avg_force_magnitude, 'k-')
+        #     ax = axeses[1][0]; ax.plot(time_list, 100*sfv.force_err_abs/sfv.ss_avg_force_magnitude, label=label, alpha=alpha, zorder=zorder)
+        #     ax = axeses[1][1]; 
+        #     ax.plot(time_list, sfv.force_err_ang_old_way,                        label=label, alpha=alpha, zorder=zorder)
+        #     ax.plot(time_list, sfv.force_err_ang_new_way,                        label=label, alpha=alpha, zorder=zorder)
+        #     ax.plot(time_list, sfv.force_ang,                        label=label, alpha=alpha, zorder=zorder)
+        #     ax.plot(time_list, np.ones(len(time_list)) * sfv.ss_avg_force_angle, 'k-')
 
         # plot for visialization of power factor 
         # dm.get_voltage_and_current(range_ss)
@@ -1718,6 +1718,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             for row in utility.csv_row_reader(f):
                 count +=1
                 if 'IM' in machine_type:
+                    if count == 7:  
+                        if 'rotorCore' not in row[2] or 'statorCore' not in row[3]:
+                            raise
                     if count>8:
                         rotor_iron_loss = float(row[2]) # Rotor Core
                         stator_iron_loss = float(row[3]) # Stator Core
@@ -1725,12 +1728,18 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                         logger.info('Iron loss: %s %s', stator_iron_loss, rotor_iron_loss)
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
+                    if count == 7:  # Validate header row
+                        if 'rotorCore' not in row[1] or 'statorCore' not in row[3]:
+                            raise ValueError(f'Expected "rotorCore" at column index 1 in header, but found: {row[1] if len(row) > 1 else "missing"}')
+                            raise ValueError(f'Expected "statorCore" at column index 3 in header, but found: {row[3] if len(row) > 3 else "missing"}')
                     if count>7:
-                        logger = logging.getLogger(__name__)
-                        logger.debug('This should be 0: %s. This is likely due to you set up cases in your JMAG project. This automation supports case number of 1 only.', float(row[0]))
+                        if float(row[0]) != 0.0:
+                            logger = logging.getLogger(__name__)
+                            logger.debug('This should be 0: %s. This is likely due to you set up cases in your JMAG project. This automation supports case number of 1 only.', float(row[0]))
                         rotor_iron_loss = float(row[1]) # Rotor Core
-                        stator_iron_loss = float(row[4]) # Stator Core
-                        logger.info('Iron loss: %s %s', stator_iron_loss, rotor_iron_loss)
+                        stator_iron_loss = float(row[3]) # Stator Core (fixed: was row[4], should be row[3])
+                        logger = logging.getLogger(__name__)
+                        logger.info('Iron loss: %s W (Stator) and %s (Rotor)', stator_iron_loss, rotor_iron_loss)
                         break
         with open(path_prefix + study_name + '_joule_loss_loss.csv', 'r') as f:
             count = 0
@@ -1744,9 +1753,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                         logger.info('Eddy current loss: %s %s', stator_eddycurrent_loss, rotor_eddycurrent_loss)
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
+                    if count == 7:  # Validate header row
+                        if 'rotorCore' not in row[1] or 'statorCore' not in row[3]:
+                            raise ValueError(f'Expected "rotorCore" at column index 1 in header, but found: {row[1] if len(row) > 1 else "missing"}')
+                            raise ValueError(f'Expected "statorCore" at column index 3 in header, but found: {row[3] if len(row) > 3 else "missing"}')
                     if count>7:
                         rotor_eddycurrent_loss  = float(row[1]) # Rotor Core
-                        stator_eddycurrent_loss = float(row[4]) # Stator Core
+                        stator_eddycurrent_loss = float(row[3]) # Stator Core
                         logger = logging.getLogger(__name__)
                         logger.info('Eddy current loss: %s %s', stator_eddycurrent_loss, rotor_eddycurrent_loss)
                         break
@@ -1762,9 +1775,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                         logger.info('Hysteresis loss: %s %s', stator_hysteresis_loss, rotor_hysteresis_loss)
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
+                    if count == 7:  # Validate header row
+                        if 'rotorCore' not in row[1] or 'statorCore' not in row[3]:
+                            raise ValueError(f'Expected "rotorCore" at column index 1 in header, but found: {row[1] if len(row) > 1 else "missing"}')
+                            raise ValueError(f'Expected "statorCore" at column index 3 in header, but found: {row[3] if len(row) > 3 else "missing"}')
                     if count>7:
                         rotor_hysteresis_loss  = float(row[1]) # Rotor Core
-                        stator_hysteresis_loss = float(row[4]) # Stator Core
+                        stator_hysteresis_loss = float(row[3]) # Stator Core
                         logger = logging.getLogger(__name__)
                         logger.info('Hysteresis loss: %s %s', stator_hysteresis_loss, rotor_hysteresis_loss)
                         break
@@ -1794,22 +1811,22 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                             raise Exception('Error when load csv data for Cage.')
                         rotor_Joule_loss_list.append(float(row[idx_coil-1])) # Cage
 
-                elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
+                elif 'PM' in machine_type:
                     if count == 7: # 少一个slip变量，所以不是8，是7。
-                        headers = row
-                        for idx_coil, h in enumerate(headers):
+                        header_row = row
+                        for idx_coil, h in enumerate(header_row):
                             if 'Coil' in h:
                                 break
 
                     if count>7:
                         if count==7+1:
-                            if 'Coil' not in headers[idx_coil]:
-                                print('[utility.py]', headers)
+                            if 'Coil' not in header_row[idx_coil]:
+                                print('[utility.py]', header_row)
                                 raise Exception('Error when load csv data for Coil.')
                             stator_copper_loss = float(row[idx_coil]) # Coil # it is the same over time, this value does not account for end coil
 
-                        if 'Magnet' not in headers[idx_coil-1]:
-                            print('[utility.py]', headers)
+                        if 'Magnet' not in header_row[idx_coil-1]:
+                            print('[utility.py]', header_row)
                             raise Exception('Error when load csv data for Magnet.')
                         rotor_Joule_loss_list.append(float(row[idx_coil-1])) # Magnet
 
@@ -1821,13 +1838,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if len(effective_part) == 0: # there is no rotor eddy current (e.g., FSPM motor)
             rotor_Joule_loss = 0.0
             print('[JMAG.py] csv results: effective_part is []')
-            print('[JMAG.py] csv results: effective_part is []')
-            print('[JMAG.py] csv results: effective_part is []')
             # print(rotor_Joule_loss_list)
             # print(effective_part)
         else:
             rotor_Joule_loss = sum(effective_part) / len(effective_part)
-        if 'PMSM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
+        if 'PMPM' in machine_type:
             logger = logging.getLogger(__name__)
             logger.info('Magnet Joule loss: %s', rotor_Joule_loss)
 
@@ -1899,7 +1914,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             def unpack(self, bool_more_info=False):
                 if bool_more_info:
                     return self.basic_info, self.time_list, self.TorCon_list, self.ForConX_list, self.ForConY_list, self.ForConAbs_list, \
-                        self.SIisplacementAngle_list, \
+                        self.DisplacementAngle_list, \
                         self.circuit_current(which='GroupACU'), \
                         self.circuit_current(which='GroupACV'), \
                         self.circuit_current(which='GroupACW'), \
@@ -2002,12 +2017,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     def build_str_results(self, acm_variant, project_name, tran_study_name, path2FEACsv, fea_config_dict, femm_solver=None):
         # originate from fobj
 
-        if fea_config_dict['bool_post_processing'] == False:
-            self.fig_main, self.axeses = plt.subplots(2, 2, sharex=True, dpi=150, figsize=(16, 8), facecolor='w', edgecolor='k')
-            utility.pyplot_clear(self.axeses)
-        else:
-            self.fig_main, self.axeses = None, None
-
         machine_type = acm_variant.name
 
         try:
@@ -2042,7 +2051,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list = dm.unpack()
         sfv = utility.suspension_force_vector(ForConX_list, ForConY_list, range_ss=number_of_steps_at_steady_state) # samples in the tail that are in steady state
         str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle = \
-            self.add_plots( self.axeses, dm,
+            self.add_plots( None, dm,
                         title=tran_study_name,
                         label='Transient FEA w/ 2 Time Step Sections',
                         zorder=8,
@@ -2128,30 +2137,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             rotor_copper_loss_in_end_turn  = dm.femm_loss_list[1] - rotor_copper_loss_along_stack
 
         elif 'PMSM' in machine_type:
-            stator_copper_loss_along_stack = dm.femm_loss_list[2]
-            magnet_Joule_loss
-            rotor_copper_loss_along_stack = 0.0
-
-            stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
-            rotor_copper_loss_in_end_turn  = 0
-
-        elif 'FSPM' in machine_type:
-            stator_copper_loss_along_stack = dm.femm_loss_list[2]
-            magnet_Joule_loss
-            rotor_copper_loss_along_stack = 0.0
-
-            stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
-            rotor_copper_loss_in_end_turn  = 0
-
-        elif 'CPPM' in machine_type:
-            stator_copper_loss_along_stack = dm.femm_loss_list[2]
-            magnet_Joule_loss
-            rotor_copper_loss_along_stack = 0.0
-
-            stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
-            rotor_copper_loss_in_end_turn  = 0
-
-        elif 'CSPPM' in machine_type:
             stator_copper_loss_along_stack = dm.femm_loss_list[2]
             magnet_Joule_loss
             rotor_copper_loss_along_stack = 0.0

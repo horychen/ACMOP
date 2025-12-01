@@ -166,8 +166,9 @@ def lcm(a,b):
 import logging
 def myLogger(dir_log, prefix='default_prefix_'): # This works even when the module is reloaded (which is not the case of the other answers) https://stackoverflow.com/questions/7173033/duplicate-log-output-when-using-python-logging-module
 
-    # logging.getLogger("imported_module").setLevel(logging.WARNING) # disable logging from matplotlib and others
-    # logging.getLogger('matplotlib').setLevel(logging.WARNING)
+    # Disable matplotlib DEBUG logging to reduce log noise
+    logging.getLogger('matplotlib').setLevel(logging.WARNING)
+    logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
 
     logger = logging.getLogger()
     if not len(logger.handlers):

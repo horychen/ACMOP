@@ -523,68 +523,46 @@ class Winding_Derivation(object):
             if self.verbose:
                 _print('kw(cjh)=', _kw_cjh, '=', f'{np.abs(_kw_cjh):.3f}∠{np.angle(_kw_cjh)/math.pi*180:.1f}')
 
-        self.SIict_kw_els = dict_kw_els
-        self.SIict_kw_cjh = dict_kw_cjh
         return dict_kw_els, dict_kw_cjh
 
 
-def main_derivation(m, Qs, p, ps, coil_pitch_y, verbose=None):
-    """
-    主函数：计算绕组信息
-    
-    Args:
-        m: 相数
-        Qs: 槽数
-        p: 极对数
-        ps: 悬浮极对数
-        coil_pitch_y: 线圈节距
-        verbose: 是否打印输出，None 时使用全局 _verbose 设置
-    """
-    if verbose is None:
-        verbose = _verbose
-    
-    # m, Q, p, ps, y, turn function bias (turn_func_bias)
-    Slot_Pole_Combinations = [
-        (m, Qs, p, ps, coil_pitch_y, 0),
-        # (3, 24, 4, 5, 1, 0),  # Q24p4ps5
-        # 可以添加更多组合
-    ]
-    bool_double_layer_winding = True
-
-    for index, slot_pole_comb in enumerate(Slot_Pole_Combinations):
-        wd = Winding_Derivation(slot_pole_comb, bool_double_layer_winding, verbose=verbose)
+    def format_print_out_string(self):
 
         ''' NEW ISMB 2021 Complex Number Winding Factor '''
-        if verbose:
+        if self.verbose:
             _print('\n----------------------------------n=p')
-        dict_kw_els, dict_kw_cjh = wd.get_complex_number_kw(wd.p)
-        if verbose:
+        self.dict_torque_kw_els, self.dict_torque_kw_cjh = self.get_complex_number_kw(self.p)
+        if self.verbose:
             _print('\n----------------------------------n=ps')
-        dict_kw_els, dict_kw_cjh = wd.get_complex_number_kw(wd.ps, v=1)
+        self.dict_suspension_kw_els, self.dict_suspension_kw_cjh = self.get_complex_number_kw(self.ps, v=1)
         
         phase_difference = [
-            dict_kw_els['A_angle'] - dict_kw_els['B_angle'],
-            dict_kw_els['B_angle'] - dict_kw_els['C_angle'],
-            dict_kw_els['C_angle'] - dict_kw_els['A_angle'],
+            self.dict_suspension_kw_els['A_angle'] - self.dict_suspension_kw_els['B_angle'],
+            self.dict_suspension_kw_els['B_angle'] - self.dict_suspension_kw_els['C_angle'],
+            self.dict_suspension_kw_els['C_angle'] - self.dict_suspension_kw_els['A_angle'],
         ]
-        if verbose:
-            _print('phases of winding:', dict_kw_els['A_angle'], dict_kw_els['B_angle'], dict_kw_els['C_angle'])
+        if self.verbose:
+            _print('phases of winding:', self.dict_suspension_kw_els['A_angle'], self.dict_suspension_kw_els['B_angle'], self.dict_suspension_kw_els['C_angle'])
             _print('phase_difference:', phase_difference)
         for el in phase_difference:
             if abs(abs(el) - 240.0) > 1e-5 and abs(abs(el) - 120.0) > 1e-5:
-                if verbose:
+                if self.verbose:
                     _print('!!!Phase Asymmetry Detected')
 
         # 输出绕组定义信息
-        connection_star_raw_dict = wd.connection_star_raw_dict
-        if wd.m == 3:
-            dpnv_grouping_dict_a = wd.dpnv_grouping_dict_a
-            dpnv_grouping_dict_b = wd.dpnv_grouping_dict_b
-            dpnv_grouping_dict_c = wd.dpnv_grouping_dict_c
-        Q = wd.Q
-        p = wd.p
-        ps = wd.ps
-        coil_pitch_y = wd.coil_pitch_y
+        connection_star_raw_dict = self.connection_star_raw_dict
+        if self.m == 3:
+            dpnv_grouping_dict_a = self.dpnv_grouping_dict_a
+            dpnv_grouping_dict_b = self.dpnv_grouping_dict_b
+            dpnv_grouping_dict_c = self.dpnv_grouping_dict_c
+        else:
+            dpnv_grouping_dict_a = None
+            dpnv_grouping_dict_b = None
+            dpnv_grouping_dict_c = None
+        Q = self.Q
+        p = self.p
+        ps = self.ps
+        coil_pitch_y = self.coil_pitch_y
 
         def reformat_wily_info(A, B, C, a, b, c, dpnv_grouping_dict_a, dpnv_grouping_dict_b, dpnv_grouping_dict_c):
             Q = len(A+B+C+a+b+c)
@@ -620,7 +598,7 @@ def main_derivation(m, Qs, p, ps, coil_pitch_y, verbose=None):
 
             return layer_X_phases, layer_X_signs, grouping_AC
 
-        if verbose:
+        if self.verbose:
             _print('\n---Winding definition in python:')
         
         if 'a' not in connection_star_raw_dict:
@@ -642,33 +620,51 @@ def main_derivation(m, Qs, p, ps, coil_pitch_y, verbose=None):
                 dpnv_grouping_dict_a, dpnv_grouping_dict_b, dpnv_grouping_dict_c
             )
         
+        self.print_out_string = (
+            'if DPNV_or_SEPA == True \\\n'
+            'and Qs == %d \\\n'
+            'and p == %d \\\n'
+            'and ps == %d \\\n'
+            'and coil_pitch_y == %d:\n'
+            '    self.layer_X_phases = %s\n'
+            '    self.layer_X_signs  = %s\n'
+            '    self.coil_pitch_y   = coil_pitch_y\n'
+            '    self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)\n'
+            '    self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)\n'
+            '    self.grouping_AC            = %s\n'
+            '    self.number_parallel_branch = %d\n'
+            '    self.number_winding_layer   = %d\n'
+            '\n'
+            '    self.bool_3PhaseCurrentSource = False\n'
+            '    self.CommutatingSequenceD = 1\n'
+            '    self.CommutatingSequenceB = 0\n'
+            % (Q, p, ps, coil_pitch_y, layer_X_phases, layer_X_signs, grouping_AC, 2, 2 if self.bool_double_layer_winding else 1)
+        )
         if verbose:
-            _print(r'''
-            if DPNV_or_SEPA == True \
-            and Qs == %d \
-            and p == %d \
-            and ps == %d \
-            and coil_pitch_y == %d:
-    ''' % (Q, p, ps, coil_pitch_y), end='')
-            _print(r'''
-                self.layer_X_phases = %s
-                self.layer_X_signs  = %s
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-    ''' % (layer_X_phases, layer_X_signs), end='')
-            _print(r'''
-                self.grouping_AC            = %s
-                self.number_parallel_branch = %d
-                self.number_winding_layer   = %d
+            _print(self.print_out_string, end='')
 
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-    ''' % (grouping_AC, 2, 2 if bool_double_layer_winding else 1), end='')
+        self.layer_X_phases = layer_X_phases
+        self.layer_X_signs = layer_X_signs
+        self.grouping_AC = grouping_AC
+        self.coil_pitch_y = coil_pitch_y
 
-    return layer_X_phases, layer_X_signs, grouping_AC, coil_pitch_y
+        return self.print_out_string
 
+def main_derivation(m, Qs, p, ps, coil_pitch_y, verbose=None):
+    if verbose is None:
+        verbose = _verbose
+    
+    # m, Q, p, ps, y, turn function bias (turn_func_bias)
+    Slot_Pole_Combinations = [
+        (m, Qs, p, ps, coil_pitch_y, 0),
+        # (3, 24, 4, 5, 1, 0),  # Q24p4ps5
+        # 可以添加更多组合
+    ]
+    bool_double_layer_winding = True
+
+    for index, slot_pole_comb in enumerate(Slot_Pole_Combinations):
+        wd = Winding_Derivation(slot_pole_comb, bool_double_layer_winding, verbose=verbose)
+        wd.format_print_out_string()
 
 if __name__ == '__main__':
     main_derivation()
