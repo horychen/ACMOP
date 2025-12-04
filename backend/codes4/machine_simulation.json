@@ -26,10 +26,10 @@
         "designer.TranRef-StepPerCycle":64, 
 
         "designer.CircumferentialDivision": 720,
-        "designer.meshSize_Magnet": 2,
-        "designer.meshSize_Shaft": 5,
-        "designer.meshSizeAir": 1.0,
-        "designer.meshSizeSlidePlane": 2.0,
+        "designer.meshSize_Magnet": 8,
+        "designer.meshSize_Shaft": 40,
+        "designer.meshSizeAir": 4.0,
+        "designer.meshSize_General": 10.0,
 
         "femm.Coarse_Mesh": false,
         "femm.deg_per_step": null,

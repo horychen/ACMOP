@@ -1942,7 +1942,7 @@ class Modern_Machine_Designer(object):
                 'split_ratio_r_si_slash_r_so',
                 'free',
                 SR,
-                calc_bounds=lambda self_param: [0.5, 0.8] if self.p.value < 10 else [0.65, 0.85],
+                calc_bounds=lambda self_param: [0.4, 0.7] if self.p.value < 10 else [0.65, 0.85],
             )
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             # "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30)")
@@ -2007,7 +2007,7 @@ class Modern_Machine_Designer(object):
             if self.bool_PermanentMagnet:
                 self.mm_d_ri: Parameter = Parameter(
                     'rotor_iron (back iron) depth', 'derived',
-                    calc=lambda parameter_dict: 4 if parameter_dict['magnet_depth'].value < 4 else parameter_dict['magnet_depth'].value,
+                    calc=lambda parameter_dict: 2.5*parameter_dict['magnet_depth'].value, # 6 if parameter_dict['magnet_depth'].value < 4 else 
                     parameter_dict=self.get_parameter_dict_by_name()
                 )
                 self.mm_r_ro: Parameter = Parameter(
@@ -2391,7 +2391,15 @@ class Modern_Machine_Designer(object):
         # define project_name using counter and counter_loop
         self.project_name = self.name + f'-ind{counter}'
         self.project_name += f'-redo{counter_loop}' if counter_loop > 1 else ''
-        self.expected_project_file = self.path2SwarmData + "/jmag_temp/%s.jproj"%(self.project_name)
+
+        jmag_temp_dir = self.path2SwarmData + "/jmag_temp"
+        if not os.path.exists(jmag_temp_dir):
+            os.makedirs(jmag_temp_dir)
+        jmag_screenshots_dir = self.path2SwarmData + "/jmag_screenshots"
+        if not os.path.exists(jmag_screenshots_dir):
+            os.makedirs(jmag_screenshots_dir)
+        self.expected_project_file = jmag_temp_dir + "/%s.jproj" % (self.project_name)
+
 
         self.path2FEACsv = os.path.abspath(self.path2SwarmData + '/csv/') + f'/{self.counter}/'
         if not os.path.isdir(self.path2FEACsv): os.makedirs(self.path2FEACsv)

@@ -213,7 +213,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         logger = logging.getLogger(__name__)
         logger.info('expected_project_file_path: %s', expected_project_file_path)
-        logger.info('expected_project_file_path (to abs path): %s', os.path.abspath(expected_project_file_path))
         if os.path.exists(expected_project_file_path):
             logger.info('JMAG project exists already. I learned my lessions. I will NOT delete it but create a new one with a different name instead.')
             # os.remove(expected_project_file_path)
@@ -1368,14 +1367,15 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             meshSize_Magnet = acm_variant.fea_config_dict['designer.meshSize_Magnet']
             meshSize_Shaft = acm_variant.fea_config_dict['designer.meshSize_Shaft']
             meshSize_Air = acm_variant.fea_config_dict['designer.meshSizeAir']
-            meshSize_SlidePlane = acm_variant.fea_config_dict['designer.meshSizeSlidePlane']
+            meshSize_General = acm_variant.fea_config_dict['designer.meshSize_General']
+            # meshSize_Stator = acm_variant.fea_config_dict['designer.meshSizeStator']
 
             study.GetMeshControl().SetValue("MeshType", 1) # make sure this has been exe'd: study.GetCondition(u"RotCon").AddSet(model.GetSetList().GetSet(u"Motion_Region"), 0)
             study.GetMeshControl().SetValue("RadialDivision", 8) # for air region near which motion occurs
             study.GetMeshControl().SetValue("CircumferentialDivision", CircumferentialDivision) #1440) # for air region near which motion occurs 这个数足够大，sliding mesh才准确。
             study.GetMeshControl().SetValue("AirRegionScale", 1.05) # [Model Length]: Specify a value within the following area. (1.05 <= value < 1000)
 
-            study.GetMeshControl().SetValue("MeshSize", meshSize_SlidePlane) # mm
+            study.GetMeshControl().SetValue("MeshSize", meshSize_General) # mm
 
             study.GetMeshControl().SetValue("AutoAirMeshSize", 0)
             study.GetMeshControl().SetValue("AirMeshSize", meshSize_Air) # mm
@@ -1384,6 +1384,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # This is not neccessary for whole model FEA. In fact, for BPMSM simulation, it causes mesh error "The copy target region is not found".
             # study.GetMeshControl().CreateCondition("RotationPeriodicMeshAutomatic", "autoRotMesh") # with this you can choose to set CircumferentialDivision automatically
 
+            # study.GetMeshControl().CreateCondition("Part", "StatorMeshCtrl")
+            # study.GetMeshControl().GetCondition("StatorMeshCtrl").SetValue("Size", meshSize_Stator)
+            # study.GetMeshControl().GetCondition("StatorMeshCtrl").ClearParts()
+            # study.GetMeshControl().GetCondition("StatorMeshCtrl").AddSet(model.GetSetList().GetSet("StatorSet"), 0)
+
+            app.GetModel(u"SPMSM-50000W-30000rpm-attempt2").GetStudy(u"Transient").GetMeshControl().GetCondition(u"untitled 1").SetValue(u"Size", 12.35)
 
             study.GetMeshControl().CreateCondition("Part", "MagnetMeshCtrl")
             study.GetMeshControl().GetCondition("MagnetMeshCtrl").SetValue("Size", meshSize_Magnet)
