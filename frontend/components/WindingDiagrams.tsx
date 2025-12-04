@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 interface WindingDiagramsProps {
     Qs: number;
     p: number;
+    ps?: number; // Suspension pole pairs
     m: number;
-    layer_X_phases: string[];
-    layer_X_signs: string[];
+    layer_X_phases: (string | null)[];
+    layer_X_signs: (string | null)[];
 }
 
 // Helper to convert polar to cartesian
@@ -18,39 +19,12 @@ const polarToCartesian = (radius: number, angleDegrees: number) => {
     };
 };
 
-export default function WindingDiagrams({ Qs, p, m, layer_X_phases, layer_X_signs }: WindingDiagramsProps) {
+export default function WindingDiagrams({ Qs, p, ps, m, layer_X_phases, layer_X_signs }: WindingDiagramsProps) {
     const RADIUS = 120;
     const CENTER = { x: 150, y: 150 };
     const SVG_SIZE = 300;
 
-    // Calculate electrical angle for each slot
-    const slotData = useMemo(() => {
-        const anglePerSlot = (360 * p) / Qs;
-        return Array.from({ length: Qs }).map((_, i) => {
-            const mechAngle = (i * 360) / Qs;
-            const elecAngle = i * anglePerSlot;
-            // Normalize to 0-360 for some calculations, but keep cumulative for spiral
-            const normalizedElecAngle = elecAngle % 360;
-
-            // Determine radius based on spiral (wrapping)
-            // Backend logic: RADIUS - (PHI // 360) * 1.0
-            // We scale it up for pixels. Say 10px per wrap.
-            const wrapCount = Math.floor(elecAngle / 360);
-            const radius = RADIUS - wrapCount * 10;
-
-            return {
-                id: i + 1,
-                mechAngle,
-                elecAngle,
-                normalizedElecAngle,
-                radius,
-                phase: layer_X_phases[i],
-                sign: layer_X_signs[i]
-            };
-        });
-    }, [Qs, p, layer_X_phases, layer_X_signs]);
-
-    // Phase Colors (matching WindingLayoutViewer)
+    // Phase Colors
     const colors: Record<string, string> = {
         'U': '#f43f5e', // rose-500
         'V': '#06b6d4', // cyan-500
@@ -58,190 +32,196 @@ export default function WindingDiagrams({ Qs, p, m, layer_X_phases, layer_X_sign
         '': '#e5e7eb'   // gray-200
     };
 
-    const renderStarOfSlots = () => {
-        return (
-            <svg width={SVG_SIZE} height={SVG_SIZE} viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`}>
-                {/* Background Sectors for Phase Belts (Assuming 60 degree belts for m=3) */}
-                {/* This is a simplification; ideally we calculate belts exactly like backend. 
-                    For m=3, belts are 60 deg. 
-                    +U: -30 to 30
-                    -W: 30 to 90
-                    +V: 90 to 150
-                    -U: 150 to 210
-                    +W: 210 to 270
-                    -V: 270 to 330
-                */}
-                <g transform={`translate(${CENTER.x}, ${CENTER.y})`}>
-                    {/* Axes/Grid */}
-                    <circle cx={0} cy={0} r={RADIUS + 20} fill="none" stroke="#e2e8f0" />
-
-                    {/* Phase Sectors Labels */}
-                    {/* Using simple text for now at approximate locations */}
-                    <text x={RADIUS + 10} y={0} textAnchor="start" dominantBaseline="middle" className="text-[10px] fill-slate-400 font-mono">+U</text>
-                    <text x={0} y={-(RADIUS + 10)} textAnchor="middle" dominantBaseline="auto" className="text-[10px] fill-slate-400 font-mono">-V</text>
-                    <text x={-(RADIUS + 10)} y={0} textAnchor="end" dominantBaseline="middle" className="text-[10px] fill-slate-400 font-mono">-U</text>
-                    <text x={0} y={RADIUS + 10} textAnchor="middle" dominantBaseline="hanging" className="text-[10px] fill-slate-400 font-mono">+V</text>
-
-                    {/* Slot Phasors */}
-                    {slotData.map((slot) => {
-                        const { x, y } = polarToCartesian(slot.radius, slot.elecAngle);
-                        const color = colors[slot.phase] || '#94a3b8';
-
-                        return (
-                            <g key={slot.id}>
-                                {/* Arrow Line */}
-                                <line
-                                    x1={0} y1={0} x2={x} y2={y}
-                                    stroke={color}
-                                    strokeWidth="1.5"
-                                    opacity="0.6"
-                                />
-                                {/* Arrow Head (Circle for now) */}
-                                <circle cx={x} cy={y} r={2} fill={color} />
-
-                                {/* Label */}
-                                {/* Push label out a bit */}
-                                {(() => {
-                                    const labelPos = polarToCartesian(slot.radius + 15, slot.elecAngle);
-                                    return (
-                                        <text
-                                            x={labelPos.x}
-                                            y={labelPos.y}
-                                            textAnchor="middle"
-                                            dominantBaseline="middle"
-                                            className="text-[8px] font-bold fill-slate-700"
-                                        >
-                                            {slot.id}
-                                        </text>
-                                    );
-                                })()}
-                            </g>
-                        );
-                    })}
-                </g>
-            </svg>
-        );
+    const getPhaseColor = (phase: string | null) => {
+        if (!phase) return colors[''];
+        return colors[phase] || colors[''];
     };
 
-    const renderConnectionStar = () => {
-        // Group slots by phase and align them
-        // For Connection Star, we rotate phasors so that:
-        // U is at 0
-        // V is at 120 (or -120 depending on convention)
-        // W is at 240
-        // And negative phases are flipped 180
+    // Calculate slot data for Torque (p)
+    const torqueSlotData = useMemo(() => {
+        const slots = [];
+        const electricalAnglePerSlot = (360 * p) / Qs;
+        const radiusBase = 80;
+        const spiralFactor = 1.5;
 
-        // In backend:
-        // if key in 'abc' (negative): phase_shift = 180
-        // if key in 'ABC' (positive): phase_shift = 0
+        for (let i = 0; i < Qs; i++) {
+            const slotIndex = i + 1;
+            const electricalAngle = (i * electricalAnglePerSlot) % 360;
 
-        // We can just use the slot's assigned phase to determine the target sector
-        // But to replicate the "Star", we usually plot the *actual* electrical phasors 
-        // but grouped/colored. 
-        // Actually, the Connection Star in the paper/backend often shows the phasors *after* 
-        // being referred to the fundamental phase axis? 
-        // Let's look at backend: `PHI, label = phase_shift+PHI_ori`
-        // It shifts negative belts by 180 to align with positive.
+            const wrapCount = Math.floor((i * electricalAnglePerSlot) / 360);
+            const radius = radiusBase - (wrapCount * spiralFactor);
 
-        return (
-            <svg width={SVG_SIZE} height={SVG_SIZE} viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`}>
-                <g transform={`translate(${CENTER.x}, ${CENTER.y})`}>
-                    <circle cx={0} cy={0} r={RADIUS + 20} fill="none" stroke="#e2e8f0" />
+            const pos = polarToCartesian(radius, electricalAngle);
 
-                    {/* Main Phase Axes */}
-                    <line x1={0} y1={0} x2={RADIUS} y2={0} stroke={colors['U']} strokeWidth="1" strokeDasharray="4 4" />
-                    <text x={RADIUS + 5} y={0} className="text-xs fill-rose-500 font-bold">U</text>
+            let phase = 'A';
+            let sign = '+';
+            if (layer_X_phases && layer_X_phases[i]) {
+                phase = layer_X_phases[i] as string;
+            }
+            if (layer_X_signs && layer_X_signs[i]) {
+                sign = layer_X_signs[i] as string;
+            }
 
-                    {/* V at 120? Backend says: U=0, W=120, V=240 (Note V/W transposed in comments) */}
-                    {/* Let's stick to standard U=0, V=-120(240), W=120 for now or follow backend comments */}
-                    {/* Backend: U at 0. W at 120. V at 240. */}
-                    {(() => {
-                        const wPos = polarToCartesian(RADIUS, 120);
-                        const vPos = polarToCartesian(RADIUS, 240);
-                        return (
-                            <>
-                                <line x1={0} y1={0} x2={wPos.x} y2={wPos.y} stroke={colors['W']} strokeWidth="1" strokeDasharray="4 4" />
-                                <text x={wPos.x + 5} y={wPos.y} className="text-xs fill-indigo-500 font-bold">W</text>
+            slots.push({
+                id: slotIndex,
+                angle: electricalAngle,
+                radius,
+                x: pos.x,
+                y: pos.y,
+                phase,
+                sign
+            });
+        }
+        return slots;
+    }, [Qs, p, layer_X_phases, layer_X_signs]);
 
-                                <line x1={0} y1={0} x2={vPos.x} y2={vPos.y} stroke={colors['V']} strokeWidth="1" strokeDasharray="4 4" />
-                                <text x={vPos.x + 5} y={vPos.y} className="text-xs fill-cyan-500 font-bold">V</text>
-                            </>
-                        );
-                    })()}
+    // Calculate slot data for Suspension (ps)
+    const suspensionSlotData = useMemo(() => {
+        if (!ps) return [];
+        const slots = [];
+        const electricalAnglePerSlot = (360 * ps) / Qs;
+        const radiusBase = 80;
+        const spiralFactor = 1.5;
 
-                    {slotData.map((slot) => {
-                        if (!slot.phase) return null;
+        for (let i = 0; i < Qs; i++) {
+            const slotIndex = i + 1;
+            const electricalAngle = (i * electricalAnglePerSlot) % 360;
 
-                        // Determine shift based on phase
-                        let shift = 0;
-                        let isNegative = slot.sign === '-';
+            const wrapCount = Math.floor((i * electricalAnglePerSlot) / 360);
+            const radius = radiusBase - (wrapCount * spiralFactor);
 
-                        // We want to align everything to the "Positive" axis of its phase
-                        // If it's U-, we add 180 to bring it to U+ (or vice versa? Backend says phase_shift=180 for negative)
-                        // Wait, if it's U- (e.g. at 180), adding 180 brings it to 360 (0). Yes.
+            const pos = polarToCartesian(radius, electricalAngle);
 
-                        // However, we also want to visualize them *clustered*.
-                        // The backend `draw_connection_star` iterates by phase belt.
-                        // It shifts the angle so they all point roughly in the same direction (the resultant MMF direction).
+            let phase = 'A';
+            if (layer_X_phases && layer_X_phases[i]) {
+                phase = layer_X_phases[i] as string;
+            }
 
-                        // Let's just plot the phasors as they are, but maybe color coded?
-                        // No, the connection star specifically shows how they add up.
-                        // So we should apply the 180 shift for negative signs.
+            slots.push({
+                id: slotIndex,
+                angle: electricalAngle,
+                radius,
+                x: pos.x,
+                y: pos.y,
+                phase,
+                sign: '+'
+            });
+        }
+        return slots;
+    }, [Qs, ps, layer_X_phases]);
 
-                        let displayAngle = slot.elecAngle;
-                        if (isNegative) {
-                            displayAngle += 180;
-                        }
+    const renderStarOfSlots = (data: typeof torqueSlotData, title: string) => (
+        <div className="flex flex-col items-center">
+            <h4 className="text-sm font-medium mb-2">{title}</h4>
+            <svg width="300" height="300" viewBox="-120 -120 240 240" className="border rounded bg-white">
+                {/* Grid circles */}
+                <circle cx="0" cy="0" r="80" fill="none" stroke="#e5e7eb" strokeWidth="1" />
+                <circle cx="0" cy="0" r="60" fill="none" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" />
 
-                        const { x, y } = polarToCartesian(slot.radius, displayAngle);
-                        const color = colors[slot.phase] || '#94a3b8';
+                {/* Axes */}
+                <line x1="-100" y1="0" x2="100" y2="0" stroke="#e5e7eb" strokeWidth="1" />
+                <line x1="0" y1="-100" x2="0" y2="100" stroke="#e5e7eb" strokeWidth="1" />
 
-                        return (
-                            <g key={`conn-${slot.id}`}>
-                                <line
-                                    x1={0} y1={0} x2={x} y2={y}
-                                    stroke={color}
-                                    strokeWidth="1.5"
-                                    opacity="0.6"
-                                />
-                                <circle cx={x} cy={y} r={2} fill={color} />
-                                {(() => {
-                                    const labelPos = polarToCartesian(slot.radius + 15, displayAngle);
-                                    return (
-                                        <text
-                                            x={labelPos.x}
-                                            y={labelPos.y}
-                                            textAnchor="middle"
-                                            dominantBaseline="middle"
-                                            className="text-[8px] font-bold fill-slate-700"
-                                        >
-                                            {isNegative ? `-${slot.id}` : slot.id}
-                                        </text>
-                                    );
-                                })()}
-                            </g>
-                        );
-                    })}
-                </g>
+                {/* Slots */}
+                {data.map((slot) => (
+                    <g key={slot.id}>
+                        <line
+                            x1="0" y1="0"
+                            x2={slot.x} y2={slot.y}
+                            stroke={getPhaseColor(slot.phase)}
+                            strokeWidth="1.5"
+                            markerEnd="url(#arrowhead)"
+                        />
+                        <text
+                            x={slot.x * 1.15}
+                            y={slot.y * 1.15}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize="10"
+                            fill="#374151"
+                        >
+                            {slot.id}
+                        </text>
+                    </g>
+                ))}
+
+                {/* Arrow Marker Definition */}
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#9ca3af" />
+                    </marker>
+                </defs>
             </svg>
-        );
-    }
+        </div>
+    );
+
+    const renderConnectionStar = () => (
+        <div className="flex flex-col items-center">
+            <h4 className="text-sm font-medium mb-2">Torque MMF (Connection Star)</h4>
+            <svg width="300" height="300" viewBox="-120 -120 240 240" className="border rounded bg-white">
+                {/* Grid circles */}
+                <circle cx="0" cy="0" r="80" fill="none" stroke="#e5e7eb" strokeWidth="1" />
+
+                {/* Phase Sectors (Simplified visualization) */}
+                {/* Ideally we should draw sectors based on m and phase_belt */}
+
+                {/* Slots with phase shift for negative signs */}
+                {torqueSlotData.map((slot) => {
+                    let angle = slot.angle;
+                    let label = `${slot.sign === '-' ? '-' : '+'}${slot.id}`;
+
+                    // Apply 180 degree shift for negative connections to align MMF
+                    if (slot.sign === '-') {
+                        angle = (angle + 180) % 360;
+                    }
+
+                    const pos = polarToCartesian(slot.radius, angle);
+
+                    return (
+                        <g key={slot.id}>
+                            <line
+                                x1="0" y1="0"
+                                x2={pos.x} y2={pos.y}
+                                stroke={getPhaseColor(slot.phase)}
+                                strokeWidth="1.5"
+                                markerEnd="url(#arrowhead)"
+                            />
+                            <text
+                                x={pos.x * 1.15}
+                                y={pos.y * 1.15}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fontSize="10"
+                                fill="#374151"
+                                fontWeight="bold"
+                            >
+                                {label}
+                            </text>
+                        </g>
+                    );
+                })}
+            </svg>
+        </div>
+    );
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Star of Slots (Phasor Diagram)</CardTitle>
-                </CardHeader>
-                <CardContent className="flex justify-center p-4">
-                    {renderStarOfSlots()}
+                <CardContent className="pt-6">
+                    {renderStarOfSlots(torqueSlotData, `Torque Star of Slots (p=${p})`)}
                 </CardContent>
             </Card>
+
+            {ps && (
+                <Card>
+                    <CardContent className="pt-6">
+                        {renderStarOfSlots(suspensionSlotData, `Suspension Star of Slots (ps=${ps})`)}
+                    </CardContent>
+                </Card>
+            )}
+
             <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Connection Star (Mmf Phasors)</CardTitle>
-                </CardHeader>
-                <CardContent className="flex justify-center p-4">
+                <CardContent className="pt-6">
                     {renderConnectionStar()}
                 </CardContent>
             </Card>

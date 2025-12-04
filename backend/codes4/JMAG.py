@@ -261,6 +261,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # sel.SelectPart(123)
         # sel.SetBlockUpdateView(False)
 
+        def export_image(app, model, path2SwarmData, project_name, suffix='.png'):
+            app.View().ShowAllAirRegions()
+            # app.View().ShowMeshGeometry() # 2nd btn
+            app.View().ShowMesh() # 3rn btn
+            app.View().Zoom(3)
+            app.View().Pan(-acm_variant.mm_r_ro.value, 0)
+            app.ExportImageWithSize(path2SwarmData + '/jmag_screenshots/' + project_name + suffix, 2000, 2000)
+
         EX = acm_variant.EX
         p = acm_variant.p.value
         s = acm_variant.s.value if acm_variant.bool_PermanentMagnet else 1
@@ -269,10 +277,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
             msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) 
             #+ self.show(acm_variant,toString=False)
-            app.View().Fit()
-            app.ExportImageWithSize(acm_variant.path2SwarmData + acm_variant.project_name + "-BadNumberOfParts.png", 640, 480)
+            export_image(app, model, acm_variant.path2SwarmData + '/', acm_variant.project_name, suffix='-BadNumberOfParts.png')
             print(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
+
+        export_image(app, model, acm_variant.path2SwarmData, acm_variant.project_name, suffix='.png')
 
         self.id_rotorCore = id_rotorCore = part_ID_list[0]
         id_shaft = part_ID_list[1]
@@ -320,11 +329,49 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # Shaft
         add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
 
+
+
         # Create Set for layer_X_phases
         Angle_StatorSlotSpan = 360/Q
         # R = self.mm_r_si + self.mm_d_sts + self.mm_d_st *0.5 # this is not generally working (JMAG selects stator core instead.)
         # THETA = 0.25*(Angle_StatorSlotSpan)/180.*math.pi
-        PCoil = acm_variant.drawer.visualization_points['Coils']['PCoil']
+
+        def get_PCoil(acm_variant):
+            # Generate PCoil using acm_variant (not relying on local vars like r_si)
+            alpha_st = acm_variant.deg_alpha_st.value * math.pi/180
+            alpha_sto = acm_variant.deg_alpha_sto.value * math.pi/180
+            r_si = acm_variant.mm_r_si.value
+            d_sto = acm_variant.mm_d_sto.value
+            d_sp = acm_variant.mm_d_sts.value
+            d_st = acm_variant.mm_d_st.value
+            d_sy = acm_variant.mm_d_sy.value
+            w_st = acm_variant.mm_w_st.value
+            Q = acm_variant.Qs.value
+            alpha_slot_span = 360/Q * math.pi/180
+
+            P1 = [r_si, 0]
+            POpen = [(r_si+d_sp)*math.cos(alpha_slot_span*0.5*1.00), (r_si+d_sp)*-math.sin(alpha_slot_span*0.5*1.00)]
+
+            base_triangle = r_si + d_sp
+            height_triangle = w_st * 0.5
+            angle_triangle = math.atan(height_triangle / base_triangle)
+            P4 = [ base_triangle*math.cos(angle_triangle),
+                base_triangle*-math.sin(angle_triangle)]
+            P5 = [ P4[0] + d_st, P4[1]]
+
+            PMiddle45 = [0.5*(P4[0] + P5[0]), P4[1]]
+            TheRadius = (P5[0] - P4[0])*0.45
+
+            P6 = [ (r_si+d_sp+d_st)*math.cos(alpha_slot_span*0.5),
+                (r_si+d_sp+d_st)*-math.sin(alpha_slot_span*0.5) ]
+            # mm2_slot_area, print, etc, are not needed here since we only want PCoil
+
+            PMiddle6Open = [ 0.5*(P6[0]+POpen[0]), 0.5*(P6[1]+POpen[1])]
+            PCoil = [ 0.5*(PMiddle45[0]+PMiddle6Open[0]), 0.5*(PMiddle45[1]+PMiddle6Open[1])]
+            return PCoil
+        PCoil = get_PCoil(acm_variant)
+        # PCoil = acm_variant.drawer.visualization_points['Coils']['PCoil']
+
         R = math.sqrt(PCoil[0]**2 + PCoil[1]**2)
         THETA = math.atan2(PCoil[1], PCoil[0])
         X = R*math.cos(THETA)
@@ -598,7 +645,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # 你把Tran2TSS计算周期减半！
         # 也要在计算铁耗的时候选择1/4或1/2的数据！（建议1/4）
         # 然后，手动添加end step 和 start step，这样靠谱！2019-01-09：注意设置铁耗条件（iron loss condition）的Reference Start Step和End Step。
-        print("TODO: 铁耗如果选了四分之一周期，JMAG会自动把结果扩展到全周期，需要保证磁场是从零开始的，详见JMAG帮助文档说明。如果是二分之一周期，则不会有这个问题。")
+        # print("TODO: 铁耗如果选了四分之一周期，JMAG会自动把结果扩展到全周期，需要保证磁场是从零开始的，详见JMAG帮助文档说明。如果是二分之一周期，则不会有这个问题。")
 
         # Iron Loss Calculation Condition
         # Stator 
@@ -742,6 +789,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(u"Magnet").SetPattern(u"RadialCircular")
             study.GetMaterial(u"Magnet").SetOrientation(False)
             study.GetMaterial(u"Magnet").SetValue(u"StartAngle", EX['Magnet_StartAngle'])  # 半个极距
+            study.GetMaterial(u"Magnet").SetValue(u"UseAnisotropicMagnet", 0)
 
         # add_carbon_fiber_material(app)
 
@@ -1316,15 +1364,21 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             refarray[0][1] = 1
             study.GetMeshControl().GetTable("SlideTable2D").SetTable(refarray) 
 
-            user_specified_mesh_size = acm_variant.fea_config_dict['designer.meshSize_Magnet']
+            CircumferentialDivision = acm_variant.fea_config_dict['designer.CircumferentialDivision']
+            meshSize_Magnet = acm_variant.fea_config_dict['designer.meshSize_Magnet']
+            meshSize_Shaft = acm_variant.fea_config_dict['designer.meshSize_Shaft']
+            meshSize_Air = acm_variant.fea_config_dict['designer.meshSizeAir']
+            meshSize_SlidePlane = acm_variant.fea_config_dict['designer.meshSizeSlidePlane']
 
             study.GetMeshControl().SetValue("MeshType", 1) # make sure this has been exe'd: study.GetCondition(u"RotCon").AddSet(model.GetSetList().GetSet(u"Motion_Region"), 0)
             study.GetMeshControl().SetValue("RadialDivision", 8) # for air region near which motion occurs
-            study.GetMeshControl().SetValue("CircumferentialDivision", 720) #1440) # for air region near which motion occurs 这个数足够大，sliding mesh才准确。
+            study.GetMeshControl().SetValue("CircumferentialDivision", CircumferentialDivision) #1440) # for air region near which motion occurs 这个数足够大，sliding mesh才准确。
             study.GetMeshControl().SetValue("AirRegionScale", 1.05) # [Model Length]: Specify a value within the following area. (1.05 <= value < 1000)
-            study.GetMeshControl().SetValue("MeshSize", user_specified_mesh_size*2) # mm
+
+            study.GetMeshControl().SetValue("MeshSize", meshSize_SlidePlane) # mm
+
             study.GetMeshControl().SetValue("AutoAirMeshSize", 0)
-            study.GetMeshControl().SetValue("AirMeshSize", user_specified_mesh_size*1.0) # mm
+            study.GetMeshControl().SetValue("AirMeshSize", meshSize_Air) # mm
             study.GetMeshControl().SetValue("Adaptive", 0)
 
             # This is not neccessary for whole model FEA. In fact, for BPMSM simulation, it causes mesh error "The copy target region is not found".
@@ -1332,13 +1386,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
 
             study.GetMeshControl().CreateCondition("Part", "MagnetMeshCtrl")
-            study.GetMeshControl().GetCondition("MagnetMeshCtrl").SetValue("Size", acm_variant.fea_config_dict['designer.meshSize_Magnet'])
+            study.GetMeshControl().GetCondition("MagnetMeshCtrl").SetValue("Size", meshSize_Magnet)
             study.GetMeshControl().GetCondition("MagnetMeshCtrl").ClearParts()
             study.GetMeshControl().GetCondition("MagnetMeshCtrl").AddSet(model.GetSetList().GetSet("MagnetSet"), 0)
 
             if self.bool_suppressShaft == False:
                 study.GetMeshControl().CreateCondition("Part", "ShaftMeshCtrl")
-                study.GetMeshControl().GetCondition("ShaftMeshCtrl").SetValue("Size", user_specified_mesh_size*0.5) 
+                study.GetMeshControl().GetCondition("ShaftMeshCtrl").SetValue("Size", meshSize_Shaft) 
                 study.GetMeshControl().GetCondition("ShaftMeshCtrl").ClearParts()
                 study.GetMeshControl().GetCondition("ShaftMeshCtrl").AddSet(model.GetSetList().GetSet("ShaftSet"), 0)
 
@@ -1536,6 +1590,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         info = '%s' % (title)
         torque_average = sum(torque[-range_ss:])/len(torque[-range_ss:])
+        if torque_average < 0.0:
+            logger = logging.getLogger(__name__)
+            logger.warning('Average Torque: %g Nm which is negative, it is converted to positive to continue.' % (torque_average))
+            torque_average = abs(torque_average)
+
         info += '\nAverage Torque: %g Nm' % (torque_average)
         # torque error = torque - avg. torque
         torque_error = np.array(torque) - torque_average

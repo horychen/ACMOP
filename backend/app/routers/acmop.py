@@ -15,6 +15,23 @@ from datetime import datetime
 router = APIRouter(prefix="/api/acmopv2", tags=["ACMOP v2"])
 
 
+# ==================== 辅助函数：路径处理 ====================
+
+def get_codes4_path():
+    """获取codes4目录路径"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))  # backend/app/routers
+    backend_dir = os.path.dirname(os.path.dirname(current_dir))  # backend
+    codes4_dir = os.path.join(backend_dir, "codes4")
+    return codes4_dir
+
+def get_default_dir():
+    """获取_default目录路径"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))  # backend/app/routers
+    backend_dir = os.path.dirname(os.path.dirname(current_dir))  # backend
+    default_dir = os.path.join(backend_dir, "_default")
+    return default_dir
+
+
 # ==================== 数据模型 ====================
 
 class DesignParameters(BaseModel):
@@ -485,9 +502,9 @@ async def get_default_machine_designer() -> Dict[str, Any]:
     返回完整的默认配置，用于前端初始化
     """
     try:
-        # 获取当前文件所在目录
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        json_path = os.path.join(current_dir, "machine_designer.json")
+        # 获取codes4目录路径
+        codes4_dir = get_codes4_path()
+        json_path = os.path.join(codes4_dir, "machine_designer.json")
         
         if not os.path.exists(json_path):
             raise HTTPException(
@@ -519,9 +536,9 @@ async def get_machine_designer_full() -> Dict[str, Any]:
     返回完整的配置，包括所有元数据和几何信息
     """
     try:
-        # 获取当前文件所在目录
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        json_path = os.path.join(current_dir, "machine_designer_full.json")
+        # 获取codes4目录路径
+        codes4_dir = get_codes4_path()
+        json_path = os.path.join(codes4_dir, "machine_designer_full.json")
         
         if not os.path.exists(json_path):
             raise HTTPException(
@@ -622,8 +639,43 @@ async def get_optimization_results(request: AnalysisRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"获取优化结果时出错: {str(e)}")
 
 
+@router.get("/list-optimization-folders")
+async def list_optimization_folders() -> Dict[str, Any]:
+    """
+    列出 _default 目录下的所有优化文件夹
+    
+    Returns:
+        文件夹列表
+    """
+    try:
+        default_dir = get_default_dir()
+        
+        if not os.path.exists(default_dir):
+            return {"folders": []}
+        
+        # 列出所有子文件夹
+        folders = []
+        for item in os.listdir(default_dir):
+            item_path = os.path.join(default_dir, item)
+            if os.path.isdir(item_path):
+                # 检查是否有 SwarmData.json
+                swarm_data_path = os.path.join(item_path, "SwarmData.json")
+                if os.path.exists(swarm_data_path):
+                    folders.append(item)
+        
+        return {"folders": sorted(folders)}
+        
+    except Exception as e:
+        import traceback
+        raise HTTPException(
+            status_code=500,
+            detail=f"列出优化文件夹时出错: {str(e)}\n{traceback.format_exc()}"
+        )
+
+
 @router.get("/pareto-front")
 async def get_pareto_front(
+    folderName: str = None,
     path2SwarmData: str = None,
     path2MachineDesignerFull: str = None
 ) -> Dict[str, Any]:
@@ -631,6 +683,7 @@ async def get_pareto_front(
     获取Pareto前沿数据和优化配置
     
     Args:
+        folderName: 优化文件夹名称（在_default目录下）
         path2SwarmData: SwarmData.json文件路径（相对于codes4目录）
         path2MachineDesignerFull: machine_designer_full.json文件路径（相对于codes4目录）
     
@@ -638,33 +691,81 @@ async def get_pareto_front(
         Pareto前沿个体列表、优化配置等信息
     """
     try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
+        codes4_dir = get_codes4_path()
+        default_dir = get_default_dir()
         
-        # 读取 machine_designer_full.json
-        if path2MachineDesignerFull:
-            machine_designer_path = os.path.join(current_dir, path2MachineDesignerFull)
+        # 初始化变量
+        machine_designer_data = {}
+        select_fea_config_dict = None
+        path2FEACsv = ""
+        swarm_data_path = ""
+        
+        # 如果提供了文件夹名称，优先从该文件夹读取
+        if folderName:
+            folder_path = os.path.join(default_dir, folderName)
+            if not os.path.exists(folder_path):
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"文件夹不存在: {folderName}"
+                )
+            
+            # 读取该文件夹中的 machine_designer_full.json（如果存在）
+            machine_designer_path_in_folder = os.path.join(folder_path, "machine_designer_full.json")
+            if os.path.exists(machine_designer_path_in_folder):
+                with open(machine_designer_path_in_folder, 'r', encoding='utf-8') as f:
+                    machine_designer_data = json.load(f)
+                select_fea_config_dict = machine_designer_data.get("select_fea_config_dict")
+                # 获取 path2FEACsv，如果不存在则使用默认路径
+                path2FEACsv = machine_designer_data.get("path2FEACsv")
+                if not path2FEACsv:
+                    # 检查 csv 目录是否存在
+                    csv_dir = os.path.join(folder_path, "csv")
+                    if os.path.exists(csv_dir):
+                        path2FEACsv = csv_dir
+            else:
+                # 如果没有 machine_designer_full.json，使用默认路径
+                csv_dir = os.path.join(folder_path, "csv")
+                if os.path.exists(csv_dir):
+                    path2FEACsv = csv_dir
+            
+            # 读取 SwarmData.json
+            swarm_data_path = os.path.join(folder_path, "SwarmData.json")
         else:
-            machine_designer_path = os.path.join(current_dir, "machine_designer_full.json")
+            # 读取 machine_designer_full.json
+            if path2MachineDesignerFull:
+                machine_designer_path = os.path.join(codes4_dir, path2MachineDesignerFull)
+            else:
+                machine_designer_path = os.path.join(codes4_dir, "machine_designer_full.json")
+            
+            if not os.path.exists(machine_designer_path):
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"machine_designer_full.json 文件不存在: {machine_designer_path}"
+                )
+            
+            with open(machine_designer_path, 'r', encoding='utf-8') as f:
+                machine_designer_data = json.load(f)
+            
+            # 获取 select_fea_config_dict
+            select_fea_config_dict = machine_designer_data.get("select_fea_config_dict", None)
+            
+            # 读取 SwarmData.json
+            if path2SwarmData:
+                swarm_data_path = os.path.join(codes4_dir, path2SwarmData, "SwarmData.json")
+            else:
+                path2SwarmData_rel = machine_designer_data.get("path2SwarmData", "../_default/SPMSM/")
+                swarm_data_path = os.path.join(codes4_dir, path2SwarmData_rel, "SwarmData.json")
+                path2FEACsv = machine_designer_data.get("path2FEACsv", "")
         
-        if not os.path.exists(machine_designer_path):
-            raise HTTPException(
-                status_code=404,
-                detail=f"machine_designer_full.json 文件不存在: {machine_designer_path}"
-            )
-        
-        with open(machine_designer_path, 'r', encoding='utf-8') as f:
-            machine_designer_data = json.load(f)
-        
-        # 获取 select_fea_config_dict
-        select_fea_config_dict = machine_designer_data.get("select_fea_config_dict", None)
+        # 获取 select_fea_config_dict（如果还没有）
         if not select_fea_config_dict:
-            raise HTTPException(
-                status_code=400,
-                detail="machine_designer_full.json 中缺少 select_fea_config_dict"
-            )
+            select_fea_config_dict = machine_designer_data.get("select_fea_config_dict", None)
+            if not select_fea_config_dict:
+                # 尝试使用默认配置
+                select_fea_config_dict = "#0213 JMAG Bearingless Sub-hamonics"
         
         # 读取 machine_simulation.json 获取优化配置
-        simulation_config_path = os.path.join(current_dir, "machine_simulation.json")
+        simulation_config_path = os.path.join(codes4_dir, "machine_simulation.json")
         if not os.path.exists(simulation_config_path):
             raise HTTPException(
                 status_code=404,
@@ -688,13 +789,6 @@ async def get_pareto_front(
             if k.startswith("moo.")
         }
         
-        # 读取 SwarmData.json
-        if path2SwarmData:
-            swarm_data_path = os.path.join(current_dir, path2SwarmData, "SwarmData.json")
-        else:
-            path2SwarmData_rel = machine_designer_data.get("path2SwarmData", "../_default/SPMSM/")
-            swarm_data_path = os.path.join(current_dir, path2SwarmData_rel, "SwarmData.json")
-        
         if not os.path.exists(swarm_data_path):
             # 如果文件不存在，返回空数据
             return {
@@ -709,18 +803,39 @@ async def get_pareto_front(
         with open(swarm_data_path, 'r', encoding='utf-8') as f:
             swarm_data = json.load(f)
         
-        # 计算 Pareto 前沿
-        from codes4.machine_design_guide import Swarm_Data_Analyzer
-        from codes4.Problem_BearinglessSynchronousDesign import Problem_BearinglessSynchronousDesign
-        import pygmo as pg
+        # 计算 Pareto 前沿 - 直接实现，避免导入 machine_design_guide
+        pg = None
+        try:
+            import pygmo as pg
+        except ImportError:
+            # 如果没有 pygmo，使用简单的非支配排序实现
+            pass
         
-        # 获取设计参数字典
-        x_denorm_dict = machine_designer_data.get("spec_performance_dict", {}).get("x_denorm_dict", {})
+        # 提取目标函数值 f1, f2, f3
+        fits = []
+        swarm_data_items = list(swarm_data.items())
         
-        # 创建分析器
-        analyzer = Swarm_Data_Analyzer(swarm_data_path, x_denorm_dict)
+        for key, individual_data in swarm_data_items:
+            # 提取 f1, f2, f3
+            f1 = individual_data.get('f1', 0.0)
+            f2 = individual_data.get('f2', 0.0)
+            f3 = individual_data.get('f3', 0.0)
+            
+            # 处理空字典或 None 值
+            if isinstance(f1, dict) and len(f1) == 0:
+                f1 = 0.0
+            if isinstance(f2, dict) and len(f2) == 0:
+                f2 = 0.0
+            if isinstance(f3, dict) and len(f3) == 0:
+                f3 = 0.0
+            
+            f1 = float(f1) if f1 is not None else 0.0
+            f2 = float(f2) if f2 is not None else 0.0
+            f3 = float(f3) if f3 is not None else 0.0
+            
+            fits.append([f1, f2, f3])
         
-        if analyzer.swarm_data_xf is None or len(analyzer.swarm_data_xf) == 0:
+        if len(fits) == 0:
             return {
                 "paretoFront": [],
                 "allIndividuals": [],
@@ -730,17 +845,17 @@ async def get_pareto_front(
                 "message": "SwarmData.json 中没有数据"
             }
         
-        # 提取目标函数值
-        fits = [ind[-3:] for ind in analyzer.swarm_data_xf]
-        
         # 计算非支配排序
-        fronts, _, _, _ = pg.fast_non_dominated_sorting(fits)
-        
-        # 获取 Rank 1 Pareto 前沿
-        rank1_front = fronts[0] if len(fronts) > 0 else []
-        
-        # 将 swarm_data 转换为列表以保持顺序
-        swarm_data_items = list(swarm_data.items())
+        if pg is not None:
+            try:
+                fronts, _, _, _ = pg.fast_non_dominated_sorting(fits)
+                rank1_front = fronts[0] if len(fronts) > 0 else []
+            except Exception as e:
+                # 如果 pygmo 计算失败，使用简单实现
+                rank1_front = simple_non_dominated_sorting(fits)
+        else:
+            # 使用简单的非支配排序实现
+            rank1_front = simple_non_dominated_sorting(fits)
         
         # 构建 Pareto 前沿个体列表
         pareto_individuals = []
@@ -799,8 +914,9 @@ async def get_pareto_front(
                 moo_config.get("moo.fitness_OC")
             ],
             "select_fea_config_dict": select_fea_config_dict,
-            "path2FEACsv": machine_designer_data.get("path2FEACsv", ""),
-            "path2SwarmData": os.path.dirname(swarm_data_path)
+            "path2FEACsv": path2FEACsv or machine_designer_data.get("path2FEACsv", ""),
+            "path2SwarmData": os.path.dirname(swarm_data_path),
+            "folderName": folderName if folderName else os.path.basename(os.path.dirname(swarm_data_path))
         }
         
     except Exception as e:
@@ -813,11 +929,36 @@ async def get_pareto_front(
 
 # ==================== 辅助函数 ====================
 
-def get_codes4_path():
-    """获取codes4目录路径"""
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    return current_dir
+def simple_non_dominated_sorting(fits):
+    """
+    简单的非支配排序实现（当 pygmo 不可用时使用）
+    返回 Rank 1 (Pareto 前沿) 的个体索引列表
+    """
+    n = len(fits)
+    if n == 0:
+        return []
+    
+    # 判断个体 i 是否支配个体 j
+    def dominates(i, j):
+        # 对于最小化问题，如果 i 的所有目标值都 <= j，且至少有一个 < j，则 i 支配 j
+        fit_i = fits[i]
+        fit_j = fits[j]
+        all_less_equal = all(fit_i[k] <= fit_j[k] for k in range(len(fit_i)))
+        at_least_one_less = any(fit_i[k] < fit_j[k] for k in range(len(fit_i)))
+        return all_less_equal and at_least_one_less
+    
+    # 找到所有非支配个体（Rank 1）
+    rank1 = []
+    for i in range(n):
+        is_dominated = False
+        for j in range(n):
+            if i != j and dominates(j, i):
+                is_dominated = True
+                break
+        if not is_dominated:
+            rank1.append(i)
+    
+    return rank1
 
 
-# ==================== 健康检查 ===================
 

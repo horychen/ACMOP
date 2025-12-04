@@ -671,6 +671,7 @@ export default function VisualizerPage() {
                                                     <WindingDiagrams
                                                         Qs={wilyData.stator_slot_number_Qs || wilyData.Qs || 12}
                                                         p={wilyData.pole_pair_number_p || wilyData.p || 2}
+                                                        ps={wilyData.suspension_pole_pair_number_ps || wilyData.ps}
                                                         m={wilyData.m || 3}
                                                         layer_X_phases={wilyData.layer_X_phases || []}
                                                         layer_X_signs={wilyData.layer_X_signs || []}
@@ -1397,30 +1398,6 @@ export default function VisualizerPage() {
                                 </div>
                             </div>
                         )}
-
-                        {/* Detailed Table */}
-                        <div className="mt-8">
-                            <h3 className="text-lg font-medium text-foreground mb-4">Detailed Calculation Results</h3>
-                            <div className="bg-card rounded-lg border border-border overflow-hidden">
-                                <table className="w-full text-sm text-left text-muted-foreground">
-                                    <thead className="text-xs text-muted-foreground uppercase bg-background/50">
-                                        <tr>
-                                            <th className="px-6 py-3">Parameter</th>
-                                            <th className="px-6 py-3">Value</th>
-                                            <th className="px-6 py-3">Unit</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-800">
-                                        <ResultRow label="Copper Loss" value={result?.performance.copperLoss.toFixed(1)} unit="W" />
-                                        <ResultRow label="Iron Loss" value={result?.performance.ironLoss.toFixed(1)} unit="W" />
-                                        <ResultRow label="Torque Ripple" value={result?.performance.torqueRipple.toFixed(1)} unit="%" />
-                                        <ResultRow label="Power Factor" value={result?.performance.powerFactor.toFixed(2)} unit="-" />
-                                        <ResultRow label="Tooth Width" value={result?.geometry.toothWidth.toFixed(2)} unit="mm" />
-                                        <ResultRow label="Slot Depth" value={result?.geometry.slotDepth.toFixed(2)} unit="mm" />
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
 
                     </div>
                 </div>

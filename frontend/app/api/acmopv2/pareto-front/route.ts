@@ -5,10 +5,12 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    const folderName = searchParams.get("folderName");
     const path2SwarmData = searchParams.get("path2SwarmData");
     const path2MachineDesignerFull = searchParams.get("path2MachineDesignerFull");
 
     const params = new URLSearchParams();
+    if (folderName) params.append("folderName", folderName);
     if (path2SwarmData) params.append("path2SwarmData", path2SwarmData);
     if (path2MachineDesignerFull) params.append("path2MachineDesignerFull", path2MachineDesignerFull);
 

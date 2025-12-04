@@ -269,6 +269,8 @@ class Winding_Derivation(object):
         self.coil_pitch_y = coil_pitch_y = slot_pole_comb[4]
         self.turn_func_bias = turn_func_bias = slot_pole_comb[5]
 
+        self.bool_double_layer_winding = bool_double_layer_winding
+
         self.t = t = gcd(Q, p)
         self.ts = ts = gcd(Q, ps)
         self.q = q = Q/(2*p)/m
@@ -640,7 +642,7 @@ class Winding_Derivation(object):
             '    self.CommutatingSequenceB = 0\n'
             % (Q, p, ps, coil_pitch_y, layer_X_phases, layer_X_signs, grouping_AC, 2, 2 if self.bool_double_layer_winding else 1)
         )
-        if verbose:
+        if self.verbose:
             _print(self.print_out_string, end='')
 
         self.layer_X_phases = layer_X_phases

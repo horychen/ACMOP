@@ -77,9 +77,9 @@ class Problem_BearinglessSynchronousDesign(object):
             except utility.ExceptionBadNumberOfParts as error:
                 logger.error('ExceptionBadNumberOfParts captured: %s', str(error)) 
                 # print("Detail: {}".format(error.payload))
-                f1, f2, f3 = self.get_bad_fintess_values(machine_type=ad.name)
+                f1, f2, f3 = ad.get_bad_fintess_values(machine_type=ad.name)
                 # utility.send_notification(ad.solver.fea_config_dict['pc_name'] + '\n\nExceptionBadNumberOfParts:' + str(error) + '\n'*3)
-                raise error
+                break
 
             except pywintypes.com_error as error:
                 logger.error('pywintypes.com_error: %s', error)
@@ -186,9 +186,7 @@ class Problem_BearinglessSynchronousDesign(object):
 
         ad.counter_fitness_return += 1
         logger.debug('Fitness: %d, %d', ad.counter_fitness_called, ad.counter_fitness_return)
-        # raise KeyboardInterrupt
         return [f1, f2, f3]
-        # return [f1, f2, torque_ripple]
 
     # Return number of objectives
     def get_nobj(self):

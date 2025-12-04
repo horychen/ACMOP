@@ -1477,11 +1477,11 @@ class Winding(object):
 
         u = PyX_Utility.PyX_Utility()
         draw_winding_in_the_slot(u, wily.Qs, wily.list_layer_motor_phases, wily.list_layer_motor_signs, text=' Motor Mode' )
-        u.cvs.writePDFfile(self.path2SwarmData + 'part_winding_pyx_output_M')
+        u.cvs.writePDFfile(self.path2SwarmData + '/part_winding_pyx_output_M')
 
         u = PyX_Utility.PyX_Utility()
         draw_winding_in_the_slot(u, wily.Qs, wily.list_layer_suspension_phases, wily.list_layer_suspension_signs, text=' Suspension Mode' )
-        u.cvs.writePDFfile(self.path2SwarmData + 'part_winding_pyx_output_S')
+        u.cvs.writePDFfile(self.path2SwarmData + '/part_winding_pyx_output_S')
         # u.cvs.writeSVGfile(r'C:\Users\horyc\Desktop\pyx_output')
         # u.cvs.writeEPSfile(r'C:\Users\horyc\Desktop\pyx_output')
         # quit()
@@ -1834,6 +1834,19 @@ class Modern_Machine_Designer(object):
 
     def __post_init__(self):
 
+        # 绕组
+        m : int = 3
+        Qs: int = 12
+        p : int = 4
+        ps: int = 5
+        coil_pitch_y: int = 1
+
+        # 铭牌数据
+        RatedPower: float = 50e3 # W
+        RatedSpeed: float = 30000 # rpm
+        self.name = self.name + f'-{int(RatedPower)}W-{int(RatedSpeed)}rpm-attempt2'
+        ExcitationFreqSimulated: float = RatedSpeed / 60 * p
+
         ''' 工程和文件路径 '''
         def get_pc_name():
             import platform, socket
@@ -1847,18 +1860,10 @@ class Modern_Machine_Designer(object):
         self.dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
         self.dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
         self.pc_name = get_pc_name()
-        self.path2SwarmData = fr'../_default/' + self.name.replace(' ', '_') + '/'
-        self.swarm_data_json_file_path = self.path2SwarmData + f'SwarmData.json'
+        self.path2SwarmData = os.path.abspath(fr'../_default/' + self.name.replace(' ', '_'))
+        self.swarm_data_json_file_path = self.path2SwarmData + f'/SwarmData.json'
         if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
-
-
-        # 绕组
-        m : int = 3
-        Qs: int = 12
-        p : int = 4
-        ps: int = 5
-        coil_pitch_y: int = 1
-
+        os.chdir(self.dir_codes)
 
         self.wily = Winding(m, Qs, p, ps, coil_pitch_y, bool_DPNVorSEPA=True)
 
@@ -1869,11 +1874,6 @@ class Modern_Machine_Designer(object):
         Temperature : float = 75
         available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220] # according to JMAG
         Magnet_Temperature = min(available_temperature_list, key=lambda x:abs(x - Temperature))
-
-        RatedPower: float = 50e3 # W
-        RatedSpeed: float = 30000 # rpm
-        self.name = self.name + f'-{RatedPower}W-{RatedSpeed}rpm'
-        ExcitationFreqSimulated: float = RatedSpeed / 60 * p
 
         TORQUE_CURRENT_RATIO: float = 0.95
         SUSPENSION_CURRENT_RATIO: float = 0.05
@@ -1907,12 +1907,12 @@ class Modern_Machine_Designer(object):
         }
 
         # 定子裂比和外径
-        SR: float = 0.35
+        SR: float = 1.0 - 0.35
         mm_r_so: float = 123.5
 
         # 利用不同的裂比去估算合理的边界值
         yoke_split_ratio_bounds: list[float] = [0.2, 0.45]
-        tooth_split_ratio_at_middle_slot: list[float] = [0.25, 0.50] # TODO: 下界需要考虑到w_st的宽度和半径的值
+        tooth_split_ratio_at_middle_slot: list[float] = [0.35, 0.7] # TODO: 下界需要考虑到w_st的宽度和半径的值
 
         '''Fixed variables'''
         if True:
@@ -1942,7 +1942,7 @@ class Modern_Machine_Designer(object):
                 'split_ratio_r_si_slash_r_so',
                 'free',
                 SR,
-                calc_bounds=lambda self_param: [0.2, 0.5] if self.p.value < 10 else [0.15, 0.35],
+                calc_bounds=lambda self_param: [0.5, 0.8] if self.p.value < 10 else [0.65, 0.85],
             )
             # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
             # "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30)")
@@ -2106,22 +2106,22 @@ class Modern_Machine_Designer(object):
         no_series_coil_turns_N = V_desired_emf_Em / (2*math.pi* ExcitationFreqSimulated * self.wily.kw1 * Wb_air_gap_flux_Phi_m)
         no_series_coil_turns_N = round(no_series_coil_turns_N)
         SPP = Qs / (2*p*m) # slot per pole per phase
-        print(f"[DEBUG] m={m}")
-        print(f"[DEBUG] Qs={Qs}")
-        print(f"[DEBUG] p={p}")
-        print(f"[DEBUG] ps={ps}")
-        print(f"[DEBUG] coil_pitch_y={coil_pitch_y}")
-        print(f"[DEBUG] V_stator_phase_voltage_amp={V_stator_phase_voltage_amp}")
-        print(f"[DEBUG] V_desired_emf_Em={V_desired_emf_Em}")
-        print(f"[DEBUG] alpha_i={alpha_i}")
-        print(f"[DEBUG] T_air_gap_flux_density_Bg_guessed={T_air_gap_flux_density_Bg_guessed}")
-        print(f"[DEBUG] mm_stack_length_specified={mm_stack_length_specified}")
-        print(f"[DEBUG] mm_d_magnetic_air_gap={mm_d_magnetic_air_gap}")
-        print(f"[DEBUG] mm_stack_length_effective={mm_stack_length_effective}")
-        print(f"[DEBUG] mm_pole_pitch_tau_p={mm_pole_pitch_tau_p}")
-        print(f"[DEBUG] Wb_air_gap_flux_Phi_m={Wb_air_gap_flux_Phi_m}")
-        print(f"[DEBUG] no_series_coil_turns_N={no_series_coil_turns_N}")
-        print(f"[DEBUG] SPP={SPP}")
+        # print(f"[DEBUG] m={m}")
+        # print(f"[DEBUG] Qs={Qs}")
+        # print(f"[DEBUG] p={p}")
+        # print(f"[DEBUG] ps={ps}")
+        # print(f"[DEBUG] coil_pitch_y={coil_pitch_y}")
+        # print(f"[DEBUG] V_stator_phase_voltage_amp={V_stator_phase_voltage_amp}")
+        # print(f"[DEBUG] V_desired_emf_Em={V_desired_emf_Em}")
+        # print(f"[DEBUG] alpha_i={alpha_i}")
+        # print(f"[DEBUG] T_air_gap_flux_density_Bg_guessed={T_air_gap_flux_density_Bg_guessed}")
+        # print(f"[DEBUG] mm_stack_length_specified={mm_stack_length_specified}")
+        # print(f"[DEBUG] mm_d_magnetic_air_gap={mm_d_magnetic_air_gap}")
+        # print(f"[DEBUG] mm_stack_length_effective={mm_stack_length_effective}")
+        # print(f"[DEBUG] mm_pole_pitch_tau_p={mm_pole_pitch_tau_p}")
+        # print(f"[DEBUG] Wb_air_gap_flux_Phi_m={Wb_air_gap_flux_Phi_m}")
+        # print(f"[DEBUG] no_series_coil_turns_N={no_series_coil_turns_N}")
+        # print(f"[DEBUG] SPP={SPP}")
         if bool_weHavePlentyVoltage:
             no_series_coil_turns_N = min([p*SPP*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
         else:
@@ -2153,20 +2153,20 @@ class Modern_Machine_Designer(object):
         EX['mm2_magnet_area'] = self.deg_alpha_rm.value/deg_alpha_rp * math.pi*(Rout**2 - Rin**2)
 
         # INSERT_YOUR_CODE
-        print(f"[DEBUG] mm_r_sy={mm_r_sy}")
-        print(f"[DEBUG] mm_r_ss={mm_r_ss}")
-        print(f"[DEBUG] EX['mm2_slot_area']={EX['mm2_slot_area']}")
-        print(f"[DEBUG] EX['CurrentAmp_in_the_slot']={EX['CurrentAmp_in_the_slot']}")
-        print(f"[DEBUG] EX['CurrentAmp_per_conductor']={EX['CurrentAmp_per_conductor']}")
-        print(f"[DEBUG] EX['CurrentAmp_per_phase']={EX['CurrentAmp_per_phase']}")
-        print(f"[DEBUG] EX['DriveW_CurrentAmp']={EX['DriveW_CurrentAmp']}")
-        print(f"[DEBUG] EX['BeariW_CurrentAmp']={EX['BeariW_CurrentAmp']}")
-        print(f"[DEBUG] EX['slot_current_utilizing_ratio_for_torque']={EX['slot_current_utilizing_ratio_for_torque']}")
-        print(f"[DEBUG] EX['InitialRotationAngle']={EX['InitialRotationAngle']}")
-        print(f"[DEBUG] Rout={Rout}")
-        print(f"[DEBUG] Rin={Rin}")
-        print(f"[DEBUG] deg_alpha_rp={deg_alpha_rp}")
-        print(f"[DEBUG] EX['mm2_magnet_area']={EX['mm2_magnet_area']}")
+        # print(f"[DEBUG] mm_r_sy={mm_r_sy}")
+        # print(f"[DEBUG] mm_r_ss={mm_r_ss}")
+        # print(f"[DEBUG] EX['mm2_slot_area']={EX['mm2_slot_area']}")
+        # print(f"[DEBUG] EX['CurrentAmp_in_the_slot']={EX['CurrentAmp_in_the_slot']}")
+        # print(f"[DEBUG] EX['CurrentAmp_per_conductor']={EX['CurrentAmp_per_conductor']}")
+        # print(f"[DEBUG] EX['CurrentAmp_per_phase']={EX['CurrentAmp_per_phase']}")
+        # print(f"[DEBUG] EX['DriveW_CurrentAmp']={EX['DriveW_CurrentAmp']}")
+        # print(f"[DEBUG] EX['BeariW_CurrentAmp']={EX['BeariW_CurrentAmp']}")
+        # print(f"[DEBUG] EX['slot_current_utilizing_ratio_for_torque']={EX['slot_current_utilizing_ratio_for_torque']}")
+        # print(f"[DEBUG] EX['InitialRotationAngle']={EX['InitialRotationAngle']}")
+        # print(f"[DEBUG] Rout={Rout}")
+        # print(f"[DEBUG] Rin={Rin}")
+        # print(f"[DEBUG] deg_alpha_rp={deg_alpha_rp}")
+        # print(f"[DEBUG] EX['mm2_magnet_area']={EX['mm2_magnet_area']}")
 
         # raise KeyboardInterrupt
 
@@ -2316,8 +2316,8 @@ class Modern_Machine_Designer(object):
         deg_pole_span = 180/self.p.value
         #                           inter-pole notch is rotated to x-axis (0.5 for half)  winding placing bias (one slot angle)        align with q-axis
         self.InitialRotationAngle = (deg_pole_span-self.deg_alpha_rm.value)*0.5 + self.wily.deg_winding_U_phase_phase_axis_angle  # is made by set phase U current maximum at t=0, that is the current is a cosine function.
-        print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {self.InitialRotationAngle} deg = ", (deg_pole_span-self.deg_alpha_rm.value)*0.5,  self.wily.deg_winding_U_phase_phase_axis_angle,  deg_pole_span*0.5)
-        print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {self.InitialRotationAngle} deg")
+        # print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {self.InitialRotationAngle} deg = ", (deg_pole_span-self.deg_alpha_rm.value)*0.5,  self.wily.deg_winding_U_phase_phase_axis_angle,  deg_pole_span*0.5)
+        # print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {self.InitialRotationAngle} deg")
 
         return self.InitialRotationAngle
 
@@ -2391,9 +2391,9 @@ class Modern_Machine_Designer(object):
         # define project_name using counter and counter_loop
         self.project_name = self.name + f'-ind{counter}'
         self.project_name += f'-redo{counter_loop}' if counter_loop > 1 else ''
-        self.expected_project_file = self.path2SwarmData + "temp/%s.jproj"%(self.project_name)
+        self.expected_project_file = self.path2SwarmData + "/jmag_temp/%s.jproj"%(self.project_name)
 
-        self.path2FEACsv = os.path.abspath(self.path2SwarmData + 'csv/') + f'/{self.counter}/'
+        self.path2FEACsv = os.path.abspath(self.path2SwarmData + '/csv/') + f'/{self.counter}/'
         if not os.path.isdir(self.path2FEACsv): os.makedirs(self.path2FEACsv)
 
         if 'JMAG' in self.select_FEA_tool:
@@ -2519,8 +2519,8 @@ class Modern_Machine_Designer(object):
                 TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
                 ss_avg_force_magnitude, rotor_weight, torque_average = self.results_to_be_unpacked
 
-                import rich
-                rich.print(self.results_to_be_unpacked)
+                # import rich
+                # rich.print(self.results_to_be_unpacked)
 
                 # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
@@ -2616,7 +2616,7 @@ class Modern_Machine_Designer(object):
         # This is a wrapper for the wrapper, in order to build up a json profile for the design variant
 
         # 这里应该返回新获得的设计，然后可以获得geometry_dict，然后包括x_denorm的信息方便重构设计。
-        self.FEA_evaluate(x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        self.FEA_evaluate(bool_jmagDesignerShow=self.fea_config_dict["designer.Show"], x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
 
         if 'FEMM' in self.select_fea_config_dict:
             self.results_for_optimization = self.analyzer.build_results_for_optimization()
@@ -2803,7 +2803,7 @@ class Modern_Machine_Designer(object):
         ad = self
         import Problem_BearinglessSynchronousDesign  # must import this after __builtins__.ad = ad
 
-        def myLogger(dir_log, prefix='default_prefix_'):
+        def myLogger(dir_log, prefix='/default_prefix_'):
             """创建日志记录器"""
             # Disable matplotlib DEBUG logging to reduce log noise
             logging.getLogger('matplotlib').setLevel(logging.WARNING)
@@ -2830,12 +2830,12 @@ class Modern_Machine_Designer(object):
             return logger
 
         # 设置路径和日志
-        self.logger = myLogger(self.path2SwarmData, prefix='acmdm')
+        self.logger = myLogger(self.path2SwarmData + '/', prefix=self.name)
         logger = logging.getLogger(__name__)
 
         # 加载 FEA 配置
         if self.fea_config_dict is None:
-            with open((os.path.dirname(__file__)) + '/machine_simulation.json', 'r') as f:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'machine_simulation.json'), 'r') as f:
                 raw_fea_config_dicts = json.load(f)
                 self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
                 self.nobj = sum(1 for k, v in self.fea_config_dict.items() if k.startswith("moo.fitness") and v is not None)
@@ -2865,9 +2865,9 @@ class Modern_Machine_Designer(object):
         self.analyzer = Swarm_Data_Analyzer(self.swarm_data_json_file_path, self.x_denorm_dict)
         self.swarm_data = self.analyzer.swarm_data_xf
 
-        import rich   
-        print('--------------------------SWARM DATA--------------------------')
-        rich.print(self.swarm_data)
+        # import rich   
+        # print('--------------------------SWARM DATA--------------------------')
+        # rich.print(self.swarm_data)
 
         number_of_chromosome = self.analyzer.number_of_chromosome
 
@@ -2952,10 +2952,10 @@ class Modern_Machine_Designer(object):
         ################################################################
         # [4.3.5] 选择算法
         algo = pg.algorithm(pg.moead(gen=1, weight_generation="grid", decomposition="tchebycheff",
-                                     neighbours=int(popsize / 4),
-                                     CR=1, F=0.5, eta_m=20,
-                                     realb=0.9,
-                                     limit=2, preserve_diversity=True))
+                                    neighbours=int(popsize / 4),
+                                    CR=1, F=0.5, eta_m=20,
+                                    realb=0.9,
+                                    limit=2, preserve_diversity=True))
         logger.info(f'{algo}')
         logger.info(f'\t MOEA/D neighbourhood size is set to 1/4 of the popsize as {int(popsize / 4)}')
 
@@ -2985,9 +2985,8 @@ class Modern_Machine_Designer(object):
             try:
                 import utility_moo
                 utility_moo.my_print(ad, pop, iteration)
-            except ImportError:
-                logger.warning('utility_moo module not available, skipping my_print')
-        
+            except Exception as e:
+                raise e
         logger.info('Optimization completed.')
 
 
@@ -3083,20 +3082,26 @@ class Modern_Machine_Designer(object):
             pop: pygmo population 对象
             counter_fitness_return: 计数器值
         """
-        if not hasattr(self, 'path2SwarmData'):
-            logger = logging.getLogger(__name__)
-            logger.warning('path2SwarmData not set, cannot write swarm_survivor')
-            return
-        
-        survivor_file = os.path.join(self.path2SwarmData, 'swarm_survivor.txt')
+
+        survivor_file = self.path2SwarmData + '/swarm_survivor.txt'
         with open(survivor_file, 'a', encoding='utf-8') as f:
             f.write('\n---------%d\n' % counter_fitness_return)
             for el in zip(pop.get_x(), pop.get_f()):
-                line = ','.join('%.16f' % x for x in el[0].tolist() + el[1].tolist())
+                line = ','.join('%.4f' % x for x in el[0].tolist() + el[1].tolist())
                 f.write(line + '\n')
     
     def get_bad_fintess_values(self, machine_type='IM', ref=False):
         # define bad values for different MOO objectives
+
+        # return bad fitness values according to the moo.objective_functions defined in fea_config_dict
+        # if 'moo.objective_functions' in self.fea_config_dict:
+        #     objective_functions = self.fea_config_dict['moo.objective_functions']
+        #     if 'f1' in objective_functions:
+        #         return 0, 0, 99
+        #     elif 'f2' in objective_functions:
+        #         return 9999, 0, 999
+        #     elif 'f3' in objective_functions:
+        #         return 10000, 10, 1000
 
         if ref == False:
             if 'IM' in machine_type:
@@ -3800,9 +3805,10 @@ if __name__ == "__main__":
     # 创建对象并导出为 JSON
     mmd = Modern_Machine_Designer()
 
-    mmd.show_geometry()
+    # mmd.show_geometry()
+    # mmd.drawer.visualization_points['Coils']['PCoil']
+
     # print(dir(mmd.machineGeometry['statorCore']))
-    mmd.drawer.visualization_points['Coils']['PCoil']
 
     # mmd.FEA_evaluate()
     # mmd.save_to_file('machine_designer.json')
