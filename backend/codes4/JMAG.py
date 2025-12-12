@@ -251,7 +251,9 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 # model.GetGroupList().AddPartToGroup(name, name) #<- this also works
 
         part_ID_list = model.GetPartIDs()
-        # print(part_ID_list)
+        # print(part_ID_list, type(part_ID_list))
+        if isinstance(part_ID_list, int):
+            raise Exception(f'part_ID_list is an integer: {part_ID_list}')
         # quit()
 
         # view = app.View()

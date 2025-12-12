@@ -791,7 +791,7 @@ async def get_pareto_front(
         
         if not os.path.exists(swarm_data_path):
             # 如果文件不存在，返回空数据
-            return {
+            result = {
                 "paretoFront": [],
                 "allIndividuals": [],
                 "mooConfig": moo_config,
@@ -799,6 +799,7 @@ async def get_pareto_front(
                 "select_fea_config_dict": select_fea_config_dict,
                 "message": f"SwarmData.json 文件不存在: {swarm_data_path}"
             }
+            return convert_numpy_types(result)
         
         with open(swarm_data_path, 'r', encoding='utf-8') as f:
             swarm_data = json.load(f)
@@ -836,7 +837,7 @@ async def get_pareto_front(
             fits.append([f1, f2, f3])
         
         if len(fits) == 0:
-            return {
+            result = {
                 "paretoFront": [],
                 "allIndividuals": [],
                 "mooConfig": moo_config,
@@ -844,6 +845,7 @@ async def get_pareto_front(
                 "select_fea_config_dict": select_fea_config_dict,
                 "message": "SwarmData.json 中没有数据"
             }
+            return convert_numpy_types(result)
         
         # 计算非支配排序
         if pg is not None:
@@ -866,7 +868,7 @@ async def get_pareto_front(
                 individual_key = f"ind_{idx}"
                 individual_data = {}
             
-            pareto_individuals.append({
+            pareto_individuals.append(convert_numpy_types({
                 "index": idx,
                 "key": individual_key,
                 "project_name": individual_data.get("project_name", ""),
@@ -882,12 +884,12 @@ async def get_pareto_front(
                     if k not in ["x_denorm_dict", "project_name", "individual_index", "number_current_generation", "f1", "f2", "f3"]
                 },
                 "parameters": individual_data.get("x_denorm_dict", {})
-            })
+            }))
         
         # 构建所有个体列表（用于选择）
         all_individuals = []
         for idx, (key, individual_data) in enumerate(swarm_data_items):
-            all_individuals.append({
+            all_individuals.append(convert_numpy_types({
                 "index": idx,
                 "key": key,
                 "project_name": individual_data.get("project_name", ""),
@@ -899,12 +901,12 @@ async def get_pareto_front(
                     "f2": individual_data.get("f2", 0),
                     "f3": individual_data.get("f3", 0)
                 }
-            })
+            }))
         
         # 按索引排序
         all_individuals.sort(key=lambda x: x["index"])
         
-        return {
+        result = {
             "paretoFront": pareto_individuals,
             "allIndividuals": all_individuals,
             "mooConfig": moo_config,
@@ -919,6 +921,9 @@ async def get_pareto_front(
             "folderName": folderName if folderName else os.path.basename(os.path.dirname(swarm_data_path))
         }
         
+        # 转换所有 numpy 类型为 Python 原生类型
+        return convert_numpy_types(result)
+        
     except Exception as e:
         import traceback
         raise HTTPException(
@@ -928,6 +933,31 @@ async def get_pareto_front(
 
 
 # ==================== 辅助函数 ====================
+
+def convert_numpy_types(obj):
+    """
+    递归地将 numpy 类型转换为 Python 原生类型
+    用于确保 Pydantic 可以正确序列化数据
+    """
+    try:
+        import numpy as np
+        
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+    except ImportError:
+        # 如果 numpy 未安装，跳过 numpy 类型检查
+        pass
+    
+    if isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [convert_numpy_types(item) for item in obj]
+    else:
+        return obj
 
 def simple_non_dominated_sorting(fits):
     """
@@ -959,6 +989,11 @@ def simple_non_dominated_sorting(fits):
             rank1.append(i)
     
     return rank1
+
+
+
+
+
 
 
 

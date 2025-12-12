@@ -10,11 +10,12 @@ import { useTheme } from '@/context/ThemeContext';
 interface CsvVisualizerProps {
     projectName?: string;
     path2FEACsv?: string;
+    onCurrentFileChange?: (filePath: string) => void; // 回调函数，通知父组件当前选中的 CSV 文件路径
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
-export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualizerProps) {
+export default function CsvVisualizer({ projectName, path2FEACsv, onCurrentFileChange }: CsvVisualizerProps) {
     const { theme } = useTheme();
     const [csvFiles, setCsvFiles] = useState<string[]>([]);
     const [selectedFile, setSelectedFile] = useState<string>('');
@@ -45,27 +46,47 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
             // Only fetch if we have a valid path2FEACsv
             if (!path2FEACsv) {
                 setCsvFiles([]);
+                setSelectedFile('');
                 setError(null);
+                if (onCurrentFileChange) {
+                    onCurrentFileChange('');
+                }
                 return;
             }
 
+            console.log('CsvVisualizer: Fetching CSV list from path:', path2FEACsv);
             try {
                 setError(null);
                 const response = await axios.get(`${BACKEND_URL}/api/results/csv/list-from-path`, {
                     params: { path: path2FEACsv }
                 });
                 
+                console.log('CsvVisualizer: CSV files received:', response.data);
+                
                 setCsvFiles(response.data || []);
                 if (response.data && response.data.length > 0) {
-                    setSelectedFile(response.data[0]);
+                    const firstFile = response.data[0];
+                    setSelectedFile(firstFile);
+                    // 通知父组件当前文件路径
+                    if (onCurrentFileChange && path2FEACsv) {
+                        onCurrentFileChange(`${path2FEACsv}/${firstFile}`);
+                    }
                 } else {
                     setSelectedFile('');
+                    if (onCurrentFileChange) {
+                        onCurrentFileChange('');
+                    }
                 }
             } catch (err: any) {
                 console.error("Failed to fetch CSV list", err);
+                console.error("Path used:", path2FEACsv);
+                console.error("Error details:", err.response?.data);
                 const errorMessage = err.response?.data?.detail || err.message || "无法加载 CSV 文件列表";
                 setError(errorMessage);
                 setCsvFiles([]);
+                if (onCurrentFileChange) {
+                    onCurrentFileChange('');
+                }
             }
         };
 
@@ -116,14 +137,24 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
                         return newRow;
                     });
                     setChartData(formattedData);
+                    // 确保通知父组件当前文件路径
+                    if (onCurrentFileChange && path2FEACsv && selectedFile) {
+                        onCurrentFileChange(`${path2FEACsv}/${selectedFile}`);
+                    }
                 } else {
                     setChartData([]);
                     setDataKeys([]);
                 }
 
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Failed to fetch CSV content", err);
-                setError("Failed to load CSV content.");
+                console.error("Path used:", path2FEACsv);
+                console.error("File selected:", selectedFile);
+                console.error("Error details:", err.response?.data);
+                const errorMessage = err.response?.data?.detail || err.message || "无法加载 CSV 内容";
+                setError(errorMessage);
+                setChartData([]);
+                setDataKeys([]);
             } finally {
                 setLoading(false);
             }
@@ -141,7 +172,16 @@ export default function CsvVisualizer({ projectName, path2FEACsv }: CsvVisualize
                 </div>
                 <select
                     value={selectedFile}
-                    onChange={(e) => setSelectedFile(e.target.value)}
+                    onChange={(e) => {
+                        const newFile = e.target.value;
+                        setSelectedFile(newFile);
+                        // 通知父组件当前文件路径
+                        if (onCurrentFileChange && path2FEACsv && newFile) {
+                            onCurrentFileChange(`${path2FEACsv}/${newFile}`);
+                        } else if (onCurrentFileChange) {
+                            onCurrentFileChange('');
+                        }
+                    }}
                     className="bg-card border border-border text-sm rounded px-3 py-1.5 text-foreground focus:ring-1 focus:ring-primary outline-none min-w-[250px]"
                 >
                     {csvFiles.map(file => (

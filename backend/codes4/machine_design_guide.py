@@ -3822,7 +3822,32 @@ if __name__ == "__main__":
     # mmd.save_to_file('machine_designer.json')
     # mmd.save_to_file_full('machine_designer_full.json') # 保存完整信息到文件（类似 pickle）
 
-    mmd.start_optimization()
+    # mmd.start_optimization()
+
+
+
+
+    # INSERT_YOUR_CODE
+    def remove_jfiles_folders(root_dir):
+        """
+        Recursively remove all folders whose names end with 'jfiles' in the given directory.
+
+        Args:
+            root_dir (str): The root directory to start searching from.
+        """
+        import os
+        import shutil
+
+        for dirpath, dirnames, filenames in os.walk(root_dir, topdown=False):
+            for dirname in dirnames:
+                if dirname.endswith('jfiles'):
+                    folder_path = os.path.join(dirpath, dirname)
+                    try:
+                        shutil.rmtree(folder_path)
+                        print(f"Deleted folder: {folder_path}")
+                    except Exception as e:
+                        print(f"Failed to delete {folder_path}: {e}")
+    remove_jfiles_folders(mmd.path2SwarmData)
     quit()
 
 
@@ -3832,5 +3857,3 @@ if __name__ == "__main__":
     # 从完整文件恢复对象（包含所有信息，包括 lambda 函数）
     mmd3 = Modern_Machine_Designer.load_from_file_full('machine_designer_full.json')
     print("=== 已从完整文件恢复对象 ===")
-
-

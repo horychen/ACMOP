@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, Loader2, AlertCircle, FileJson } from "lucide-react";
+import { RefreshCw, Loader2, AlertCircle, FileJson, FileText } from "lucide-react";
 import CsvVisualizer from "@/components/CsvVisualizer";
 import { ParetoFront2p5D } from "@/components/ParetoFront2p5D";
 import axios from "axios";
@@ -21,6 +21,7 @@ export default function OptimizationPage() {
   const [error, setError] = useState<string | null>(null);
   const [zFilter, setZFilter] = useState<number | undefined>(undefined);
   const [swarmDataPath, setSwarmDataPath] = useState<string>("");
+  const [currentCsvFilePath, setCurrentCsvFilePath] = useState<string>("");
 
   // 加载文件夹列表
   useEffect(() => {
@@ -145,9 +146,23 @@ export default function OptimizationPage() {
   const individualIndex = selectedIndividual?.individual_index ?? selectedIndividual?.index;
 
   // 构建 CSV 路径（根据 individual_index）
-  const csvPath = individualIndex !== undefined && individualIndex !== null && path2FEACsv
-    ? path2FEACsv.replace(/\/\d+\/?$/, `/${individualIndex}/`)
-    : path2FEACsv;
+  const csvPath = useMemo(() => {
+    if (!selectedIndividual || !path2FEACsv) {
+      return "";
+    }
+    if (individualIndex === undefined || individualIndex === null) {
+      return path2FEACsv;
+    }
+    // 替换路径末尾的数字目录为 individual_index
+    const newPath = path2FEACsv.replace(/\/\d+\/?$/, `/${individualIndex}/`);
+    console.log('CSV Path calculation:', {
+      original: path2FEACsv,
+      individualIndex,
+      newPath,
+      selectedIndividual: selectedIndividual.key
+    });
+    return newPath;
+  }, [path2FEACsv, individualIndex, selectedIndividual]);
 
   // 准备 Pareto 前沿图表数据
   const paretoChartData = paretoData?.paretoFront?.map((ind: any) => ({
@@ -168,69 +183,79 @@ export default function OptimizationPage() {
   };
 
   return (
-    <div className="space-y-6 h-[calc(100vh-4rem)] flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-shrink-0">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">多目标优化监控</h1>
-          <p className="text-muted-foreground mt-1">
-            监控优化过程，查看 Pareto 前沿和个体性能
-          </p>
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
+      {/* 状态栏（置顶） */}
+      {(swarmDataPath || currentCsvFilePath) && (
+        <div className="border-primary/50 bg-primary/5 flex-shrink-0 border-b px-4 py-1.5">
+          <div className="flex items-center space-x-4 text-xs">
+            {swarmDataPath && (
+              <div className="flex items-center space-x-2">
+                <FileJson className="h-3 w-3 text-primary flex-shrink-0" />
+                <span className="text-muted-foreground whitespace-nowrap">正在读取:</span>
+                <span className="font-mono text-primary font-medium truncate">{swarmDataPath}</span>
+                {loading && (
+                  <Loader2 className="h-3 w-3 animate-spin text-primary ml-1 flex-shrink-0" />
+                )}
+              </div>
+            )}
+            {currentCsvFilePath && (
+              <div className="flex items-center space-x-2 border-l pl-4">
+                <FileText className="h-3 w-3 text-primary flex-shrink-0" />
+                <span className="text-muted-foreground whitespace-nowrap">当前CSV:</span>
+                <span className="font-mono text-primary font-medium truncate">{currentCsvFilePath}</span>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <Select
-            value={selectedFolder}
-            onValueChange={setSelectedFolder}
-            disabled={loadingFolders || folders.length === 0}
-          >
-            <SelectTrigger className="w-[300px]">
-              <SelectValue placeholder="选择优化文件夹..." />
-            </SelectTrigger>
-            <SelectContent>
-              {folders.map((folder) => (
-                <SelectItem key={folder} value={folder}>
-                  {folder}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={handleRefresh} disabled={loading || !selectedFolder}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            刷新数据
-          </Button>
-        </div>
-      </div>
-
-      {/* SwarmData.json 路径显示 */}
-      {swarmDataPath && (
-        <Card className="border-primary/50 bg-primary/5 flex-shrink-0">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center space-x-2 text-sm">
-              <FileJson className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">正在读取:</span>
-              <span className="font-mono text-primary font-medium">{swarmDataPath}</span>
-              {loading && (
-                <Loader2 className="h-3 w-3 animate-spin text-primary ml-2" />
-              )}
-            </div>
-          </CardContent>
-        </Card>
       )}
 
-      {/* Error Display */}
-      {error && (
-        <Card className="border-destructive flex-shrink-0">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              <span>{error}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <div className="flex-1 overflow-hidden flex flex-col space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-shrink-0 pt-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">多目标优化监控</h1>
+            <p className="text-muted-foreground mt-1">
+              监控优化过程，查看 Pareto 前沿和个体性能
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <Select
+              value={selectedFolder}
+              onValueChange={setSelectedFolder}
+              disabled={loadingFolders || folders.length === 0}
+            >
+              <SelectTrigger className="w-[300px]">
+                <SelectValue placeholder="选择优化文件夹..." />
+              </SelectTrigger>
+              <SelectContent>
+                {folders.map((folder) => (
+                  <SelectItem key={folder} value={folder}>
+                    {folder}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleRefresh} disabled={loading || !selectedFolder}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              刷新数据
+            </Button>
+          </div>
+        </div>
 
-      {/* Main Content - Two Column Layout */}
-      {selectedFolder && (
+        {/* Error Display */}
+        {error && (
+          <Card className="border-destructive flex-shrink-0">
+            <CardContent className="pt-6">
+              <div className="flex items-center space-x-2 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                <span>{error}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Main Content - Two Column Layout */}
+        {selectedFolder && (
         <div className="flex-1 grid grid-cols-2 gap-6 overflow-hidden min-h-0">
           {/* Left Column: Individual Selection and Results */}
           <div className="space-y-4 overflow-y-auto">
@@ -340,14 +365,22 @@ export default function OptimizationPage() {
             )}
 
             {/* CSV Results Visualization */}
-            {csvPath && (
+            {csvPath && selectedIndividual && (
               <Card>
                 <CardHeader>
                   <CardTitle>FEA 仿真结果</CardTitle>
-                  <CardDescription>CSV 数据可视化</CardDescription>
+                  <CardDescription>
+                    CSV 数据可视化 - {selectedIndividual.generation !== undefined 
+                      ? `Gen${selectedIndividual.generation}-Ind${selectedIndividual.individual_index ?? selectedIndividual.index}`
+                      : selectedIndividual.key}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CsvVisualizer path2FEACsv={csvPath} />
+                  <CsvVisualizer 
+                    key={`${csvPath}-${selectedIndividual.key}`} 
+                    path2FEACsv={csvPath}
+                    onCurrentFileChange={setCurrentCsvFilePath}
+                  />
                 </CardContent>
               </Card>
             )}
@@ -377,6 +410,7 @@ export default function OptimizationPage() {
                     upToRankNo={1}
                     zFilter={zFilter}
                     onZFilterChange={setZFilter}
+                    onIndividualSelect={handleIndividualChange}
                   />
                 </CardContent>
               </Card>
@@ -468,18 +502,19 @@ export default function OptimizationPage() {
             )}
           </div>
         </div>
-      )}
+        )}
 
-      {/* Empty State */}
-      {!selectedFolder && !loadingFolders && (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            {folders.length === 0 
-              ? "未找到优化文件夹，请确保 _default 目录下有包含 SwarmData.json 的文件夹"
-              : "请从上方选择器中选择一个优化文件夹"}
-          </CardContent>
-        </Card>
-      )}
+        {/* Empty State */}
+        {!selectedFolder && !loadingFolders && (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              {folders.length === 0 
+                ? "未找到优化文件夹，请确保 _default 目录下有包含 SwarmData.json 的文件夹"
+                : "请从上方选择器中选择一个优化文件夹"}
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
