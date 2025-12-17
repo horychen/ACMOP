@@ -266,13 +266,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # sel.SelectPart(123)
         # sel.SetBlockUpdateView(False)
 
-        def export_image(app, model, path2SwarmData, project_name, suffix='.png'):
+        def export_image(app, model, path2SwarmData, suffix='.png'):
             app.View().ShowAllAirRegions()
             # app.View().ShowMeshGeometry() # 2nd btn
             app.View().ShowMesh() # 3rn btn
             app.View().Zoom(3)
             app.View().Pan(-acm_variant.mm_r_ro.value, 0)
-            app.ExportImageWithSize(path2SwarmData + '/jmag_screenshots/' + project_name + suffix, 2000, 2000)
+            app.ExportImageWithSize(path2SwarmData + '/jmag_screenshots/'  + suffix, 2000, 2000)
 
         EX = acm_variant.EX
         p = acm_variant.p.value
@@ -282,11 +282,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
             msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) 
             #+ self.show(acm_variant,toString=False)
-            export_image(app, model, acm_variant.path2SwarmData + '/', acm_variant.project_name, suffix='-BadNumberOfParts.png')
+            export_image(app, model, acm_variant.path2SwarmData + '/', suffix='-BadNumberOfParts.png')
             print(msg)
             raise utility.ExceptionBadNumberOfParts(msg)
 
-        export_image(app, model, acm_variant.path2SwarmData, acm_variant.project_name, suffix='.png')
+        export_image(app, model, acm_variant.path2SwarmData, suffix=acm_variant.project_name+'.png')
 
         self.id_rotorCore = id_rotorCore = part_ID_list[0]
         id_shaft = part_ID_list[1]

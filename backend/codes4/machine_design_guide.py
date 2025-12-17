@@ -62,8 +62,8 @@ class Swarm_Data_Analyzer(object):
             desired_x_denorm_dict: 期望的设计参数字典（用于排序），如果为 None 则使用所有参数
             bool_filter_pareto_front: 是否过滤帕累托前沿
         """
-        logger = logging.getLogger(__name__)
-        logger.info('Swarm_Data_Analyzer: %s', fname)
+        # logger = logging.getLogger(__name__)
+        # logger.info('Swarm_Data_Analyzer: %s', fname)
         
         if not os.path.exists(fname):
             self.number_of_chromosome = 0
@@ -74,7 +74,7 @@ class Swarm_Data_Analyzer(object):
         
         ''' 1. Load json file
         '''
-        print(f'[Swarm_Data_Analyzer] read in {fname=}')
+        # print(f'[Swarm_Data_Analyzer] read in {fname=}')
         with open(fname, 'r', encoding='utf-8') as f:
             try:
                 # 尝试使用 jsonpickle 解码（如果文件是用 jsonpickle 保存的）
@@ -86,6 +86,11 @@ class Swarm_Data_Analyzer(object):
         
         if bool_filter_pareto_front:
             swarm_data_as_dict = self.filter_data(swarm_data_as_dict, 'Geometric parameters', 'split_ratio', 'bigger', 0.45)
+        
+        # for el in swarm_data_as_dict.keys():
+        #     print(el)
+        # print(len(swarm_data_as_dict.keys()))
+        # quit()
 
         self.number_of_chromosome = len(swarm_data_as_dict)
         self.swarm_data_as_dict = swarm_data_as_dict
@@ -102,7 +107,9 @@ class Swarm_Data_Analyzer(object):
                     # 按照 desired_x_denorm_dict 的键顺序提取值
                     return [x_denorm_dict[key] for key in desired_x_denorm_dict.keys()]
                 except KeyError as e:
+                    logger = logging.getLogger(__name__)
                     logger.warning(f'Error: some geometric parameters are renamed. Missing key: {e}')
+                    raise KeyError
                     # 返回所有可用的值
                     return list(x_denorm_dict.values())
 
@@ -112,7 +119,53 @@ class Swarm_Data_Analyzer(object):
             # 解码 x_denorm_dict
             x_denorm_dict_raw = individual_data.get('x_denorm_dict', {})
             x_denorm_dict = self.decode_py_reduce_ordered_dict(x_denorm_dict_raw)
-            
+
+            # 打印当前与期望的key情况
+            logger = logging.getLogger(__name__)
+            # logger.debug(f'[BEFORE] x_denorm_dict keys: {list(x_denorm_dict.keys())}')
+            if desired_x_denorm_dict is not None:
+                # logger.debug(f'[BEFORE] desired_x_denorm_dict keys: {list(desired_x_denorm_dict.keys())}')
+
+                # 删除x_denorm_dict中多余的key
+                keys_in_x = set(x_denorm_dict.keys())
+                keys_in_desired = set(desired_x_denorm_dict.keys())
+
+                # 1. 删去x_denorm_dict中多余的键
+                redundant_keys = keys_in_x - keys_in_desired
+                if redundant_keys:
+                    logger.warning(f"x_denorm_dict has redundant keys {redundant_keys}, removing them.")
+                for k in redundant_keys:
+                    x_denorm_dict.pop(k, None)
+
+                # 2. 补充x_denorm_dict中缺少的键
+                missing_keys = keys_in_desired - keys_in_x
+                if missing_keys:
+                    logger.warning(f"x_denorm_dict missing keys {missing_keys}. Try to fill from other individuals.")
+                for k in missing_keys:
+                    # 改为在builtins.ad中的成员变量中找缺失的键
+                    import builtins
+                    value_to_add = None
+                    ad = getattr(builtins, 'ad', None)
+                    if ad is not None and hasattr(ad, 'x_denorm_dict'):
+                        builtins_x_denorm_dict = getattr(ad, 'x_denorm_dict', {})
+                        if k in builtins_x_denorm_dict:
+                            value_to_add = builtins_x_denorm_dict[k]
+                    if value_to_add is None and ad is not None and hasattr(ad, 'get_free_variables_as_dict'):
+                        # 尝试通过接口函数获取
+                        try:
+                            from_free_vars = ad.get_free_variables_as_dict()
+                            if k in from_free_vars:
+                                value_to_add = from_free_vars[k]
+                        except Exception:
+                            pass
+                    if value_to_add is None:
+                        logger.warning(f"Could not find value for {k} in builtins.ad, will use current desired_x_denorm_dict value instead")
+                        value_to_add = desired_x_denorm_dict[k]
+                    x_denorm_dict[k] = value_to_add
+
+                # 最后校正顺序
+                x_denorm_dict = {k: x_denorm_dict[k] for k in desired_x_denorm_dict.keys()}
+
             # 如果 x_denorm_dict 为空，尝试从 desired_x_denorm_dict 获取默认值
             if not x_denorm_dict and desired_x_denorm_dict is not None:
                 # 如果字典为空，使用 desired_x_denorm_dict 的当前值作为占位符
@@ -141,6 +194,7 @@ class Swarm_Data_Analyzer(object):
             # 组合成 [x_denorm..., f1, f2, f3]
             # 确保 x_denorm 的长度与 desired_x_denorm_dict 一致
             if desired_x_denorm_dict is not None and len(x_denorm) != len(desired_x_denorm_dict):
+                logger = logging.getLogger(__name__)
                 logger.warning(f'x_denorm length mismatch for {key}: expected {len(desired_x_denorm_dict)}, got {len(x_denorm)}')
                 # 如果长度不匹配，使用 desired_x_denorm_dict 的当前值填充
                 if len(x_denorm) == 0:
@@ -784,39 +838,6 @@ class swarm_data_container(object):
     # Utility
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 
-    def get_x_denorm_from_design_parameters(self, design_parameters, bound_filter=None):
-        if bound_filter is None:
-            x_denorm = design_parameters
-            return x_denorm
-
-        if len(bound_filter) == 13:
-            # step 1: get free_variables from design_parameters
-            free_variables = [None]*13
-            free_variables[0]  = design_parameters[0] # spmsm_template.deg_alpha_st 
-            free_variables[1]  = design_parameters[3] # spmsm_template.mm_d_sto         
-            free_variables[2]  = design_parameters[5] # spmsm_template.mm_d_st
-            free_variables[3]  = sum([design_parameters[i] for i in (2,4,5,6)]) # spmsm_template.mm_r_si + spmsm_template.mm_d_sts + spmsm_template.mm_d_st + spmsm_template.mm_d_sy # stator outer radius
-            free_variables[4]  = design_parameters[7] # spmsm_template.mm_w_st         
-            free_variables[5]  = design_parameters[12] # spmsm_template.sleeve_length   
-            free_variables[6]  = design_parameters[14] # spmsm_template.mm_d_pm         
-            free_variables[7]  = design_parameters[15] # spmsm_template.deg_alpha_rm    
-            free_variables[8]  = design_parameters[16] # spmsm_template.deg_alpha_rs    
-            free_variables[9]  = design_parameters[17] # spmsm_template.mm_d_ri         
-            free_variables[10] = sum([design_parameters[i] for i in (18,17,19)]) # spmsm_template.mm_r_ri + spmsm_template.mm_d_ri + spmsm_template.mm_d_rp -> rotor_outer_steel_radius
-            free_variables[11] = design_parameters[19] # spmsm_template.mm_d_rp         
-            free_variables[12] = design_parameters[20] # spmsm_template.mm_d_rs         
-        elif len(bound_filter) == 9:
-            free_variables = design_parameters # For IM, free_variables are design_parameters (even always having the same length)
-            # print(free_variables)
-
-        # step 2: get x_denorm from free_variables
-        x_denorm = []
-        for idx, boo in enumerate(bound_filter):
-            if boo == 1:
-                # print(idx)
-                x_denorm.append( free_variables[idx] )
-        return x_denorm
-
     def sensitivity_bar_charts(self):
         number_of_variant = self.fea_config_dict['local_sensitivity_analysis_number_of_variants'] + 1
         number_of_free_variables = self.number_of_free_variables
@@ -1274,6 +1295,7 @@ class Parameter(object):
         self.calc = calc
         self.calc_bounds = calc_bounds
         self.parameter_dict = parameter_dict
+        self.overwritten: bool = False  # 标记是否被外部强制覆盖
         # todo: add validation for the type, value, bounds, calc, unit, comment
         if self.calc is not None and self.parameter_dict is not None:
             try: 
@@ -1322,6 +1344,7 @@ class Parameter(object):
             'unit': self.unit,
             # calc 函数无法序列化，保存为 None，前端可以设置 calc_dependencies
             'calc_dependencies': None,  # 可以扩展为保存依赖的参数名列表
+            'overwritten': getattr(self, 'overwritten', False),
         }
     
     @classmethod
@@ -1335,7 +1358,7 @@ class Parameter(object):
         Returns:
             Parameter: 参数对象
         """
-        return cls(
+        param = cls(
             name=data['name'],
             type=data['type'],
             value=data.get('value'),
@@ -1345,6 +1368,8 @@ class Parameter(object):
             calc_bounds=None,  # calc_bounds 函数需要从其他地方重建
             parameter_dict=data.get('parameter_dict')  # 保存 parameter_dict，用于重建 lambda 函数
         )
+        param.overwritten = data.get('overwritten', False)
+        return param
 
 class Winding(object):
     def __init__(self, phase_number_m: int, stator_slot_number_Qs: int, pole_pair_number_p: int, suspension_pole_pair_number_ps: int, coil_pitch_y :int, bool_DPNVorSEPA: bool=True, number_of_parallel_branch: int=2) -> None:
@@ -1843,7 +1868,7 @@ class Modern_Machine_Designer(object):
         RatedPower: float = 50e3 # W
         RatedSpeed: float = 30000 # rpm
         # 只有在名称不包含后缀时才追加（避免从 JSON 恢复时重复追加）
-        suffix = f'-{int(RatedPower)}W-{int(RatedSpeed)}rpm-attempt3'
+        suffix = f'-{int(RatedPower)}W-{int(RatedSpeed)}rpm-try4'
         if not self.name.endswith(suffix):
             self.name = self.name + suffix
         ExcitationFreqSimulated: float = RatedSpeed / 60 * p
@@ -1931,8 +1956,6 @@ class Modern_Machine_Designer(object):
             self.mm_d_mech_air_gap: Parameter = Parameter('mechanical_air_gap_depth', 'fixed', 0.5)
 
             if self.bool_PermanentMagnet:
-                self.mm_d_pm: Parameter      = Parameter('magnet_depth', 'free', 3, bounds=[2, 6])
-                self.mm_d_sleeve: Parameter  = Parameter('rotor_sleeve_depth', 'fixed', 1.0)
                 self.s: Parameter            = Parameter('number_of_magnet_segments_per_pole', 'fixed', 1)
 
         # 更新 parameter_dict 以包含新创建的参数
@@ -1943,7 +1966,11 @@ class Modern_Machine_Designer(object):
         if True:
             # 先创建 parameter_dict 的占位符，稍后会被更新
             self.parameter_dict = self.get_parameter_dict_by_name()
-            
+
+            if self.bool_PermanentMagnet:
+                self.mm_d_pm: Parameter      = Parameter('magnet_depth', 'free', 3, bounds=[2, 6])
+                self.mm_d_sleeve: Parameter  = Parameter('rotor_sleeve_depth', 'free', bounds=[1, 6])
+
             self.split_ratio: Parameter  = Parameter(
                 'split_ratio_r_si_slash_r_so',
                 'free',
@@ -2112,22 +2139,7 @@ class Modern_Machine_Designer(object):
         no_series_coil_turns_N = V_desired_emf_Em / (2*math.pi* ExcitationFreqSimulated * self.wily.kw1 * Wb_air_gap_flux_Phi_m)
         no_series_coil_turns_N = round(no_series_coil_turns_N)
         SPP = Qs / (2*p*m) # slot per pole per phase
-        # print(f"[DEBUG] m={m}")
-        # print(f"[DEBUG] Qs={Qs}")
-        # print(f"[DEBUG] p={p}")
-        # print(f"[DEBUG] ps={ps}")
-        # print(f"[DEBUG] coil_pitch_y={coil_pitch_y}")
-        # print(f"[DEBUG] V_stator_phase_voltage_amp={V_stator_phase_voltage_amp}")
-        # print(f"[DEBUG] V_desired_emf_Em={V_desired_emf_Em}")
-        # print(f"[DEBUG] alpha_i={alpha_i}")
-        # print(f"[DEBUG] T_air_gap_flux_density_Bg_guessed={T_air_gap_flux_density_Bg_guessed}")
-        # print(f"[DEBUG] mm_stack_length_specified={mm_stack_length_specified}")
-        # print(f"[DEBUG] mm_d_magnetic_air_gap={mm_d_magnetic_air_gap}")
-        # print(f"[DEBUG] mm_stack_length_effective={mm_stack_length_effective}")
-        # print(f"[DEBUG] mm_pole_pitch_tau_p={mm_pole_pitch_tau_p}")
-        # print(f"[DEBUG] Wb_air_gap_flux_Phi_m={Wb_air_gap_flux_Phi_m}")
-        # print(f"[DEBUG] no_series_coil_turns_N={no_series_coil_turns_N}")
-        # print(f"[DEBUG] SPP={SPP}")
+
         if bool_weHavePlentyVoltage:
             no_series_coil_turns_N = min([p*SPP*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
         else:
@@ -2158,23 +2170,6 @@ class Modern_Machine_Designer(object):
         deg_alpha_rp = 360 / (2*self.p.value)
         EX['mm2_magnet_area'] = self.deg_alpha_rm.value/deg_alpha_rp * math.pi*(Rout**2 - Rin**2)
 
-        # INSERT_YOUR_CODE
-        # print(f"[DEBUG] mm_r_sy={mm_r_sy}")
-        # print(f"[DEBUG] mm_r_ss={mm_r_ss}")
-        # print(f"[DEBUG] EX['mm2_slot_area']={EX['mm2_slot_area']}")
-        # print(f"[DEBUG] EX['CurrentAmp_in_the_slot']={EX['CurrentAmp_in_the_slot']}")
-        # print(f"[DEBUG] EX['CurrentAmp_per_conductor']={EX['CurrentAmp_per_conductor']}")
-        # print(f"[DEBUG] EX['CurrentAmp_per_phase']={EX['CurrentAmp_per_phase']}")
-        # print(f"[DEBUG] EX['DriveW_CurrentAmp']={EX['DriveW_CurrentAmp']}")
-        # print(f"[DEBUG] EX['BeariW_CurrentAmp']={EX['BeariW_CurrentAmp']}")
-        # print(f"[DEBUG] EX['slot_current_utilizing_ratio_for_torque']={EX['slot_current_utilizing_ratio_for_torque']}")
-        # print(f"[DEBUG] EX['InitialRotationAngle']={EX['InitialRotationAngle']}")
-        # print(f"[DEBUG] Rout={Rout}")
-        # print(f"[DEBUG] Rin={Rin}")
-        # print(f"[DEBUG] deg_alpha_rp={deg_alpha_rp}")
-        # print(f"[DEBUG] EX['mm2_magnet_area']={EX['mm2_magnet_area']}")
-
-        # raise KeyboardInterrupt
 
         import CrossSectInnerNotchedRotor, CrossSectStator
         self.machineGeometry = {
@@ -2327,6 +2322,97 @@ class Modern_Machine_Designer(object):
 
         return self.InitialRotationAngle
 
+
+    def _get_parameter_logger(self):
+        """
+        获取用于参数覆盖的日志记录器，确保日志写入文件。
+        """
+        logger_name = f"{__name__}.parameter_override"
+        logger = logging.getLogger(logger_name)
+        if not getattr(logger, "_acm_param_handler", False):
+            log_dir = getattr(self, "path2SwarmData", os.getcwd())
+            try:
+                os.makedirs(log_dir, exist_ok=True)
+            except Exception:
+                pass
+            log_file = os.path.join(log_dir, f"{self.name}-parameter_override.log")
+            handler = logging.FileHandler(log_file, encoding='utf-8')
+            handler.setLevel(logging.INFO)
+            handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+            logger.addHandler(handler)
+            logger.setLevel(logging.INFO)
+            logger._acm_param_handler = True
+        return logger
+
+    def apply_parameter_dict(self, prev_params: Dict[str, Any], key_map: Optional[Dict[str, str]] = None):
+        """
+        根据提供的参数字典更新 mmd 参数。
+        - free 参数直接更新。
+        - 非 free 参数被覆盖时会记录日志并标记 overwritten。
+        - 最后刷新 derived 参数（跳过已被标记 overwritten 的）。
+        """
+        if not prev_params:
+            return
+
+        logger = self._get_parameter_logger()
+        default_key_map = {
+            "rotor_sleeve_depth": "mm_d_sleeve",
+            "magnet_depth": "mm_d_pm",
+            "magnet_pole_span_angle": "deg_alpha_rm",
+            "stator_tooth_width": "mm_w_st",
+            "stator_tooth_yoke_depth": "mm_d_sy",
+            "stator_tooth_shoe_depth": "mm_d_sts",
+            "stator_tooth_span_angle": "deg_alpha_st",
+            "split_ratio_r_si_slash_r_so": "split_ratio",
+        }
+        key_map = key_map or default_key_map
+
+        # 确保 parameter_dict_by_name 最新
+        self.parameter_dict_by_name = self.get_parameter_dict_by_name()
+
+        for raw_key, new_value in prev_params.items():
+            attr_name = key_map.get(raw_key, raw_key)
+            param = self.parameter_dict_by_name.get(raw_key)
+            if param is None:
+                candidate = getattr(self, attr_name, None)
+                param = candidate if isinstance(candidate, Parameter) else None
+
+            if param is None:
+                logger.warning("prev_params key '%s' 未匹配到已知参数，已忽略。", raw_key)
+                continue
+
+            old_value = param.value
+            if param.type != 'free':
+                param.overwritten = True
+                param.value = new_value
+                logger.warning(
+                    "覆盖非free参数 '%s' (type=%s) 从 %s 改为 %s，来源 key='%s'",
+                    param.name, param.type, old_value, new_value, raw_key
+                )
+            else:
+                param.value = new_value
+                param.overwritten = False
+                logger.info("设置 free 参数 '%s' 为 %s（来源 key='%s'）", param.name, new_value, raw_key)
+
+        # 刷新参数映射，确保 calc 中引用的是最新对象
+        self.parameter_dict_by_name = self.get_parameter_dict_by_name()
+
+        # 更新 derived 参数，跳过被覆盖的
+        for name, param in self.get_parameters_by_type('derived').items():
+            if getattr(param, 'overwritten', False):
+                logger.info("跳过已标记覆盖的导出参数 '%s'", param.name)
+                continue
+            if param.calc is not None and param.parameter_dict is not None:
+                try:
+                    param.parameter_dict = self.get_parameter_dict_by_name()
+                    param.value = param.calc(param.parameter_dict)
+                except Exception as e:
+                    logger.warning("计算导出参数 '%s' 失败: %s", param.name, e)
+
+        # 更新几何对象中的值
+        if hasattr(self, "machineGeometry"):
+            for geo in self.machineGeometry.values():
+                geo.update_from_GP()
 
     def show_geometry(self, filename=None, x_denorm_dict=None) -> None:
         if x_denorm_dict is not None:
@@ -2803,7 +2889,7 @@ class Modern_Machine_Designer(object):
 
             return self.results_for_optimization
 
-    def start_optimization(self):
+    def start_optimization(self, bool_local_exploration_around_selected_individual=False):
         """
         启动多目标优化过程
         
@@ -2851,12 +2937,8 @@ class Modern_Machine_Designer(object):
         self.logger = myLogger(self.path2SwarmData + '/', prefix=self.name)
         logger = logging.getLogger(__name__)
 
-        # 加载 FEA 配置
-        # with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'machine_simulation.json'), 'r') as f:
-        #     raw_fea_config_dicts = json.load(f)
-        #     self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
-        # self.fea_config_dict['pc_name'] = self.pc_name
         self.nobj = sum(1 for k, v in self.fea_config_dict.items() if k.startswith("moo.fitness") and v is not None)
+        if self.nobj!=3: raise Exception(f'Number of objectives is {self.nobj} instead of 3. NOT SUPPORTED!!!')
         self.obj_names = [v for k, v in self.fea_config_dict.items() if k.startswith("moo.fitness") and v is not None]
         logger.info(f'Number of objectives is {self.nobj}')
         logger.info(f'Objectives names are {self.obj_names}')
@@ -2879,81 +2961,102 @@ class Modern_Machine_Designer(object):
 
         # [4.3.3] 读取现有的群体数据
         logger.info(f'Reading swarm data from: {self.swarm_data_json_file_path}')
-        
         self.analyzer = Swarm_Data_Analyzer(self.swarm_data_json_file_path, self.x_denorm_dict)
         self.swarm_data = self.analyzer.swarm_data_xf
 
-        # import rich   
-        # print('--------------------------SWARM DATA--------------------------')
-        # rich.print(self.swarm_data)
-
         number_of_chromosome = self.analyzer.number_of_chromosome
+        if bool_local_exploration_around_selected_individual:
+            import numpy as np
+            param_names = list(self.x_denorm_dict.keys())
+            param_values = np.array(list(self.x_denorm_dict.values()), dtype=np.float64)
+            std_fraction = 0.2  # 20% of each parameter, can be adjusted by user
+            min_std = 1e-6       # Minimum std to avoid 0 std
 
-        # [4.3.4] 根据是否有现有数据来决定初始化策略
-        if number_of_chromosome != 0:
-            # Case 1: 存在现有数据 - 从档案中选择最优个体
-            logger.info(f'Found {number_of_chromosome} chromosomes in archive. This is a restart.')
-            
-            number_of_finished_iterations = number_of_chromosome // popsize
-            number_of_finished_chromosome_in_current_generation = number_of_chromosome % popsize
+            # Get parameter bounds if available
+            if hasattr(ad, "get_free_variable_bounds_dict"):
+                bounds_dict = ad.get_free_variable_bounds_dict()
+                lower_bounds = np.array([bounds_dict[name][0] for name in param_names])
+                upper_bounds = np.array([bounds_dict[name][1] for name in param_names])
+            else:
+                lower_bounds = None
+                upper_bounds = None
 
-            # 如果刚好整除，把余数0改为popsize
-            if number_of_finished_chromosome_in_current_generation == 0:
-                number_of_finished_chromosome_in_current_generation = popsize
-                logger.info(f'\tThere are {number_of_chromosome} chromosomes found in {self.swarm_data_file}.')
-                logger.info('\tWhat is the odds! The script just stopped when the evaluation of the whole pop is finished.')
-                logger.info(f'\tSet number_of_finished_chromosome_in_current_generation to popsize {number_of_finished_chromosome_in_current_generation}')
+            stds = np.maximum(np.abs(param_values) * std_fraction, min_std)
 
-            logger.info('This is a restart of ' + self.path2SwarmData)
-            logger.info(f'\tNumber of finished iterations is {number_of_finished_iterations}')
+            # Draw popsize = popsize random samples via local exploration
+            pop_array = np.zeros((popsize, len(param_values)), dtype=np.float64)
+            for i in range(popsize):
+                candidate = np.random.normal(loc=param_values, scale=stds)
+                if lower_bounds is not None and upper_bounds is not None:
+                    candidate = np.clip(candidate, lower_bounds, upper_bounds)
+                pop_array[i, :] = candidate
 
-            # 设置计数器
-            ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome
-            logger.info('ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome = %d', number_of_chromosome)
-
+            # Create the population in pagmo and insert all sampled individuals
             # 禁止在初始化pop时运行有限元
             ad.flag_do_not_evaluate_when_init_pop = True
-
-            # 初始化种群（此时所有个体的fitness都是[0,0,0]）
             pop = pg.population(prob, size=popsize)
-
-            if ad.flag_do_not_evaluate_when_init_pop == True:
-                pop_array = pop.get_x()
-
-                if number_of_chromosome <= popsize:
-                    # 个体数不够一代的情况
-                    for i in range(popsize):
-                        if i < number_of_chromosome:
-                            pop.set_xf(i, ad.swarm_data[i][:-3], ad.swarm_data[i][-3:])
-                        else:
-                            logger.info('Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
-                            ad.flag_do_not_evaluate_when_init_pop = False
-                            logger.info('Calling pop.set_x()---this is a restart for individual#%d during pop initialization.', i)
-                            logger.info('i=%d: call get_fevals: %s', i, prob.get_fevals())
-                            pop.set_x(i, pop_array[i])  # evaluate this guy
-                else:
-                    # 使用 learn_about_the_archive 从档案中选择具有高拥挤距离的个体
-                    logger.info('Using learn_about_the_archive to select individuals with high crowding distance from archive.')
-                    swarm_data_selected = self.learn_about_the_archive(prob, ad.swarm_data, popsize)
-                    
-                    # 将选中的个体设置到种群中
-                    for i in range(popsize):
-                        pop.set_xf(i, swarm_data_selected[i][:-3], swarm_data_selected[i][-3:])
-                    
-                    logger.info(f'Selected {popsize} individuals from archive based on Pareto front and crowding distance.')
-
-                # 必须放到这个if的最后
-                ad.flag_do_not_evaluate_when_init_pop = False
-
-        else:
-            # Case 2: 没有现有数据 - 全新运行
-            number_of_finished_chromosome_in_current_generation = None
-            number_of_finished_iterations = 0
-
-            logger.info('Nothing exists in the archival json file. This is a whole new run.')
             ad.flag_do_not_evaluate_when_init_pop = False
-            pop = pg.population(prob, size=popsize)
-            ad.counter_fitness_called = ad.counter_fitness_return = 0
+
+            # Evaluate all individuals (optional, can be automatic in pagmo, but explicit here)
+            for i in range(popsize):
+                x = pop_array[i, :]
+                pop.set_x(i, x) # evaluate this guy
+
+            logger.info(f"Initialized local exploration population with {popsize} samples, std_fraction={std_fraction}.")
+
+        else: # normal optimization
+            # [4.3.4] 根据是否有现有数据来决定初始化策略
+            if number_of_chromosome != 0:
+                # Case 1: 存在现有数据 - 从档案中选择最优个体
+                logger.info(f'Found {number_of_chromosome} chromosomes in archive. This is a restart.')
+                # 设置计数器
+                ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome
+                logger.info('ad.counter_fitness_called = ad.counter_fitness_return = number_of_chromosome = %d', number_of_chromosome)
+
+                # 禁止在初始化pop时运行有限元
+                ad.flag_do_not_evaluate_when_init_pop = True
+
+                # 初始化种群（此时所有个体的fitness都是[0,0,0]）
+                pop = pg.population(prob, size=popsize)
+
+                if ad.flag_do_not_evaluate_when_init_pop == True:
+                    pop_array = pop.get_x()
+
+                    if number_of_chromosome <= popsize:
+                        # 个体数不够一代的情况
+                        for i in range(popsize):
+                            if i < number_of_chromosome:
+                                pop.set_xf(i, ad.swarm_data[i][:-3], ad.swarm_data[i][-3:])
+                            else:
+                                logger.info('Set "ad.flag_do_not_evaluate_when_init_pop" to False...')
+                                ad.flag_do_not_evaluate_when_init_pop = False
+                                logger.info('Calling pop.set_x()---this is a restart for individual#%d during pop initialization.', i)
+                                logger.info('i=%d: call get_fevals: %s', i, prob.get_fevals())
+                                pop.set_x(i, pop_array[i])  # evaluate this guy
+                    else:
+                        # 使用 learn_about_the_archive 从档案中选择具有高拥挤距离的个体
+                        logger.info('Using learn_about_the_archive to select individuals with high crowding distance from archive.')
+                        swarm_data_selected = self.learn_about_the_archive(prob, ad.swarm_data, popsize)
+                        
+                        # 将选中的个体设置到种群中
+                        for i in range(popsize):
+                            pop.set_xf(i, swarm_data_selected[i][:-3], swarm_data_selected[i][-3:])
+                        
+                        logger.info(f'Selected {popsize} individuals from archive based on Pareto front and crowding distance.')
+
+                    # 必须放到这个if的最后
+                    ad.flag_do_not_evaluate_when_init_pop = False
+
+                number_of_finished_iterations = number_of_chromosome // popsize + 1
+            else:
+                # Case 2: 没有现有数据 - 全新运行
+                number_of_finished_chromosome_in_current_generation = None
+                number_of_finished_iterations = 0
+
+                logger.info('Nothing exists in the archival json file. This is a whole new run.')
+                ad.flag_do_not_evaluate_when_init_pop = False
+                pop = pg.population(prob, size=popsize)
+                ad.counter_fitness_called = ad.counter_fitness_return = 0
 
         # 确保这个标志在继续之前是 False
         ad.flag_do_not_evaluate_when_init_pop = False
@@ -2981,11 +3084,7 @@ class Modern_Machine_Designer(object):
         # MOO Step 3: 开始优化迭代
         ################################################################
         # [4.3.6] 开始优化
-        number_of_chromosome = ad.analyzer.number_of_chromosome
-        number_of_finished_iterations = number_of_chromosome // popsize
-        number_of_iterations = 500
-
-        for iteration in range(number_of_finished_iterations, number_of_iterations):
+        for iteration in range(number_of_finished_iterations, 500):
             msg = '[acmop.py] This is iteration #%d. ' % iteration
             logger.info(msg)
             pop = algo.evolve(pop)
@@ -3894,104 +3993,40 @@ if __name__ == "__main__":
     # 创建对象并导出为 JSON
     mmd = Modern_Machine_Designer()
 
-    # ====== Inserted: Apply previous design parameters for evaluation ======
-    prev_params = {
-        "phase_number_m": None,
-        "stator_slot_number_Qs": None,
-        "pole_pair_number_p": None,
-        "suspension_pole_pair_number_ps": None,
-        "coil_pitch_y": None,
+    if True:  # Add previous design parameters for evaluation
+        # ====== Inserted: Apply previous design parameters for evaluation ======
+        prev_params = { # p4ps5 prototype from PEMD 2020 paper
+            # "stator_outer_radius": 123.49969,
+            # "mechanical_air_gap_length": 0.75,
+            "rotor_sleeve_depth": 5.89091,               # free variable
+            "magnet_depth": 5.19948,                     # free variable
+            "magnet_pole_span_angle": 44.9638,           # free variable
+            "stator_tooth_width": 16.099,                # free variable
+            "stator_tooth_yoke_depth": 32.75940500000001,# free variable
+            "stator_tooth_shoe_depth": 1.50079,          # free variable
+            "stator_tooth_span_angle": 11.1183,          # free variable
+            # "stator_tooth_depth": 42.9701,
+            # "stator_tooth_open_depth": 1.50079,
+            # "stator_tooth_open_angle": 5.55915,
+            # "stator_tooth_tip_depth": 2.251185,
+            # "stator_yoke_depth": 32.75940500000001,
 
-        "stator_outer_radius": 123.49969,
-        "mechanical_air_gap_length": 0.75,
-        "rotor_sleeve_depth": None,
+            "split_ratio_r_si_slash_r_so": 0.36857582395550953,  # free variable
+            # "stator_inner_radius": 45.519,
+            # "outer_rotor_radius": 38.87809,
+            # "inner_rotor_radius": 29.9996,
+            # "rotor_iron_back_iron_depth": 3.67901,
+        }
 
-        "magnet_depth": 5.19948,                     # free variable
-        "inter_polar_iron_thickness": 5.19948,
-        "magnet_pole_span_angle": 44.9638,           # free variable
-        "magnet_segment_span_angle": 44.9638,
-        "inter_segment_iron_thickness": 0,
-        "number_of_magnet_segments_per_pole": None,
-
-        "stator_tooth_width": 16.099,                # free variable
-        "stator_tooth_yoke_depth": 32.75940500000001,# free variable
-        "stator_tooth_shoe_depth": 1.50079,          # free variable
-        "stator_tooth_span_angle": 11.1183,          # free variable
-        "stator_tooth_depth": 42.9701,
-        "stator_tooth_open_depth": 1.50079,
-        "stator_tooth_open_angle": 5.55915,
-        "stator_tooth_tip_depth": 2.251185,
-        "stator_yoke_depth": 32.75940500000001,
-
-        "split_ratio_r_si_slash_r_so": 0.36857582395550953,  # free variable
-        "stator_inner_radius": 45.519,
-        "outer_rotor_radius": 38.87809,
-        "inner_rotor_radius": 29.9996,
-        "rotor_iron_back_iron_depth": 3.67901,
-
-        "sleeve_length": 5.89091
-    }
-
-    def _set_param(obj, attr, value, is_free=False):
-        if value is None:
-            return
-        if hasattr(obj, attr):
-            param = getattr(obj, attr)
-            if hasattr(param, "value"):
-                param.value = value
-            else:
-                setattr(obj, attr, value)
-            if is_free:
-                # free variable
-                pass
-
-    _set_param(mmd, "m", prev_params["phase_number_m"])
-    _set_param(mmd, "Qs", prev_params["stator_slot_number_Qs"])
-    _set_param(mmd, "p", prev_params["pole_pair_number_p"])
-    _set_param(mmd, "ps", prev_params["suspension_pole_pair_number_ps"])
-    _set_param(mmd, "coil_pitch_y", prev_params["coil_pitch_y"])
-
-    _set_param(mmd, "mm_r_so", prev_params["stator_outer_radius"])
-    _set_param(mmd, "mm_d_mech_air_gap", prev_params["mechanical_air_gap_length"])
-    _set_param(mmd, "mm_d_sleeve", prev_params["rotor_sleeve_depth"])
-
-    _set_param(mmd, "mm_d_pm", prev_params["magnet_depth"], is_free=True)               # free variable
-    _set_param(mmd, "mm_d_rp", prev_params["inter_polar_iron_thickness"])
-    _set_param(mmd, "deg_alpha_rm", prev_params["magnet_pole_span_angle"], is_free=True) # free variable
-    _set_param(mmd, "deg_alpha_rs", prev_params["magnet_segment_span_angle"])
-    _set_param(mmd, "mm_d_rs", prev_params["inter_segment_iron_thickness"])
-    _set_param(mmd, "s", prev_params["number_of_magnet_segments_per_pole"])
-
-    _set_param(mmd, "mm_w_st", prev_params["stator_tooth_width"], is_free=True)         # free variable
-    _set_param(mmd, "mm_d_sy", prev_params["stator_tooth_yoke_depth"], is_free=True)    # free variable
-    _set_param(mmd, "mm_d_sts", prev_params["stator_tooth_shoe_depth"], is_free=True)   # free variable
-    _set_param(mmd, "deg_alpha_st", prev_params["stator_tooth_span_angle"], is_free=True) # free variable
-    _set_param(mmd, "mm_d_st", prev_params["stator_tooth_depth"])
-    _set_param(mmd, "mm_d_sto", prev_params["stator_tooth_open_depth"])
-    _set_param(mmd, "deg_alpha_sto", prev_params["stator_tooth_open_angle"])
-    _set_param(mmd, "mm_d_sp", prev_params["stator_tooth_tip_depth"])  # only if exists
-    _set_param(mmd, "mm_d_sy", prev_params["stator_yoke_depth"], is_free=True)          # free variable (duplicate key handled)
-
-    _set_param(mmd, "split_ratio", prev_params["split_ratio_r_si_slash_r_so"], is_free=True) # free variable
-    _set_param(mmd, "mm_r_si", prev_params["stator_inner_radius"])
-    _set_param(mmd, "mm_r_ro", prev_params["outer_rotor_radius"])
-    _set_param(mmd, "mm_r_ri", prev_params["inner_rotor_radius"])
-    _set_param(mmd, "mm_d_ri", prev_params["rotor_iron_back_iron_depth"])
-
-    _set_param(mmd, "mm_d_sleeve", prev_params["sleeve_length"])
-    # ====== End Inserted ======
+        # 使用统一接口设置参数并处理覆盖与导出参数刷新
+        mmd.apply_parameter_dict(prev_params)
+        mmd.start_optimization(bool_local_exploration_around_selected_individual=True)
 
     # print(dir(mmd.machineGeometry['statorCore']))
 
-    
-
-    mmd.FEA_evaluate(counter=-997)
-
-    # 保存完整信息到文件（类似 pickle）
-    full_json_path = os.path.join(mmd.path2SwarmData, 'machine_designer_full.json')
-    print(f"保存完整对象到: {full_json_path}")
-    mmd.save_to_file_full(full_json_path)
-
+    # mmd.FEA_evaluate(counter=-997)
+    # full_json_path = os.path.join(mmd.path2SwarmData, 'machine_designer_full.json')     # 保存完整信息到文件（类似 pickle）
+    # mmd.save_to_file_full(full_json_path)
     # mmd.start_optimization()
 
     mmd.remove_jfiles_folders(mmd.path2SwarmData)
@@ -4050,63 +4085,3 @@ if __name__ == "__main__":
 
     quit()
 
-
-# {
-# "stator_tooth_span_angle": 11.1183,
-# "stator_tooth_open_depth": 1.50079,
-# "stator_tooth_depth": 42.9701,
-# "outer_stator_radius": 123.49969,
-# "stator_tooth_width": 16.099,
-# "inner_stator_radius": 45.519,
-# "stator_tooth_open_angle": 5.55915,
-# "stator_tooth_tip_depth": 2.251185,
-# "stator_yoke_depth": 32.75940500000001,
-# "mechanical_air_gap_length": 0.75,
-# "sleeve_length": 5.89091,
-# "split_ratio_r_is_slash_r_os": 0.36857582395550953,
-# "magnet_depth": 5.19948,
-# "rotor_iron_back_iron_depth": 3.67901,
-# "outer_rotor_radius": 38.87809,
-# "inner_rotor_radius": 29.9996,
-# "magnet_pole_span_angle": 44.9638,
-# "inter_polar_iron_thickness": 5.19948,
-# "magnet_segment_span_angle": 44.9638,
-# "inter_segment_iron_thickness": 0
-# }
-
-# {
-# "phase_number_m": null,
-# "stator_slot_number_Qs": null,
-# "pole_pair_number_p": null,
-# "suspension_pole_pair_number_ps": null,
-# "coil_pitch_y": null,
-
-# "stator_outer_radius": 123.49969,
-# "mechanical_air_gap_length": 0.75,
-# "rotor_sleeve_depth": null,
-
-# "magnet_depth": 5.19948,
-# "inter_polar_iron_thickness": 5.19948,
-# "magnet_pole_span_angle": 44.9638,
-# "magnet_segment_span_angle": 44.9638,
-# "inter_segment_iron_thickness": 0,
-# "number_of_magnet_segments_per_pole": null,
-
-# "stator_tooth_width": 16.099,
-# "stator_tooth_yoke_depth": 32.75940500000001,
-# "stator_tooth_shoe_depth": 1.50079,          // 对应 mm_d_so
-# "stator_tooth_span_angle": 11.1183,
-# "stator_tooth_depth": 42.9701,
-# "stator_tooth_open_depth": 1.50079,         // 同上
-# "stator_tooth_open_angle": 5.55915,
-# "stator_tooth_tip_depth": 2.251185,         // mm_d_sp
-# "stator_yoke_depth": 32.75940500000001,     // 冗余字段，保持一致
-
-# "split_ratio_r_si_slash_r_so": 0.36857582395550953,
-# "stator_inner_radius": 45.519,
-# "outer_rotor_radius": 38.87809,
-# "inner_rotor_radius": 29.9996,
-# "rotor_iron_back_iron_depth": 3.67901,
-
-# "sleeve_length": 5.89091
-# }
