@@ -17,6 +17,7 @@ interface ParetoFront2p5DProps {
   zFilter?: number; // f3 过滤阈值（例如 20）
   onZFilterChange?: (value: number | undefined) => void;
   onIndividualSelect?: (individualKey: string) => void; // 选择个体时的回调
+  highlightedKeys?: string[]; // 高亮的个体key列表，未在此列表中的个体将变灰
 }
 
 /**
@@ -320,20 +321,38 @@ function FullscreenChart({
   onIndividualSelect?: (key: string) => void;
   handlePointClick: (data: any) => void;
 }) {
+  // 过滤掉可能重叠的刻度（如果 X 轴和 Y 轴的最小刻度都接近 0，则移除 Y 轴的最小刻度）
+  const xMinTick = xTicks[0];
+  const yMinTick = yTicks[0];
+  const threshold = Math.max(Math.abs(chartData.xMax - chartData.xMin), Math.abs(chartData.yMax - chartData.yMin)) * 0.01;
+  
+  // 如果两个轴的最小刻度都接近 0，移除 Y 轴的最小刻度以避免重叠
+  const filteredXTicks = xTicks;
+  const filteredYTicks = (Math.abs(xMinTick) < threshold && Math.abs(yMinTick) < threshold && yTicks.length > 1)
+    ? yTicks.slice(1)
+    : yTicks;
+  
   return (
     <div className="flex gap-4 items-start h-full">
       <div className="flex-1 h-full">
         <ResponsiveContainer width="100%" height={height}>
           <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              stroke="rgba(0, 0, 0, 0.08)"
+              strokeOpacity={0.3}
+            />
             <XAxis
               type="number"
               dataKey="x"
               name={xLabel}
               label={{ value: xLabel, position: "insideBottom", offset: -5 }}
               domain={[chartData.xMin, chartData.xMax]}
-              ticks={xTicks}
+              ticks={filteredXTicks}
               tickFormatter={(value) => value.toFixed(1)}
+              allowDataOverflow={false}
+              tick={{ fontSize: 12 }}
+              tickMargin={8}
             />
             <YAxis
               type="number"
@@ -341,8 +360,12 @@ function FullscreenChart({
               name={yLabel}
               label={{ value: yLabel, angle: -90, position: "insideLeft" }}
               domain={[chartData.yMin, chartData.yMax]}
-              ticks={yTicks}
+              ticks={filteredYTicks}
               tickFormatter={(value) => value.toFixed(1)}
+              allowDataOverflow={false}
+              tick={{ fontSize: 12 }}
+              tickMargin={8}
+              width={60}
             />
             <Tooltip
               cursor={{ strokeDasharray: '3 3' }}
@@ -387,7 +410,9 @@ function FullscreenChart({
               }}
               shape={(props: any) => {
                 const { cx, cy, payload } = props;
-                if (!payload || !payload.fill || cx === undefined || cy === undefined) return null;
+                if (!payload || !payload.fill || cx === undefined || cy === undefined) {
+                  return <circle cx={0} cy={0} r={0} />;
+                }
                 return (
                   <circle
                     cx={cx}
@@ -396,7 +421,7 @@ function FullscreenChart({
                     fill={payload.fill}
                     stroke="rgba(0,0,0,0.3)"
                     strokeWidth={1}
-                    opacity={0.8}
+                    opacity={payload.opacity ?? 0.8}
                     style={{ cursor: onIndividualSelect ? 'pointer' : 'default' }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -430,7 +455,8 @@ export function ParetoFront2p5D({
   upToRankNo = 1,
   zFilter,
   onZFilterChange,
-  onIndividualSelect
+  onIndividualSelect,
+  highlightedKeys = undefined
 }: ParetoFront2p5DProps) {
   const [isMaximized, setIsMaximized] = useState(false);
   const [fullscreenHeight, setFullscreenHeight] = useState(600);
@@ -584,16 +610,31 @@ export function ParetoFront2p5D({
     };
   }, [fronts, filteredIndividuals, comp, zComp, upToRankNo]);
 
-  // 为每个点添加颜色
+  // 为每个点添加颜色（支持高亮）
   const coloredData = useMemo(() => {
     if (chartData.data.length === 0) return [];
     const { zMin, zMax } = chartData;
     
-    return chartData.data.map(point => ({
-      ...point,
-      fill: valueToColor(point.z, zMin, zMax)
-    }));
-  }, [chartData]);
+    return chartData.data.map(point => {
+      const baseColor = valueToColor(point.z, zMin, zMax);
+      
+      // 如果指定了高亮列表，未选中的个体变灰
+      if (highlightedKeys !== undefined && highlightedKeys.length > 0) {
+        const isHighlighted = highlightedKeys.includes(point.key);
+        return {
+          ...point,
+          fill: isHighlighted ? baseColor : '#d3d3d3', // 未选中的变灰
+          opacity: isHighlighted ? 0.8 : 0.3 // 未选中的降低透明度
+        };
+      }
+      
+      return {
+        ...point,
+        fill: baseColor,
+        opacity: 0.8
+      };
+    });
+  }, [chartData, highlightedKeys]);
 
   // 注意：Pareto 前沿轮廓（step plot）在 ScatterChart 中较难实现
   // 如果需要，可以使用叠加的 LineChart 或自定义 SVG 路径
@@ -624,23 +665,43 @@ export function ParetoFront2p5D({
 
   // 渲染图表的函数（可在普通视图和全屏视图中复用）
   const renderChart = (height: number | string | undefined = 400, isFullscreen: boolean = false) => {
-    // 对于全屏模式，确保有明确的高度值
-    const chartHeight = isFullscreen && typeof height === 'string' ? height : (height || 400);
+    // 对于全屏模式，确保有明确的高度值（转换为数字）
+    const chartHeight = typeof height === 'string' 
+      ? (isFullscreen ? parseFloat(height) || 400 : 400)
+      : (height || 400);
+    
+    // 在函数内部计算过滤后的刻度，避免重叠
+    const xMinTick = xTicks[0];
+    const yMinTick = yTicks[0];
+    const threshold = Math.max(Math.abs(chartData.xMax - chartData.xMin), Math.abs(chartData.yMax - chartData.yMin)) * 0.01;
+    
+    // 如果两个轴的最小刻度都接近 0，移除 Y 轴的最小刻度以避免重叠
+    const filteredXTicks = xTicks;
+    const filteredYTicks = (Math.abs(xMinTick) < threshold && Math.abs(yMinTick) < threshold && yTicks.length > 1)
+      ? yTicks.slice(1)
+      : yTicks;
     
     return (
     <div className="flex gap-4 items-start" style={isFullscreen ? { height: chartHeight } : {}}>
       <div className="flex-1" style={isFullscreen ? { height: chartHeight } : {}}>
         <ResponsiveContainer width="100%" height={chartHeight} key={isFullscreen ? "fullscreen" : "normal"}>
           <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              stroke="rgba(0, 0, 0, 0.08)"
+              strokeOpacity={0.3}
+            />
             <XAxis
               type="number"
               dataKey="x"
               name={xLabel}
               label={{ value: xLabel, position: "insideBottom", offset: -5 }}
               domain={[chartData.xMin, chartData.xMax]}
-              ticks={xTicks}
+              ticks={filteredXTicks}
               tickFormatter={(value) => value.toFixed(1)}
+              allowDataOverflow={false}
+              tick={{ fontSize: 12 }}
+              tickMargin={8}
             />
             <YAxis
               type="number"
@@ -648,8 +709,12 @@ export function ParetoFront2p5D({
               name={yLabel}
               label={{ value: yLabel, angle: -90, position: "insideLeft" }}
               domain={[chartData.yMin, chartData.yMax]}
-              ticks={yTicks}
+              ticks={filteredYTicks}
               tickFormatter={(value) => value.toFixed(1)}
+              allowDataOverflow={false}
+              tick={{ fontSize: 12 }}
+              tickMargin={8}
+              width={60}
             />
             <Tooltip
               cursor={{ strokeDasharray: '3 3' }}
@@ -694,7 +759,9 @@ export function ParetoFront2p5D({
               }}
               shape={(props: any) => {
                 const { cx, cy, payload } = props;
-                if (!payload || !payload.fill || cx === undefined || cy === undefined) return null;
+                if (!payload || !payload.fill || cx === undefined || cy === undefined) {
+                  return <circle cx={0} cy={0} r={0} />;
+                }
                 return (
                   <circle
                     cx={cx}
@@ -703,7 +770,7 @@ export function ParetoFront2p5D({
                     fill={payload.fill}
                     stroke={isFullscreen ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.1)"}
                     strokeWidth={isFullscreen ? 1 : 0.5}
-                    opacity={0.8}
+                    opacity={payload.opacity ?? 0.8}
                     style={{ cursor: onIndividualSelect ? 'pointer' : 'default' }}
                     onClick={(e) => {
                       e.stopPropagation();

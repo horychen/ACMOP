@@ -5,10 +5,11 @@ from pylab import np, plt, mpl; import math
 # logger.debug('The mpl backend is %s', mpl.rcParams['backend'])
 # mpl.use('Agg') # ('pdf') #   # https://github.com/matplotlib/matplotlib/issues/21950
 EPS=0.01 # mm
+from time import time as clock_time
 
 class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveBase
     # JMAG Encapsulation for the JMAG Designer of JSOL Corporation.    
-    def __init__(self, fea_config_dict=None, spec_input_dict=None):
+    def __init__(self, fea_config_dict=None):
         self.jd = None       # The activexserver selfect for JMAG Designer
         self.app = None      # app = jd
         self.projName = None # The name of JMAG Designer project (a string)
@@ -25,10 +26,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         self.edge4Ref = None
         self.iRotateCopy = 0    # this is an integer
         self.consts      = None # Program constants (not used)
-        self.SIefaultUnit = 'Millimeter' # Default length unit is mm (not used)
+        self.defaultUnit = 'Millimeter' # Default length unit is mm (not used)
 
         self.fea_config_dict = fea_config_dict
-        self.spec_input_dict = spec_input_dict
+
+        self.flag_material_already_loaded = False
 
     def open(self, Steel_name: str, expected_project_file_path: str, pc_name: str, dir_parent: str, bool_jmagDesignerShow: bool = True):
         if self.app is None:
@@ -191,23 +193,19 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             # too avoid tons of the same material in JAMG's material library
             fname = dir_parent + 'BH/.jmag_state.txt'
-            if not os.path.exists(fname):
+            if self.flag_material_already_loaded == False and os.path.exists(fname):
+                pc_name = self.fea_config_dict['pc_name']
+                with open(fname, 'r') as f:
+                    for line in f.readlines():
+                        if pc_name + '/' + Steel_name in line:
+                            self.flag_material_already_loaded = True
+                            print('[JMAG.py] steel material already there:', pc_name + '/' + Steel_name)
+                            break
+            if self.flag_material_already_loaded == False:
                 with open(fname, 'a') as f:
                     f.write(self.fea_config_dict['pc_name'] + '/' + Steel_name + '\n')
                 add_steel(app, dir_parent, Steel_name=Steel_name)
-            else:
-                with open(fname, 'r') as f:
-                    flag_already_there = False
-                    for line in f.readlines():
-                        if pc_name + '/' + Steel_name in line:
-                            flag_already_there = True
-                            print('[JMAG.py] steel material already there:', pc_name + '/' + Steel_name)
-                            break
-                    if flag_already_there == False:
-                        add_steel(app, dir_parent, Steel_name=Steel_name)
-                        with open(fname, 'a') as f:
-                            f.write(pc_name + '/' + Steel_name + '\n')
-
+                self.flag_material_already_loaded = True
         else:
             app = self.app
 
@@ -224,6 +222,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             expected_project_file_path = temp_path
 
+        # app.Show()
         app.NewProject("Untitled")
         app.SaveAs(os.path.abspath(expected_project_file_path)) # must be absolute path!
         logger = logging.getLogger(__name__)
@@ -242,6 +241,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     ''' PM Motor
     '''
     def pre_process_PMSM(self, app, model, acm_variant):
+
+        logger = logging.getLogger(__name__)
+        start_time = clock_time()
+        logger.info('pre-process PMSM... Starting time: %g s.'%start_time)
+
         # pre-process : you can select part by coordinate!
         ''' Group '''
         def group(name, id_list):
@@ -461,6 +465,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         part_list_set('Motion_Region', list_xy_magnets, list_part_id=[id_rotorCore, id_shaft])
 
         part_list_set('MagnetSet', list_xy_magnets)
+
+        msg = 'Time spent on pre-process PMSM is %g s.'%(clock_time() - start_time)
+        logger.info(msg)
+
         return True
 
     def add_magnetic_transient_study(self, app, model, path2FEACsv, study_name, acm_variant):
@@ -1337,7 +1345,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 study.RunAllCases()
             except Exception as error:
                 raise error
-            from time import time as clock_time
             msg = 'Time spent on %s is %g s.'%(study.GetName() , clock_time() - toc)
             logger.info(msg)
             # print(msg)
@@ -2292,14 +2299,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Cost_Fe =    Vol_Fe * price_per_volume_steel 
         Cost_Cu = dm.Vol_Cu * price_per_volume_copper
         Cost_PM =    Vol_PM * price_per_volume_magnet
-        print('[utility.py] Vol_Fe',    Vol_Fe)
-        print('[utility.py] Volume_Cu',    dm.Vol_Cu)
-        print('[utility.py] Volume_PM',    Vol_PM)
+        # print('[utility.py] Vol_Fe',    Vol_Fe)
+        # print('[utility.py] Volume_Cu',    dm.Vol_Cu)
         # print('[utility.py] Volume_PM',    Vol_PM)
-        
-        print(f'[utility.py] Cost_Fe: {Cost_Fe}')
-        print(f'[utility.py] Cost_Cu: {Cost_Cu}')
-        print(f'[utility.py] Cost_PM: {Cost_PM}')
+        # print(f'[utility.py] Cost_Fe: {Cost_Fe}')
+        # print(f'[utility.py] Cost_Cu: {Cost_Cu}')
+        # print(f'[utility.py] Cost_PM: {Cost_PM}')
         
         if acm_variant.fea_config_dict["moo.fitness_OA"] == 'TorqueDensity':
             f1 = -TRV

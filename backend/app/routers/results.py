@@ -142,6 +142,64 @@ async def get_csv_content_from_path(path: str, filename: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
 
+@router.get("/pdf")
+async def get_pdf(path: str):
+    """Get a PDF file by path (relative to backend directory)."""
+    from fastapi.responses import Response
+    
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    backend_dir = os.path.abspath(os.path.join(current_dir, '..', '..'))
+    
+    # 构建完整路径（相对于 backend 目录）
+    pdf_path = os.path.join(backend_dir, path)
+    pdf_path = os.path.normpath(os.path.abspath(pdf_path))
+    
+    # 安全检查：确保路径在 backend 目录下
+    backend_dir_normalized = os.path.normpath(os.path.abspath(backend_dir))
+    if not pdf_path.startswith(backend_dir_normalized):
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Path outside backend directory"
+        )
+    
+    if not os.path.exists(pdf_path):
+        raise HTTPException(
+            status_code=404,
+            detail=f"PDF file not found: {pdf_path}"
+        )
+    
+    if not pdf_path.lower().endswith('.pdf'):
+        raise HTTPException(
+            status_code=400,
+            detail="File is not a PDF"
+        )
+    
+    # 读取 PDF 文件内容
+    try:
+        with open(pdf_path, 'rb') as f:
+            content = f.read()
+        
+        if not content:
+            raise HTTPException(status_code=500, detail="PDF file is empty")
+        
+        # 使用 Response 而不是 FileResponse，并设置 Content-Disposition 为 inline
+        # 这样浏览器会内联显示 PDF 而不是下载
+        return Response(
+            content=content,
+            media_type='application/pdf',
+            headers={
+                'Content-Disposition': f'inline; filename="{os.path.basename(pdf_path)}"',
+                'Content-Type': 'application/pdf',
+                'Cache-Control': 'no-cache'
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading PDF file: {str(e)}")
+
+
 @router.get("/pdf/machine-geometry")
 async def get_machine_geometry_pdf():
     """Get the machine_geometry.pdf file."""

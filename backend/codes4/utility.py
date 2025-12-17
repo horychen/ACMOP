@@ -486,7 +486,8 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
         else:
             c_W = 7e-3
         windage_loss_radial = c_W*math.pi*rho_Air* Omega**3 * R**4 * L
-        
+        print('\t windage_loss_radial =', windage_loss_radial, '=', c_W, '*', math.pi, '*', rho_Air, '*', Omega**3, '*', R**4, '*', L)
+
     # end friction loss added - 05192018.yegu
     # the friction coefficients from <Rotor Design of a High-Speed Permanent Magnet Synchronous Machine rating 100,000 rpm at 10 kW>
     Rer = rho_Air * (im_variant.mm_r_ro.value * 1e-3)**2 * Omega/nu_Air
@@ -2143,9 +2144,9 @@ class SwarmDataAnalyzer(object):
         self.stack_length_max  = spec.Stack_Length_Max
         # self.spec              = spec
         # self.sw                = sw
-        print('-'*50 + '\nutility.py')
-        print('Qs=%d, rotor_volume=%g'%(self.Qs, self.rotor_volume), 'm^3')
-        print('Qr=%d, rotor_weight=%g'%(self.Qr, self.rotor_weight), 'N')
+        # print('-'*50 + '\nutility.py')
+        # print('Qs=%d, rotor_volume=%g'%(self.Qs, self.rotor_volume), 'm^3')
+        # print('Qr=%d, rotor_weight=%g'%(self.Qr, self.rotor_weight), 'N')
         # O1_weights = use_weights(which='O1') # [ 1, 0.1,   1, 0.1, 0.1,   0 ]
         # O2_weights = use_weights(which='O2') # [ 1, 1.0,   1, 1.0, 1.0,   0 ]
 

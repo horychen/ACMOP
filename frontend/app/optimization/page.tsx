@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,7 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { RefreshCw, Loader2, AlertCircle, FileJson, FileText } from "lucide-react";
 import CsvVisualizer from "@/components/CsvVisualizer";
 import { ParetoFront2p5D } from "@/components/ParetoFront2p5D";
+import { ParameterHistogram } from "@/components/ParameterHistogram";
 import axios from "axios";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
 export default function OptimizationPage() {
   const [folders, setFolders] = useState<string[]>([]);
@@ -22,13 +25,25 @@ export default function OptimizationPage() {
   const [zFilter, setZFilter] = useState<number | undefined>(undefined);
   const [swarmDataPath, setSwarmDataPath] = useState<string>("");
   const [currentCsvFilePath, setCurrentCsvFilePath] = useState<string>("");
+  const [selectedCsvFileName, setSelectedCsvFileName] = useState<string>(""); // 记忆选中的 CSV 文件名
+  const [geometryPdfPath, setGeometryPdfPath] = useState<string>(""); // 几何 PDF 文件路径
+  const [loadingGeometry, setLoadingGeometry] = useState<boolean>(false); // 加载几何 PDF 的状态
+  const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]); // 高亮的个体key列表（用于直方图选中）
+  const [csvDataCache, setCsvDataCache] = useState<Map<string, Map<string, any>>>(new Map()); // CSV数据缓存：Map<individualPath, Map<fileName, parsedData>>
+  const csvDataCacheRef = useRef<Map<string, Map<string, any>>>(new Map()); // CSV数据缓存引用，用于在useCallback中访问
+  const [loadingCsvCache, setLoadingCsvCache] = useState<boolean>(false); // 加载CSV缓存的状态
+  
+  // 同步ref和state
+  useEffect(() => {
+    csvDataCacheRef.current = csvDataCache;
+  }, [csvDataCache]);
 
   // 加载文件夹列表
   useEffect(() => {
     const fetchFolders = async () => {
       setLoadingFolders(true);
-      try {
-        const response = await axios.get("/api/acmopv2/list-optimization-folders");
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/acmopv2/list-optimization-folders`);
         setFolders(response.data.folders || []);
         if (response.data.folders && response.data.folders.length > 0 && !selectedFolder) {
           setSelectedFolder(response.data.folders[0]);
@@ -44,15 +59,88 @@ export default function OptimizationPage() {
     fetchFolders();
   }, []);
 
-  // 加载 Pareto 前沿数据
+  // 加载个体对应的所有CSV文件到缓存
+  const loadCsvDataForIndividual = useCallback(async (csvPath: string) => {
+    if (!csvPath) return;
+    
+    // 检查缓存中是否已有该路径的数据
+    if (csvDataCacheRef.current.has(csvPath)) {
+      console.log('CSV data already cached for:', csvPath);
+      return;
+    }
+
+    setLoadingCsvCache(true);
+    try {
+
+      // 先获取文件列表
+      const listResponse = await axios.get(`${BACKEND_URL}/api/results/csv/list-from-path`, {
+        params: { path: csvPath }
+      });
+      
+      const files = listResponse.data || [];
+      console.log(`Loading ${files.length} CSV files for individual:`, csvPath);
+
+      // 并行加载所有CSV文件
+      const csvDataMap = new Map<string, any>();
+      const loadPromises = files.map(async (filename: string) => {
+        try {
+          const contentResponse = await axios.get(`${BACKEND_URL}/api/results/csv/content-from-path`, {
+            params: { path: csvPath, filename }
+          });
+          
+          const csvContent = contentResponse.data.content;
+          const lines = csvContent.split('\n');
+          const headerIndex = lines.findIndex((line: string) => line.trim().startsWith('Time(s)'));
+
+          if (headerIndex === -1) {
+            console.warn(`Could not find data header 'Time(s)' in CSV file: ${filename}`);
+            return null;
+          }
+
+          const cleanCsvContent = lines.slice(headerIndex).join('\n');
+          
+          // 使用d3解析CSV（需要在组件中导入）
+          const d3 = await import('d3');
+          const parsedData = d3.csvParse(cleanCsvContent);
+          
+          if (parsedData.length > 0) {
+            csvDataMap.set(filename, parsedData);
+          }
+        } catch (err: any) {
+          console.error(`Failed to load CSV file ${filename}:`, err);
+        }
+      });
+
+      await Promise.all(loadPromises);
+      
+      // 更新缓存
+      setCsvDataCache(prev => {
+        const newCache = new Map(prev);
+        newCache.set(csvPath, csvDataMap);
+        csvDataCacheRef.current = newCache; // 同步更新ref
+        return newCache;
+      });
+      
+      console.log(`Successfully cached ${csvDataMap.size} CSV files for:`, csvPath);
+    } catch (err: any) {
+      console.error("Failed to load CSV data cache", err);
+    } finally {
+      setLoadingCsvCache(false);
+    }
+  }, [BACKEND_URL]);
+
+  // 加载 Pareto 前沿数据（只在用户更换文件夹时调用）
   const fetchParetoData = useCallback(async () => {
     if (!selectedFolder) return;
 
     setLoading(true);
     setError(null);
+    
+    // 清空CSV缓存（切换文件夹时）
+    setCsvDataCache(new Map());
 
     try {
-      const response = await axios.get("/api/acmopv2/pareto-front", {
+      const response = await axios.get(`${BACKEND_URL}/api/acmopv2/pareto-front`, {
         params: {
           folderName: selectedFolder
         }
@@ -72,6 +160,24 @@ export default function OptimizationPage() {
       if (response.data.allIndividuals && response.data.allIndividuals.length > 0) {
         const lastIndividual = response.data.allIndividuals[response.data.allIndividuals.length - 1];
         setSelectedIndividual(lastIndividual);
+        
+        // 加载默认选中个体的CSV数据（延迟加载，避免阻塞主流程）
+        const individualIndex = lastIndividual.individual_index ?? lastIndividual.index;
+        if (individualIndex !== undefined && individualIndex !== null && response.data.path2FEACsv) {
+          const normalizedPath = response.data.path2FEACsv.replace(/\\/g, '/');
+          let newPath: string;
+          if (/\/\d+\/?$/.test(normalizedPath)) {
+            newPath = normalizedPath.replace(/\/\d+\/?$/, `/${individualIndex}/`);
+          } else {
+            newPath = normalizedPath.endsWith('/') 
+              ? `${normalizedPath}${individualIndex}/`
+              : `${normalizedPath}/${individualIndex}/`;
+          }
+          // 延迟加载，避免阻塞主流程
+          setTimeout(() => {
+            loadCsvDataForIndividual(newPath);
+          }, 100);
+        }
       }
     } catch (err: any) {
       console.error("Failed to fetch Pareto front data", err);
@@ -83,40 +189,17 @@ export default function OptimizationPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedFolder]);
+  }, [selectedFolder, loadCsvDataForIndividual]);
 
-  // 当 selectedFolder 变化时加载数据
+  // 当 selectedFolder 变化时加载数据（只在用户手动更换文件夹时读取）
   useEffect(() => {
-    fetchParetoData();
-  }, [fetchParetoData]);
-
-  // 页面可见性变化时重新加载数据（刷新页面或切换标签页后回来时）
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && selectedFolder) {
-        // 页面变为可见时重新加载数据
-        fetchParetoData();
-      }
-    };
-
-    // 监听窗口焦点变化（页面刷新后）
-    const handleFocus = () => {
-      if (selectedFolder) {
-        fetchParetoData();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [selectedFolder, fetchParetoData]);
+    if (selectedFolder) {
+      fetchParetoData();
+    }
+  }, [selectedFolder]); // 移除 fetchParetoData 依赖，避免不必要的重新加载
 
   // 处理个体选择变化
-  const handleIndividualChange = (individualKey: string) => {
+  const handleIndividualChange = useCallback((individualKey: string) => {
     if (!paretoData) return;
     
     const individual = paretoData.allIndividuals?.find(
@@ -125,6 +208,68 @@ export default function OptimizationPage() {
     
     if (individual) {
       setSelectedIndividual(individual);
+      // 生成几何 PDF
+      generateGeometryPdf(individual);
+      
+      // 计算CSV路径并加载所有CSV文件到缓存
+      const individualIndex = individual.individual_index ?? individual.index;
+      const currentPath2FEACsv = paretoData?.path2FEACsv || "";
+      if (individualIndex !== undefined && individualIndex !== null && currentPath2FEACsv) {
+        const normalizedPath = currentPath2FEACsv.replace(/\\/g, '/');
+        let newPath: string;
+        if (/\/\d+\/?$/.test(normalizedPath)) {
+          newPath = normalizedPath.replace(/\/\d+\/?$/, `/${individualIndex}/`);
+        } else {
+          newPath = normalizedPath.endsWith('/') 
+            ? `${normalizedPath}${individualIndex}/`
+            : `${normalizedPath}/${individualIndex}/`;
+        }
+        loadCsvDataForIndividual(newPath);
+      }
+    }
+  }, [paretoData, loadCsvDataForIndividual]);
+
+  // 生成几何 PDF
+  const generateGeometryPdf = async (individual: any) => {
+    if (!selectedFolder || !individual) return;
+    
+    const index = individual.individual_index ?? individual.index;
+    if (index === undefined || index === null) return;
+    
+    setLoadingGeometry(true);
+    setGeometryPdfPath("");
+    
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/acmopv2/generate-geometry-pdf`, {
+        params: {
+          folderName: selectedFolder,
+          individualIndex: index
+        }
+      });
+      
+      console.log("PDF generation response:", response.data);
+      
+      if (response.data?.pdfPath) {
+        // 构建完整的 PDF URL（通过后端）
+        // 添加 PDF 查看参数：隐藏侧边栏(navpanes=0)，隐藏工具栏(toolbar=0)，默认缩放400%(zoom=400)
+        const pdfUrl = `${BACKEND_URL}/api/results/pdf?path=${encodeURIComponent(response.data.pdfPath)}#navpanes=0&toolbar=0&zoom=400`;
+        console.log("PDF URL:", pdfUrl);
+        setGeometryPdfPath(pdfUrl);
+      } else {
+        console.error("No pdfPath in response:", response.data);
+      }
+    } catch (err: any) {
+      console.error("Failed to generate geometry PDF", err);
+      console.error("Error details:", err.response?.data || err.message);
+      setGeometryPdfPath("");
+      // 显示错误提示
+      if (err.response?.status === 404) {
+        setError(`无法生成几何 PDF: ${err.response?.data?.detail || "API 端点未找到"}`);
+      } else {
+        setError(`生成几何 PDF 失败: ${err.response?.data?.detail || err.message}`);
+      }
+    } finally {
+      setLoadingGeometry(false);
     }
   };
 
@@ -153,13 +298,27 @@ export default function OptimizationPage() {
     if (individualIndex === undefined || individualIndex === null) {
       return path2FEACsv;
     }
-    // 替换路径末尾的数字目录为 individual_index
-    const newPath = path2FEACsv.replace(/\/\d+\/?$/, `/${individualIndex}/`);
+    // 处理 Windows 路径和 Unix 路径
+    const normalizedPath = path2FEACsv.replace(/\\/g, '/');
+    
+    // 如果路径已经以数字结尾，替换它；否则追加 individual_index
+    let newPath: string;
+    if (/\/\d+\/?$/.test(normalizedPath)) {
+      // 路径末尾有数字，替换它
+      newPath = normalizedPath.replace(/\/\d+\/?$/, `/${individualIndex}/`);
+    } else {
+      // 路径末尾没有数字，追加 individual_index
+      newPath = normalizedPath.endsWith('/') 
+        ? `${normalizedPath}${individualIndex}/`
+        : `${normalizedPath}/${individualIndex}/`;
+    }
+    
     console.log('CSV Path calculation:', {
       original: path2FEACsv,
+      normalized: normalizedPath,
       individualIndex,
       newPath,
-      selectedIndividual: selectedIndividual.key
+      selectedIndividualKey: selectedIndividual.key
     });
     return newPath;
   }, [path2FEACsv, individualIndex, selectedIndividual]);
@@ -359,6 +518,29 @@ export default function OptimizationPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* 几何图形 PDF */}
+                    <div>
+                      <h4 className="font-semibold mb-2">几何图形</h4>
+                      <div className="border border-border rounded-lg bg-muted/30 p-4 min-h-[400px] flex items-center justify-center">
+                        {loadingGeometry ? (
+                          <div className="flex flex-col items-center space-y-2">
+                            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                            <span className="text-sm text-muted-foreground">正在生成几何图形...</span>
+                          </div>
+                        ) : geometryPdfPath ? (
+                          <iframe
+                            src={geometryPdfPath}
+                            className="w-full h-[600px] border-0 rounded"
+                            title="几何图形 PDF"
+                          />
+                        ) : (
+                          <div className="text-center text-muted-foreground">
+                            <p className="text-sm">点击 Pareto 前沿上的标记以生成几何图形</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -375,11 +557,15 @@ export default function OptimizationPage() {
                       : selectedIndividual.key}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="h-[600px]">
                   <CsvVisualizer 
                     key={`${csvPath}-${selectedIndividual.key}`} 
                     path2FEACsv={csvPath}
+                    selectedFile={selectedCsvFileName}
+                    onFileSelect={setSelectedCsvFileName}
                     onCurrentFileChange={setCurrentCsvFilePath}
+                    csvDataCache={csvDataCache.get(csvPath)}
+                    loadingCache={loadingCsvCache}
                   />
                 </CardContent>
               </Card>
@@ -411,9 +597,20 @@ export default function OptimizationPage() {
                     zFilter={zFilter}
                     onZFilterChange={setZFilter}
                     onIndividualSelect={handleIndividualChange}
+                    highlightedKeys={highlightedKeys}
                   />
                 </CardContent>
               </Card>
+            )}
+
+            {/* Parameter Histogram */}
+            {paretoData?.paretoFront && paretoData.paretoFront.length > 0 && (
+              <ParameterHistogram
+                individuals={paretoData.paretoFront}
+                parameterName="stator_tooth_span_angle"
+                f3Threshold={5}
+                onBinSelect={setHighlightedKeys}
+              />
             )}
 
             {/* Pareto Front Table */}

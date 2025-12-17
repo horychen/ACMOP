@@ -1,10 +1,8 @@
 from dataclasses import dataclass, fields
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
-import json, math, base64, pickle, cairo, os, jsonpickle, logging, utility
-
-
-
+import json, math, base64, pickle, cairo, os, jsonpickle, logging, utility, JMAG
+from time import time as clock_time
 
 class Swarm_Data_Analyzer(object):
     """
@@ -1343,7 +1341,6 @@ class Parameter(object):
             value=data.get('value'),
             bounds=data.get('bounds'),
             unit=data.get('unit', 'mm'),
-            comment=data.get('comment'),
             calc=None,  # calc 函数需要从其他地方重建
             calc_bounds=None,  # calc_bounds 函数需要从其他地方重建
             parameter_dict=data.get('parameter_dict')  # 保存 parameter_dict，用于重建 lambda 函数
@@ -1831,6 +1828,7 @@ class Modern_Machine_Designer(object):
     counter: int = 0
     counter_fitness_called: int = 0
     counter_fitness_return: int = 0
+    toolJd: JMAG.JMAG = None
 
     def __post_init__(self):
 
@@ -1844,7 +1842,10 @@ class Modern_Machine_Designer(object):
         # 铭牌数据
         RatedPower: float = 50e3 # W
         RatedSpeed: float = 30000 # rpm
-        self.name = self.name + f'-{int(RatedPower)}W-{int(RatedSpeed)}rpm-attempt2'
+        # 只有在名称不包含后缀时才追加（避免从 JSON 恢复时重复追加）
+        suffix = f'-{int(RatedPower)}W-{int(RatedSpeed)}rpm-attempt3'
+        if not self.name.endswith(suffix):
+            self.name = self.name + suffix
         ExcitationFreqSimulated: float = RatedSpeed / 60 * p
 
         ''' 工程和文件路径 '''
@@ -1859,7 +1860,12 @@ class Modern_Machine_Designer(object):
                 raise Exception(f"Computer names are not equal to each other. {n1,n2,n3}")
         self.dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
         self.dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
-        self.pc_name = get_pc_name()
+
+        with open((os.path.dirname(__file__))+'/machine_simulation.json', 'r') as f:
+            raw_fea_config_dicts = json.load(f)
+            self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
+        self.fea_config_dict['pc_name'] = self.pc_name = get_pc_name()
+
         self.path2SwarmData = os.path.abspath(fr'../_default/' + self.name.replace(' ', '_'))
         self.swarm_data_json_file_path = self.path2SwarmData + f'/SwarmData.json'
         if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
@@ -1979,7 +1985,7 @@ class Modern_Machine_Designer(object):
                     'free',
                     calc_bounds=lambda self_param: [
                         360 / self.Qs.value * 0.1,
-                        360 / self.Qs.value
+                        360 / self.Qs.value * 0.7
                     ],
                     unit='deg'
                 )
@@ -2322,7 +2328,10 @@ class Modern_Machine_Designer(object):
         return self.InitialRotationAngle
 
 
-    def show_geometry(self, filename=None) -> None:
+    def show_geometry(self, filename=None, x_denorm_dict=None) -> None:
+        if x_denorm_dict is not None:
+            self.update_geometric_parameters(x_denorm_dict=x_denorm_dict)
+
         bool_draw_whole_model = True
         
         def draw_spmsm(lw, width_in_points, height_in_points, filename='machine_geometry.svg', bool_draw_whole_model=True):
@@ -2353,36 +2362,37 @@ class Modern_Machine_Designer(object):
         height_in_points = self.mm_r_so.value*2.1
         draw_spmsm(lw, width_in_points, height_in_points)
 
-    def update_machine_geometry(self):
-        """
-        更新 machineGeometry 中所有 Geometry 对象的参数值
-        当几何参数更新后，调用此方法来同步 machineGeometry 中的值
-        """
+    def update_geometric_parameters(self, x_denorm=None, x_denorm_dict=None):
+
+        # 更新决策变量
+        if x_denorm is not None:
+            free_vars = self.get_free_variables()
+            for i, param in enumerate(free_vars):
+                if i < len(x_denorm):
+                    param.value = x_denorm[i]
+        elif x_denorm_dict is not None:
+            # 如果 x_denorm_dict 是 OrderedDict 或普通字典，直接使用
+            for param in self.get_free_variables():
+                if param.name in x_denorm_dict:
+                    param.value = x_denorm_dict[param.name]
+
+        # 更新 parameter_dict_by_name 以确保所有引用都是最新的
+        self.parameter_dict_by_name = self.get_parameter_dict_by_name()
+
+        # 同时刷新依赖于决策变量的导出参数。
+        for i, param in enumerate(self.get_parameters_by_type('derived').values()):
+            if param.calc is not None and param.parameter_dict is not None:
+                param.value = param.calc(param.parameter_dict)
+
+        # 当几何参数更新后，调用此方法来同步 machineGeometry 中的值
+        # 更新 machineGeometry 中所有 Geometry 对象的参数值
         for geo_name, geo in self.machineGeometry.items():
             geo.update_from_GP()
 
     def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True, x_denorm=None, counter=None, counter_loop=0):
 
-        def update_geometric_parameters(x_denorm):
-            for i, param in enumerate(self.get_free_variables()):
-                param.value = x_denorm[i]
-            # 更新 parameter_dict_by_name 以确保所有引用都是最新的
-            self.parameter_dict_by_name = self.get_parameter_dict_by_name()
-            for i, param in enumerate(self.get_parameters_by_type('derived').values()):
-                if param.calc is not None and param.parameter_dict is not None:
-                    param.value = param.calc(param.parameter_dict)
-            # 更新 machineGeometry 中所有 Geometry 对象的参数值
-            self.update_machine_geometry()
+        self.update_geometric_parameters(x_denorm=x_denorm)
 
-        # 更新决策变量，同时刷新依赖于决策变量的导出参数。
-        if x_denorm is not None:
-            update_geometric_parameters(x_denorm)
-
-        if self.fea_config_dict is None:
-            with open((os.path.dirname(__file__))+'/machine_simulation.json', 'r') as f:
-                raw_fea_config_dicts = json.load(f)
-                self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
-        
         if counter is None:
             counter = self.counter
         else:
@@ -2409,10 +2419,10 @@ class Modern_Machine_Designer(object):
 
             # Leave the solving task to JMAG
             def build_jmag_project(study_name):
-                import JMAG
-                toolJd = JMAG.JMAG()
-                toolJd.open(Steel_name=self.EX['SteelMaterial'], expected_project_file_path=self.expected_project_file, pc_name=self.pc_name, dir_parent=self.dir_parent, bool_jmagDesignerShow=bool_jmagDesignerShow)
-                return toolJd
+                self.toolJd = JMAG.JMAG(fea_config_dict=self.fea_config_dict)
+
+                self.toolJd.open(Steel_name=self.EX['SteelMaterial'], expected_project_file_path=self.expected_project_file, pc_name=self.pc_name, dir_parent=self.dir_parent, bool_jmagDesignerShow=bool_jmagDesignerShow)
+                return self.toolJd
 
             def draw_spmsm(toolJd):
                 import numpy as np
@@ -2490,7 +2500,6 @@ class Modern_Machine_Designer(object):
             study = toolJd.add_magnetic_transient_study(app, model, self.path2FEACsv, study_name, self)
             toolJd.mesh_study(self, app, model, study, output_dir=self.path2SwarmData)
             # raise KeyboardInterrupt
-            from time import time as clock_time
             toolJd.run_study(self, app, study, self.fea_config_dict, clock_time())
 
             # export Voltage if field data exists.
@@ -2625,6 +2634,7 @@ class Modern_Machine_Designer(object):
 
         # 这里应该返回新获得的设计，然后可以获得geometry_dict，然后包括x_denorm的信息方便重构设计。
         self.FEA_evaluate(bool_jmagDesignerShow=self.fea_config_dict["designer.Show"], x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        print('[DEBUG] evaluate_design_json_wrapper: counter =', counter, 'counter_loop =', counter_loop)
 
         if 'FEMM' in self.select_fea_config_dict:
             self.results_for_optimization = self.analyzer.build_results_for_optimization()
@@ -2842,14 +2852,14 @@ class Modern_Machine_Designer(object):
         logger = logging.getLogger(__name__)
 
         # 加载 FEA 配置
-        if self.fea_config_dict is None:
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'machine_simulation.json'), 'r') as f:
-                raw_fea_config_dicts = json.load(f)
-                self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
-                self.nobj = sum(1 for k, v in self.fea_config_dict.items() if k.startswith("moo.fitness") and v is not None)
-                self.obj_names = [v for k, v in self.fea_config_dict.items() if k.startswith("moo.fitness") and v is not None]
-                logger.info(f'Number of objectives is {self.nobj}')
-                logger.info(f'Objectives names are {self.obj_names}')
+        # with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'machine_simulation.json'), 'r') as f:
+        #     raw_fea_config_dicts = json.load(f)
+        #     self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
+        # self.fea_config_dict['pc_name'] = self.pc_name
+        self.nobj = sum(1 for k, v in self.fea_config_dict.items() if k.startswith("moo.fitness") and v is not None)
+        self.obj_names = [v for k, v in self.fea_config_dict.items() if k.startswith("moo.fitness") and v is not None]
+        logger.info(f'Number of objectives is {self.nobj}')
+        logger.info(f'Objectives names are {self.obj_names}')
 
         ################################################################
         # MOO Step 1: 创建问题并初始化种群
@@ -3683,6 +3693,16 @@ class Modern_Machine_Designer(object):
             if param is not None and param.value != saved_value:
                 param.value = saved_value
         
+        # 更新所有 derived 参数的值（基于恢复的 free 参数值）
+        parameter_dict_by_name = instance.get_parameter_dict_by_name()
+        for field_name, param in instance.get_parameter_fields().items():
+            if param.type == 'derived' and param.calc is not None:
+                param.parameter_dict = parameter_dict_by_name
+                try:
+                    param.value = param.calc(parameter_dict_by_name)
+                except Exception as e:
+                    print(f"Warning: Failed to recalculate derived parameter '{field_name}': {e}")
+        
         # 恢复 machineGeometry（如果 JSON 中有保存）
         if 'machineGeometry' in data and data['machineGeometry'] is not None:
             # 注意：machineGeometry 中的 visualization_points 会被保留
@@ -3809,25 +3829,8 @@ class Modern_Machine_Designer(object):
             data = json.load(f)
         return cls.from_dict(data)
 
-if __name__ == "__main__":
-    # 创建对象并导出为 JSON
-    mmd = Modern_Machine_Designer()
 
-    # mmd.show_geometry()
-    # mmd.drawer.visualization_points['Coils']['PCoil']
-
-    # print(dir(mmd.machineGeometry['statorCore']))
-
-    # mmd.FEA_evaluate()
-    # mmd.save_to_file('machine_designer.json')
-    # mmd.save_to_file_full('machine_designer_full.json') # 保存完整信息到文件（类似 pickle）
-
-    # mmd.start_optimization()
-
-
-
-
-    # INSERT_YOUR_CODE
+    @staticmethod
     def remove_jfiles_folders(root_dir):
         """
         Recursively remove all folders whose names end with 'jfiles' in the given directory.
@@ -3847,13 +3850,263 @@ if __name__ == "__main__":
                         print(f"Deleted folder: {folder_path}")
                     except Exception as e:
                         print(f"Failed to delete {folder_path}: {e}")
-    remove_jfiles_folders(mmd.path2SwarmData)
+
+
+
+    def draw_individual_from_swarm(self, index):
+        """
+        Draws the geometry for an individual from SwarmData.json, specified by index.
+
+        Args:
+            index (int): The index of the individual (e.g., 3383 for 'ind3383').
+        """
+        import json
+        import os
+
+        # Path to SwarmData.json
+        swarm_data_path = os.path.join(self.path2SwarmData, "SwarmData.json")
+
+        # Read the SwarmData.json file
+        with open(swarm_data_path, "r", encoding="utf-8") as f:
+            swarm_data = json.load(f)
+
+        # Build the individual key
+        suffix = f"ind{index}"
+        # Find the key that ends with e.g. 'ind3383'
+        target_key = None
+        for key in swarm_data.keys():
+            if key.endswith(suffix):
+                target_key = key
+                break
+
+        if target_key is None:
+            raise ValueError(f"Individual {suffix} not found in SwarmData.json.")
+
+        # Extract and draw
+        x_denorm_dict_raw = swarm_data[target_key]["x_denorm_dict"]
+        # Decode x_denorm_dict if it's in py/reduce format
+        x_denorm_dict = Swarm_Data_Analyzer.decode_py_reduce_ordered_dict(x_denorm_dict_raw)
+        self.show_geometry(x_denorm_dict=x_denorm_dict)
+
+
+
+if __name__ == "__main__":
+    # 创建对象并导出为 JSON
+    mmd = Modern_Machine_Designer()
+
+    # ====== Inserted: Apply previous design parameters for evaluation ======
+    prev_params = {
+        "phase_number_m": None,
+        "stator_slot_number_Qs": None,
+        "pole_pair_number_p": None,
+        "suspension_pole_pair_number_ps": None,
+        "coil_pitch_y": None,
+
+        "stator_outer_radius": 123.49969,
+        "mechanical_air_gap_length": 0.75,
+        "rotor_sleeve_depth": None,
+
+        "magnet_depth": 5.19948,                     # free variable
+        "inter_polar_iron_thickness": 5.19948,
+        "magnet_pole_span_angle": 44.9638,           # free variable
+        "magnet_segment_span_angle": 44.9638,
+        "inter_segment_iron_thickness": 0,
+        "number_of_magnet_segments_per_pole": None,
+
+        "stator_tooth_width": 16.099,                # free variable
+        "stator_tooth_yoke_depth": 32.75940500000001,# free variable
+        "stator_tooth_shoe_depth": 1.50079,          # free variable
+        "stator_tooth_span_angle": 11.1183,          # free variable
+        "stator_tooth_depth": 42.9701,
+        "stator_tooth_open_depth": 1.50079,
+        "stator_tooth_open_angle": 5.55915,
+        "stator_tooth_tip_depth": 2.251185,
+        "stator_yoke_depth": 32.75940500000001,
+
+        "split_ratio_r_si_slash_r_so": 0.36857582395550953,  # free variable
+        "stator_inner_radius": 45.519,
+        "outer_rotor_radius": 38.87809,
+        "inner_rotor_radius": 29.9996,
+        "rotor_iron_back_iron_depth": 3.67901,
+
+        "sleeve_length": 5.89091
+    }
+
+    def _set_param(obj, attr, value, is_free=False):
+        if value is None:
+            return
+        if hasattr(obj, attr):
+            param = getattr(obj, attr)
+            if hasattr(param, "value"):
+                param.value = value
+            else:
+                setattr(obj, attr, value)
+            if is_free:
+                # free variable
+                pass
+
+    _set_param(mmd, "m", prev_params["phase_number_m"])
+    _set_param(mmd, "Qs", prev_params["stator_slot_number_Qs"])
+    _set_param(mmd, "p", prev_params["pole_pair_number_p"])
+    _set_param(mmd, "ps", prev_params["suspension_pole_pair_number_ps"])
+    _set_param(mmd, "coil_pitch_y", prev_params["coil_pitch_y"])
+
+    _set_param(mmd, "mm_r_so", prev_params["stator_outer_radius"])
+    _set_param(mmd, "mm_d_mech_air_gap", prev_params["mechanical_air_gap_length"])
+    _set_param(mmd, "mm_d_sleeve", prev_params["rotor_sleeve_depth"])
+
+    _set_param(mmd, "mm_d_pm", prev_params["magnet_depth"], is_free=True)               # free variable
+    _set_param(mmd, "mm_d_rp", prev_params["inter_polar_iron_thickness"])
+    _set_param(mmd, "deg_alpha_rm", prev_params["magnet_pole_span_angle"], is_free=True) # free variable
+    _set_param(mmd, "deg_alpha_rs", prev_params["magnet_segment_span_angle"])
+    _set_param(mmd, "mm_d_rs", prev_params["inter_segment_iron_thickness"])
+    _set_param(mmd, "s", prev_params["number_of_magnet_segments_per_pole"])
+
+    _set_param(mmd, "mm_w_st", prev_params["stator_tooth_width"], is_free=True)         # free variable
+    _set_param(mmd, "mm_d_sy", prev_params["stator_tooth_yoke_depth"], is_free=True)    # free variable
+    _set_param(mmd, "mm_d_sts", prev_params["stator_tooth_shoe_depth"], is_free=True)   # free variable
+    _set_param(mmd, "deg_alpha_st", prev_params["stator_tooth_span_angle"], is_free=True) # free variable
+    _set_param(mmd, "mm_d_st", prev_params["stator_tooth_depth"])
+    _set_param(mmd, "mm_d_sto", prev_params["stator_tooth_open_depth"])
+    _set_param(mmd, "deg_alpha_sto", prev_params["stator_tooth_open_angle"])
+    _set_param(mmd, "mm_d_sp", prev_params["stator_tooth_tip_depth"])  # only if exists
+    _set_param(mmd, "mm_d_sy", prev_params["stator_yoke_depth"], is_free=True)          # free variable (duplicate key handled)
+
+    _set_param(mmd, "split_ratio", prev_params["split_ratio_r_si_slash_r_so"], is_free=True) # free variable
+    _set_param(mmd, "mm_r_si", prev_params["stator_inner_radius"])
+    _set_param(mmd, "mm_r_ro", prev_params["outer_rotor_radius"])
+    _set_param(mmd, "mm_r_ri", prev_params["inner_rotor_radius"])
+    _set_param(mmd, "mm_d_ri", prev_params["rotor_iron_back_iron_depth"])
+
+    _set_param(mmd, "mm_d_sleeve", prev_params["sleeve_length"])
+    # ====== End Inserted ======
+
+    # print(dir(mmd.machineGeometry['statorCore']))
+
+    
+
+    mmd.FEA_evaluate(counter=-997)
+
+    # 保存完整信息到文件（类似 pickle）
+    full_json_path = os.path.join(mmd.path2SwarmData, 'machine_designer_full.json')
+    print(f"保存完整对象到: {full_json_path}")
+    mmd.save_to_file_full(full_json_path)
+
+    # mmd.start_optimization()
+
+    mmd.remove_jfiles_folders(mmd.path2SwarmData)
+
+    # 从完整文件恢复对象（包含所有信息，包括 lambda 函数）
+    if False:
+        print(f"从文件恢复对象: {full_json_path}")
+        try:
+            mmd3 = Modern_Machine_Designer.load_from_file_full(full_json_path)
+            print("=== 已从完整文件恢复对象 ===")
+            
+            # 验证恢复的对象
+            print(f"恢复的对象名称: {mmd3.name}")
+            print(f"恢复的对象路径: {mmd3.path2SwarmData}")
+            print(f"Free 参数数量: {len(mmd3.get_free_variables())}")
+            print(f"Derived 参数数量: {len(mmd3.get_parameters_by_type('derived'))}")
+            
+            # 验证参数值是否正确恢复
+            print("\n=== 验证 Free 参数 ===")
+            for param in mmd3.get_free_variables():
+                print(f"  {param.name}: {param.value} (bounds: {param.bounds})")
+            
+            print("\n=== 验证 Derived 参数 ===")
+            for name, param in list(mmd3.get_parameters_by_type('derived').items())[:5]:  # 只显示前5个
+                print(f"  {name}: {param.value}")
+            
+            # 验证 machineGeometry 是否存在
+            if hasattr(mmd3, 'machineGeometry') and mmd3.machineGeometry:
+                print(f"\n=== MachineGeometry 组件 ===")
+                for key in mmd3.machineGeometry.keys():
+                    print(f"  {key}: {'存在' if mmd3.machineGeometry[key] is not None else 'None'}")
+            
+            # 验证是否能更新几何参数
+            print("\n=== 测试 update_geometric_parameters ===")
+            try:
+                free_vars_dict = mmd3.get_free_variables_as_dict()
+                print(f"  获取到 {len(free_vars_dict)} 个 free 参数")
+                # 测试更新（使用当前值）
+                mmd3.update_geometric_parameters(x_denorm_dict=free_vars_dict)
+                print("  [OK] update_geometric_parameters 成功")
+            except Exception as e:
+                print(f"  [FAIL] update_geometric_parameters 失败: {e}")
+                import traceback
+                traceback.print_exc()
+            
+            print("\n=== 对象恢复完成，所有验证通过 ===")
+            
+            # Example usage (取消注释以测试):
+            mmd3.draw_individual_from_swarm(3383)
+            
+        except Exception as e:
+            print(f"恢复对象时出错: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+
     quit()
 
 
-    # 从 JSON 文件恢复对象
-    mmd2 = Modern_Machine_Designer.load_from_file('machine_designer.json')
+# {
+# "stator_tooth_span_angle": 11.1183,
+# "stator_tooth_open_depth": 1.50079,
+# "stator_tooth_depth": 42.9701,
+# "outer_stator_radius": 123.49969,
+# "stator_tooth_width": 16.099,
+# "inner_stator_radius": 45.519,
+# "stator_tooth_open_angle": 5.55915,
+# "stator_tooth_tip_depth": 2.251185,
+# "stator_yoke_depth": 32.75940500000001,
+# "mechanical_air_gap_length": 0.75,
+# "sleeve_length": 5.89091,
+# "split_ratio_r_is_slash_r_os": 0.36857582395550953,
+# "magnet_depth": 5.19948,
+# "rotor_iron_back_iron_depth": 3.67901,
+# "outer_rotor_radius": 38.87809,
+# "inner_rotor_radius": 29.9996,
+# "magnet_pole_span_angle": 44.9638,
+# "inter_polar_iron_thickness": 5.19948,
+# "magnet_segment_span_angle": 44.9638,
+# "inter_segment_iron_thickness": 0
+# }
 
-    # 从完整文件恢复对象（包含所有信息，包括 lambda 函数）
-    mmd3 = Modern_Machine_Designer.load_from_file_full('machine_designer_full.json')
-    print("=== 已从完整文件恢复对象 ===")
+# {
+# "phase_number_m": null,
+# "stator_slot_number_Qs": null,
+# "pole_pair_number_p": null,
+# "suspension_pole_pair_number_ps": null,
+# "coil_pitch_y": null,
+
+# "stator_outer_radius": 123.49969,
+# "mechanical_air_gap_length": 0.75,
+# "rotor_sleeve_depth": null,
+
+# "magnet_depth": 5.19948,
+# "inter_polar_iron_thickness": 5.19948,
+# "magnet_pole_span_angle": 44.9638,
+# "magnet_segment_span_angle": 44.9638,
+# "inter_segment_iron_thickness": 0,
+# "number_of_magnet_segments_per_pole": null,
+
+# "stator_tooth_width": 16.099,
+# "stator_tooth_yoke_depth": 32.75940500000001,
+# "stator_tooth_shoe_depth": 1.50079,          // 对应 mm_d_so
+# "stator_tooth_span_angle": 11.1183,
+# "stator_tooth_depth": 42.9701,
+# "stator_tooth_open_depth": 1.50079,         // 同上
+# "stator_tooth_open_angle": 5.55915,
+# "stator_tooth_tip_depth": 2.251185,         // mm_d_sp
+# "stator_yoke_depth": 32.75940500000001,     // 冗余字段，保持一致
+
+# "split_ratio_r_si_slash_r_so": 0.36857582395550953,
+# "stator_inner_radius": 45.519,
+# "outer_rotor_radius": 38.87809,
+# "inner_rotor_radius": 29.9996,
+# "rotor_iron_back_iron_depth": 3.67901,
+
+# "sleeve_length": 5.89091
+# }

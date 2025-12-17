@@ -932,6 +932,161 @@ async def get_pareto_front(
         )
 
 
+@router.get("/generate-geometry-pdf")
+async def generate_geometry_pdf(
+    folderName: str,
+    individualIndex: int
+) -> Dict[str, Any]:
+    """
+    生成指定个体的几何 PDF 文件
+    
+    Args:
+        folderName: 优化文件夹名称（在_default目录下）
+        individualIndex: 个体索引（如 3383 对应 'ind3383'）
+    
+    Returns:
+        包含 PDF 文件路径的字典
+    """
+    try:
+        import sys
+        codes4_dir = get_codes4_path()
+        default_dir = get_default_dir()
+        
+        # 添加 codes4 目录到 Python 路径
+        if codes4_dir not in sys.path:
+            sys.path.insert(0, codes4_dir)
+        
+        # 导入必要的模块
+        from machine_design_guide import Modern_Machine_Designer
+        
+        # 构建文件夹路径
+        folder_path = os.path.join(default_dir, folderName)
+        if not os.path.exists(folder_path):
+            raise HTTPException(
+                status_code=404,
+                detail=f"文件夹不存在: {folderName}"
+            )
+        
+        # 读取 machine_designer_full.json
+        machine_designer_path = os.path.join(folder_path, "machine_designer_full.json")
+        if not os.path.exists(machine_designer_path):
+            raise HTTPException(
+                status_code=404,
+                detail=f"machine_designer_full.json 文件不存在: {machine_designer_path}"
+            )
+        
+        # 加载 machine_designer 对象
+        mmd = Modern_Machine_Designer.load_from_file_full(machine_designer_path)
+        
+        # 设置工作目录为文件夹路径（PDF 将生成在这里）
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(folder_path)
+            
+            # 生成带个体编号的 PDF 文件名
+            pdf_filename = f"machine_geometry_ind{individualIndex}.pdf"
+            svg_filename = f"machine_geometry_ind{individualIndex}.svg"
+            
+            # 读取 SwarmData.json 获取个体数据
+            swarm_data_path = os.path.join(folder_path, "SwarmData.json")
+            if not os.path.exists(swarm_data_path):
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"SwarmData.json 文件不存在: {swarm_data_path}"
+                )
+            
+            import json
+            with open(swarm_data_path, "r", encoding="utf-8") as f:
+                swarm_data = json.load(f)
+            
+            # 查找个体键
+            suffix = f"ind{individualIndex}"
+            target_key = None
+            for key in swarm_data.keys():
+                if key.endswith(suffix):
+                    target_key = key
+                    break
+            
+            if target_key is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"个体 {suffix} 在 SwarmData.json 中未找到"
+                )
+            
+            # 提取并解码 x_denorm_dict
+            from machine_design_guide import Swarm_Data_Analyzer
+            x_denorm_dict_raw = swarm_data[target_key]["x_denorm_dict"]
+            x_denorm_dict = Swarm_Data_Analyzer.decode_py_reduce_ordered_dict(x_denorm_dict_raw)
+            
+            # 更新几何参数
+            mmd.update_geometric_parameters(x_denorm_dict=x_denorm_dict)
+            
+            # 手动调用绘图函数，使用自定义文件名
+            lw = 0.1 if mmd.mm_r_ro.value < 15 else 0.5
+            width_in_points = mmd.mm_r_so.value * 2.1
+            height_in_points = mmd.mm_r_so.value * 2.1
+            
+            # 创建 CairoDrawer 并绘制
+            from machine_design_guide import CairoDrawer
+            drawer = CairoDrawer(width_in_points, height_in_points, filename=svg_filename)
+            
+            # 绘制各个组件
+            mmd.machineGeometry['rotorCore'].draw(drawer, bool_draw_whole_model=True)
+            mmd.machineGeometry['shaft'].draw(drawer)
+            mmd.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=True)
+            mmd.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=True)
+            mmd.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=True)
+            
+            drawer.apply_stroke(lw=lw)
+            drawer.surface.finish()
+            
+            # 转换 SVG 到 PDF（使用自定义文件名）
+            import cairosvg
+            svg_path = os.path.join(folder_path, svg_filename)
+            pdf_path = os.path.join(folder_path, pdf_filename)
+            
+            if not os.path.exists(svg_path):
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"SVG 文件生成失败: {svg_path}"
+                )
+            
+            # 转换 SVG 到 PDF
+            cairosvg.svg2pdf(url=svg_path, write_to=pdf_path)
+            
+            # 清理 SVG 文件（可选）
+            try:
+                os.remove(svg_path)
+            except:
+                pass
+            
+            if not os.path.exists(pdf_path):
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"PDF 文件生成失败: {pdf_path}"
+                )
+            
+            # 返回相对路径（相对于 backend 目录）
+            backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            relative_path = os.path.relpath(pdf_path, backend_dir)
+            
+            return {
+                "pdfPath": relative_path.replace("\\", "/"),  # 统一使用正斜杠
+                "absolutePath": pdf_path.replace("\\", "/"),
+                "individualIndex": individualIndex,
+                "filename": pdf_filename
+            }
+        finally:
+            os.chdir(original_cwd)
+            
+    except Exception as e:
+        import traceback
+        raise HTTPException(
+            status_code=500,
+            detail=f"生成几何 PDF 时出错: {str(e)}\n{traceback.format_exc()}"
+        )
+
+
 # ==================== 辅助函数 ====================
 
 def convert_numpy_types(obj):
