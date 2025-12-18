@@ -199,7 +199,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     for line in f.readlines():
                         if pc_name + '/' + Steel_name in line:
                             self.flag_material_already_loaded = True
-                            print('[JMAG.py] steel material already there:', pc_name + '/' + Steel_name)
+                            # print('[JMAG.py] steel material already there:', pc_name + '/' + Steel_name)
                             break
             if self.flag_material_already_loaded == False:
                 with open(fname, 'a') as f:
@@ -244,7 +244,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         logger = logging.getLogger(__name__)
         start_time = clock_time()
-        logger.info('pre-process PMSM... Starting time: %g s.'%start_time)
+        # logger.info('pre-process PMSM... Starting time: %g s.'%start_time)
 
         # pre-process : you can select part by coordinate!
         ''' Group '''
@@ -720,7 +720,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         study.GetStudyProperties().SetValue("DeleteResultFiles", acm_variant.fea_config_dict['delete_results_after_calculation'])
 
         # Terminal Voltage/Circuit Voltage: Check for outputing CSV results 
-        if 'Flux_Alternator' in acm_variant.name:
+        if 'Flux_Alternator' in acm_variant.machine_class:
             study.GetCircuit().CreateTerminalLabel("TerminalLabel"+acm_variant.circuit_coil_names[0], 9,  1)
             study.GetCircuit().CreateTerminalLabel("TerminalLabel"+acm_variant.circuit_coil_names[1], 9,  6) # seek WriteTable
             study.GetCircuit().CreateTerminalLabel("TerminalLabel"+acm_variant.circuit_coil_names[2], 9, -4)
@@ -786,7 +786,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # study.GetMaterial("Cage").SetValue("UserConductivityValue", self.Bar_Conductivity)
 
         # N40H Reversible
-        if 'PMSM' in acm_variant.name:
+        if 'PMSM' in acm_variant.machine_class:
             study.SetMaterialByName(u"Magnet", EX['Magnet_Name'])
             study.GetMaterial(u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
             study.GetMaterial(u"Magnet").SetValue(u"Temperature", EX['Magnet_Temperature']) # 80 deg TEMPERATURE (There is no 75 deg C option)
@@ -847,7 +847,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
                 func = app.FunctionFactory().Composite()
                 f1 = app.FunctionFactory().Sin(ampD, freq, -90+0*phase_shift_drive) # "freq" variable cannot be used here. So pay extra attension here when you create new case of a different freq.
-                if 'CPPM' in acm_variant.name or 'CSPPM' in acm_variant.name: 
+                if 'CPPM' in acm_variant.machine_class or 'CSPPM' in acm_variant.machine_class: 
                     dcB = ampB/math.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
@@ -858,7 +858,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
                 func = app.FunctionFactory().Composite()
                 f1 = app.FunctionFactory().Sin(ampD, freq, -90+1*phase_shift_drive)
-                if 'CPPM' in acm_variant.name or 'CSPPM' in acm_variant.name: 
+                if 'CPPM' in acm_variant.machine_class or 'CSPPM' in acm_variant.machine_class: 
                     dcB = -0.5*ampB/math.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
@@ -869,7 +869,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
                 func = app.FunctionFactory().Composite()
                 f1 = app.FunctionFactory().Sin(ampD, freq, -90+2*phase_shift_drive)
-                if 'CPPM' in acm_variant.name or 'CSPPM' in acm_variant.name: 
+                if 'CPPM' in acm_variant.machine_class or 'CSPPM' in acm_variant.machine_class: 
                     dcB = -0.5*ampB/math.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
                 else:
@@ -1532,7 +1532,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 # # print('---SUSPENSION_CURRENT_RATIO:', acm_variant.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
 
             # Import Model into Designer
-            self.save(acm_variant.name, self.show(acm_variant, toString=False))
+            self.save(acm_variant.machine_class, self.show(acm_variant, toString=False))
 
         # import builtins
         # builtins.ad.visualize_dict['GeometricComponentsObjects']['rotorCore'] = acm_variant.rotorCore
@@ -1590,12 +1590,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # # template_tuple_list = get_tuple_list(acm_variant.template)
         # if toString==False:
         #     logger = logging.getLogger(__name__)
-        #     logger.info('- Bearingless PMSM Individual #%s', acm_variant.name)
+        #     logger.info('- Bearingless PMSM Individual #%s', acm_variant.machine_class)
         #     logger.info('\t%s', ', \n\t'.join("%s = %s" % item for item in variant_tuple_list))
         #     # print(', \n\t'.join("%s = %s" % item for item in template_tuple_list))
         #     return ''
         # else:
-        #     return '\n- Bearingless PMSM Individual #%s\n\t' % (acm_variant.name) \
+        #     return '\n- Bearingless PMSM Individual #%s\n\t' % (acm_variant.machine_class) \
         #             + ', \n\t'.join("%s = %s" % item for item in variant_tuple_list) \
         #             + '\n' + '--'*10 + '\n- Template:\n\t' \
         #             + ', \n\t'.join("%s = %s" % item for item in template_tuple_list)
@@ -1662,7 +1662,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     @staticmethod
     def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict, femm_solver, acm_variant=None):
 
-        machine_type = acm_variant.name
+        machine_type = acm_variant.machine_class
 
         # Read TranFEAwi2TSS results
 
@@ -2091,7 +2091,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     def build_str_results(self, acm_variant, project_name, tran_study_name, path2FEACsv, fea_config_dict, femm_solver=None):
         # originate from fobj
 
-        machine_type = acm_variant.name
+        machine_type = acm_variant.machine_class
 
         try:
             self.dm = dm = self.read_csv_results_4_general_purpose(tran_study_name, path2FEACsv, fea_config_dict, femm_solver, acm_variant=acm_variant)
@@ -2152,7 +2152,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         rotor_weight = acm_variant.get_rotor_weight()
         shaft_power  = acm_variant.EX['RatedSpeed']/60. * 2*math.pi * torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
 
-        if 'IM' in acm_variant.name:
+        if 'IM' in acm_variant.machine_class:
             if False: # fea_config_dict['jmag_run_list'][0] == 0
                 # by JMAG only
                 copper_loss  = dm.jmag_loss_list[0] + dm.jmag_loss_list[1] 
@@ -2164,14 +2164,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 else:
                     copper_loss  = dm.femm_loss_list[0] + dm.femm_loss_list[1]
                 iron_loss = dm.jmag_loss_list[2] 
-        elif 'PM' in acm_variant.name:
+        elif 'PM' in acm_variant.machine_class:
             # Rotor magnet loss by JMAG
             magnet_Joule_loss = dm.jmag_loss_list[1]
             # Stator copper loss by Binder and Bolognani 2006
             copper_loss = dm.femm_loss_list[0] + magnet_Joule_loss
             iron_loss = dm.jmag_loss_list[2] 
         else:
-            raise Exception('Unknown machine type:', acm_variant.name)
+            raise Exception('Unknown machine type:', acm_variant.machine_class)
 
         windage_loss = utility.get_windage_loss(acm_variant, acm_variant.EX['mm_stack_length_specified'])
 
@@ -2198,8 +2198,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         ################################################################
         # caculate the fitness
         logger = logging.getLogger(__name__)
-        logger.info('-'*40)
-        logger.info('Calculate the fitness for %s', acm_variant.name)
+        logger.info('Calculate the fitness for %s', acm_variant.machine_class)
+        logger.info('with x_denorm_dict: %s', acm_variant.x_denorm_dict)
 
         # LOSS
         if 'IM' in machine_type:
@@ -2371,7 +2371,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # print(type(acm_variant.counter)==type(''))
 
         str_results = '\n-------\n%s-%s\n%d,%d,O1=%g,O2=%g,f1=%g,f2=%g,f3=%g\n%s\n%s\n' % (
-                        project_name, acm_variant.name,
+                        project_name, acm_variant.machine_class,
                         -1 if type(acm_variant.counter)==type('') else int(acm_variant.counter//acm_variant.fea_config_dict["moo.popsize"]), # generation count
                         -1 if type(acm_variant.counter)==type('') else acm_variant.counter, # individual count
                         cost_function_O1, cost_function_O2, f1, f2, f3,
@@ -2394,7 +2394,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         #     raise Exception('Not implemented error.')
 
         return (cost_function_O1, cost_function_O2), f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle, \
-                project_name, acm_variant.name, \
+                project_name, acm_variant.machine_class, \
                 -1 if type(acm_variant.counter)==type('') else int(acm_variant.counter//acm_variant.fea_config_dict["moo.popsize"]), \
                 acm_variant.counter,\
                 power_factor, \

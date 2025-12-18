@@ -30,6 +30,7 @@ class Problem_BearinglessSynchronousDesign(object):
         else:
             # This is not reachable
             raise Exception(f'ad.counter_fitness_called = {ad.counter_fitness_called} != ad.counter_fitness_return = {ad.counter_fitness_return}!!!')
+        logger.info('-'*40)
         logger.debug('Call fitness: %d, %d', ad.counter_fitness_called, ad.counter_fitness_return)
 
         # 不要标幺化了！统一用真的bounds，见get_bounds()
@@ -47,6 +48,7 @@ class Problem_BearinglessSynchronousDesign(object):
 
             # if True:
             try:
+                ad.name = ad.machine_class + f'gen-{ad.generation}-ind-{ad.counter_fitness_called}'
                 cost_function, f1, f2, f3, FRW, \
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \

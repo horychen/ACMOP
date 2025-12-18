@@ -6,15 +6,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, Loader2, AlertCircle, FileJson, FileText } from "lucide-react";
+import { RefreshCw, Loader2, AlertCircle, FileJson, FileText, Wrench } from "lucide-react";
+import { useRouter } from "next/navigation";
 import CsvVisualizer from "@/components/CsvVisualizer";
 import { ParetoFront2p5D } from "@/components/ParetoFront2p5D";
 import { ParameterHistogram } from "@/components/ParameterHistogram";
 import axios from "axios";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+const SELECTED_INDIVIDUAL_KEY = "fine-tune-selected-individual";
+const SELECTED_FOLDER_KEY = "fine-tune-selected-folder";
+const OPTIMIZATION_SELECTED_FOLDER_KEY = "optimization-selected-folder";
+const OPTIMIZATION_SELECTED_INDIVIDUAL_KEY = "optimization-selected-individual";
 
 export default function OptimizationPage() {
+  const router = useRouter();
   const [folders, setFolders] = useState<string[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>("");
   const [paretoData, setParetoData] = useState<any>(null);
@@ -38,6 +44,41 @@ export default function OptimizationPage() {
     csvDataCacheRef.current = csvDataCache;
   }, [csvDataCache]);
 
+  // 从 localStorage 加载上次选择
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedFolder = localStorage.getItem(OPTIMIZATION_SELECTED_FOLDER_KEY);
+      const savedIndividual = localStorage.getItem(OPTIMIZATION_SELECTED_INDIVIDUAL_KEY);
+      
+      if (savedFolder) {
+        setSelectedFolder(savedFolder);
+      }
+      
+      if (savedIndividual) {
+        try {
+          const individual = JSON.parse(savedIndividual);
+          setSelectedIndividual(individual);
+        } catch (e) {
+          console.error("Failed to parse saved individual:", e);
+        }
+      }
+    }
+  }, []);
+
+  // 保存选中的文件夹到 localStorage
+  useEffect(() => {
+    if (selectedFolder && typeof window !== "undefined") {
+      localStorage.setItem(OPTIMIZATION_SELECTED_FOLDER_KEY, selectedFolder);
+    }
+  }, [selectedFolder]);
+
+  // 保存选中的个体到 localStorage
+  useEffect(() => {
+    if (selectedIndividual && typeof window !== "undefined") {
+      localStorage.setItem(OPTIMIZATION_SELECTED_INDIVIDUAL_KEY, JSON.stringify(selectedIndividual));
+    }
+  }, [selectedIndividual]);
+
   // 加载文件夹列表
   useEffect(() => {
     const fetchFolders = async () => {
@@ -45,9 +86,6 @@ export default function OptimizationPage() {
     try {
       const response = await axios.get(`${BACKEND_URL}/api/acmopv2/list-optimization-folders`);
         setFolders(response.data.folders || []);
-        if (response.data.folders && response.data.folders.length > 0 && !selectedFolder) {
-          setSelectedFolder(response.data.folders[0]);
-        }
       } catch (err: any) {
         console.error("Failed to fetch folders", err);
         setError(err.response?.data?.error || "获取文件夹列表失败");
@@ -130,14 +168,24 @@ export default function OptimizationPage() {
   }, [BACKEND_URL]);
 
   // 加载 Pareto 前沿数据（只在用户更换文件夹时调用）
-  const fetchParetoData = useCallback(async () => {
+  const fetchParetoData = useCallback(async (clearIndividual: boolean = true) => {
     if (!selectedFolder) return;
 
     setLoading(true);
     setError(null);
     
-    // 清空CSV缓存（切换文件夹时）
-    setCsvDataCache(new Map());
+    // 只有在明确要求时才清空个体选择（例如切换文件夹时）
+    if (clearIndividual) {
+      setSelectedIndividual(null);
+      setGeometryPdfPath("");
+      setCurrentCsvFilePath("");
+      setSelectedCsvFileName("");
+      setHighlightedKeys([]);
+      setZFilter(undefined);
+      
+      // 清空CSV缓存（切换文件夹时）
+      setCsvDataCache(new Map());
+    }
 
     try {
       const response = await axios.get(`${BACKEND_URL}/api/acmopv2/pareto-front`, {
@@ -155,28 +203,30 @@ export default function OptimizationPage() {
       } else if (selectedFolder) {
         setSwarmDataPath(`backend/_default/${selectedFolder}/SwarmData.json`);
       }
-
-      // 默认选择最后一个评估的个体（索引最大的）
-      if (response.data.allIndividuals && response.data.allIndividuals.length > 0) {
-        const lastIndividual = response.data.allIndividuals[response.data.allIndividuals.length - 1];
-        setSelectedIndividual(lastIndividual);
-        
-        // 加载默认选中个体的CSV数据（延迟加载，避免阻塞主流程）
-        const individualIndex = lastIndividual.individual_index ?? lastIndividual.index;
-        if (individualIndex !== undefined && individualIndex !== null && response.data.path2FEACsv) {
-          const normalizedPath = response.data.path2FEACsv.replace(/\\/g, '/');
-          let newPath: string;
-          if (/\/\d+\/?$/.test(normalizedPath)) {
-            newPath = normalizedPath.replace(/\/\d+\/?$/, `/${individualIndex}/`);
-          } else {
-            newPath = normalizedPath.endsWith('/') 
-              ? `${normalizedPath}${individualIndex}/`
-              : `${normalizedPath}/${individualIndex}/`;
+      
+      // 如果之前有保存的个体，尝试恢复选择（从 localStorage 读取）
+      if (typeof window !== "undefined") {
+        const savedIndividualStr = localStorage.getItem(OPTIMIZATION_SELECTED_INDIVIDUAL_KEY);
+        if (savedIndividualStr) {
+          try {
+            const savedIndividual = JSON.parse(savedIndividualStr);
+            const savedIndividualKey = savedIndividual.key;
+            const fullData = response.data.paretoFront?.find(
+              (ind: any) => ind.key === savedIndividualKey
+            ) || response.data.allIndividuals?.find(
+              (ind: any) => ind.key === savedIndividualKey
+            );
+            
+            if (fullData) {
+              setSelectedIndividual(fullData);
+              // 自动生成几何 PDF
+              setTimeout(() => {
+                generateGeometryPdf(fullData);
+              }, 100);
+            }
+          } catch (e) {
+            console.error("Failed to restore individual:", e);
           }
-          // 延迟加载，避免阻塞主流程
-          setTimeout(() => {
-            loadCsvDataForIndividual(newPath);
-          }, 100);
         }
       }
     } catch (err: any) {
@@ -194,7 +244,10 @@ export default function OptimizationPage() {
   // 当 selectedFolder 变化时加载数据（只在用户手动更换文件夹时读取）
   useEffect(() => {
     if (selectedFolder) {
-      fetchParetoData();
+      // 检查是否是首次加载（从 localStorage 恢复）
+      const isInitialLoad = !paretoData;
+      // 首次加载时不清空个体，后续切换文件夹时清空
+      fetchParetoData(!isInitialLoad);
     }
   }, [selectedFolder]); // 移除 fetchParetoData 依赖，避免不必要的重新加载
 
@@ -337,8 +390,21 @@ export default function OptimizationPage() {
 
   const handleRefresh = () => {
     if (selectedFolder) {
-      fetchParetoData();
+      // 刷新时不清空个体选择
+      fetchParetoData(false);
     }
+  };
+
+  // 保存选中的个体到 localStorage 并跳转到 fine-tune 页面
+  const handleSendToFineTune = () => {
+    if (!selectedFullData || !selectedFolder) return;
+    
+    // 保存选中的个体和文件夹
+    localStorage.setItem(SELECTED_INDIVIDUAL_KEY, JSON.stringify(selectedFullData));
+    localStorage.setItem(SELECTED_FOLDER_KEY, selectedFolder);
+    
+    // 跳转到 fine-tune 页面
+    router.push("/fine-tune");
   };
 
   return (
@@ -423,7 +489,7 @@ export default function OptimizationPage() {
                 <CardTitle>个体选择</CardTitle>
                 <CardDescription>从已评估的个体中选择查看详细结果</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 {loading ? (
                   <div className="text-center py-4 text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
@@ -449,6 +515,16 @@ export default function OptimizationPage() {
                   </Select>
                 ) : (
                   <div className="text-center py-4 text-muted-foreground">暂无个体数据</div>
+                )}
+                {selectedFullData && (
+                  <Button 
+                    onClick={handleSendToFineTune}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    <Wrench className="h-4 w-4 mr-2" />
+                    发送到 Fine-tune
+                  </Button>
                 )}
               </CardContent>
             </Card>

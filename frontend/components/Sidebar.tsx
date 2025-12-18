@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { LayoutDashboard, Settings, BarChart3, Box, Sparkles, Moon, Sun, FileSearch, Code2, ChevronLeft, ChevronRight } from "lucide-react"
+import { LayoutDashboard, Settings, BarChart3, Box, Sparkles, Moon, Sun, FileSearch, Code2, ChevronLeft, ChevronRight, Wrench } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 import { useState, useEffect } from "react"
 
@@ -94,6 +94,17 @@ export function Sidebar({ className }: SidebarProps) {
               <Link href="/optimization">
                 <BarChart3 className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
                 {!isCollapsed && "Optimization"}
+              </Link>
+            </Button>
+            <Button 
+              variant={pathname === "/fine-tune" ? "secondary" : "ghost"} 
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
+              asChild
+              title={isCollapsed ? "Fine-tune" : undefined}
+            >
+              <Link href="/fine-tune">
+                <Wrench className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+                {!isCollapsed && "Fine-tune"}
               </Link>
             </Button>
             <Button 
