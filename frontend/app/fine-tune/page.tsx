@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import CsvVisualizer from "@/components/CsvVisualizer";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SensitivityAnalysisViewer } from "@/components/SensitivityAnalysisViewer";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 const SELECTED_INDIVIDUAL_KEY = "fine-tune-selected-individual";
@@ -722,6 +723,9 @@ export default function FineTunePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sensitivity Analysis Viewer */}
+      <SensitivityAnalysisViewer />
     </div>
   );
 }

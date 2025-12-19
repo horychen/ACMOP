@@ -590,7 +590,7 @@ class Modern_Machine_Designer_Utility(object):
             "magnet_depth": "mm_d_pm",
             "magnet_pole_span_angle": "deg_alpha_rm",
             "stator_tooth_width": "mm_w_st",
-            "stator_tooth_yoke_depth": "mm_d_sy",
+            "stator_yoke_depth": "mm_d_sy",
             "stator_tooth_shoe_depth": "mm_d_sts",
             "stator_tooth_span_angle": "deg_alpha_st",
             "split_ratio_r_si_slash_r_so": "split_ratio",
@@ -644,6 +644,41 @@ class Modern_Machine_Designer_Utility(object):
             for geo in self.machineGeometry.values():
                 geo.update_from_GP()
 
+    def update_geometric_parameters(self, x_denorm=None, x_denorm_dict=None):
+
+        # 更新决策变量
+        if x_denorm is not None:
+            for i, param in enumerate(self.get_free_variables()):
+                param.value = x_denorm[i]
+        elif x_denorm_dict is not None:
+            # 如果 x_denorm_dict 是 OrderedDict 或普通字典，直接使用
+            for param in self.get_free_variables():
+                if param.name in x_denorm_dict:
+                    param.value = x_denorm_dict[param.name]
+
+        # 更新 parameter_dict_by_name 以确保所有引用都是最新的
+        self.parameter_dict_by_name = self.get_parameter_dict_by_name()
+
+        # 同时刷新依赖于决策变量的导出参数。
+        for i, param in enumerate(self.get_parameters_by_type('derived').values()):
+            if param.calc is not None and param.parameter_dict is not None:
+                param.value = param.calc(param.parameter_dict)
+
+        # 当几何参数更新后，调用此方法来同步 machineGeometry 中的值
+        # 更新 machineGeometry 中所有 Geometry 对象的参数值
+        for geo_name, geo in self.machineGeometry.items():
+            geo.update_from_GP()
+
+    @staticmethod
+    def get_pc_name():
+        import platform, socket
+        n1 = platform.node()
+        n2 = socket.gethostname()
+        n3 = os.environ["COMPUTERNAME"]
+        if n1 == n2 == n3:
+            return n1
+        else:
+            raise Exception(f"Computer names are not equal to each other. {n1,n2,n3}")
 
 
     ''' 实用
@@ -1487,6 +1522,35 @@ class Modern_Machine_Designer_Utility(object):
                         print(f"Deleted folder: {folder_path}")
                     except Exception as e:
                         print(f"Failed to delete {folder_path}: {e}")
+
+
+    @staticmethod
+    def myLogger(dir_log, prefix='/default_prefix_'):
+        import logging, datetime, os
+        """创建日志记录器"""
+        # Disable matplotlib DEBUG logging to reduce log noise
+        logging.getLogger('matplotlib').setLevel(logging.WARNING)
+        logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
+        
+        logger = logging.getLogger()
+        if not len(logger.handlers):
+            logger.setLevel(logging.DEBUG)
+            now = datetime.datetime.now()
+
+            if not os.path.isdir(dir_log):
+                os.makedirs(dir_log)
+
+            # create a file handler
+            handler = logging.FileHandler(dir_log + prefix + '-' + now.strftime("%Y-%m-%d") + '.log')
+            handler.setLevel(logging.DEBUG)
+
+            # create a logging format
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+
+            # add the handlers to the logger
+            logger.addHandler(handler)
+        return logger
 
 
 
@@ -2361,6 +2425,7 @@ class swarm_data_container(object):
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # Utility
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+
 
     def sensitivity_bar_charts(self):
         number_of_variant = self.fea_config_dict['local_sensitivity_analysis_number_of_variants'] + 1

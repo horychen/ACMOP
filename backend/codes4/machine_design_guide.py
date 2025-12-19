@@ -30,6 +30,15 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
     counter_fitness_return: int = 0
     toolJd: JMAG.JMAG = None
 
+    def get_path2SwarmData(self, folder_name):
+        self.dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
+        self.dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
+
+        self.path2SwarmData = os.path.abspath(fr'../_default/' + folder_name.replace(' ', '_'))
+        self.swarm_data_json_file_path = self.path2SwarmData + f'/SwarmData.json'
+        if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
+        os.chdir(self.dir_codes)
+
     def __post_init__(self):
 
         # 绕组
@@ -49,27 +58,13 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         ExcitationFreqSimulated: float = RatedSpeed / 60 * p
 
         ''' 工程和文件路径 '''
-        def get_pc_name():
-            import platform, socket
-            n1 = platform.node()
-            n2 = socket.gethostname()
-            n3 = os.environ["COMPUTERNAME"]
-            if n1 == n2 == n3:
-                return n1
-            else:
-                raise Exception(f"Computer names are not equal to each other. {n1,n2,n3}")
-        self.dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
-        self.dir_codes  = os.path.abspath(os.path.dirname(__file__)) + '/'
+        self.get_path2SwarmData(self.machine_class)
 
         with open((os.path.dirname(__file__))+'/machine_simulation.json', 'r') as f:
             raw_fea_config_dicts = json.load(f)
             self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
-        self.fea_config_dict['pc_name'] = self.pc_name = get_pc_name()
+            self.fea_config_dict['pc_name'] = self.get_pc_name()
 
-        self.path2SwarmData = os.path.abspath(fr'../_default/' + self.machine_class.replace(' ', '_'))
-        self.swarm_data_json_file_path = self.path2SwarmData + f'/SwarmData.json'
-        if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
-        os.chdir(self.dir_codes)
 
         self.wily = Winding(m, Qs, p, ps, coil_pitch_y, bool_DPNVorSEPA=True)
 
@@ -482,7 +477,6 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
             )
         )
 
-
     def get_InitialRotationAngle(self):
         # 设置转子角度的初始位置条件，以使得在t=0时刻，转子的q轴与U相绕组的相轴重合，并且此时U相电流应该为交流最大（需要同步调整circuit中的激励正弦信号的相位）。
         # 不仅如此，初始转子角度还影响着永磁体的励磁角度是否对齐，最好手动确认一下： study.GetMaterial(u"Magnet").SetValue(u"StartAngle", 0.5* 360/(2*acm_variant.['p']) ) # 半个极距
@@ -531,33 +525,6 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         height_in_points = self.mm_r_so.value*2.1
         draw_spmsm(lw, width_in_points, height_in_points)
 
-    def update_geometric_parameters(self, x_denorm=None, x_denorm_dict=None):
-
-        # 更新决策变量
-        if x_denorm is not None:
-            free_vars = self.get_free_variables()
-            for i, param in enumerate(free_vars):
-                if i < len(x_denorm):
-                    param.value = x_denorm[i]
-        elif x_denorm_dict is not None:
-            # 如果 x_denorm_dict 是 OrderedDict 或普通字典，直接使用
-            for param in self.get_free_variables():
-                if param.name in x_denorm_dict:
-                    param.value = x_denorm_dict[param.name]
-
-        # 更新 parameter_dict_by_name 以确保所有引用都是最新的
-        self.parameter_dict_by_name = self.get_parameter_dict_by_name()
-
-        # 同时刷新依赖于决策变量的导出参数。
-        for i, param in enumerate(self.get_parameters_by_type('derived').values()):
-            if param.calc is not None and param.parameter_dict is not None:
-                param.value = param.calc(param.parameter_dict)
-
-        # 当几何参数更新后，调用此方法来同步 machineGeometry 中的值
-        # 更新 machineGeometry 中所有 Geometry 对象的参数值
-        for geo_name, geo in self.machineGeometry.items():
-            geo.update_from_GP()
-
     def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True, x_denorm=None, counter=None, counter_loop=0):
 
         self.update_geometric_parameters(x_denorm=x_denorm)
@@ -584,13 +551,12 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         if not os.path.isdir(self.path2FEACsv): os.makedirs(self.path2FEACsv)
 
         if 'JMAG' in self.select_FEA_tool:
-            study_name = "Transient" # Change here and there 
+            study_name = "Transient"
 
             # Leave the solving task to JMAG
             def build_jmag_project(study_name):
                 self.toolJd = JMAG.JMAG(fea_config_dict=self.fea_config_dict)
-
-                self.toolJd.open(Steel_name=self.EX['SteelMaterial'], expected_project_file_path=self.expected_project_file, pc_name=self.pc_name, dir_parent=self.dir_parent, bool_jmagDesignerShow=bool_jmagDesignerShow)
+                self.toolJd.open(Steel_name=self.EX['SteelMaterial'], expected_project_file_path=self.expected_project_file, pc_name=self.fea_config_dict['pc_name'], dir_parent=self.dir_parent, bool_jmagDesignerShow=bool_jmagDesignerShow)
                 return self.toolJd
 
             def draw_spmsm(toolJd):
@@ -656,14 +622,14 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 toolJd.save(self.name, self.to_json())
 
             self.toolJd = toolJd = build_jmag_project(study_name)
-            if 'PMSM' in self.name:
+            if 'PMSM' in self.machine_class:
                 draw_spmsm(self.toolJd)
 
             # JMAG
             app = toolJd.app
             model = app.GetModel(self.name)
 
-            if 'PMSM' in self.name:
+            if 'PMSM' in self.machine_class:
                 toolJd.pre_process_PMSM(app, model, self)
 
             study = toolJd.add_magnetic_transient_study(app, model, self.path2FEACsv, study_name, self)
@@ -711,7 +677,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 # acm_variant.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
                 self.spec_performance_dict = spec_performance_dict = dict()
-                spec_performance_dict['x_denorm_dict'] = {k: float(v) for k, v in self.get_free_variables_as_dict().items()}
+                spec_performance_dict['x_denorm_dict'] = dict(self.get_free_variables_as_dict()) # Convert OrderedDict to dict to be serelized to json file
                 spec_performance_dict['project_name'] = project_name
                 spec_performance_dict['individual_name'] = individual_name
                 spec_performance_dict['number_current_generation'] = number_current_generation
@@ -796,14 +762,12 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         else:
             raise Exception('[acm_designer.py] Wrong string of select_FEA_tool:', self.select_FEA_tool)
 
-
-
     def evaluate_design_json_wrapper(self, x_denorm, counter=1, counter_loop=1):
         # This is a wrapper for the wrapper, in order to build up a json profile for the design variant
 
         # 这里应该返回新获得的设计，然后可以获得geometry_dict，然后包括x_denorm的信息方便重构设计。
         self.FEA_evaluate(bool_jmagDesignerShow=self.fea_config_dict["designer.Show"], x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
-        print('[DEBUG] evaluate_design_json_wrapper: counter =', counter, 'counter_loop =', counter_loop)
+        # print('[DEBUG] evaluate_design_json_wrapper: counter =', counter, 'counter_loop =', counter_loop)
 
         if 'FEMM' in self.select_fea_config_dict:
             self.results_for_optimization = self.analyzer.build_results_for_optimization()
@@ -849,54 +813,53 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
             # self.spec_geometry_dict['x_denorm'] = list(x_denorm)
 
-            spec_performance_dict = dict()
-            spec_performance_dict['x_denorm_dict'] = dict(self.get_free_variables_as_dict())
-            spec_performance_dict['project_name'] = project_name
-            spec_performance_dict['individual_name'] = individual_name
-            spec_performance_dict['number_current_generation'] = number_current_generation
-            spec_performance_dict['individual_index'] = individual_index
-            # spec_performance_dict['cost_function'] = cost_function
-            spec_performance_dict['f1'] = f1
-            spec_performance_dict['f2'] = f2
-            spec_performance_dict['f3'] = float(f3)
-            spec_performance_dict['TRV'] = TRV
-            spec_performance_dict['FRW'] = FRW
-            spec_performance_dict['torque_average'] = torque_average
-            spec_performance_dict['ss_avg_force_magnitude'] = ss_avg_force_magnitude
-            spec_performance_dict['rotor_weight'] = rotor_weight
-            spec_performance_dict['normalized_torque_ripple'] = float(normalized_torque_ripple)
-            spec_performance_dict['normalized_force_error_magnitude'] = float(normalized_force_error_magnitude)
-            spec_performance_dict['force_error_angle'] = float(force_error_angle)
-            spec_performance_dict['coil_flux_linkage_peak2peak_value'] = float(coil_flux_linkage_peak2peak_value)
-            spec_performance_dict['mm2_slot_area'] = mm2_slot_area
-            spec_performance_dict['Cost'] = Cost
-            spec_performance_dict['Cost_Fe'] = Cost_Fe
-            spec_performance_dict['Cost_Cu'] = Cost_Cu
-            spec_performance_dict['Cost_PM'] = Cost_PM
-            spec_performance_dict['power_factor'] = power_factor
-            spec_performance_dict['rated_ratio'] = rated_ratio
-            spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
-            spec_performance_dict['rated_total_loss'] = rated_total_loss
-            spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
-            spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
-            spec_performance_dict['rated_magnet_Joule_loss'] = rated_magnet_Joule_loss
-            spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
-            spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
-            spec_performance_dict['rated_iron_loss'] = rated_iron_loss
-            spec_performance_dict['rated_windage_loss'] = rated_windage_loss
-            # spec_performance_dict['str_results'] = str_results
-            spec_performance_dict['select_fea_config_dict'] = self.select_fea_config_dict
-            spec_performance_dict['moo.fitness_OA'] = self.fea_config_dict['moo.fitness_OA']
-            spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
-            spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
+            # spec_performance_dict = dict()
+            # spec_performance_dict['x_denorm_dict'] = self.get_free_variables_as_dict()
+            # spec_performance_dict['project_name'] = project_name
+            # spec_performance_dict['individual_name'] = individual_name
+            # spec_performance_dict['number_current_generation'] = number_current_generation
+            # spec_performance_dict['individual_index'] = individual_index
+            # # spec_performance_dict['cost_function'] = cost_function
+            # spec_performance_dict['f1'] = f1
+            # spec_performance_dict['f2'] = f2
+            # spec_performance_dict['f3'] = float(f3)
+            # spec_performance_dict['TRV'] = TRV
+            # spec_performance_dict['FRW'] = FRW
+            # spec_performance_dict['torque_average'] = torque_average
+            # spec_performance_dict['ss_avg_force_magnitude'] = ss_avg_force_magnitude
+            # spec_performance_dict['rotor_weight'] = rotor_weight
+            # spec_performance_dict['normalized_torque_ripple'] = float(normalized_torque_ripple)
+            # spec_performance_dict['normalized_force_error_magnitude'] = float(normalized_force_error_magnitude)
+            # spec_performance_dict['force_error_angle'] = float(force_error_angle)
+            # spec_performance_dict['coil_flux_linkage_peak2peak_value'] = float(coil_flux_linkage_peak2peak_value)
+            # spec_performance_dict['mm2_slot_area'] = mm2_slot_area
+            # spec_performance_dict['Cost'] = Cost
+            # spec_performance_dict['Cost_Fe'] = Cost_Fe
+            # spec_performance_dict['Cost_Cu'] = Cost_Cu
+            # spec_performance_dict['Cost_PM'] = Cost_PM
+            # spec_performance_dict['power_factor'] = power_factor
+            # spec_performance_dict['rated_ratio'] = rated_ratio
+            # spec_performance_dict['rated_stack_length_mm'] = rated_stack_length_mm
+            # spec_performance_dict['rated_total_loss'] = rated_total_loss
+            # spec_performance_dict['rated_stator_copper_loss_along_stack'] = rated_stator_copper_loss_along_stack
+            # spec_performance_dict['rated_rotor_copper_loss_along_stack'] = rated_rotor_copper_loss_along_stack
+            # spec_performance_dict['rated_magnet_Joule_loss'] = rated_magnet_Joule_loss
+            # spec_performance_dict['stator_copper_loss_in_end_turn'] = stator_copper_loss_in_end_turn
+            # spec_performance_dict['rotor_copper_loss_in_end_turn'] = rotor_copper_loss_in_end_turn
+            # spec_performance_dict['rated_iron_loss'] = rated_iron_loss
+            # spec_performance_dict['rated_windage_loss'] = rated_windage_loss
+            # # spec_performance_dict['str_results'] = str_results
+            # spec_performance_dict['select_fea_config_dict'] = self.select_fea_config_dict
+            # spec_performance_dict['moo.fitness_OA'] = self.fea_config_dict['moo.fitness_OA']
+            # spec_performance_dict['moo.fitness_OB'] = self.fea_config_dict['moo.fitness_OB']
+            # spec_performance_dict['moo.fitness_OC'] = self.fea_config_dict['moo.fitness_OC']
 
+            # # Save to disk
+            # # self.save_to_disk(self, spec_performance_dict, GP, EX)
 
-            # Save to disk
-            # self.save_to_disk(self, spec_performance_dict, GP, EX)
-
-            number_current_generation = spec_performance_dict['number_current_generation'] #= int(self.counter//popsize), 
-            individual_index = spec_performance_dict['individual_index'] #= self.counter
-            # builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
+            # number_current_generation = spec_performance_dict['number_current_generation'] #= int(self.counter//popsize), 
+            # individual_index = spec_performance_dict['individual_index'] #= self.counter
+            # # builtins.ad.visualize_dict[f'FEA_Evaluated_Performance-{number_current_generation}-{individual_index}'] = spec_performance_dict
 
 
             # Read the possibly-existing current json data
@@ -982,43 +945,8 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         3. 初始化种群并开始优化迭代
         """
 
-        import logging, datetime, os
-        import builtins
-        import pygmo as pg
-
-
-        builtins.ad = self  # share global variable between modules
-        ad = self
-        import Problem_BearinglessSynchronousDesign  # must import this after __builtins__.ad = ad
-
-        def myLogger(dir_log, prefix='/default_prefix_'):
-            """创建日志记录器"""
-            # Disable matplotlib DEBUG logging to reduce log noise
-            logging.getLogger('matplotlib').setLevel(logging.WARNING)
-            logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
-            
-            logger = logging.getLogger()
-            if not len(logger.handlers):
-                logger.setLevel(logging.DEBUG)
-                now = datetime.datetime.now()
-
-                if not os.path.isdir(dir_log):
-                    os.makedirs(dir_log)
-
-                # create a file handler
-                handler = logging.FileHandler(dir_log + prefix + '-' + now.strftime("%Y-%m-%d") + '.log')
-                handler.setLevel(logging.DEBUG)
-
-                # create a logging format
-                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-                handler.setFormatter(formatter)
-
-                # add the handlers to the logger
-                logger.addHandler(handler)
-            return logger
-
         # 设置路径和日志
-        self.logger = myLogger(self.path2SwarmData + '/', prefix=self.machine_class)
+        self.logger = self.myLogger(self.path2SwarmData + '/', prefix=self.machine_class)
         logger = logging.getLogger(__name__)
 
         self.nobj = sum(1 for k, v in self.fea_config_dict.items() if k.startswith("moo.fitness") and v is not None)
@@ -1031,14 +959,15 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         # MOO Step 1: 创建问题并初始化种群
         ################################################################
         # [4.3.1] 基本设置
+        import Problem_BearinglessSynchronousDesign
         _, prob = Problem_BearinglessSynchronousDesign.get_prob()
         popsize = self.fea_config_dict["moo.popsize"]
         logger.info(f'Pop size is {popsize}')
 
         # [4.3.2] 准备设计参数信息
-        self.x_denorm = list(ad.get_free_variables_as_dict().values())
-        self.x_denorm_dict = ad.get_free_variables_as_dict()
-        self.bounds_denorm = list(ad.get_free_variable_bounds_dict().values())
+        self.x_denorm = list(self.get_free_variables_as_dict().values())
+        self.x_denorm_dict = self.get_free_variables_as_dict()
+        self.bounds_denorm = list(self.get_free_variable_bounds_dict().values())
 
         logger.info('bool_local_exploration_around_selected_individual: %s', bool_local_exploration_around_selected_individual)
         for index, (k, v) in enumerate(self.x_denorm_dict.items()):
@@ -1208,9 +1137,77 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 raise e
         logger.info('Optimization completed.')
 
+    def sensitivity_analysis(self, study_name, parameter_dict, parameter_percentage_value_list):
+
+        import logging
+        import builtins
+
+        builtins.ad = self  # share global variable between modules
+        ad = self
+
+        # 设置路径和日志
+        self.logger = self.myLogger(self.path2SwarmData + '/', prefix=study_name)
+        logger = logging.getLogger(__name__)
+
+        # 为敏感性分析设置单独的临时文件夹
+        self.get_path2SwarmData(study_name)
+
+        # 获取当前设计的参数值
+        x_denorm_dict = self.get_free_variables_as_dict()
+        import copy
+        print(f'当前设计的参数值 x_denorm_dict: {x_denorm_dict}')
+
+        # 验证 parameter_dict 中的参数名是否存在于当前设计中
+        for parameter_name in parameter_dict.keys():
+            if parameter_name not in x_denorm_dict:
+                raise ValueError(f"参数 '{parameter_name}' 不在当前设计的自由变量中。可用的参数: {list(x_denorm_dict.keys())}")
+
+        sensitivity_dict = {}
+        for parameter_name in parameter_dict.keys():
+            sensitivity_dict[parameter_name] = []
+            # 获取当前设计中该参数的原始值
+            current_parameter_value = x_denorm_dict[parameter_name]
+            for parameter_percentage_value in parameter_percentage_value_list:
+                x_denorm_dict_copy = copy.deepcopy(x_denorm_dict)
+                # 基于当前设计的参数值进行百分比变化
+                x_denorm_dict_copy[parameter_name] = current_parameter_value * (1 + parameter_percentage_value)
+                sensitivity_dict[parameter_name].append(x_denorm_dict_copy)
+
+        import pprint
+        pp = pprint.PrettyPrinter(indent=2, width=120, compact=False, sort_dicts=False)
+        print('sensitivity_dict:')
+        pp.pprint(sensitivity_dict)
+
+        self.fea_config_dict["designer.Show"] = True
 
 
 
+        # 对每个参数的每个百分比变化分别进行评估
+        counter = 0
+        for parameter_name in sensitivity_dict.keys():
+            for percentage_idx, x_denorm_dict_variant in enumerate(sensitivity_dict[parameter_name]):
+                x_denorm = list(x_denorm_dict_variant.values())
+
+                # 为每个敏感性分析案例设置唯一的名称
+                self.name = f'param-{parameter_name}-pct-{parameter_percentage_value_list[percentage_idx]:.2f}'
+                
+                try:
+                    cost_function, f1, f2, f3, FRW, \
+                    normalized_torque_ripple, \
+                    normalized_force_error_magnitude, \
+                    force_error_angle = self.evaluate_design_json_wrapper(x_denorm, counter)
+
+                    print(f'敏感性分析结果 [{counter}]: 参数={parameter_name}, 百分比变化={parameter_percentage_value_list[percentage_idx]:.2f}, '
+                        f'参数值={x_denorm_dict_variant[parameter_name]:.2f}, '
+                        f'f1={f1:.2f}, f2={f2:.2f}, f3={f3:.2f}, FRW={FRW:.2f}, '
+                        f'normalized_torque_ripple={normalized_torque_ripple:.2f}, '
+                        f'normalized_force_error_magnitude={normalized_force_error_magnitude:.2f}, '
+                        f'force_error_angle={force_error_angle:.2f}')
+                except Exception as e:
+                    print(e)
+                    print('大概率是参数值超出范围了导致画不出形状报错，继续敏感性分析')
+
+                counter += 1
 
 if __name__ == "__main__":
     # 创建对象并导出为 JSON
@@ -1227,7 +1224,7 @@ if __name__ == "__main__":
             "magnet_depth": 5.19948,                     # free variable
             "magnet_pole_span_angle": 44.9638,           # free variable
             "stator_tooth_width": 16.099,                # free variable
-            "stator_tooth_yoke_depth": 32.75940500000001,# free variable
+            "stator_yoke_depth": 32.7594,                # free variable
             "stator_tooth_shoe_depth": 1.50079,          # free variable
             "stator_tooth_span_angle": 11.1183,          # free variable
             # "stator_tooth_depth": 42.9701,

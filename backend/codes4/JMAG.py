@@ -622,12 +622,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # add equations
         study.GetDesignTable().AddEquation("freq")
-        study.GetDesignTable().AddEquation("speed")
-
         study.GetDesignTable().GetEquation("freq").SetType(0)
         study.GetDesignTable().GetEquation("freq").SetExpression("%g"%(FREQUENCY))
         study.GetDesignTable().GetEquation("freq").SetDescription("Excitation Frequency in Hz")
 
+        study.GetDesignTable().AddEquation("speed")
         study.GetDesignTable().GetEquation("speed").SetType(1)
         study.GetDesignTable().GetEquation("speed").SetExpression("freq * %f" % (60 / acm_variant.p.value ))
         study.GetDesignTable().GetEquation("speed").SetDescription("mechanical speed in r/min")
@@ -1398,7 +1397,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # study.GetMeshControl().GetCondition("StatorMeshCtrl").ClearParts()
             # study.GetMeshControl().GetCondition("StatorMeshCtrl").AddSet(model.GetSetList().GetSet("StatorSet"), 0)
 
-            app.GetModel(u"SPMSM-50000W-30000rpm-attempt2").GetStudy(u"Transient").GetMeshControl().GetCondition(u"untitled 1").SetValue(u"Size", 12.35)
+            study.GetMeshControl().GetCondition(u"untitled 1").SetValue(u"Size", 12.35)
 
             study.GetMeshControl().CreateCondition("Part", "MagnetMeshCtrl")
             study.GetMeshControl().GetCondition("MagnetMeshCtrl").SetValue("Size", meshSize_Magnet)
@@ -2199,7 +2198,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # caculate the fitness
         logger = logging.getLogger(__name__)
         logger.info('Calculate the fitness for %s', acm_variant.machine_class)
-        logger.info('with x_denorm_dict: %s', acm_variant.x_denorm_dict)
+        logger.info('with x_denorm_dict: %s', dict(acm_variant.get_free_variables_as_dict()))
 
         # LOSS
         if 'IM' in machine_type:
@@ -2249,7 +2248,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # print('Current density [Arms/m^2]:', stator_current_density, rotor_current_density, sep='\n')
             # if rotor_current_density > 8e6:
             #     print('rotor_current_density is over 8e6 Arms/m^2')
-        else:
+        elif 'PMSM' in machine_type:
                                     # 基波电流幅值（在一根导体里的电流，六相逆变器中的GroupBDW相的电流，所以相当于已经考虑了并联支路数了）
             stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.EX['mm2_slot_area']*1e-6/acm_variant.EX['DriveW_zQ'])
             logger = logging.getLogger(__name__)

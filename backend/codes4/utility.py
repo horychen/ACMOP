@@ -501,7 +501,8 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     windage_loss_axial = 0.5 * c_f * rho_Air * Omega**3 * (im_variant.mm_r_ro.value*1e-3)**5
     
     windage_loss_total = windage_loss_radial + windage_loss_axial
-    print('\t windage_loss_total = windage_loss_radial + windage_loss_axial =', windage_loss_total, '[W] =', windage_loss_radial, '+', windage_loss_axial, '[W]')
+    print('\t windage_loss_total = windage_loss_radial + windage_loss_axial = {:.2f} [W] = {:.2f} + {:.2f} [W]'.format(
+        windage_loss_total, windage_loss_radial, windage_loss_axial))
     return windage_loss_total
 
 
