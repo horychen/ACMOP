@@ -1,6 +1,13 @@
 from math import cos, sin, atan, sqrt; import numpy as np
 import math
 import logging, builtins
+
+# Helper function for verbose printing
+def verbose_print(*args, **kwargs):
+    """Print only if VERBOSE_DRAWING is enabled."""
+    if getattr(builtins, 'VERBOSE_DRAWING', False):
+        print(*args, **kwargs)
+
 class CrossSectInnerRotorStator:
     # CrossSectInnerRotorStator Describes the inner rotor motor stator.
     #    Properties are set upon class creation and cannot be modified.
@@ -42,6 +49,7 @@ class CrossSectInnerRotorStator:
 
     def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the geometric parameters."""
+        verbose_print("Now draw CrossSectInnerRotorStator...")
         alpha_st = self.deg_alpha_st * math.pi/180
         alpha_sto = -self.deg_alpha_sto * math.pi/180
         r_si = self.mm_r_si
@@ -86,6 +94,23 @@ class CrossSectInnerRotorStator:
         P4_Mirror = [P4[0], -P4[1]]
         P5_Mirror = [P5[0], -P5[1]]
 
+        # def fmt(pt):
+        #     return f"[{pt[0]:.2f}, {pt[1]:.2f}]"
+        # print(f'[CrossSectStator.py] P1={fmt(P1)}')
+        # print(f'[CrossSectStator.py] P2_Mirror={fmt(P2_Mirror)}')
+        # print(f'[CrossSectStator.py] P2={fmt(P2)}')
+        # print(f'[CrossSectStator.py] P3={fmt(P3)}')
+        # print(f'[CrossSectStator.py] P3_local_rotate={fmt(P3_local_rotate)}')
+        # print(f'[CrossSectStator.py] P4={fmt(P4)}')
+        # print(f'[CrossSectStator.py] P5={fmt(P5)}')
+        # print(f'[CrossSectStator.py] P6={fmt(P6)}')
+        # print(f'[CrossSectStator.py] P7={fmt(P7)}')
+        # print(f'[CrossSectStator.py] P8={fmt(P8)}')
+        # print(f'[CrossSectStator.py] P2_Mirror={fmt(P2_Mirror)}')
+        # print(f'[CrossSectStator.py] P3_Mirror={fmt(P3_Mirror)}')
+        # print(f'[CrossSectStator.py] P4_Mirror={fmt(P4_Mirror)}')
+        # print(f'[CrossSectStator.py] P5_Mirror={fmt(P5_Mirror)}')
+
         drawer.getSketch(self.name, self.color)
 
         list_segments = []
@@ -99,14 +124,14 @@ class CrossSectInnerRotorStator:
             def draw_fraction(list_segments, P2, P3, P4, P5,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
-                list_segments += drawer.drawArc([0,0], P2, P2_Mirror)
-                list_segments += drawer.drawLine(P2, P3)
-                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-                list_segments += drawer.drawLine(P3, P4)
-                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-                list_segments += drawer.drawLine(P4, P5)
-                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
-                list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+                list_segments += drawer.drawArc([0,0], P2, P2_Mirror); verbose_print('[0,0], P2, P2_Mirror')
+                list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror); verbose_print('P2_Mirror, P3_Mirror')
+                list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror); verbose_print('P3_Mirror, P4_Mirror')
+                list_segments += drawer.drawLine(P4, P5); verbose_print('P4, P5')
+                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror); verbose_print('P4_Mirror, P5_Mirror')
+                list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate); verbose_print('[0,0], P5_Mirror, P5_Rotate')
             for i in range(Q):
                 draw_fraction(list_segments, iPark(P2, i*alpha_slot_span), 
                                              iPark(P3, i*alpha_slot_span), 
@@ -118,17 +143,17 @@ class CrossSectInnerRotorStator:
                                              iPark(P5_Mirror, i*alpha_slot_span), )
                 # raise
             # draw a circle (this is officially suggested)
-            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
-            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]]); verbose_print('[0,0], P8, [-P8[0], P8[1]]')
+            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8); verbose_print('[0,0],     [-P8[0], P8[1]], P8')
         else:
-            list_segments += drawer.drawArc([0,0], P2, P1)
-            list_segments += drawer.drawLine(P2, P3)
-            list_segments += drawer.drawLine(P3, P4)
-            list_segments += drawer.drawLine(P4, P5)
-            list_segments += drawer.drawArc([0,0], P6, P5)
-            list_segments += drawer.drawLine(P6, P7)
-            list_segments += drawer.drawArc([0,0], P7, P8)
-            list_segments += drawer.drawLine(P8, P1)
+            list_segments += drawer.drawArc([0,0], P2, P1); verbose_print('[0,0], P2, P1')
+            list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+            list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+            list_segments += drawer.drawLine(P4, P5); verbose_print('P4, P5')
+            list_segments += drawer.drawArc([0,0], P6, P5); verbose_print('[0,0], P6, P5')
+            list_segments += drawer.drawLine(P6, P7); verbose_print('P6, P7')
+            list_segments += drawer.drawArc([0,0], P7, P8); verbose_print('[0,0], P7, P8')
+            list_segments += drawer.drawLine(P8, P1); verbose_print('P8, P1')
 
         # DEBUG
         # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
@@ -181,6 +206,7 @@ class CrossSectInnerRotorClosedSlotStator:
 
     def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the geometric parameters."""
+        verbose_print("Now draw CrossSectInnerRotorClosedSlotStator...")
         r_si = self.mm_r_si
         d_st = self.mm_d_st
         d_sy = self.mm_d_sy
@@ -242,14 +268,14 @@ class CrossSectInnerRotorClosedSlotStator:
             def draw_fraction(list_segments, P2, P3, P4, P5,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
-                list_segments += drawer.drawArc([0,0], P2, P2_Mirror)
-                list_segments += drawer.drawLine(P2, P3)
-                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-                list_segments += drawer.drawLine(P3, P4)
-                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-                list_segments += drawer.drawLine(P4, P5)
-                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
-                list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+                list_segments += drawer.drawArc([0,0], P2, P2_Mirror); verbose_print('[0,0], P2, P2_Mirror')
+                list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror); verbose_print('P2_Mirror, P3_Mirror')
+                list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror); verbose_print('P3_Mirror, P4_Mirror')
+                list_segments += drawer.drawLine(P4, P5); verbose_print('P4, P5')
+                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror); verbose_print('P4_Mirror, P5_Mirror')
+                list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate); verbose_print('[0,0], P5_Mirror, P5_Rotate')
             for i in range(Q):
                 draw_fraction(list_segments, iPark(P2, i*alpha_slot_span), 
                                              iPark(P3, i*alpha_slot_span), 
@@ -261,17 +287,17 @@ class CrossSectInnerRotorClosedSlotStator:
                                              iPark(P5_Mirror, i*alpha_slot_span), )
                 # raise
             # draw a circle (this is officially suggested)
-            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
-            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]]); verbose_print('[0,0], P8, [-P8[0], P8[1]]')
+            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8); verbose_print('[0,0],     [-P8[0], P8[1]], P8')
         else:
-            list_segments += drawer.drawArc([0,0], P2, P1)
-            list_segments += drawer.drawLine(P2, P3)
-            list_segments += drawer.drawLine(P3, P4)
-            list_segments += drawer.drawLine(P4, P5)
-            list_segments += drawer.drawArc([0,0], P6, P5)
-            list_segments += drawer.drawLine(P6, P7)
-            list_segments += drawer.drawArc([0,0], P7, P8)
-            list_segments += drawer.drawLine(P8, P1)
+            list_segments += drawer.drawArc([0,0], P2, P1); verbose_print('[0,0], P2, P1')
+            list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+            list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+            list_segments += drawer.drawLine(P4, P5); verbose_print('P4, P5')
+            list_segments += drawer.drawArc([0,0], P6, P5); verbose_print('[0,0], P6, P5')
+            list_segments += drawer.drawLine(P6, P7); verbose_print('P6, P7')
+            list_segments += drawer.drawArc([0,0], P7, P8); verbose_print('[0,0], P7, P8')
+            list_segments += drawer.drawLine(P8, P1); verbose_print('P8, P1')
 
         # DEBUG
         # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
@@ -302,6 +328,7 @@ class CrossSectInnerRotorStatorWinding(object):
 
     def draw(self, drawer, bool_re_evaluate=False, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the stator_core."""
+        verbose_print("Now draw CrossSectInnerRotorStatorWinding...")
         alpha_st = self.statorCore.deg_alpha_st * math.pi/180
         alpha_sto = self.statorCore.deg_alpha_sto * math.pi/180
         r_si     = self.statorCore.mm_r_si
@@ -333,7 +360,7 @@ class CrossSectInnerRotorStatorWinding(object):
                (r_si+d_sp+d_st)*-sin(alpha_slot_span*0.5) *1.00 ]
 
         mm2_slot_area = 2 * get_area_polygon(P4, P5, P6, POpen)
-        print(f'[CrossSectStator.py] {mm2_slot_area=}')
+        verbose_print(f'[CrossSectStator.py] {mm2_slot_area=}')
 
         PMiddle6Open = [ 0.5*(P6[0]+POpen[0]), 0.5*(P6[1]+POpen[1])]
         PCoil = [ 0.5*(PMiddle45[0]+PMiddle6Open[0]), 0.5*(PMiddle45[1]+PMiddle6Open[1])]
@@ -377,17 +404,17 @@ class CrossSectInnerRotorStatorWinding(object):
                 return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
             def draw_fraction(list_segments, P6_Shrink, P5_Shrink, P4_Shrink, POpen_Shrink,
                                             P6_Shrink_Mirror, P5_Shrink_Mirror, P4_Shrink_Mirror,  POpen_Shrink_Mirror):
-                list_segments += drawer.drawArc([0,0], P6_Shrink, P5_Shrink)
-                list_segments += drawer.drawLine(P5_Shrink, P4_Shrink)
-                list_segments += drawer.drawLine(P4_Shrink, POpen_Shrink)
-                list_segments += drawer.drawLine(POpen_Shrink, P6_Shrink)
+                list_segments += drawer.drawArc([0,0], P6_Shrink, P5_Shrink); verbose_print('[0,0], P6_Shrink, P5_Shrink')
+                list_segments += drawer.drawLine(P5_Shrink, P4_Shrink); verbose_print('P5_Shrink, P4_Shrink')
+                list_segments += drawer.drawLine(P4_Shrink, POpen_Shrink); verbose_print('P4_Shrink, POpen_Shrink')
+                list_segments += drawer.drawLine(POpen_Shrink, P6_Shrink); verbose_print('POpen_Shrink, P6_Shrink')
                 list_regions.append(list_segments)
                 list_segments = []
 
-                list_segments += drawer.drawArc([0,0], P5_Shrink_Mirror, P6_Shrink_Mirror)
-                list_segments += drawer.drawLine(P5_Shrink_Mirror, P4_Shrink_Mirror)
-                list_segments += drawer.drawLine(P4_Shrink_Mirror, POpen_Shrink_Mirror)
-                list_segments += drawer.drawLine(POpen_Shrink_Mirror, P6_Shrink_Mirror)
+                list_segments += drawer.drawArc([0,0], P5_Shrink_Mirror, P6_Shrink_Mirror); verbose_print('[0,0], P5_Shrink_Mirror, P6_Shrink_Mirror')
+                list_segments += drawer.drawLine(P5_Shrink_Mirror, P4_Shrink_Mirror); verbose_print('P5_Shrink_Mirror, P4_Shrink_Mirror')
+                list_segments += drawer.drawLine(P4_Shrink_Mirror, POpen_Shrink_Mirror); verbose_print('P4_Shrink_Mirror, POpen_Shrink_Mirror')
+                list_segments += drawer.drawLine(POpen_Shrink_Mirror, P6_Shrink_Mirror); verbose_print('POpen_Shrink_Mirror, P6_Shrink_Mirror')
                 list_regions.append(list_segments)
                 list_segments = []
 
@@ -402,11 +429,11 @@ class CrossSectInnerRotorStatorWinding(object):
                                              iPark(POpen_Shrink_Mirror, i*alpha_slot_span), )
                 # raise
         else:
-            # list_segments += drawer.drawCircle(PCoil, TheRadius)
-            list_segments += drawer.drawArc([0,0], P6_Shrink, P5_Shrink)
-            list_segments += drawer.drawLine(P5_Shrink, P4_Shrink)
-            list_segments += drawer.drawLine(P4_Shrink, POpen_Shrink)
-            list_segments += drawer.drawLine(POpen_Shrink, P6_Shrink)
+            # list_segments += drawer.drawCircle(PCoil, TheRadius); verbose_print('PCoil, TheRadius')
+            list_segments += drawer.drawArc([0,0], P6_Shrink, P5_Shrink); verbose_print('[0,0], P6_Shrink, P5_Shrink')
+            list_segments += drawer.drawLine(P5_Shrink, P4_Shrink); verbose_print('P5_Shrink, P4_Shrink')
+            list_segments += drawer.drawLine(P4_Shrink, POpen_Shrink); verbose_print('P4_Shrink, POpen_Shrink')
+            list_segments += drawer.drawLine(POpen_Shrink, P6_Shrink); verbose_print('POpen_Shrink, P6_Shrink')
             list_regions.append(list_segments)
 
             # Create mirrored versions for the second conductor (don't modify self attributes)
@@ -416,11 +443,11 @@ class CrossSectInnerRotorStatorWinding(object):
             P4_Shrink_mirror = [P4_Shrink[0], -P4_Shrink[1]]
             POpen_Shrink_mirror = [POpen_Shrink[0], -POpen_Shrink[1]]
             list_segments = []
-            # list_segments += drawer.drawCircle(PCoil_mirror, TheRadius)
-            list_segments += drawer.drawArc([0,0], P5_Shrink_mirror, P6_Shrink_mirror)
-            list_segments += drawer.drawLine(P5_Shrink_mirror, P4_Shrink_mirror)
-            list_segments += drawer.drawLine(P4_Shrink_mirror, POpen_Shrink_mirror)
-            list_segments += drawer.drawLine(POpen_Shrink_mirror, P6_Shrink_mirror)
+            # list_segments += drawer.drawCircle(PCoil_mirror, TheRadius); verbose_print('PCoil_mirror, TheRadius')
+            list_segments += drawer.drawArc([0,0], P5_Shrink_mirror, P6_Shrink_mirror); verbose_print('[0,0], P5_Shrink_mirror, P6_Shrink_mirror')
+            list_segments += drawer.drawLine(P5_Shrink_mirror, P4_Shrink_mirror); verbose_print('P5_Shrink_mirror, P4_Shrink_mirror')
+            list_segments += drawer.drawLine(P4_Shrink_mirror, POpen_Shrink_mirror); verbose_print('P4_Shrink_mirror, POpen_Shrink_mirror')
+            list_segments += drawer.drawLine(POpen_Shrink_mirror, P6_Shrink_mirror); verbose_print('POpen_Shrink_mirror, P6_Shrink_mirror')
             list_regions.append(list_segments)
             list_segments = []
 
@@ -493,6 +520,7 @@ class CrossSectInnerRotorStator_PMAtYoke:
 
     def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the geometric parameters."""
+        verbose_print("Now draw CrossSectInnerRotorStator_PMAtYoke...")
         alpha_st = self.deg_alpha_st * math.pi/180
         alpha_sto = -self.deg_alpha_sto * math.pi/180
         r_si = self.mm_r_si
@@ -553,26 +581,26 @@ class CrossSectInnerRotorStator_PMAtYoke:
             def draw_fraction(list_segments, i, P0, P2, P3, P4, P5,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
-                list_segments += drawer.drawArc([0,0], P2, P2_Mirror)
-                list_segments += drawer.drawLine(P2, P3)
-                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-                list_segments += drawer.drawLine(P3, P4)
-                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-                list_segments += drawer.drawLine(P4, P5)
-                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+                list_segments += drawer.drawArc([0,0], P2, P2_Mirror); verbose_print('[0,0], P2, P2_Mirror')
+                list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror); verbose_print('P2_Mirror, P3_Mirror')
+                list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror); verbose_print('P3_Mirror, P4_Mirror')
+                list_segments += drawer.drawLine(P4, P5); verbose_print('P4, P5')
+                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror); verbose_print('P4_Mirror, P5_Mirror')
                 if i % 2 == 1:
-                    list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+                    list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate); verbose_print('[0,0], P5_Mirror, P5_Rotate')
                 else:
                     # print(alpha_slot_span/2/math.pi*180,  alpha_pm_depth/2/math.pi*180)
                     P5_Rotate2PM = iPark(P0, alpha_slot_span/2 - alpha_pm_depth/2)
-                    list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate2PM)
+                    list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate2PM); verbose_print('[0,0], P5_Mirror, P5_Rotate2PM')
                     P5_RotatePassPM = iPark(P5_Rotate2PM, alpha_pm_depth)
                     P51 = [ P5_Rotate2PM[0]    + mm_w_pm*cos(alpha_slot_span/2+alpha_slot_span*i), P5_Rotate2PM[1]    + mm_w_pm*sin(alpha_slot_span/2+alpha_slot_span*i) ]
                     P52 = [ P5_RotatePassPM[0] + mm_w_pm*cos(alpha_slot_span/2+alpha_slot_span*i), P5_RotatePassPM[1] + mm_w_pm*sin(alpha_slot_span/2+alpha_slot_span*i) ]
-                    list_segments += drawer.drawLine(P5_Rotate2PM, P51)
-                    list_segments += drawer.drawLine(P51, P52)
-                    list_segments += drawer.drawLine(P52, P5_RotatePassPM)
-                    list_segments += drawer.drawArc([0,0], P5_RotatePassPM, P5_Rotate)
+                    list_segments += drawer.drawLine(P5_Rotate2PM, P51); verbose_print('P5_Rotate2PM, P51')
+                    list_segments += drawer.drawLine(P51, P52); verbose_print('P51, P52')
+                    list_segments += drawer.drawLine(P52, P5_RotatePassPM); verbose_print('P52, P5_RotatePassPM')
+                    list_segments += drawer.drawArc([0,0], P5_RotatePassPM, P5_Rotate); verbose_print('[0,0], P5_RotatePassPM, P5_Rotate')
             for i in range(Q):
                 draw_fraction(list_segments, i,
                                              iPark(P0, i*alpha_slot_span), 
@@ -588,8 +616,8 @@ class CrossSectInnerRotorStator_PMAtYoke:
                 #     break
                 # raise
             # draw a circle (this is officially suggested)
-            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
-            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]]); verbose_print('[0,0], P8, [-P8[0], P8[1]]')
+            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8); verbose_print('[0,0],     [-P8[0], P8[1]], P8')
 
 
             # DEBUG
@@ -629,6 +657,7 @@ class CrossSectStatorMagnetAtYoke:
 
     def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the stator_core."""
+        verbose_print("Now draw CrossSectStatorMagnetAtYoke...")
         alpha_st = self.statorCore.deg_alpha_st * math.pi/180
         alpha_sto = -self.statorCore.deg_alpha_sto * math.pi/180
         r_si = self.statorCore.mm_r_si
@@ -690,29 +719,29 @@ class CrossSectStatorMagnetAtYoke:
             def draw_fraction(list_segments, i, P0, P2, P3, P4, P5,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
-                # list_segments += drawer.drawArc([0,0], P2, P2_Mirror)
-                # list_segments += drawer.drawLine(P2, P3)
-                # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-                # list_segments += drawer.drawLine(P3, P4)
-                # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-                # list_segments += drawer.drawLine(P4, P5)
-                # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+                # list_segments += drawer.drawArc([0,0], P2, P2_Mirror); verbose_print('[0,0], P2, P2_Mirror')
+                # list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+                # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror); verbose_print('P2_Mirror, P3_Mirror')
+                # list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+                # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror); verbose_print('P3_Mirror, P4_Mirror')
+                # list_segments += drawer.drawLine(P4, P5); verbose_print('P4, P5')
+                # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror); verbose_print('P4_Mirror, P5_Mirror')
                 if i % 2 == 1:
-                    # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+                    # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate); verbose_print('[0,0], P5_Mirror, P5_Rotate')
                     pass
                 else:
                     magnet = dict()
                     # print(alpha_slot_span/2/math.pi*180,  alpha_pm_depth/2/math.pi*180)
                     P5_Rotate2PM = iPark(P0, alpha_slot_span/2 - alpha_pm_depth/2)
-                    # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate2PM)
+                    # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate2PM); verbose_print('[0,0], P5_Mirror, P5_Rotate2PM')
                     P5_RotatePassPM = iPark(P5_Rotate2PM, alpha_pm_depth)
                     P51 = [ P5_Rotate2PM[0]    + mm_w_pm*cos(alpha_slot_span/2+alpha_slot_span*i), P5_Rotate2PM[1]    + mm_w_pm*sin(alpha_slot_span/2+alpha_slot_span*i) ]
                     P52 = [ P5_RotatePassPM[0] + mm_w_pm*cos(alpha_slot_span/2+alpha_slot_span*i), P5_RotatePassPM[1] + mm_w_pm*sin(alpha_slot_span/2+alpha_slot_span*i) ]
-                    list_segments += drawer.drawLine(P5_Rotate2PM, P51)
-                    list_segments += drawer.drawLine(P51, P52)
-                    list_segments += drawer.drawLine(P52, P5_RotatePassPM)
-                    list_segments += drawer.drawLine(P5_RotatePassPM, P5_Rotate2PM)
-                    # list_segments += drawer.drawArc([0,0], P5_RotatePassPM, P5_Rotate)
+                    list_segments += drawer.drawLine(P5_Rotate2PM, P51); verbose_print('P5_Rotate2PM, P51')
+                    list_segments += drawer.drawLine(P51, P52); verbose_print('P51, P52')
+                    list_segments += drawer.drawLine(P52, P5_RotatePassPM); verbose_print('P52, P5_RotatePassPM')
+                    list_segments += drawer.drawLine(P5_RotatePassPM, P5_Rotate2PM); verbose_print('P5_RotatePassPM, P5_Rotate2PM')
+                    # list_segments += drawer.drawArc([0,0], P5_RotatePassPM, P5_Rotate); verbose_print('[0,0], P5_RotatePassPM, P5_Rotate')
                     magnet['X'] = 0.5*(P5_Rotate2PM[0]+P52[0])
                     magnet['Y'] = 0.5*(P5_Rotate2PM[1]+P52[1])
                     magnet['Direction-Theta'] = np.atan2(P52[1]-P51[1], P52[0]-P51[0])
@@ -732,8 +761,8 @@ class CrossSectStatorMagnetAtYoke:
                 #     break
                 # raise
             # draw a circle (this is officially suggested)
-            # list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
-            # list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+            # list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]]); verbose_print('[0,0], P8, [-P8[0], P8[1]]')
+            # list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8); verbose_print('[0,0],     [-P8[0], P8[1]], P8')
 
 
             # DEBUG
@@ -773,6 +802,7 @@ class CrossSectToroidalWiniding:
 
     def draw(self, drawer, bool_draw_whole_model=True):
         """Calculate all point coordinates based on the stator_core."""
+        verbose_print("Now draw CrossSectToroidalWiniding...")
         alpha_st = self.statorCore.deg_alpha_st * math.pi/180
         alpha_sto = -self.statorCore.deg_alpha_sto * math.pi/180
         r_si = self.statorCore.mm_r_si
@@ -834,21 +864,21 @@ class CrossSectToroidalWiniding:
             def draw_fraction(list_segments, i, P0, P2, P3, P4, P5,
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
-                # list_segments += drawer.drawArc([0,0], P2, P2_Mirror)
-                # list_segments += drawer.drawLine(P2, P3)
-                # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-                # list_segments += drawer.drawLine(P3, P4)
-                # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-                # list_segments += drawer.drawLine(P4, P5)
-                # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+                # list_segments += drawer.drawArc([0,0], P2, P2_Mirror); verbose_print('[0,0], P2, P2_Mirror')
+                # list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+                # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror); verbose_print('P2_Mirror, P3_Mirror')
+                # list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+                # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror); verbose_print('P3_Mirror, P4_Mirror')
+                # list_segments += drawer.drawLine(P4, P5); verbose_print('P4, P5')
+                # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror); verbose_print('P4_Mirror, P5_Mirror')
                 # if i % 2 == 1:
-                #     # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+                #     # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate); verbose_print('[0,0], P5_Mirror, P5_Rotate')
                 #     pass
                 # else:
                 if True:
                     # print(alpha_slot_span/2/math.pi*180,  alpha_pm_depth/2/math.pi*180)
                     P5_Rotate2PM = iPark(P0, alpha_slot_span/2 - alpha_pm_depth/2)
-                    # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate2PM)
+                    # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate2PM); verbose_print('[0,0], P5_Mirror, P5_Rotate2PM')
                     P5_RotatePassPM = iPark(P5_Rotate2PM, alpha_pm_depth)
                     P53  = [ P5_Rotate2PM[0]    + d_sy* 1.2*cos(alpha_slot_span/2+alpha_slot_span*i), P5_Rotate2PM[1]    + d_sy* 1.2*sin(alpha_slot_span/2+alpha_slot_span*i) ]
                     P54  = [ P5_RotatePassPM[0] + d_sy* 1.2*cos(alpha_slot_span/2+alpha_slot_span*i), P5_RotatePassPM[1] + d_sy* 1.2*sin(alpha_slot_span/2+alpha_slot_span*i) ]
@@ -858,10 +888,10 @@ class CrossSectToroidalWiniding:
                     P58  = [ P5_RotatePassPM[0] + d_sy*-0.2*cos(alpha_slot_span/2+alpha_slot_span*i), P5_RotatePassPM[1] + d_sy*-0.2*sin(alpha_slot_span/2+alpha_slot_span*i) ]
                     P59  = [ P5_Rotate2PM[0]    + d_sy*-0.4*cos(alpha_slot_span/2+alpha_slot_span*i), P5_Rotate2PM[1]    + d_sy*-0.4*sin(alpha_slot_span/2+alpha_slot_span*i) ]
                     P510 = [ P5_RotatePassPM[0] + d_sy*-0.4*cos(alpha_slot_span/2+alpha_slot_span*i), P5_RotatePassPM[1] + d_sy*-0.4*sin(alpha_slot_span/2+alpha_slot_span*i) ]
-                    list_segments += drawer.drawLine(P53, P54)
-                    list_segments += drawer.drawLine(P54, P56)
-                    list_segments += drawer.drawLine(P56, P55)
-                    list_segments += drawer.drawLine(P55, P53)
+                    list_segments += drawer.drawLine(P53, P54); verbose_print('P53, P54')
+                    list_segments += drawer.drawLine(P54, P56); verbose_print('P54, P56')
+                    list_segments += drawer.drawLine(P56, P55); verbose_print('P56, P55')
+                    list_segments += drawer.drawLine(P55, P53); verbose_print('P55, P53')
                     coil=dict()
                     coil['LayerX-Phase'] = 'B' if i%2==0 else 'M'
                     coil['LayerX-X'] = 0.5*(P53[0] + P56[0])
@@ -870,10 +900,10 @@ class CrossSectToroidalWiniding:
                     coil['LayerX-Theta'] = np.atan2(coil['LayerX-Y'], coil['LayerX-X'])
                     coil['LayerX-Direction'] = '+'
                     coil['LayerX-Purpose'] = 'SuspensionOnly' if i%2==0 else 'DualPurpose'
-                    list_segments += drawer.drawLine(P57, P58)
-                    list_segments += drawer.drawLine(P58, P510)
-                    list_segments += drawer.drawLine(P510, P59)
-                    list_segments += drawer.drawLine(P59, P57)
+                    list_segments += drawer.drawLine(P57, P58); verbose_print('P57, P58')
+                    list_segments += drawer.drawLine(P58, P510); verbose_print('P58, P510')
+                    list_segments += drawer.drawLine(P510, P59); verbose_print('P510, P59')
+                    list_segments += drawer.drawLine(P59, P57); verbose_print('P59, P57')
                     coil['LayerY-Phase'] = 'B' if i%2==0 else 'M'
                     coil['LayerY-X'] = 0.5*(P57[0] + P510[0])
                     coil['LayerY-Y'] = 0.5*(P57[1] + P510[1])
@@ -897,8 +927,8 @@ class CrossSectToroidalWiniding:
                 #     break
                 # raise
             # draw a circle (this is officially suggested)
-            # list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
-            # list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+            # list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]]); verbose_print('[0,0], P8, [-P8[0], P8[1]]')
+            # list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8); verbose_print('[0,0],     [-P8[0], P8[1]], P8')
 
             # DEBUG
             # for ind, point in enumerate([P1, P2, P3, P4, P5, P6, P7, P8]):
@@ -979,6 +1009,7 @@ class CrossSectInnerRotorStator_PMAtToothBody:
 
     def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the geometric parameters."""
+        verbose_print("Now draw CrossSectInnerRotorStator_PMAtToothBody...")
         alpha_st = self.deg_alpha_st   * math.pi/180
         alpha_sto = -self.deg_alpha_sto * math.pi/180
         r_si = self.mm_r_si
@@ -1049,21 +1080,21 @@ class CrossSectInnerRotorStator_PMAtToothBody:
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror,
                                             P_PM, P_PM_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
-                list_segments += drawer.drawArc([0,0], P2, P1)
-                list_segments += drawer.drawLine(P2, P3)
-                list_segments += drawer.drawLine(P3, P4)
-                list_segments += drawer.drawLine(P4, P5)
+                list_segments += drawer.drawArc([0,0], P2, P1); verbose_print('[0,0], P2, P1')
+                list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+                list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+                list_segments += drawer.drawLine(P4, P5); verbose_print('P4, P5')
 
-                list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
-                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+                list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror); verbose_print('[0,0], P1_Mirror, P2_Mirror')
+                list_segments += drawer.drawLine(P2_Mirror, P3_Mirror); verbose_print('P2_Mirror, P3_Mirror')
+                list_segments += drawer.drawLine(P3_Mirror, P4_Mirror); verbose_print('P3_Mirror, P4_Mirror')
+                list_segments += drawer.drawLine(P4_Mirror, P5_Mirror); verbose_print('P4_Mirror, P5_Mirror')
 
-                list_segments += drawer.drawLine(P1, P_PM)
-                list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
-                list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
+                list_segments += drawer.drawLine(P1, P_PM); verbose_print('P1, P_PM')
+                list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror); verbose_print('P1_Mirror, P_PM_Mirror')
+                list_segments += drawer.drawLine(P_PM, P_PM_Mirror); verbose_print('P_PM, P_PM_Mirror')
 
-                list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+                list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate); verbose_print('[0,0], P5_Mirror, P5_Rotate')
 
             for i in range(Q):
                 draw_fraction(list_segments, i,
@@ -1084,8 +1115,8 @@ class CrossSectInnerRotorStator_PMAtToothBody:
                 # raise
                 # break
             # draw a circle (this is officially suggested)
-            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
-            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+            list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]]); verbose_print('[0,0], P8, [-P8[0], P8[1]]')
+            list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8); verbose_print('[0,0],     [-P8[0], P8[1]], P8')
 
 
             # DEBUG
@@ -1114,23 +1145,23 @@ class CrossSectInnerRotorStator_PMAtToothBody:
         else:
             P5_Rotate = iPark(P5, alpha_slot_span)
             P5_OuterEdge_Rotate = iPark(P5_OuterEdge, alpha_slot_span)
-            list_segments += drawer.drawArc([0,0], P2, P1)
-            list_segments += drawer.drawLine(P2, P3)
-            list_segments += drawer.drawLine(P3, P4)
-            list_segments += drawer.drawLine(P4, P5_OuterEdge)
-            list_segments += drawer.drawLine(P5_Rotate, P5_OuterEdge_Rotate)
-            list_segments += drawer.drawArc([0,0], P5_OuterEdge, P5_OuterEdge_Rotate)
+            list_segments += drawer.drawArc([0,0], P2, P1); verbose_print('[0,0], P2, P1')
+            list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+            list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+            list_segments += drawer.drawLine(P4, P5_OuterEdge); verbose_print('P4, P5_OuterEdge')
+            list_segments += drawer.drawLine(P5_Rotate, P5_OuterEdge_Rotate); verbose_print('P5_Rotate, P5_OuterEdge_Rotate')
+            list_segments += drawer.drawArc([0,0], P5_OuterEdge, P5_OuterEdge_Rotate); verbose_print('[0,0], P5_OuterEdge, P5_OuterEdge_Rotate')
 
-            list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
-            list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-            list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-            list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+            list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror); verbose_print('[0,0], P1_Mirror, P2_Mirror')
+            list_segments += drawer.drawLine(P2_Mirror, P3_Mirror); verbose_print('P2_Mirror, P3_Mirror')
+            list_segments += drawer.drawLine(P3_Mirror, P4_Mirror); verbose_print('P3_Mirror, P4_Mirror')
+            list_segments += drawer.drawLine(P4_Mirror, P5_Mirror); verbose_print('P4_Mirror, P5_Mirror')
 
-            list_segments += drawer.drawLine(P1, P_PM)
-            list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
-            list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
+            list_segments += drawer.drawLine(P1, P_PM); verbose_print('P1, P_PM')
+            list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror); verbose_print('P1_Mirror, P_PM_Mirror')
+            list_segments += drawer.drawLine(P_PM, P_PM_Mirror); verbose_print('P_PM, P_PM_Mirror')
 
-            list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+            list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate); verbose_print('[0,0], P5_Mirror, P5_Rotate')
 
             innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
@@ -1167,6 +1198,7 @@ class CrossSectStatorMagnetAtToothBody:
 
     def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the stator_core."""
+        verbose_print("Now draw CrossSectStatorMagnetAtToothBody...")
         alpha_st = self.statorCore.deg_alpha_st * math.pi/180
         alpha_sto = -self.statorCore.deg_alpha_sto * math.pi/180
         r_si = self.statorCore.mm_r_si
@@ -1237,22 +1269,22 @@ class CrossSectStatorMagnetAtToothBody:
                                             P2_Mirror, P3_Mirror, P4_Mirror, P5_Mirror,
                                             P_PM, P_PM_Mirror):
                 P5_Rotate = iPark(P5, alpha_slot_span)
-                # list_segments += drawer.drawArc([0,0], P2, P1)
-                # list_segments += drawer.drawLine(P2, P3)
-                # list_segments += drawer.drawLine(P3, P4)
-                # list_segments += drawer.drawLine(P4, P5)
+                # list_segments += drawer.drawArc([0,0], P2, P1); verbose_print('[0,0], P2, P1')
+                # list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+                # list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+                # list_segments += drawer.drawLine(P4, P5); verbose_print('P4, P5')
 
-                # list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
-                # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-                # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-                # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+                # list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror); verbose_print('[0,0], P1_Mirror, P2_Mirror')
+                # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror); verbose_print('P2_Mirror, P3_Mirror')
+                # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror); verbose_print('P3_Mirror, P4_Mirror')
+                # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror); verbose_print('P4_Mirror, P5_Mirror')
 
-                list_segments += drawer.drawLine(P1, P1_Mirror)
-                list_segments += drawer.drawLine(P1, P_PM)
-                list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
-                list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+                list_segments += drawer.drawLine(P1, P1_Mirror); verbose_print('P1, P1_Mirror')
+                list_segments += drawer.drawLine(P1, P_PM); verbose_print('P1, P_PM')
+                list_segments += drawer.drawLine(P_PM, P_PM_Mirror); verbose_print('P_PM, P_PM_Mirror')
+                list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror); verbose_print('P1_Mirror, P_PM_Mirror')
 
-                # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate)
+                # list_segments += drawer.drawArc([0,0], P5_Mirror, P5_Rotate); verbose_print('[0,0], P5_Mirror, P5_Rotate')
 
             for i in range(Q):
                 draw_fraction(list_segments, i,
@@ -1273,8 +1305,8 @@ class CrossSectStatorMagnetAtToothBody:
                 # raise
                 # break
             # draw a circle (this is officially suggested)
-            # list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]])
-            # list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8)
+            # list_segments += drawer.drawArc([0,0], P8, [-P8[0], P8[1]]); verbose_print('[0,0], P8, [-P8[0], P8[1]]')
+            # list_segments += drawer.drawArc([0,0],     [-P8[0], P8[1]], P8); verbose_print('[0,0],     [-P8[0], P8[1]], P8')
 
 
             # DEBUG
@@ -1302,20 +1334,20 @@ class CrossSectStatorMagnetAtToothBody:
                     }
         else:
             P5_Rotate = iPark(P5, alpha_slot_span)
-            # list_segments += drawer.drawArc([0,0], P2, P1)
-            # list_segments += drawer.drawLine(P2, P3)
-            # list_segments += drawer.drawLine(P3, P4)
-            # list_segments += drawer.drawLine(P4, P5)
+            # list_segments += drawer.drawArc([0,0], P2, P1); verbose_print('[0,0], P2, P1')
+            # list_segments += drawer.drawLine(P2, P3); verbose_print('P2, P3')
+            # list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+            # list_segments += drawer.drawLine(P4, P5); verbose_print('P4, P5')
 
-            # list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror)
-            # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror)
-            # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror)
-            # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror)
+            # list_segments += drawer.drawArc([0,0], P1_Mirror, P2_Mirror); verbose_print('[0,0], P1_Mirror, P2_Mirror')
+            # list_segments += drawer.drawLine(P2_Mirror, P3_Mirror); verbose_print('P2_Mirror, P3_Mirror')
+            # list_segments += drawer.drawLine(P3_Mirror, P4_Mirror); verbose_print('P3_Mirror, P4_Mirror')
+            # list_segments += drawer.drawLine(P4_Mirror, P5_Mirror); verbose_print('P4_Mirror, P5_Mirror')
 
-            list_segments += drawer.drawLine(P1, P1_Mirror)
-            list_segments += drawer.drawLine(P1, P_PM)
-            list_segments += drawer.drawLine(P_PM, P_PM_Mirror)
-            list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror)
+            list_segments += drawer.drawLine(P1, P1_Mirror); verbose_print('P1, P1_Mirror')
+            list_segments += drawer.drawLine(P1, P_PM); verbose_print('P1, P_PM')
+            list_segments += drawer.drawLine(P_PM, P_PM_Mirror); verbose_print('P_PM, P_PM_Mirror')
+            list_segments += drawer.drawLine(P1_Mirror, P_PM_Mirror); verbose_print('P1_Mirror, P_PM_Mirror')
             innerCoord = ( 0.5*(P1[0]+P5[0]), 0.5*(P1[1]+P5[1]))
 
             self.list_region = [list_segments]

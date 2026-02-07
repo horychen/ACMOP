@@ -1,11 +1,12 @@
 ABCDEFGHIJKLMNOPQRSTUVWXYZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 import os
-
+# import sys
 output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '_wily')) + '/'
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 print('Output directory is:', output_dir)
+
 
 # Globals for drawing 
 RADIUS = 10
@@ -16,14 +17,7 @@ angle_between_arrow_and_label = 4 # deg
 PLOT_SPACING = 35 # 35
 
 
-from pylab import np; import math
-try:
-    import matplotlib.pyplot as plt
-    import matplotlib.animation as animation
-    MATPLOTLIB_AVAILABLE = True
-except ImportError:
-    MATPLOTLIB_AVAILABLE = False
-    print('Warning: matplotlib not available, animation function will not work')
+from pylab import np
 def limit_to_360_deg(PHI):
     while PHI < 0:
         PHI += 360
@@ -99,23 +93,16 @@ def belong_to_band(LB, UB, PHI):
         else:
             return False
 def angular_location(PHI, radius_bias=0):
-    X = (RADIUS+radius_bias) * math.cos(PHI/180*math.pi)
-    Y = (RADIUS+radius_bias) * math.sin(PHI/180*math.pi)
+    X = (RADIUS+radius_bias) * np.cos(PHI/180*np.pi)
+    Y = (RADIUS+radius_bias) * np.sin(PHI/180*np.pi)
     return X, Y
 def phase_angle_of_slot_i_at_frequency_h(slot_number, h, Q):
     # - \alpha_{i,h}^e
     # - fundamental frequency <=> h=p
-    槽距角 = deg_elec_angle_between_adjacent_slots = 2*math.pi * h / Q 
+    槽距角 = deg_elec_angle_between_adjacent_slots = 2*np.pi * h / Q 
     return deg_elec_angle_between_adjacent_slots * (slot_number-1) # 水平向右定义为1号槽
 
-# Switchable Utility
-# import PyX_Utility as chosen_Utility
-import Cairo_Utility as chosen_Utility
-try:
-    trafo = chosen_Utility.trafo
-except AttributeError:
-    import pyx
-    trafo = pyx.trafo
+import PyX_Utility
 from utility import gcd
 def draw_star_of_slots(Q, p, m):
 
@@ -130,7 +117,7 @@ def draw_star_of_slots(Q, p, m):
     # 槽电势星形图圈数 = t = gcd(Q,p)
     # 槽电势星形图每圈箭头数 = Q / t
 
-    u = chosen_Utility.PyX_Utility()
+    u = PyX_Utility.PyX_Utility()
     connection_star_raw_dict = dict()
 
     # Draw phase belt
@@ -139,11 +126,11 @@ def draw_star_of_slots(Q, p, m):
         u.pyx_draw_sector( [0,0],  90+BELT_BIAS, 150+BELT_BIAS, RADIUS+1)
         u.pyx_draw_sector( [0,0], 210+BELT_BIAS, 270+BELT_BIAS, RADIUS+1)
         u.pyx_text(angular_location(  0, radius_bias=2), '$+u$', scale=1) # 'A'
-        u.pyx_text(angular_location(120, radius_bias=2), '$+w$', scale=1) # 'B' NOTE THAT THE PHASE V and W are transposed!
-        u.pyx_text(angular_location(240, radius_bias=2), '$+v$', scale=1) # 'C' NOTE THAT THE PHASE V and W are transposed!
+        u.pyx_text(angular_location(120, radius_bias=2), '$+v$', scale=1) # 'B' NOTE THAT THE PHASE V and W are transposed!
+        u.pyx_text(angular_location(240, radius_bias=2), '$+w$', scale=1) # 'C' NOTE THAT THE PHASE V and W are transposed!
         u.pyx_text(angular_location(180, radius_bias=2), '$-u$', scale=1) # 'X' 
-        u.pyx_text(angular_location(300, radius_bias=2), '$-w$', scale=1) # 'Y' NOTE THAT THE PHASE V and W are transposed!
-        u.pyx_text(angular_location( 60, radius_bias=2), '$-v$', scale=1) # 'Z' NOTE THAT THE PHASE V and W are transposed!
+        u.pyx_text(angular_location(300, radius_bias=2), '$-v$', scale=1) # 'Y' NOTE THAT THE PHASE V and W are transposed!
+        u.pyx_text(angular_location( 60, radius_bias=2), '$-w$', scale=1) # 'Z' NOTE THAT THE PHASE V and W are transposed!
     elif phase_belt == 120:
         u.pyx_draw_sector( [0,0], -60+BELT_BIAS,  60+BELT_BIAS, RADIUS+1)
         u.pyx_draw_sector( [0,0],  60+BELT_BIAS, 180+BELT_BIAS, RADIUS+1)
@@ -184,12 +171,12 @@ def draw_star_of_slots(Q, p, m):
     return u, connection_star_raw_dict, phase_belt
 def draw_connection_star(m, phase_belt, connection_star_raw_dict):
 
-    u = chosen_Utility.PyX_Utility()
+    u = PyX_Utility.PyX_Utility()
 
     if m == 3:
         u.pyx_text(angular_location(  0, radius_bias=2), '$u$', scale=1) # 'A'
-        u.pyx_text(angular_location(120, radius_bias=2), '$w$', scale=1) # 'B' NOTE THAT THE PHASE V and W are transposed!
-        u.pyx_text(angular_location(240, radius_bias=2), '$v$', scale=1) # 'C' NOTE THAT THE PHASE V and W are transposed!
+        u.pyx_text(angular_location(120, radius_bias=2), '$v$', scale=1) # 'B'
+        u.pyx_text(angular_location(240, radius_bias=2), '$w$', scale=1) # 'C'
     else:
         for i in range(int(360 / (2*phase_belt))):
             u.pyx_draw_sector( [0,0], 2*i*phase_belt+-phase_belt/2+BELT_BIAS,  2*i*phase_belt+phase_belt/2+BELT_BIAS, RADIUS+1)
@@ -233,15 +220,15 @@ def draw_connection_star(m, phase_belt, connection_star_raw_dict):
                 else:
                     radius = RADIUS
 
-                # X = (radius) * math.cos(4*factor_reverse/180*math.pi) # (radius, 0)旋转一个小角度（比如4度）
-                # Y = (radius) * math.sin(4*factor_reverse/180*math.pi) # (radius, 0)旋转一个小角度（比如4度）
-                X = (radius) * math.cos(4/180*math.pi) # (radius, 0)旋转一个小角度（比如4度）
-                Y = (radius) * math.sin(4/180*math.pi) # (radius, 0)旋转一个小角度（比如4度）
+                # X = (radius) * np.cos(4*factor_reverse/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
+                # Y = (radius) * np.sin(4*factor_reverse/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
+                X = (radius) * np.cos(4/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
+                Y = (radius) * np.sin(4/180*np.pi) # (radius, 0)旋转一个小角度（比如4度）
 
                 # X += -(PHI_ori//360)*distance_between_label_layers # 水平移动
 
-                angle = PHI/180*math.pi
-                X, Y = X*math.cos(angle) + Y*-math.sin(angle), X*math.sin(angle) + Y*math.cos(angle) # Park Trans.
+                angle = PHI/180*np.pi
+                X, Y = X*np.cos(angle) + Y*-np.sin(angle), X*np.sin(angle) + Y*np.cos(angle) # Park Trans.
 
                 u.pyx_text((X,Y), r'\textbf{'+label+'}', scale=0.8) # T2 
 
@@ -251,7 +238,7 @@ def draw_connection_star(m, phase_belt, connection_star_raw_dict):
     return u
 def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequency_ratio, which_phase='Aa'):
 
-    u = chosen_Utility.PyX_Utility()
+    u = PyX_Utility.PyX_Utility()
     dpnv_grouping_dict = dict()
     dpnv_grouping_dict['GAC'] = []
     dpnv_grouping_dict['GBD'] = []
@@ -319,11 +306,11 @@ def draw_connection_star_at_another_frequency(connection_star_raw_dict, frequenc
                 else:
                     # Option 2 (looks better)
                     # distance_between_label_layers = 1.25
-                    X = (RADIUS) * math.cos(4*factor_reverse/180*math.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
-                    Y = (RADIUS) * math.sin(4*factor_reverse/180*math.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
+                    X = (RADIUS) * np.cos(4*factor_reverse/180*np.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
+                    Y = (RADIUS) * np.sin(4*factor_reverse/180*np.pi) # (RADIUS, 0)旋转一个小角度（比如4度）
                     X += -(PHI_ori//360)*distance_between_label_layers # 水平移动
-                    angle = PHI/180*math.pi
-                    X, Y = X*math.cos(angle) + Y*-math.sin(angle), X*math.sin(angle) + Y*math.cos(angle) # Park Trans.
+                    angle = PHI/180*np.pi
+                    X, Y = X*np.cos(angle) + Y*-np.sin(angle), X*np.sin(angle) + Y*np.cos(angle) # Park Trans.
                     u.pyx_text((X,Y), r'\textbf{'+label+'}', scale=1)
 
                     # Draw 辅助线
@@ -339,13 +326,13 @@ def winding_distribution_factor_verPyrhonen(h, Q, p, m=3):
     # This is tested and shown to be wrong. cjh 2022-04-23 with h=1, Q=12, p=4, m=3
 
     # Option 2: Winding distribution factor Pyrhonen@(2.24)
-    # alpha_u = 2*math.pi / Q * h*p # <- should be h*p or *p???
-    alpha_u = 2*math.pi / Q * p # <- should be h*p or *p???
-    # print('#debug', alpha_u/math.pi*180)
+    # alpha_u = 2*np.pi / Q * h*p # <- should be h*p or *p???
+    alpha_u = 2*np.pi / Q * p # <- should be h*p or *p???
+    # print('#debug', alpha_u/np.pi*180)
     q=Q/(2*p*m)
     if q%0 != 0:
         raise Exception('The formula is only valid for integral slot winding.')
-    winding_distribution_factor_kw_at_h = math.sin(h*q*alpha_u/2) / (q*math.sin(h*alpha_u/2))
+    winding_distribution_factor_kw_at_h = np.sin(h*q*alpha_u/2) / (q*np.sin(h*alpha_u/2))
     return winding_distribution_factor_kw_at_h
 
 def winding_distribution_factor(Q, connection_star_raw_dict, h, bool_double_layer_winding, phase_Aa_dpnv_grouping_dict=None, Aa='Aa'):
@@ -369,7 +356,7 @@ def winding_distribution_factor(Q, connection_star_raw_dict, h, bool_double_laye
             if key in Aa[0]:
                 list_phase_shift += [0]*len(val)
             elif key in Aa[1]:
-                list_phase_shift += [math.pi]*len(val)
+                list_phase_shift += [np.pi]*len(val)
 
     # phasors in DPNV group a/c will be flipped (phase shifted 180^e)
     if phase_Aa_dpnv_grouping_dict is not None:
@@ -380,7 +367,7 @@ def winding_distribution_factor(Q, connection_star_raw_dict, h, bool_double_laye
         for idx, slot_number in enumerate(list_slots_of_a_phase):
             if slot_number in reversed_excitation_upper_layer:
                 # print(slot_number, reversed_excitation_upper_layer)
-                list_phase_shift[idx] += math.pi
+                list_phase_shift[idx] += np.pi
 
     # print(list_slots_of_a_phase)
     if bool_double_layer_winding == True:
@@ -415,7 +402,7 @@ def draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, phase_Aa_dpnv_
         reversed_excitation_upper_layer = reversed_excitation_lower_layer = None
 
     # initialize the canvas
-    u = chosen_Utility.PyX_Utility()
+    u = PyX_Utility.PyX_Utility()
 
     if bool_double_layer_winding == False:
         return u
@@ -536,7 +523,7 @@ def draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, phase_Aa_dpnv_
                                                                 # pyx.style.dash(dash_list), pyx.style.linewidth(linewidth)
     # u.pyx_text([-1, -RADIUS-0 +3], 'Coil pitch is %d'%(coil_pitch_y), scale=1)
 
-    # Reference Aaes
+    # Reference Axes
     u.pyx_arrow([-25-5+20, -1], [-25-3+20,  -1])
     u.pyx_arrow([-25-5+20, -1], [-25-5+20,  +1])
     u.pyx_text([-25+2+20, -2.5], 'Slot number', scale=2)
@@ -547,353 +534,20 @@ def draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, phase_Aa_dpnv_
     # print(connection_list)
     return u
 
-def compute_turn_function_values(connection_star_raw_dict, coil_pitch_y, Q, phase_Aa_dpnv_grouping_list=None, turn_func_bias=0, Aa='Aa', bool_double_layer_winding=True):
-    """
-    Compute turn function values for a phase without drawing.
-    Returns a list of accumulated turns at each slot position (at the end of each slot).
-    
-    Args:
-        connection_star_raw_dict: Dictionary mapping phase belts to slot angles and numbers
-        coil_pitch_y: Coil pitch
-        Q: Number of slots
-        phase_Aa_dpnv_grouping_list: Optional list for DPNV grouping
-        turn_func_bias: Bias for turn function
-        Aa: Phase identifier (e.g., 'Aa', 'Bb', 'Cc')
-        bool_double_layer_winding: Whether it's a double layer winding
-    
-    Returns:
-        Dictionary mapping slot_number -> accumulated_turns at the end of that slot
-    """
-    def larger_than_Q(slot_number):
-        if slot_number>Q:
-            return slot_number - Q
-        else:
-            return slot_number
-
-    if phase_Aa_dpnv_grouping_list is not None:
-        reversed_excitation_upper_layer = [abs(int(el)) for el in phase_Aa_dpnv_grouping_list]
-        reversed_excitation_lower_layer = [larger_than_Q(abs(int(el))+coil_pitch_y) for el in phase_Aa_dpnv_grouping_list]
-    else:
-        reversed_excitation_upper_layer = reversed_excitation_lower_layer = None
-
-    if bool_double_layer_winding == False:
-        raise Exception('Not implemented for single layer.')
-
-    phase_Aa_upper_layer_list = []
-    phase_Aa_upper_layer_list_2 = []
-    phase_Aa_lower_layer_list_2 = []
-    connection_list = []
-    for key, val in connection_star_raw_dict.items():
-        if key not in Aa:
-            continue
-        phase_Aa_upper_layer_list   += [el[0] for el in val]
-        phase_Aa_upper_layer_list_2 += [el[1]                               for el in val]
-        phase_Aa_lower_layer_list_2 += [larger_than_Q(el[1] + coil_pitch_y) for el in val]
-        if key in Aa[-1]:
-            connection_list += [-1]*len(val)
-        else:
-            connection_list += [1]*len(val)
-
-    # Compute turn function values - simulate the same logic as draw_turn_function
-    turns_per_coil_side = 5
-    turn_function_dict = {}
-    accumulated_turns = 0 + turn_func_bias
-    
-    for i in range(Q):
-        slot_number = i+1
-        
-        # Process upper layer
-        if slot_number in phase_Aa_upper_layer_list_2:
-            sign = connection_list[phase_Aa_upper_layer_list_2.index(slot_number)]
-            if reversed_excitation_upper_layer is not None and slot_number in reversed_excitation_upper_layer:
-                sign *= -1
-            accumulated_turns += sign*turns_per_coil_side
-        
-        # Process lower layer
-        if slot_number in phase_Aa_lower_layer_list_2:
-            sign = -1 * connection_list[phase_Aa_lower_layer_list_2.index(slot_number)]
-            if reversed_excitation_lower_layer is not None and slot_number in reversed_excitation_lower_layer:
-                sign *= -1
-            accumulated_turns += sign*turns_per_coil_side
-        
-        # Store the accumulated turns at the end of this slot
-        turn_function_dict[slot_number] = accumulated_turns
-    
-    return turn_function_dict
-
-def draw_mmf_three_phase(connection_star_raw_dict, coil_pitch_y, Q, 
-                         ia, ib, ic,
-                         phase_Aa_dpnv_grouping_list=None, 
-                         phase_Bb_dpnv_grouping_list=None,
-                         phase_Cc_dpnv_grouping_list=None,
-                         turn_func_bias_phase_a=0, 
-                         turn_func_bias_phase_b=0, 
-                         turn_func_bias_phase_c=0,
-                         bool_double_layer_winding=True):
-    """
-    Draw composite MMF from three phases, including individual phase MMFs.
-    
-    MMF = ia * turn_function_a + ib * turn_function_b + ic * turn_function_c
-    
-    This function computes MMF step by step, including jumps within slots (upper and lower layers),
-    similar to draw_turn_function, to ensure accuracy. It also draws individual phase MMFs
-    for visual verification.
-    
-    Args:
-        connection_star_raw_dict: Dictionary mapping phase belts to slot angles and numbers
-        coil_pitch_y: Coil pitch
-        Q: Number of slots
-        ia, ib, ic: Current values for phases A, B, C
-        phase_Aa_dpnv_grouping_list: Optional DPNV grouping for phase A
-        phase_Bb_dpnv_grouping_list: Optional DPNV grouping for phase B
-        phase_Cc_dpnv_grouping_list: Optional DPNV grouping for phase C
-        turn_func_bias_phase_a: Turn function bias for phase A (initial accumulated turns value)
-        turn_func_bias_phase_b: Turn function bias for phase B (initial accumulated turns value)
-        turn_func_bias_phase_c: Turn function bias for phase C (initial accumulated turns value)
-        bool_double_layer_winding: Whether it's a double layer winding
-    
-    Returns:
-        PyX_Utility object with the drawn MMF plot
-    """
-    def larger_than_Q(slot_number):
-        if slot_number>Q:
-            return slot_number - Q
-        else:
-            return slot_number
-
-    # Process each phase similar to draw_turn_function
-    def get_phase_data(Aa, phase_dpnv_grouping_list):
-        if phase_dpnv_grouping_list is not None:
-            reversed_excitation_upper_layer = [abs(int(el)) for el in phase_dpnv_grouping_list]
-            reversed_excitation_lower_layer = [larger_than_Q(abs(int(el))+coil_pitch_y) for el in phase_dpnv_grouping_list]
-        else:
-            reversed_excitation_upper_layer = reversed_excitation_lower_layer = None
-
-        phase_upper_layer_list_2 = []
-        phase_lower_layer_list_2 = []
-        connection_list = []
-        for key, val in connection_star_raw_dict.items():
-            # Check if key matches the phase identifier
-            # Aa should match 'A', Bb should match 'B', Cc should match 'C'
-            # The first character of Aa should match key
-            if len(Aa) > 0 and key == Aa[0]:
-                phase_upper_layer_list_2 += [el[1]                               for el in val]
-                phase_lower_layer_list_2 += [larger_than_Q(el[1] + coil_pitch_y) for el in val]
-                if key in Aa[-1]:
-                    connection_list += [-1]*len(val)
-                else:
-                    connection_list += [1]*len(val)
-        
-        return phase_upper_layer_list_2, phase_lower_layer_list_2, connection_list, reversed_excitation_upper_layer, reversed_excitation_lower_layer
-
-    if bool_double_layer_winding == False:
-        raise Exception('Not implemented for single layer.')
-
-    # Get phase data for all three phases
-    upper_a, lower_a, conn_a, rev_upper_a, rev_lower_a = get_phase_data('Aa', phase_Aa_dpnv_grouping_list)
-    upper_b, lower_b, conn_b, rev_upper_b, rev_lower_b = get_phase_data('Bb', phase_Bb_dpnv_grouping_list)
-    upper_c, lower_c, conn_c, rev_upper_c, rev_lower_c = get_phase_data('Cc', phase_Cc_dpnv_grouping_list)
-    
-    # Initialize canvas
-    u = chosen_Utility.PyX_Utility()
-    
-    slot_spacing = 5
-    turns_per_coil_side = 5
-    
-    # Vertical offset between different MMF plots
-    plot_offset = 30
-    
-    # First pass: compute all values to find min/max for scaling
-    # Compute individual phase MMFs and composite MMF
-    def compute_mmf_sequence(upper_list, lower_list, conn_list, rev_upper, rev_lower, turn_func_bias, current):
-        """Compute MMF sequence for a single phase, matching draw_turn_function logic exactly"""
-        accumulated_turns = 0 + turn_func_bias  # Apply turn_func_bias as initial value
-        mmf_sequence = []
-        
-        # Initial point (before slot 1)
-        mmf_sequence.append((0, accumulated_turns * current))
-        
-        for i in range(Q):
-            slot_number = i+1
-            
-            # Point at slot start (before processing this slot) - matches draw_turn_function
-            mmf_sequence.append((slot_number, accumulated_turns * current, 'slot_start'))
-            
-            # Process upper layer
-            if slot_number in upper_list:
-                sign = conn_list[upper_list.index(slot_number)]
-                if rev_upper is not None and slot_number in rev_upper:
-                    sign *= -1
-                accumulated_turns += sign*turns_per_coil_side
-                mmf_sequence.append((slot_number, accumulated_turns * current, 'upper'))
-            
-            # Process lower layer
-            if slot_number in lower_list:
-                sign = -1 * conn_list[lower_list.index(slot_number)]
-                if rev_lower is not None and slot_number in rev_lower:
-                    sign *= -1
-                accumulated_turns += sign*turns_per_coil_side
-                mmf_sequence.append((slot_number, accumulated_turns * current, 'lower'))
-        
-        return mmf_sequence, accumulated_turns
-    
-    # Compute individual phase MMFs
-    mmf_seq_a, _ = compute_mmf_sequence(upper_a, lower_a, conn_a, rev_upper_a, rev_lower_a, turn_func_bias_phase_a, ia)
-    mmf_seq_b, _ = compute_mmf_sequence(upper_b, lower_b, conn_b, rev_upper_b, rev_lower_b, turn_func_bias_phase_b, ib)
-    mmf_seq_c, _ = compute_mmf_sequence(upper_c, lower_c, conn_c, rev_upper_c, rev_lower_c, turn_func_bias_phase_c, ic)
-    
-    # Find overall min/max for scaling
-    all_values = [val[1] for seq in [mmf_seq_a, mmf_seq_b, mmf_seq_c] for val in seq]
-    mmf_min = min(all_values) if all_values else 0
-    mmf_max = max(all_values) if all_values else 0
-    
-    # Compute composite MMF by combining individual sequences
-    # The key principle: MMF at each spatial position = sum of (current * turn_function) for all phases
-    # All phases must be evaluated at the same spatial position
-    composite_mmf_seq = []
-    accumulated_turns_a = 0 + turn_func_bias_phase_a
-    accumulated_turns_b = 0 + turn_func_bias_phase_b
-    accumulated_turns_c = 0 + turn_func_bias_phase_c
-    
-    # Initial point (before slot 1)
-    composite_mmf = ia * accumulated_turns_a + ib * accumulated_turns_b + ic * accumulated_turns_c
-    composite_mmf_seq.append((0, composite_mmf))
-    
-    for i in range(Q):
-        slot_number = i+1
-        
-        # Point at slot start (before processing this slot)
-        # At this position, all phases have their current accumulated_turns values
-        composite_mmf = ia * accumulated_turns_a + ib * accumulated_turns_b + ic * accumulated_turns_c
-        composite_mmf_seq.append((slot_number, composite_mmf, 'slot_start'))
-        
-        # Process upper layer for all phases
-        # Each phase updates independently if it has a conductor in this slot
-        for phase_idx, (upper_list, lower_list, conn_list, rev_upper) in enumerate([
-            (upper_a, lower_a, conn_a, rev_upper_a),
-            (upper_b, lower_b, conn_b, rev_upper_b),
-            (upper_c, lower_c, conn_c, rev_upper_c)
-        ]):
-            if slot_number in upper_list:
-                sign = conn_list[upper_list.index(slot_number)]
-                if rev_upper is not None and slot_number in rev_upper:
-                    sign *= -1
-                if phase_idx == 0:
-                    accumulated_turns_a += sign*turns_per_coil_side
-                elif phase_idx == 1:
-                    accumulated_turns_b += sign*turns_per_coil_side
-                else:
-                    accumulated_turns_c += sign*turns_per_coil_side
-        
-        # After upper layer processing, compute composite MMF with updated values
-        # All phases contribute, even if only some had upper layer conductors
-        composite_mmf = ia * accumulated_turns_a + ib * accumulated_turns_b + ic * accumulated_turns_c
-        composite_mmf_seq.append((slot_number, composite_mmf, 'upper'))
-        
-        # Process lower layer for all phases
-        # Each phase updates independently if it has a conductor in this slot
-        for phase_idx, (upper_list, lower_list, conn_list, rev_lower) in enumerate([
-            (upper_a, lower_a, conn_a, rev_lower_a),
-            (upper_b, lower_b, conn_b, rev_lower_b),
-            (upper_c, lower_c, conn_c, rev_lower_c)
-        ]):
-            if slot_number in lower_list:
-                sign = -1 * conn_list[lower_list.index(slot_number)]
-                if rev_lower is not None and slot_number in rev_lower:
-                    sign *= -1
-                if phase_idx == 0:
-                    accumulated_turns_a += sign*turns_per_coil_side
-                elif phase_idx == 1:
-                    accumulated_turns_b += sign*turns_per_coil_side
-                else:
-                    accumulated_turns_c += sign*turns_per_coil_side
-        
-        # After lower layer processing, compute composite MMF with updated values
-        # All phases contribute, even if only some had lower layer conductors
-        composite_mmf = ia * accumulated_turns_a + ib * accumulated_turns_b + ic * accumulated_turns_c
-        composite_mmf_seq.append((slot_number, composite_mmf, 'lower'))
-    
-    # Update min/max with composite values
-    composite_values = [val[1] for val in composite_mmf_seq]
-    if composite_values:
-        mmf_min = min(mmf_min, min(composite_values))
-        mmf_max = max(mmf_max, max(composite_values))
-    
-    # Second pass: draw all MMF plots
-    示意用Marker位置 = -10
-    
-    # Draw individual phase MMFs
-    phase_colors = ['red', 'blue', 'darkgreen']
-    phase_names = ['Phase A', 'Phase B', 'Phase C']
-    phase_currents = [ia, ib, ic]
-    phase_sequences = [mmf_seq_a, mmf_seq_b, mmf_seq_c]
-    
-    for phase_idx, (mmf_seq, color, name, current) in enumerate(zip(phase_sequences, phase_colors, phase_names, phase_currents)):
-        y_offset = phase_idx * plot_offset
-        last_location = [0, mmf_seq[0][1] + y_offset]
-        
-        # Draw phase MMF
-        for val in mmf_seq[1:]:  # Skip initial point (already drawn)
-            slot_number, mmf_val = val[0], val[1]
-            this_location = [slot_number*slot_spacing, mmf_val + y_offset]
-            u.pyx_line(last_location, this_location, settings=[color])
-            last_location = this_location
-        
-        # Draw phase label
-        u.pyx_text([-30, y_offset + (mmf_min + mmf_max)/2], f'{name} (i={current:.2f})', scale=1.2, settings=[color])
-    
-    # Draw composite MMF (thicker black line)
-    y_offset_composite = len(phase_sequences) * plot_offset
-    last_location = [0, composite_mmf_seq[0][1] + y_offset_composite]
-    
-    for val in composite_mmf_seq[1:]:
-        slot_number, mmf_val = val[0], val[1]
-        this_location = [slot_number*slot_spacing, mmf_val + y_offset_composite]
-        u.pyx_line(last_location, this_location, settings=['my-thick-line'])
-        last_location = this_location
-    
-    # Draw slot number labels (only once, at the bottom)
-    for i in range(Q):
-        slot_number = i+1
-        u.pyx_text([slot_number*slot_spacing, 示意用Marker位置+1*mmf_min], str(slot_number), scale=2)
-    
-    # Draw reference axes
-    u.pyx_arrow([-25-5+20, -1], [-25-3+20,  -1])
-    u.pyx_arrow([-25-5+20, -1], [-25-5+20,  +1])
-    u.pyx_text([-25+2+20, -2.5], 'Slot number', scale=2)
-    u.pyx_text([-25-1+20,    2], 'MMF (Ampere-turns)', scale=2)
-    
-    # Add title
-    title_text = f'Composite MMF: ia={ia:.2f}, ib={ib:.2f}, ic={ic:.2f}'
-    u.pyx_text([(Q+1)*slot_spacing/2, y_offset_composite + mmf_max + 5], title_text, scale=1.5)
-    
-    # Add legend
-    legend_y = y_offset_composite + mmf_max + 15
-    u.pyx_text([(Q+1)*slot_spacing/2, legend_y], 'Legend:', scale=1.2)
-    for phase_idx, (color, name) in enumerate(zip(phase_colors, phase_names)):
-        u.pyx_line([(Q+1)*slot_spacing/2 - 10, legend_y - 3 - phase_idx*3], 
-                   [(Q+1)*slot_spacing/2 - 5, legend_y - 3 - phase_idx*3], settings=[color])
-        u.pyx_text([(Q+1)*slot_spacing/2 - 3, legend_y - 3 - phase_idx*3], name, scale=1.0, settings=[color])
-    u.pyx_line([(Q+1)*slot_spacing/2 - 10, legend_y - 3 - len(phase_names)*3], 
-               [(Q+1)*slot_spacing/2 - 5, legend_y - 3 - len(phase_names)*3], settings=['my-thick-line'])
-    u.pyx_text([(Q+1)*slot_spacing/2 - 3, legend_y - 3 - len(phase_names)*3], 'Composite', scale=1.0)
-    
-    return u
-
 def winding_short_pitch_factor(h, coil_pitch_y, Q, npp):
     y_Q = Q / (2*npp)
 
     # h: harmonic order
-    # k_ph = math.sin(h*npp * coil_pitch_y/y_Q * math.pi*0.5) # if you use this, h*npp = v*npp = n, 此时h=3，是指极对数为3个npp的谐波。
+    # k_ph = np.sin(h*npp * coil_pitch_y/y_Q * np.pi*0.5) # if you use this, h*npp = v*npp = n, 此时h=3，是指极对数为3个npp的谐波。
                                                           # 此时，h的意义是相对于npp这个磁场为三次的谐波磁场，如果npp为2，那么h=3所对应的是气隙中6对极的谐波。
 
-    k_ph = math.sin(h/npp * coil_pitch_y/y_Q * math.pi*0.5)   # if you use this, h/npp = n,         此时h=3，是指极对数为3的谐波。   <- 这是我们要的，
+    k_ph = np.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)   # if you use this, h/npp = n,         此时h=3，是指极对数为3的谐波。   <- 这是我们要的，
                                                           # 我们要计算气隙中某个极对数的谐波所对应分布绕组和短距绕组，并相乘，所以净极对数(h)要对得上。
                                                           # 换句话说，我们要的是h=3次谐波的短距系数，而不是相对于ps为3次的谐波的短距系数。
-    # coil_pitch_y / (Q/2) * math.pi is the short pitch radian for 1 pole pair field 
-    # coil_pitch_y / (Q/4) * math.pi is the short pitch radian for 2 pole pair field
-    # coil_pitch_y / (Q/(2*npp)) * math.pi is the short pitch radian for npp pole pair field
-    # Bb "k_ph = math.sin(h/npp * coil_pitch_y/y_Q * math.pi*0.5)", you are trying to use the short pitch radian for npp pole pair field to calculate the pitch factor for a h pole pair field.
+    # coil_pitch_y / (Q/2) * np.pi is the short pitch radian for 1 pole pair field 
+    # coil_pitch_y / (Q/4) * np.pi is the short pitch radian for 2 pole pair field
+    # coil_pitch_y / (Q/(2*npp)) * np.pi is the short pitch radian for npp pole pair field
+    # Bb "k_ph = np.sin(h/npp * coil_pitch_y/y_Q * np.pi*0.5)", you are trying to use the short pitch radian for npp pole pair field to calculate the pitch factor for a h pole pair field.
     # That is why you first need to convert the short pitch radian to mechanical radian first (divided Bb npp) and then convert it to h pole pair field's (multiplied Bb h).
 
     # Slack Conversation
@@ -914,23 +568,23 @@ def winding_short_pitch_factor(h, coil_pitch_y, Q, npp):
         # if coil_pitch_y > y_Q:
         #     # 长距
         #     # print('[Warning] Over-pitch winding detected!')
-        #     the_angle = h* 0.5* (-math.pi + coil_pitch_y/y_Q*math.pi)
-        #     k_ph = math.cos(the_angle)
+        #     the_angle = h* 0.5* (-np.pi + coil_pitch_y/y_Q*np.pi)
+        #     k_ph = np.cos(the_angle)
         # elif abs(coil_pitch_y - y_Q)<1e-3: # EPS
         #     k_ph = 1.0
         # else:
         #     # 短距
-        #     the_angle = h* 0.5* (math.pi - coil_pitch_y/y_Q*math.pi)
-        #     k_ph = math.cos(the_angle)
-        #     # k_ph = math.sin(h * coil_pitch_y/y_Q * math.pi*0.5) # this is only valid for short pitching
+        #     the_angle = h* 0.5* (np.pi - coil_pitch_y/y_Q*np.pi)
+        #     k_ph = np.cos(the_angle)
+        #     # k_ph = np.sin(h * coil_pitch_y/y_Q * np.pi*0.5) # this is only valid for short pitching
     return k_ph
 def winding_short_pitch_factor_v2(h, coil_pitch_y, Q):
     y_Q = Q / (2) 
-    k_ph = math.sin(h * coil_pitch_y/y_Q * math.pi*0.5)
-    # Here, coil_pitch_y/y_Q * math.pi is the short pitch radian (elec.) for 1 pole pair field
+    k_ph = np.sin(h * coil_pitch_y/y_Q * np.pi*0.5)
+    # Here, coil_pitch_y/y_Q * np.pi is the short pitch radian (elec.) for 1 pole pair field
     return k_ph
 
-# import pyx
+import pyx
 
 class Winding_Derivation(object):
     """General Implementation of the Winding_Derivation Process."""
@@ -1017,8 +671,8 @@ class Winding_Derivation(object):
             # drawer_T35.pyx_text([0,RADIUS+5], '3) Torque conn. star at 5th harmonic (ph.U)', scale=1)
             # drawer_T37.pyx_text([0,RADIUS+5], '3) Torque conn. star at 7th harmonic (ph.U)', scale=1)
             drawer_T3a.pyx_text([0,-RADIUS-3], '*Group a/c: ' + ', '.join(dpnv_grouping_dict_a['Aa']) + ' (phase U)', scale=1)
-            drawer_T3b.pyx_text([0,-RADIUS-3], '*Group a/c: ' + ', '.join(dpnv_grouping_dict_b['Bb']) + ' (phase W)', scale=1) # NOTE THAT THE PHASE V and W are transposed here!
-            drawer_T3c.pyx_text([0,-RADIUS-3], '*Group a/c: ' + ', '.join(dpnv_grouping_dict_c['Cc']) + ' (phase V)', scale=1) # NOTE THAT THE PHASE V and W are transposed here!
+            drawer_T3b.pyx_text([0,-RADIUS-3], '*Group a/c: ' + ', '.join(dpnv_grouping_dict_b['Bb']) + ' (torque phase V, suspension phase W)', scale=1) # NOTE THAT THE PHASE V and W are transposed here!
+            drawer_T3c.pyx_text([0,-RADIUS-3], '*Group a/c: ' + ', '.join(dpnv_grouping_dict_c['Cc']) + ' (torque phase W, suspension phase V)', scale=1) # NOTE THAT THE PHASE V and W are transposed here!
 
 
         if bool_double_layer_winding:
@@ -1033,6 +687,8 @@ class Winding_Derivation(object):
                 drawer_T4a = draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, phase_Aa_dpnv_grouping_list=dpnv_grouping_dict_a['Aa'], Aa='Aa', turn_func_bias=turn_func_bias)
                 drawer_T4b = draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, phase_Aa_dpnv_grouping_list=dpnv_grouping_dict_b['Bb'], Aa='Bb', turn_func_bias=turn_func_bias)
                 drawer_T4c = draw_turn_function(connection_star_raw_dict, coil_pitch_y, Q, phase_Aa_dpnv_grouping_list=dpnv_grouping_dict_c['Cc'], Aa='Cc', turn_func_bias=turn_func_bias)
+                print(connection_star_raw_dict, coil_pitch_y, Q, dpnv_grouping_dict_c, 'Cc', turn_func_bias)
+                quit()
 
                 # for ISMB 2021
                 # drawer_T4a.pyx_text([0, RADIUS+5], '4) Sus. turn function U', scale=1)
@@ -1050,7 +706,7 @@ class Winding_Derivation(object):
 
 
 
-        drawer_Text = chosen_Utility.PyX_Utility()
+        drawer_Text = PyX_Utility.PyX_Utility()
 
         kw_at_p  = winding_distribution_factor(Q, connection_star_raw_dict, p, bool_double_layer_winding)
         kw_at_ps = winding_distribution_factor(Q, connection_star_raw_dict, ps, bool_double_layer_winding)
@@ -1174,15 +830,15 @@ class Winding_Derivation(object):
             absolute harminic index h = v*p, with v the relative harmonic index w.r.t. p.
         '''
 
-        alpha_u = 2*math.pi / Q *p
+        alpha_u = 2*np.pi / Q *p
 
         # print(v, p, alpha_u, coil_pitch_y)
         gamma =            coil_pitch_y*alpha_u/p
-        radii = math.sin(v*p*coil_pitch_y*alpha_u/p/2)
-        print(f'Coil span [mech.deg] = {gamma/math.pi*180} | [elec.deg] = {v*p*gamma / math.pi*180}', end=' | ')
+        radii = np.sin(v*p*coil_pitch_y*alpha_u/p/2)
+        print(f'Coil span [mech.deg] = {gamma/np.pi*180} | [elec.deg] = {v*p*gamma / np.pi*180}', end=' | ')
         # print('\t radii:', radii)
-        ELS_angles = -0.5*math.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
-        CJH_angles =  0.5*math.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
+        ELS_angles = -0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
+        CJH_angles =  0.5*np.pi - v*p*alpha_u*(2*i+coil_pitch_y) / (2*p) # IMPORTANT: this is in elec.rad!!!
         ELS_pitch_factor_per_coil = radii * np.exp(1j*ELS_angles)
         CJH_pitch_factor_per_coil = radii * np.exp(1j*CJH_angles)
         return ELS_pitch_factor_per_coil, CJH_pitch_factor_per_coil
@@ -1199,25 +855,25 @@ class Winding_Derivation(object):
             kp_cjh_list.append(cjh)
 
             print(f'\tkp@Coil+{i:02d}', end='\t|\t')
-            # print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/math.pi*180*1), end='\t|\t')
-            print(  'cjh = %.3f∠%.1f' % (np.abs(cjh), np.angle(cjh)/math.pi*180*1))
+            # print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*1), end='\t|\t')
+            print(  'cjh = %.3f∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*1))
 
         for i in negative_connected_coils:
             els, cjh = self.get_complex_number_winding_factor_of_coil_i(i, self.coil_pitch_y, Q=self.Q, v=v, p=p)
             # this is pitch factor of coil in negative zone
-            els *= -1 # np.abs(els) * np.exp(1j*(np.angle(els)*1+math.pi)/p)
-            cjh *= -1 # np.abs(cjh) * np.exp(1j*(np.angle(cjh)*1+math.pi)/p)
+            els *= -1 # np.abs(els) * np.exp(1j*(np.angle(els)*1+np.pi)/p)
+            cjh *= -1 # np.abs(cjh) * np.exp(1j*(np.angle(cjh)*1+np.pi)/p)
             kp_els_list.append(els)
             kp_cjh_list.append(cjh)
 
             print(f'\tkp@Coil-{i:02d}', end='\t|\t')
-            # print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/math.pi*180*1), end='\t|\t')
-            print(  'cjh = %.3f∠%.1f' % (np.abs(cjh), np.angle(cjh)/math.pi*180*1))
+            # print('\tels = %g∠%.1f' % (np.abs(els), np.angle(els)/np.pi*180*1), end='\t|\t')
+            print(  'cjh = %.3f∠%.1f' % (np.abs(cjh), np.angle(cjh)/np.pi*180*1))
 
         ''' When you sum up the vectors, they must be first converted to using elec.rad by multiplying the angle by p pole pairs.
         '''
         average = lambda x: np.sum(x)/len(x)
-        # print([np.angle(el)/math.pi*180 for el in kp_els_list])
+        # print([np.angle(el)/np.pi*180 for el in kp_els_list])
         # quit()
         _kw_els = average(kp_els_list)
         _kw_cjh = average(kp_cjh_list)
@@ -1259,22 +915,19 @@ class Winding_Derivation(object):
             dict_kw_cjh[f'{ZONE}'] = _kw_cjh
             dict_kw_els[f'{ZONE}_abs'] = np.abs(_kw_els)
             dict_kw_cjh[f'{ZONE}_abs'] = np.abs(_kw_cjh)
-            dict_kw_els[f'{ZONE}_angle'] = np.angle(_kw_els)/math.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-            dict_kw_cjh[f'{ZONE}_angle'] = np.angle(_kw_cjh)/math.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
-            # print('kw(els)=', _kw_els, '=', f'{np.abs(_kw_els)}∠{np.angle(_kw_els)/math.pi*180}')
-            print('kw(cjh)=', _kw_cjh, '=', f'{np.abs(_kw_cjh):.3f}∠{np.angle(_kw_cjh)/math.pi*180:.1f}')
+            dict_kw_els[f'{ZONE}_angle'] = np.angle(_kw_els)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+            dict_kw_cjh[f'{ZONE}_angle'] = np.angle(_kw_cjh)/np.pi*180 # no need to convert mech.deg to elec.deg, as it is already in elec.deg
+            # print('kw(els)=', _kw_els, '=', f'{np.abs(_kw_els)}∠{np.angle(_kw_els)/np.pi*180}')
+            print('kw(cjh)=', _kw_cjh, '=', f'{np.abs(_kw_cjh):.3f}∠{np.angle(_kw_cjh)/np.pi*180:.1f}')
 
-        self.SIict_kw_els = dict_kw_els
-        self.SIict_kw_cjh = dict_kw_cjh
+        self.dict_kw_els = dict_kw_els
+        self.dict_kw_cjh = dict_kw_cjh
         return dict_kw_els, dict_kw_cjh
 
 def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
-                                # (3, 24, 4, 5, 1, 0), # Q24p4ps5
-                                # (3, 24, 4, 5, 2, 0), # Q24p4ps5
-                                # (3, 12, 5, 4, 1, 0), # Spindle p5ps4
                                 # (3, 6, 4, 1, 1, 0), # homopolar consqeuent pole
                                 # (3, 12, 4, 5, 1, 0), # Slice BLESSIM for Qr=10
                                 # (3, 24, 13, 14, 1, 0), # Slice BLESSIM
@@ -1377,40 +1030,40 @@ def main_derivation():
 
         fname = output_dir + 'wily_p%dps%dQ%dy%d'%(wd.p, wd.ps, wd.Q, wd.coil_pitch_y)
 
-        if True:
+        if False:
             ''' ISMB 2021: Produce sub-figure for the paper
             '''
-            wd.drawer_T1.cvs.writePDFfile(fname + '_T1'); wd.drawer_T1.cvs.writeSVGfile(fname + '_T1')
-            wd.drawer_T2.cvs.writePDFfile(fname + '_T2'); wd.drawer_T2.cvs.writeSVGfile(fname + '_T2')
-            wd.drawer_T3a.cvs.insert(wd.drawer_T3b.cvs, [trafo.translate(20*2,  0)]) # NOTE THAT THE PHASE V and W are transposed!
-            wd.drawer_T3a.cvs.insert(wd.drawer_T3c.cvs, [trafo.translate(20*1,  0)]) # NOTE THAT THE PHASE V and W are transposed!
-            wd.drawer_T3a.cvs.writePDFfile(fname + '_T3abc'); wd.drawer_T3a.cvs.writeSVGfile(fname + '_T3abc')
-            wd.drawer_T4.cvs.writePDFfile(fname + '_T4'); wd.drawer_T4.cvs.writeSVGfile(fname + '_T4')
-            wd.drawer_T4a.cvs.writePDFfile(fname + '_T4a'); wd.drawer_T4a.cvs.writeSVGfile(fname + '_T4a')
-            wd.drawer_T4b.cvs.writePDFfile(fname + '_T4b'); wd.drawer_T4b.cvs.writeSVGfile(fname + '_T4b')
-            wd.drawer_T4c.cvs.writePDFfile(fname + '_T4c'); wd.drawer_T4c.cvs.writeSVGfile(fname + '_T4c')
+            wd.drawer_T1.cvs.writePDFfile(fname + '_T1')
+            wd.drawer_T2.cvs.writePDFfile(fname + '_T2')
+            wd.drawer_T3a.cvs.insert(wd.drawer_T3b.cvs, [pyx.trafo.translate(20*2,  0)]) # NOTE THAT THE PHASE V and W are transposed!
+            wd.drawer_T3a.cvs.insert(wd.drawer_T3c.cvs, [pyx.trafo.translate(20*1,  0)]) # NOTE THAT THE PHASE V and W are transposed!
+            wd.drawer_T3a.cvs.writePDFfile(fname + '_T3abc')
+            wd.drawer_T4.cvs.writePDFfile(fname + '_T4')
+            wd.drawer_T4a.cvs.writePDFfile(fname + '_T4a')
+            wd.drawer_T4b.cvs.writePDFfile(fname + '_T4b')
+            wd.drawer_T4c.cvs.writePDFfile(fname + '_T4c')
             print(f'Write pdf to {fname}')
             # quit()
 
         # Collage
-        wd.drawer_T1.cvs.insert(wd.drawer_T2.cvs,  [trafo.translate(PLOT_SPACING*1,  0)])
+        wd.drawer_T1.cvs.insert(wd.drawer_T2.cvs,  [pyx.trafo.translate(PLOT_SPACING*1,  0)])
         if wd.m==3:
-            wd.drawer_T1.cvs.insert(wd.drawer_T3a.cvs, [trafo.translate(PLOT_SPACING*2,  0)])
-            wd.drawer_T1.cvs.insert(wd.drawer_T3b.cvs, [trafo.translate(PLOT_SPACING*3,  0)])
-            wd.drawer_T1.cvs.insert(wd.drawer_T3c.cvs, [trafo.translate(PLOT_SPACING*4,  0)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T3a.cvs, [pyx.trafo.translate(PLOT_SPACING*2,  0)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T3b.cvs, [pyx.trafo.translate(PLOT_SPACING*3,  0)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T3c.cvs, [pyx.trafo.translate(PLOT_SPACING*4,  0)])
         # wd.drawer_T1.cvs.insert(wd.drawer_T33.cvs, [pyx.trafo.translate(PLOT_SPACING*5,  0)])
         # wd.drawer_T1.cvs.insert(wd.drawer_T35.cvs, [pyx.trafo.translate(PLOT_SPACING*6,  0)])
         # wd.drawer_T1.cvs.insert(wd.drawer_T37.cvs, [pyx.trafo.translate(PLOT_SPACING*7,  0)])
-        wd.drawer_T1.cvs.insert(wd.drawer_T4.cvs,  [trafo.translate(             0, -50)])
+        wd.drawer_T1.cvs.insert(wd.drawer_T4.cvs,  [pyx.trafo.translate(             0, -50)])
         if wd.m==3:
-            wd.drawer_T1.cvs.insert(wd.drawer_T4a.cvs, [trafo.translate(             0,-100)])
-            wd.drawer_T1.cvs.insert(wd.drawer_T4b.cvs, [trafo.translate(             0,-150)])
-            wd.drawer_T1.cvs.insert(wd.drawer_T4c.cvs, [trafo.translate(             0,-200)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T4a.cvs, [pyx.trafo.translate(             0,-100)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T4b.cvs, [pyx.trafo.translate(             0,-150)])
+            wd.drawer_T1.cvs.insert(wd.drawer_T4c.cvs, [pyx.trafo.translate(             0,-200)])
         # insert winding factor table
-        wd.drawer_T1.cvs.insert(wd.drawer_Text.cvs, [trafo.translate(PLOT_SPACING*3, -220)])
+        wd.drawer_T1.cvs.insert(wd.drawer_Text.cvs, [pyx.trafo.translate(PLOT_SPACING*3, -220)])
 
         # Save collage as file
-        wd.drawer_T1.cvs.writePDFfile(fname); wd.drawer_T1.cvs.writeSVGfile(fname)
+        wd.drawer_T1.cvs.writePDFfile(fname)
         print(f'save to {fname}')
 
         if wd.m!=3:
@@ -1541,8 +1194,8 @@ class winding_diagram:
         l_leftlayer2  = self.layer_Y_signs
 
         # dl: dict list
-        self.SIl_rightlayer = dl_rightlayer = {'U': [], 'V': [], 'W':[]}
-        self.SIl_leftlayer  = dl_leftlayer  = {'U': [], 'V': [], 'W':[]}
+        self.dl_rightlayer = dl_rightlayer = {'U': [], 'V': [], 'W':[]}
+        self.dl_leftlayer  = dl_leftlayer  = {'U': [], 'V': [], 'W':[]}
         count_slot = 0
         while True:
             try:
@@ -1579,14 +1232,14 @@ class winding_diagram:
         # dl_rightlayer['C'] = dl_rightlayer['W']
         # dl_leftlayer['C'] = dl_leftlayer['W']
 
-        self.SIl_grouping_AC = dict()
-        self.SIl_grouping_BD = dict()
+        self.dl_grouping_AC = dict()
+        self.dl_grouping_BD = dict()
         if self.grouping_AC is not None:
             for phase in ['U', 'V', 'W']:
-                self.SIl_grouping_AC[phase] = [el for el in dl_rightlayer[phase] if grouping_AC[abs(int(el))-1]==True ]
-                self.SIl_grouping_BD[phase] = [el for el in dl_rightlayer[phase] if grouping_AC[abs(int(el))-1]==False]
-                print(f'Phase {phase}, Group A/C:', self.SIl_grouping_AC[phase])
-                print(f'         Group B/D:', self.SIl_grouping_BD[phase])
+                self.dl_grouping_AC[phase] = [el for el in dl_rightlayer[phase] if grouping_AC[abs(int(el))-1]==True ]
+                self.dl_grouping_BD[phase] = [el for el in dl_rightlayer[phase] if grouping_AC[abs(int(el))-1]==False]
+                print(f'Phase {phase}, Group A/C:', self.dl_grouping_AC[phase])
+                print(f'         Group B/D:', self.dl_grouping_BD[phase])
 
     @staticmethod
     def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(layer_X_phases, coil_pitch):
@@ -1606,7 +1259,7 @@ class winding_diagram:
             HEIGHT      = 50
             PIXEL_SCALE = 10
             # with cairo.SVGSurface(f'{output_dir}tec-ismb-winding-diagram-{phase}.svg', WIDTH*PIXEL_SCALE, HEIGHT*PIXEL_SCALE) as surface:
-            temp = self.SIl_rightlayer['U']
+            temp = self.dl_rightlayer['U']
             with cairo.SVGSurface(f'{output_dir}winding-diagram-{phase}-{"".join(temp)}.svg', WIDTH*PIXEL_SCALE, HEIGHT*PIXEL_SCALE) as surface:
                 ctx = cairo.Context(surface)
                 ctx.scale(PIXEL_SCALE, PIXEL_SCALE)
@@ -1617,7 +1270,7 @@ class winding_diagram:
                 ctx.set_font_size(1)
                 ctx.select_font_face("Times new roman", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
-                Qs = len(self.SIl_rightlayer['U'])*3
+                Qs = len(self.dl_rightlayer['U'])*3
                 # print(Qs, 'should be 36')
 
                 COIL_LENGTH = 4 # 导体长度
@@ -1637,8 +1290,8 @@ class winding_diagram:
                 ''' Draw coils in the slots as vertical lines for 3 phases
                 '''
                 for color, winding_layout_right, winding_layout_left, _ in zip( ['#5C9C31', '#E97675', '#6C8FAB'] , 
-                                                                                [self.SIl_rightlayer['U'], self.SIl_rightlayer['V'], self.SIl_rightlayer['W']],
-                                                                                [self.SIl_leftlayer['U'], self.SIl_leftlayer['V'], self.SIl_leftlayer['W']],
+                                                                                [self.dl_rightlayer['U'], self.dl_rightlayer['V'], self.dl_rightlayer['W']],
+                                                                                [self.dl_leftlayer['U'], self.dl_leftlayer['V'], self.dl_leftlayer['W']],
                                                                                 list(range(3))):
                     if _ == 0:
                         ctx.set_source_rgba(92/255, 156/255, 49/255, 1.0)
@@ -1797,8 +1450,8 @@ class winding_diagram:
 
                         terminal_bias = 0.5
 
-                        self.SIl_grouping_AC[phase] # ['-8', '+13', '+14', '-19', '-20', '+25']
-                        self.SIl_grouping_BD[phase] # ['+1', '+2', '-7', '+26', '-31', '-32']
+                        self.dl_grouping_AC[phase] # ['-8', '+13', '+14', '-19', '-20', '+25']
+                        self.dl_grouping_BD[phase] # ['+1', '+2', '-7', '+26', '-31', '-32']
 
                         def avoid_coil_distance_is_over_half_slots(grouping_number):
                             for index, str_number in enumerate(grouping_number):
@@ -1808,14 +1461,14 @@ class winding_diagram:
                                         print('Re-order as', grouping_number)
                             return grouping_number
 
-                        self.SIl_grouping_AC[phase] = avoid_coil_distance_is_over_half_slots(self.SIl_grouping_AC[phase])
-                        self.SIl_grouping_BD[phase] = avoid_coil_distance_is_over_half_slots(self.SIl_grouping_BD[phase])
-                        print(self.SIl_grouping_AC[phase])
-                        print(self.SIl_grouping_BD[phase])
+                        self.dl_grouping_AC[phase] = avoid_coil_distance_is_over_half_slots(self.dl_grouping_AC[phase])
+                        self.dl_grouping_BD[phase] = avoid_coil_distance_is_over_half_slots(self.dl_grouping_BD[phase])
+                        print(self.dl_grouping_AC[phase])
+                        print(self.dl_grouping_BD[phase])
 
-                        for grouping_number, NINE_BIAS, grp in zip([self.SIl_grouping_BD[phase], self.SIl_grouping_AC[phase]],
+                        for grouping_number, NINE_BIAS, grp in zip([self.dl_grouping_BD[phase], self.dl_grouping_AC[phase]],
                         # for grouping_number, NINE_BIAS, grp in zip(
-                        #                                       (self.SIl_grouping_BD[phase], self.SIl_grouping_AC[phase][::-1]),
+                        #                                       (self.dl_grouping_BD[phase], self.dl_grouping_AC[phase][::-1]),
                                                               [1.0, 0.5],
                                                               ['b', 'a']):
                             HORIZONTAL_OFFSET = 0.0
@@ -1915,7 +1568,7 @@ class winding_diagram:
                                         ctx.stroke()
 
                                         ctx.set_dash([1, 0])
-                                        ctx.arc(    XTerminal,           1.0 + NINE + CANVAS_OFFSET, 0.2, 0, 2*math.pi)
+                                        ctx.arc(    XTerminal,           1.0 + NINE + CANVAS_OFFSET, 0.2, 0, 2*np.pi)
                                         ctx.rel_move_to(0, 0.5)
                                         ctx.show_text(f'{phase.lower()}{grp}{"+"}')
                                         ctx.stroke()
@@ -1933,7 +1586,7 @@ class winding_diagram:
                                         ctx.stroke()
 
                                         ctx.set_dash([1, 0])
-                                        ctx.arc(    XTerminal,           1.0 + NINE + CANVAS_OFFSET, 0.2, 0, 2*math.pi)
+                                        ctx.arc(    XTerminal,           1.0 + NINE + CANVAS_OFFSET, 0.2, 0, 2*np.pi)
                                         ctx.rel_move_to(0, 0.5)
                                         ctx.show_text(f'{phase.lower()}{grp}{"-"}')
                                         ctx.stroke()
@@ -2020,521 +1673,6 @@ class winding_diagram:
 
                     draw_terminals(slope, phase=phase, coil_pitch=self.coil_pitch_y)
                     # break
-
-def compute_mmf_spatial_distribution(connection_star_raw_dict, coil_pitch_y, Q,
-                                     ia, ib, ic,
-                                     phase_Aa_dpnv_grouping_list=None,
-                                     phase_Bb_dpnv_grouping_list=None,
-                                     phase_Cc_dpnv_grouping_list=None,
-                                     turn_func_bias_phase_a=0,
-                                     turn_func_bias_phase_b=0,
-                                     turn_func_bias_phase_c=0,
-                                     bool_double_layer_winding=True,
-                                     num_points_per_slot=10):
-    """
-    Compute MMF spatial distribution along the air gap.
-    
-    Returns:
-        slot_positions: Array of spatial positions (in slot units)
-        mmf_values: Array of MMF values at each position
-        phase_mmf_a: Array of phase A MMF values
-        phase_mmf_b: Array of phase B MMF values
-        phase_mmf_c: Array of phase C MMF values
-    """
-    def larger_than_Q(slot_number):
-        if slot_number>Q:
-            return slot_number - Q
-        else:
-            return slot_number
-
-    def get_phase_data(Aa, phase_dpnv_grouping_list):
-        if phase_dpnv_grouping_list is not None:
-            reversed_excitation_upper_layer = [abs(int(el)) for el in phase_dpnv_grouping_list]
-            reversed_excitation_lower_layer = [larger_than_Q(abs(int(el))+coil_pitch_y) for el in phase_dpnv_grouping_list]
-        else:
-            reversed_excitation_upper_layer = reversed_excitation_lower_layer = None
-
-        phase_upper_layer_list_2 = []
-        phase_lower_layer_list_2 = []
-        connection_list = []
-        for key, val in connection_star_raw_dict.items():
-            # Check if key matches the phase identifier
-            # Aa should match 'A', Bb should match 'B', Cc should match 'C'
-            # The first character of Aa should match key
-            if len(Aa) > 0 and key == Aa[0]:
-                phase_upper_layer_list_2 += [el[1]                               for el in val]
-                phase_lower_layer_list_2 += [larger_than_Q(el[1] + coil_pitch_y) for el in val]
-                if key in Aa[-1]:
-                    connection_list += [-1]*len(val)
-                else:
-                    connection_list += [1]*len(val)
-        
-        return phase_upper_layer_list_2, phase_lower_layer_list_2, connection_list, reversed_excitation_upper_layer, reversed_excitation_lower_layer
-
-    if bool_double_layer_winding == False:
-        raise Exception('Not implemented for single layer.')
-
-    # Get phase data
-    upper_a, lower_a, conn_a, rev_upper_a, rev_lower_a = get_phase_data('Aa', phase_Aa_dpnv_grouping_list)
-    upper_b, lower_b, conn_b, rev_upper_b, rev_lower_b = get_phase_data('Bb', phase_Bb_dpnv_grouping_list)
-    upper_c, lower_c, conn_c, rev_upper_c, rev_lower_c = get_phase_data('Cc', phase_Cc_dpnv_grouping_list)
-    
-    turns_per_coil_side = 5
-    
-    # Compute turn functions for all phases
-    def compute_turn_function(upper_list, lower_list, conn_list, rev_upper, rev_lower, turn_func_bias):
-        """Compute turn function values at each slot position"""
-        accumulated_turns = 0 + turn_func_bias
-        turn_function = {}  # slot_number -> accumulated_turns
-        
-        # Initial value (before slot 1)
-        turn_function[0] = accumulated_turns
-        
-        for i in range(Q):
-            slot_number = i+1
-            
-            # At slot start
-            turn_function[slot_number] = accumulated_turns
-            
-            # Process upper layer
-            if slot_number in upper_list:
-                sign = conn_list[upper_list.index(slot_number)]
-                if rev_upper is not None and slot_number in rev_upper:
-                    sign *= -1
-                accumulated_turns += sign*turns_per_coil_side
-            
-            # Process lower layer
-            if slot_number in lower_list:
-                sign = -1 * conn_list[lower_list.index(slot_number)]
-                if rev_lower is not None and slot_number in rev_lower:
-                    sign *= -1
-                accumulated_turns += sign*turns_per_coil_side
-        
-        return turn_function
-    
-    turn_func_a = compute_turn_function(upper_a, lower_a, conn_a, rev_upper_a, rev_lower_a, turn_func_bias_phase_a)
-    turn_func_b = compute_turn_function(upper_b, lower_b, conn_b, rev_upper_b, rev_lower_b, turn_func_bias_phase_b)
-    turn_func_c = compute_turn_function(upper_c, lower_c, conn_c, rev_upper_c, rev_lower_c, turn_func_bias_phase_c)
-    
-    # Create fine spatial grid
-    # Ensure we include slot boundaries to capture correct values at slot starts
-    total_slots = Q
-    num_total_points = total_slots * num_points_per_slot + 1
-    slot_positions = np.linspace(0, total_slots, num_total_points)
-    
-    # Add slot boundaries to ensure we capture values at slot starts
-    slot_boundaries = np.arange(0, Q + 1, dtype=float)
-    slot_positions = np.unique(np.concatenate([slot_positions, slot_boundaries]))
-    slot_positions = np.sort(slot_positions)
-    
-    # Interpolate turn functions to fine grid
-    # Create a more detailed turn function that includes jumps within slots
-    def create_detailed_turn_function(upper_list, lower_list, conn_list, rev_upper, rev_lower, turn_func_bias):
-        """Create detailed turn function with all jump points"""
-        accumulated_turns = 0 + turn_func_bias
-        detailed_tf = []  # List of (position, value) tuples
-        
-        # Initial point
-        detailed_tf.append((0.0, accumulated_turns))
-        
-        for i in range(Q):
-            slot_number = i+1
-            slot_start = float(slot_number - 1)
-            slot_end = float(slot_number)
-            
-            # At slot start (before processing this slot)
-            # This is the value BEFORE any jumps in this slot
-            detailed_tf.append((slot_start, accumulated_turns))
-            
-            # Process upper layer (at slot_start + small offset)
-            if slot_number in upper_list:
-                sign = conn_list[upper_list.index(slot_number)]
-                if rev_upper is not None and slot_number in rev_upper:
-                    sign *= -1
-                # Value BEFORE upper layer jump
-                detailed_tf.append((slot_start + 0.25, accumulated_turns))
-                accumulated_turns += sign*turns_per_coil_side
-                # Value AFTER upper layer jump
-                detailed_tf.append((slot_start + 0.35, accumulated_turns))
-            
-            # Process lower layer (at slot_start + larger offset)
-            if slot_number in lower_list:
-                sign = -1 * conn_list[lower_list.index(slot_number)]
-                if rev_lower is not None and slot_number in rev_lower:
-                    sign *= -1
-                # Value BEFORE lower layer jump
-                detailed_tf.append((slot_start + 0.65, accumulated_turns))
-                accumulated_turns += sign*turns_per_coil_side
-                # Value AFTER lower layer jump
-                detailed_tf.append((slot_start + 0.75, accumulated_turns))
-            
-            # At slot end (value at the end of this slot, after all jumps)
-            detailed_tf.append((slot_end, accumulated_turns))
-        
-        return detailed_tf
-    
-    detailed_tf_a = create_detailed_turn_function(upper_a, lower_a, conn_a, rev_upper_a, rev_lower_a, turn_func_bias_phase_a)
-    detailed_tf_b = create_detailed_turn_function(upper_b, lower_b, conn_b, rev_upper_b, rev_lower_b, turn_func_bias_phase_b)
-    detailed_tf_c = create_detailed_turn_function(upper_c, lower_c, conn_c, rev_upper_c, rev_lower_c, turn_func_bias_phase_c)
-    
-    def interpolate_from_detailed_tf(detailed_tf, positions):
-        """Interpolate from detailed turn function using step interpolation"""
-        pos_array = np.array([p[0] for p in detailed_tf])
-        val_array = np.array([p[1] for p in detailed_tf])
-        
-        # Use step interpolation (forward fill)
-        # For each position, find the last point where position <= pos
-        values = []
-        for pos in positions:
-            # Find the last point where position <= pos
-            idx = np.searchsorted(pos_array, pos, side='right') - 1
-            idx = max(0, min(idx, len(val_array)-1))
-            values.append(val_array[idx])
-        return np.array(values)
-    
-    # Interpolate turn functions to fine grid
-    turn_func_values_a = interpolate_from_detailed_tf(detailed_tf_a, slot_positions)
-    turn_func_values_b = interpolate_from_detailed_tf(detailed_tf_b, slot_positions)
-    turn_func_values_c = interpolate_from_detailed_tf(detailed_tf_c, slot_positions)
-    
-    # Debug: Check turn function values at slots 3, 6, 9, 12 for Phase C
-    # (This helps verify the interpolation is working correctly)
-    
-    # Calculate phase MMFs (current * turn_function)
-    phase_mmf_a = turn_func_values_a * ia
-    phase_mmf_b = turn_func_values_b * ib
-    phase_mmf_c = turn_func_values_c * ic
-    
-    # Composite MMF
-    mmf_values = phase_mmf_a + phase_mmf_b + phase_mmf_c
-    
-    return slot_positions, mmf_values, phase_mmf_a, phase_mmf_b, phase_mmf_c
-
-def infer_pole_pairs_from_connection_star(connection_star_raw_dict, Q):
-    """
-    Infer pole pairs p from connection_star_raw_dict.
-    
-    The angles in connection_star_raw_dict are electrical angles.
-    For phase A, if we have angles like 0°, 360°, 720°, etc.,
-    the electrical angle between adjacent slots of the same phase
-    can be used to determine p.
-    
-    Args:
-        connection_star_raw_dict: Dictionary mapping phase belts to slot angles and numbers
-        Q: Number of slots
-    
-    Returns:
-        p: Inferred number of pole pairs
-    """
-    # Get phase A data
-    if 'A' not in connection_star_raw_dict:
-        raise ValueError("Cannot infer p: phase A not found in connection_star_raw_dict")
-    
-    phase_a_data = connection_star_raw_dict['A']
-    if len(phase_a_data) < 2:
-        raise ValueError("Cannot infer p: need at least 2 slots for phase A")
-    
-    # Get first two slots of phase A
-    angle1, slot1 = phase_a_data[0]
-    angle2, slot2 = phase_a_data[1]
-    
-    # Calculate electrical angle difference
-    angle_diff = abs(angle2 - angle1)
-    
-    # Calculate slot difference
-    slot_diff = abs(slot2 - slot1)
-    
-    # Electrical angle per slot = angle_diff / slot_diff
-    # Also, electrical angle per slot = 360° * p / Q
-    # So: angle_diff / slot_diff = 360° * p / Q
-    # Therefore: p = (angle_diff / slot_diff) * Q / 360°
-    
-    if slot_diff == 0:
-        raise ValueError("Cannot infer p: slots are the same")
-    
-    p = (angle_diff / slot_diff) * Q / 360.0
-    
-    # Round to nearest integer
-    p = int(round(p))
-    
-    return p
-
-def extract_fundamental_component(slot_positions, mmf_values, p, Q):
-    """
-    Extract fundamental (p pole pairs) component from MMF using FFT.
-    
-    The fundamental component corresponds to p pole pairs, which means
-    p electrical periods per mechanical revolution.
-    In terms of slots: one electrical period = Q/p slots.
-    
-    Args:
-        slot_positions: Spatial positions along the air gap
-        mmf_values: MMF values at each position
-        p: Number of pole pairs (fundamental harmonic order)
-        Q: Number of slots
-    
-    Returns:
-        mmf_fundamental: Fundamental component of MMF
-    """
-    # Perform FFT
-    N = len(mmf_values)
-    if N < 2:
-        return mmf_values
-    
-    # Calculate the spatial period of the fundamental
-    # For p pole pairs, one electrical period = Q/p slots
-    # In the sampled data, N points span Q slots
-    # So one electrical period = (Q/p) * (N/Q) = N/p points
-    
-    fft_result = np.fft.fft(mmf_values)
-    
-    # Find the fundamental frequency component
-    # The fundamental corresponds to p pole pairs
-    # In a mechanical period (Q slots), there are p electrical periods
-    # 
-    # FFT indexing: FFT[0] = DC, FFT[1] = 1 period in N samples, FFT[k] = k periods in N samples
-    # 
-    # Key insight: If N points span Q slots, then:
-    # - p periods in Q slots = p periods in N points
-    # - So FFT[p] represents p periods in N points, which is the fundamental
-    # 
-    # Therefore, the FFT index for the fundamental is simply p
-    # (not p * N / Q, because N points and Q slots represent the same spatial extent)
-    
-    # The fundamental harmonic index is p
-    fundamental_harmonic_idx = p
-    
-    # Ensure it's within valid range [1, N//2] for positive frequencies
-    # (FFT is symmetric, so we only need to consider up to N//2)
-    fundamental_harmonic_idx = max(1, min(fundamental_harmonic_idx, N//2))
-    
-    # Create a filter that only keeps the fundamental component
-    fft_filtered = np.zeros_like(fft_result, dtype=complex)
-    
-    # Keep fundamental and its complex conjugate (for real signal)
-    # For a real signal, FFT[k] and FFT[N-k] are complex conjugates
-    idx_pos = fundamental_harmonic_idx
-    idx_neg = (N - fundamental_harmonic_idx) % N
-    
-    if idx_pos < N:
-        fft_filtered[idx_pos] = fft_result[idx_pos]
-    if idx_neg < N and idx_neg != idx_pos:
-        fft_filtered[idx_neg] = fft_result[idx_neg]
-    
-    # Also handle DC component (index 0) if it's the fundamental
-    if fundamental_harmonic_idx == 0:
-        fft_filtered[0] = fft_result[0]
-    
-    # Inverse FFT to get the fundamental component
-    # np.fft.ifft automatically handles normalization (divides by N)
-    mmf_fundamental = np.real(np.fft.ifft(fft_filtered))
-    
-    # Verify that the extracted fundamental has the correct period
-    # The fundamental should have p periods in Q slots
-    # In the sampled data, this means p periods in N points (since N points span Q slots)
-    # The period in points = N / p
-    # We can verify by checking the FFT index: it should be p (or p * N / Q if N != Q)
-    
-    # The ifft result should already be correctly normalized
-    # The fundamental component should now have p periods in Q slots (or p periods in N points)
-    
-    return mmf_fundamental
-
-def animate_mmf_traveling_wave(connection_star_raw_dict, coil_pitch_y, Q, p,
-                               phase_Aa_dpnv_grouping_list=None,
-                               phase_Bb_dpnv_grouping_list=None,
-                               phase_Cc_dpnv_grouping_list=None,
-                               turn_func_bias_phase_a=0,
-                               turn_func_bias_phase_b=0,
-                               turn_func_bias_phase_c=0,
-                               bool_double_layer_winding=True,
-                               current_amplitude=1.0,
-                               frequency=1.0,
-                               num_frames=100,
-                               num_points_per_slot=10):
-    """
-    Animate MMF traveling wave along the air gap with three-phase currents.
-    
-    Args:
-        connection_star_raw_dict: Dictionary mapping phase belts to slot angles and numbers
-        coil_pitch_y: Coil pitch
-        Q: Number of slots
-        p: Number of pole pairs (for fundamental component extraction)
-        phase_Aa_dpnv_grouping_list: Optional DPNV grouping for phase A
-        phase_Bb_dpnv_grouping_list: Optional DPNV grouping for phase B
-        phase_Cc_dpnv_grouping_list: Optional DPNV grouping for phase C
-        turn_func_bias_phase_a: Turn function bias for phase A
-        turn_func_bias_phase_b: Turn function bias for phase B
-        turn_func_bias_phase_c: Turn function bias for phase C
-        bool_double_layer_winding: Whether it's a double layer winding
-        current_amplitude: Amplitude of three-phase currents
-        frequency: Electrical frequency (Hz)
-        num_frames: Number of animation frames
-        num_points_per_slot: Number of points per slot for spatial resolution
-    """
-    if not MATPLOTLIB_AVAILABLE:
-        print('Error: matplotlib is required for animation')
-        return
-    
-    # Time array
-    time_period = 1.0 / frequency if frequency > 0 else 1.0
-    times = np.linspace(0, time_period, num_frames)
-    
-    # Create figure with 3 subplots
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 10))
-    fig.suptitle('MMF Traveling Wave Animation', fontsize=14)
-    
-    # Initialize plots
-    slot_positions, _, _, _, _ = compute_mmf_spatial_distribution(
-        connection_star_raw_dict, coil_pitch_y, Q,
-        0, 0, 0,  # Initial currents are zero
-        phase_Aa_dpnv_grouping_list, phase_Bb_dpnv_grouping_list, phase_Cc_dpnv_grouping_list,
-        turn_func_bias_phase_a, turn_func_bias_phase_b, turn_func_bias_phase_c,
-        bool_double_layer_winding, num_points_per_slot
-    )
-    
-    # Plot 1: MMF spatial distribution (full MMF with harmonics)
-    line_composite, = ax1.plot([], [], 'k-', linewidth=2, label='Composite MMF')
-    line_phase_a, = ax1.plot([], [], 'r--', linewidth=1, alpha=0.5, label='Phase A')
-    line_phase_b, = ax1.plot([], [], 'b--', linewidth=1, alpha=0.5, label='Phase B')
-    line_phase_c, = ax1.plot([], [], 'g--', linewidth=1, alpha=0.5, label='Phase C')
-    ax1.set_xlabel('Spatial Position (slot number)')
-    ax1.set_ylabel('MMF (Ampere-turns)')
-    ax1.set_title('MMF Distribution Along Air Gap (Full with Harmonics)')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    # Plot 2: Fundamental components (all three phases + composite)
-    line_fundamental_composite, = ax2.plot([], [], 'k-', linewidth=2, label='Composite Fundamental')
-    line_fundamental_a, = ax2.plot([], [], 'r--', linewidth=1.5, alpha=0.7, label='Phase A Fundamental')
-    line_fundamental_b, = ax2.plot([], [], 'b--', linewidth=1.5, alpha=0.7, label='Phase B Fundamental')
-    line_fundamental_c, = ax2.plot([], [], 'g--', linewidth=1.5, alpha=0.7, label='Phase C Fundamental')
-    ax2.set_xlabel('Spatial Position (slot number)')
-    ax2.set_ylabel('MMF (Ampere-turns)')
-    ax2.set_title(f'Fundamental MMF Components (p={p})')
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
-    
-    # Plot 3: Currents vs time
-    line_ia, = ax3.plot([], [], 'r-', linewidth=2, label='i_a')
-    line_ib, = ax3.plot([], [], 'b-', linewidth=2, label='i_b')
-    line_ic, = ax3.plot([], [], 'g-', linewidth=2, label='i_c')
-    ax3.set_xlabel('Time (s)')
-    ax3.set_ylabel('Current (A)')
-    ax3.set_title('Three-Phase Currents')
-    ax3.legend()
-    ax3.grid(True, alpha=0.3)
-    ax3.axhline(y=0, color='k', linestyle='-', linewidth=0.5)
-    
-    # Compute MMF range over a full period to set proper axis limits
-    # Sample several time points to find the maximum MMF value (both full and fundamental)
-    omega = 2 * np.pi * frequency
-    sample_times = np.linspace(0, time_period, 20)  # Sample 20 points over one period
-    max_mmf_abs = 0
-    max_fundamental_abs = 0
-    
-    for t in sample_times:
-        ia_sample = current_amplitude * np.cos(omega * t)
-        ib_sample = current_amplitude * np.cos(omega * t - 2*np.pi/3)
-        ic_sample = current_amplitude * np.cos(omega * t - 4*np.pi/3)
-        
-        slot_pos_sample, mmf_sample, mmf_a_sample, mmf_b_sample, mmf_c_sample = compute_mmf_spatial_distribution(
-            connection_star_raw_dict, coil_pitch_y, Q,
-            ia_sample, ib_sample, ic_sample,
-            phase_Aa_dpnv_grouping_list, phase_Bb_dpnv_grouping_list, phase_Cc_dpnv_grouping_list,
-            turn_func_bias_phase_a, turn_func_bias_phase_b, turn_func_bias_phase_c,
-            bool_double_layer_winding, num_points_per_slot
-        )
-        
-        max_mmf_abs = max(max_mmf_abs, np.max(np.abs(mmf_sample)))
-        
-        # Also compute fundamental components to find their max
-        mmf_fundamental_composite_sample = extract_fundamental_component(slot_pos_sample, mmf_sample, p, Q)
-        max_fundamental_abs = max(max_fundamental_abs, np.max(np.abs(mmf_fundamental_composite_sample)))
-    
-    # Set ylim with sufficient margin (use 1.3x instead of 1.2x for better visibility)
-    mmf_range = max_mmf_abs * 1.3
-    if mmf_range < 1e-6:  # Fallback if all values are near zero
-        mmf_range = 10.0
-    
-    # For fundamental, use its own range (should be similar or slightly smaller than full MMF)
-    fundamental_range = max_fundamental_abs * 1.3
-    if fundamental_range < 1e-6:
-        fundamental_range = mmf_range  # Fallback to full MMF range
-    
-    ax1.set_xlim(0, Q)
-    ax1.set_ylim(-mmf_range, mmf_range)
-    ax2.set_xlim(0, Q)
-    ax2.set_ylim(-fundamental_range, fundamental_range)  # Use fundamental-specific range
-    ax3.set_xlim(0, time_period)
-    ax3.set_ylim(-current_amplitude * 1.2, current_amplitude * 1.2)
-    
-    # Store current history for plot 3
-    current_history = {'ia': [], 'ib': [], 'ic': [], 'time': []}
-    
-    def animate(frame):
-        # Calculate three-phase currents
-        t = times[frame]
-        omega = 2 * np.pi * frequency
-        ia = current_amplitude * np.cos(omega * t)
-        ib = current_amplitude * np.cos(omega * t - 2*np.pi/3)
-        ic = current_amplitude * np.cos(omega * t - 4*np.pi/3)
-        
-        # Compute MMF distribution
-        _, mmf_values, mmf_a, mmf_b, mmf_c = compute_mmf_spatial_distribution(
-            connection_star_raw_dict, coil_pitch_y, Q,
-            ia, ib, ic,
-            phase_Aa_dpnv_grouping_list, phase_Bb_dpnv_grouping_list, phase_Cc_dpnv_grouping_list,
-            turn_func_bias_phase_a, turn_func_bias_phase_b, turn_func_bias_phase_c,
-            bool_double_layer_winding, num_points_per_slot
-        )
-        
-        # Extract fundamental components for all phases and composite
-        mmf_fundamental_composite = extract_fundamental_component(slot_positions, mmf_values, p, Q)
-        mmf_fundamental_a = extract_fundamental_component(slot_positions, mmf_a, p, Q)
-        mmf_fundamental_b = extract_fundamental_component(slot_positions, mmf_b, p, Q)
-        mmf_fundamental_c = extract_fundamental_component(slot_positions, mmf_c, p, Q)
-        
-        # Update plot 1 (full MMF with harmonics)
-        line_composite.set_data(slot_positions, mmf_values)
-        line_phase_a.set_data(slot_positions, mmf_a)
-        line_phase_b.set_data(slot_positions, mmf_b)
-        line_phase_c.set_data(slot_positions, mmf_c)
-        
-        # Update plot 2 (fundamental components)
-        line_fundamental_composite.set_data(slot_positions, mmf_fundamental_composite)
-        line_fundamental_a.set_data(slot_positions, mmf_fundamental_a)
-        line_fundamental_b.set_data(slot_positions, mmf_fundamental_b)
-        line_fundamental_c.set_data(slot_positions, mmf_fundamental_c)
-        
-        # Update plot 3 (currents vs time)
-        current_history['ia'].append(ia)
-        current_history['ib'].append(ib)
-        current_history['ic'].append(ic)
-        current_history['time'].append(t)
-        
-        # Keep only last period of data
-        if len(current_history['time']) > num_frames:
-            current_history['ia'] = current_history['ia'][-num_frames:]
-            current_history['ib'] = current_history['ib'][-num_frames:]
-            current_history['ic'] = current_history['ic'][-num_frames:]
-            current_history['time'] = current_history['time'][-num_frames:]
-        
-        line_ia.set_data(current_history['time'], current_history['ia'])
-        line_ib.set_data(current_history['time'], current_history['ib'])
-        line_ic.set_data(current_history['time'], current_history['ic'])
-        
-        return (line_composite, line_phase_a, line_phase_b, line_phase_c, 
-                line_fundamental_composite, line_fundamental_a, line_fundamental_b, line_fundamental_c,
-                line_ia, line_ib, line_ic)
-    
-    # Create animation
-    anim = animation.FuncAnimation(fig, animate, frames=num_frames, interval=50, blit=True, repeat=True)
-    
-    plt.tight_layout()
-    plt.show()
-    
-    return anim
 
 if __name__ == '__main__':
 

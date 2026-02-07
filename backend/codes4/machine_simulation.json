@@ -89,7 +89,7 @@
     "delete_results_after_calculation": false, 
 
     "designer.Show": true,
-    "designer.MultipleCPUs":true,
+    "designer.MultipleCPUs":false,
     "designer.OnlyTableResults":false, 
     "designer.Restart":false, 
     "designer.JMAG_Scheduler":false, 

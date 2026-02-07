@@ -524,11 +524,13 @@ class CairoDrawer(object):
         self.sketch_color = color
 
     def drawLine(self, p1, p2):
+        print(f'[CairoDrawer.py] drawLine({p1=}, {p2=})')
         self.ctx.move_to(p1[0], p1[1])
         self.ctx.line_to(p2[0], p2[1])
         return [{'move_to': (p1[0], p1[1]), 'line_to': (p2[0], p2[1])}]
 
     def drawArc(self, centerxy, startxy, endxy):
+        print(f'[CairoDrawer.py] drawArc({centerxy=}, {startxy=}, {endxy=})')
         EPS = 1e-3
         v1 = [startxy[0] - centerxy[0], startxy[1] - centerxy[1]]
         v2 = [endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]]

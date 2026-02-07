@@ -3,8 +3,13 @@ from typing import Dict, List, Optional, Any
 from collections import OrderedDict
 import json, math, base64, pickle, cairo, os, jsonpickle, logging, utility, JMAG
 from time import time as clock_time
+import builtins
 
 from modern_machine_designer_utility import Modern_Machine_Designer_Utility, Swarm_Data_Analyzer, swarm_data_container, Parameter, Geometry, Winding, CairoDrawer
+
+# Global verbose control for drawing operations
+# Set this to True to enable all print statements in CrossSect classes
+builtins.VERBOSE_DRAWING = False  # Default to False, can be changed in __post_init__ or elsewhere
 @dataclass
 class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
@@ -29,6 +34,9 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
     counter_fitness_called: int = 0
     counter_fitness_return: int = 0
     toolJd: JMAG.JMAG = None
+    
+    # Verbose control for drawing operations
+    verbose_drawing: bool = False
 
     def get_path2SwarmData(self, folder_name):
         self.dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
@@ -40,6 +48,8 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         os.chdir(self.dir_codes)
 
     def __post_init__(self):
+        # Set global verbose control for drawing operations
+        builtins.VERBOSE_DRAWING = self.verbose_drawing
 
         # 绕组
         m : int = 3
@@ -1242,7 +1252,10 @@ if __name__ == "__main__":
 
         # 使用统一接口设置参数并处理覆盖与导出参数刷新
         mmd.apply_parameter_dict(prev_params)
-        mmd.start_optimization(bool_local_exploration_around_selected_individual=True, std_fraction=0.20)
+
+        mmd.show_geometry()
+
+        # mmd.start_optimization(bool_local_exploration_around_selected_individual=True, std_fraction=0.20)
 
     else:
         # print(dir(mmd.machineGeometry['statorCore']))

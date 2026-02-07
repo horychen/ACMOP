@@ -1,8 +1,15 @@
 from math import cos, sin
 import math
 import logging
+import builtins
 EPS = 1e-3 # [mm]
 import numpy as np
+
+# Helper function for verbose printing
+def verbose_print(*args, **kwargs):
+    """Print only if VERBOSE_DRAWING is enabled."""
+    if getattr(builtins, 'VERBOSE_DRAWING', False):
+        print(*args, **kwargs)
 
 class ExceptionBadDesign(Exception):
     """Exception for notifying bad design."""
@@ -67,6 +74,7 @@ class CrossSectInnerNotchedRotor(object):
 
     def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the geometric parameters."""
+        verbose_print("Now draw CrossSectInnerNotchedRotor...")
         mm_d_pm  = self.mm_d_pm
         alpha_rm = self.deg_alpha_rm * math.pi/180
         alpha_rs = self.deg_alpha_rs * math.pi/180
@@ -136,37 +144,37 @@ class CrossSectInnerNotchedRotor(object):
                 logger.info('Non-NOTCHED ROTOR IS USED.')
                 logger.info('alpha_P5 is %s, %s deg', alpha_P5, alpha_P5/math.pi*180)
                 if bool_draw_whole_model:
-                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
-                    list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1)
-                    list_segments += drawer.drawArc([0,0], P1p5, [-P1p5[0], P1p5[1]])
-                    list_segments += drawer.drawArc([0,0], [-P1p5[0], P1p5[1]], P1p5)
+                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]]); verbose_print('[0,0], P1, [-P1[0], P1[1]]')
+                    list_segments += drawer.drawArc([0,0], [-P1[0], P1[1]], P1); verbose_print('[0,0], [-P1[0], P1[1]], P1')
+                    list_segments += drawer.drawArc([0,0], P1p5, [-P1p5[0], P1p5[1]]); verbose_print('[0,0], P1p5, [-P1p5[0], P1p5[1]]')
+                    list_segments += drawer.drawArc([0,0], [-P1p5[0], P1p5[1]], P1p5); verbose_print('[0,0], [-P1p5[0], P1p5[1]], P1p5')
                 else:
-                    list_segments += drawer.drawLine(P1, P1p5)
-                    list_segments += drawer.drawArc([0,0], P5, P1p5)
-                    list_segments += drawer.drawLine(P5, P6)
-                    list_segments += drawer.drawArc([0,0], P6, P1)
+                    list_segments += drawer.drawLine(P1, P1p5); verbose_print('P1, P1p5')
+                    list_segments += drawer.drawArc([0,0], P5, P1p5); verbose_print('[0,0], P5, P1p5')
+                    list_segments += drawer.drawLine(P5, P6); verbose_print('P5, P6')
+                    list_segments += drawer.drawArc([0,0], P6, P1); verbose_print('[0,0], P6, P1')
             else:
                 if bool_draw_whole_model:
                     def iPark(P, theta):
                         return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
                     def draw_fraction(list_segments, P2, P3, P4, P5):
-                        list_segments += drawer.drawArc([0,0], P3, P2)
-                        list_segments += drawer.drawLine(P3, P4)
-                        list_segments += drawer.drawArc([0,0], P5, P4)
+                        list_segments += drawer.drawArc([0,0], P3, P2); verbose_print('[0,0], P3, P2')
+                        list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+                        list_segments += drawer.drawArc([0,0], P5, P4); verbose_print('[0,0], P5, P4')
                         P5_CCW = iPark(P5, alpha_rp)
-                        list_segments += drawer.drawLine(P5_CCW, P2)
+                        list_segments += drawer.drawLine(P5_CCW, P2); verbose_print('P5_CCW, P2')
                     for i in range(2*p):
                         draw_fraction(list_segments, iPark(P2, i*alpha_rp), iPark(P3, i*alpha_rp), iPark(P4, i*alpha_rp), iPark(P5, i*alpha_rp))
                     # draw a circle (this is officially suggested by FEMM)
-                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]])
-                    list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1)
+                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]]); verbose_print('[0,0], P1, [-P1[0], P1[1]]')
+                    list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1); verbose_print('[0,0],     [-P1[0], P1[1]], P1')
                 else:
-                    list_segments += drawer.drawLine(P1, P2)
-                    list_segments += drawer.drawArc([0,0], P3, P2)
-                    list_segments += drawer.drawLine(P3, P4)
-                    list_segments += drawer.drawArc([0,0], P5, P4)
-                    list_segments += drawer.drawLine(P5, P6)
-                    list_segments += drawer.drawArc([0,0], P6, P1)
+                    list_segments += drawer.drawLine(P1, P2); verbose_print('P1, P2')
+                    list_segments += drawer.drawArc([0,0], P3, P2); verbose_print('[0,0], P3, P2')
+                    list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+                    list_segments += drawer.drawArc([0,0], P5, P4); verbose_print('[0,0], P5, P4')
+                    list_segments += drawer.drawLine(P5, P6); verbose_print('P5, P6')
+                    list_segments += drawer.drawArc([0,0], P6, P1); verbose_print('[0,0], P6, P1')
         else:
             if bool_draw_whole_model == True:
                 raise Exception('NOT IMPLEMENTED for s>1.')
@@ -180,19 +188,19 @@ class CrossSectInnerNotchedRotor(object):
 
             if alpha_rm >= alpha_rp*0.9800: # no inter-pole notch
                 P1p5 = [self.mm_r_ri + self.mm_d_ri, 0]
-                list_segments += drawer.drawLine(P1, P1p5)
-                list_segments += drawer.drawArc([0,0], P5, P1p5)
-                list_segments += drawer.drawLine(P5, P6)
-                list_segments += drawer.drawArc([0,0], P7, P6)
-                list_segments += drawer.drawLine(P7, P8)
+                list_segments += drawer.drawLine(P1, P1p5); verbose_print('P1, P1p5')
+                list_segments += drawer.drawArc([0,0], P5, P1p5); verbose_print('[0,0], P5, P1p5')
+                list_segments += drawer.drawLine(P5, P6); verbose_print('P5, P6')
+                list_segments += drawer.drawArc([0,0], P7, P6); verbose_print('[0,0], P7, P6')
+                list_segments += drawer.drawLine(P7, P8); verbose_print('P7, P8')
             else:
-                list_segments += drawer.drawLine(P1, P2)
-                list_segments += drawer.drawArc([0,0], P3, P2)
-                list_segments += drawer.drawLine(P3, P4)
-                list_segments += drawer.drawArc([0,0], P5, P4)
-                list_segments += drawer.drawLine(P5, P6)
-                list_segments += drawer.drawArc([0,0], P7, P6)
-                list_segments += drawer.drawLine(P7, P8)
+                list_segments += drawer.drawLine(P1, P2); verbose_print('P1, P2')
+                list_segments += drawer.drawArc([0,0], P3, P2); verbose_print('[0,0], P3, P2')
+                list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
+                list_segments += drawer.drawArc([0,0], P5, P4); verbose_print('[0,0], P5, P4')
+                list_segments += drawer.drawLine(P5, P6); verbose_print('P5, P6')
+                list_segments += drawer.drawArc([0,0], P7, P6); verbose_print('[0,0], P7, P6')
+                list_segments += drawer.drawLine(P7, P8); verbose_print('P7, P8')
             
             # Rotate points for additional segments
             current_P4 = P4
@@ -214,14 +222,14 @@ class CrossSectInnerNotchedRotor(object):
                 current_P8 = [cos(alpha_temp)*current_P8[0] + sin(alpha_temp)*current_P8[1],
                              -sin(alpha_temp)*current_P8[0] + cos(alpha_temp)*current_P8[1]]
 
-                list_segments += drawer.drawArc([0,0], current_P5, current_P4)
-                list_segments += drawer.drawLine(current_P5, current_P6)
-                list_segments += drawer.drawArc([0,0], current_P7, current_P6)
-                list_segments += drawer.drawLine(current_P7, current_P8)
+                list_segments += drawer.drawArc([0,0], current_P5, current_P4); verbose_print('[0,0], current_P5, current_P4')
+                list_segments += drawer.drawLine(current_P5, current_P6); verbose_print('current_P5, current_P6')
+                list_segments += drawer.drawArc([0,0], current_P7, current_P6); verbose_print('[0,0], current_P7, current_P6')
+                list_segments += drawer.drawLine(current_P7, current_P8); verbose_print('current_P7, current_P8')
 
-            list_segments += drawer.drawArc([0,0], P9, current_P8)
-            list_segments += drawer.drawLine(P9, P10)
-            list_segments += drawer.drawArc([0,0], P10, P1)
+            list_segments += drawer.drawArc([0,0], P9, current_P8); verbose_print('[0,0], P9, current_P8')
+            list_segments += drawer.drawLine(P9, P10); verbose_print('P9, P10')
+            list_segments += drawer.drawArc([0,0], P10, P1); verbose_print('[0,0], P10, P1')
 
         innerCoord = ( 0.5*(P1[0]+P4[0]), 0.5*(P1[1]+P4[1]))
 
@@ -249,6 +257,7 @@ class CrossSectInnerNotchedMagnet(object):
 
     def draw(self, drawer, bool_re_evaluate=False, bool_draw_whole_model=False):
         """Calculate all point coordinates based on the rotorCore."""
+        verbose_print("Now draw CrossSectInnerNotchedMagnet...")
         d_pm     = self.rotorCore.mm_d_pm
         alpha_rm = self.rotorCore.deg_alpha_rm * math.pi/180
         alpha_rs = self.rotorCore.deg_alpha_rs * math.pi/180
@@ -321,20 +330,20 @@ class CrossSectInnerNotchedMagnet(object):
             def iPark(P, theta):
                 return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
             def draw_fraction(list_segments, P3_extra, P4, P5, P6_extra):
-                list_segments += drawer.drawLine(P3_extra, P4)
-                list_segments += drawer.drawArc([0,0], P5, P4)
-                list_segments += drawer.drawLine(P5, P6_extra)
-                list_segments += drawer.drawArc([0,0], P6_extra, P3_extra)
+                list_segments += drawer.drawLine(P3_extra, P4); verbose_print('P3_extra, P4')
+                list_segments += drawer.drawArc([0,0], P5, P4); verbose_print('[0,0], P5, P4')
+                list_segments += drawer.drawLine(P5, P6_extra); verbose_print('P5, P6_extra')
+                list_segments += drawer.drawArc([0,0], P6_extra, P3_extra); verbose_print('[0,0], P6_extra, P3_extra')
             for i in range(2*p):
                 draw_fraction(list_segments, iPark(P3_extra, i*alpha_rp), 
                                              iPark(P4, i*alpha_rp), 
                                              iPark(P5, i*alpha_rp), 
                                              iPark(P6_extra, i*alpha_rp))
         else:
-            list_segments += drawer.drawLine(P3_extra, P4)
-            list_segments += drawer.drawArc([0,0], P5, P4)
-            list_segments += drawer.drawLine(P5, P6_extra)
-            list_segments += drawer.drawArc([0,0], P6_extra, P3_extra)
+            list_segments += drawer.drawLine(P3_extra, P4); verbose_print('P3_extra, P4')
+            list_segments += drawer.drawArc([0,0], P5, P4); verbose_print('[0,0], P5, P4')
+            list_segments += drawer.drawLine(P5, P6_extra); verbose_print('P5, P6_extra')
+            list_segments += drawer.drawArc([0,0], P6_extra, P3_extra); verbose_print('[0,0], P6_extra, P3_extra')
 
         list_regions.append(list_segments)
         list_segments = []
@@ -357,10 +366,10 @@ class CrossSectInnerNotchedMagnet(object):
             current_P6_extra = [cos(alpha_temp)*current_P6_extra[0] + sin(alpha_temp)*current_P6_extra[1],
                                -sin(alpha_temp)*current_P6_extra[0] + cos(alpha_temp)*current_P6_extra[1]]
 
-            list_segments += drawer.drawLine(current_P3_extra, current_P4)
-            list_segments += drawer.drawArc([0,0], current_P5, current_P4)
-            list_segments += drawer.drawLine(current_P5, current_P6_extra)
-            list_segments += drawer.drawArc([0,0], current_P6_extra, current_P3_extra)
+            list_segments += drawer.drawLine(current_P3_extra, current_P4); verbose_print('current_P3_extra, current_P4')
+            list_segments += drawer.drawArc([0,0], current_P5, current_P4); verbose_print('[0,0], current_P5, current_P4')
+            list_segments += drawer.drawLine(current_P5, current_P6_extra); verbose_print('current_P5, current_P6_extra')
+            list_segments += drawer.drawArc([0,0], current_P6_extra, current_P3_extra); verbose_print('[0,0], current_P6_extra, current_P3_extra')
 
             list_regions.append(list_segments)
             list_segments = []
@@ -398,6 +407,7 @@ class CrossSectSleeve(object):
 
     def draw(self, drawer):
         """Calculate all point coordinates."""
+        verbose_print("Now draw CrossSectSleeve...")
         r_ri  = self.mm_r_ri
         d_ri  = self.mm_d_ri
         d_pm  = self.mm_d_pm
@@ -418,10 +428,10 @@ class CrossSectSleeve(object):
 
         list_regions = []
         list_segments = []
-        list_segments += drawer.drawLine(P1, P2)
-        list_segments += drawer.drawArc([0,0], P4, P2)
-        list_segments += drawer.drawLine(P4, P3)
-        list_segments += drawer.drawArc([0,0], P3, P1)
+        list_segments += drawer.drawLine(P1, P2); verbose_print('P1, P2')
+        list_segments += drawer.drawArc([0,0], P4, P2); verbose_print('[0,0], P4, P2')
+        list_segments += drawer.drawLine(P4, P3); verbose_print('P4, P3')
+        list_segments += drawer.drawArc([0,0], P3, P1); verbose_print('[0,0], P3, P1')
 
         list_regions.append(list_segments)
         list_segments = []
@@ -450,6 +460,7 @@ class CrossSectShaft(object):
 
     def draw(self, drawer, bool_draw_whole_model=False):
         """Calculate all point coordinates."""
+        verbose_print("Now draw CrossSectShaft...")
         r_ri = self.rotorCore.mm_r_ri
 
         P1 = [r_ri, 0]
@@ -459,8 +470,8 @@ class CrossSectShaft(object):
 
         list_regions = []
         list_segments = []
-        list_segments += drawer.drawArc([0,0], NP1, P1)
-        list_segments += drawer.drawArc([0,0], P1, NP1)
+        list_segments += drawer.drawArc([0,0], NP1, P1); verbose_print('[0,0], NP1, P1')
+        list_segments += drawer.drawArc([0,0], P1, NP1); verbose_print('[0,0], P1, NP1')
 
         list_regions.append(list_segments)
         list_segments = []
