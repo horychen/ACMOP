@@ -70,7 +70,9 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         ''' 工程和文件路径 '''
         self.get_path2SwarmData(self.machine_class)
 
-        with open((os.path.dirname(__file__))+'/machine_simulation.json', 'r') as f:
+        # 修复文件未找到的bug，使用绝对路径，避免相对路径依赖问题
+        machine_sim_json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'machine_simulation.json')
+        with open(machine_sim_json_path, 'r') as f:
             raw_fea_config_dicts = json.load(f)
             self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
             self.fea_config_dict['pc_name'] = self.get_pc_name()
@@ -508,7 +510,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         bool_draw_whole_model = True
         
         def draw_spmsm(lw, width_in_points, height_in_points, filename='machine_geometry.svg', bool_draw_whole_model=True):
-            self.drawer = drawer = CairoDrawer(width_in_points, height_in_points, filename=filename)
+            self.drawer = drawer = CairoDrawer(width_in_points, height_in_points, filename=filename, verbose_drawing=getattr(self, 'verbose_drawing', False))
 
             # 直接调用 draw 方法，如果 machineGeometry 不存在或缺少必要的键，会直接报错
             list_regions = self.machineGeometry['rotorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)

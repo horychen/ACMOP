@@ -489,8 +489,9 @@ class Geometry(object):
         return self.components_make_region
 
 class CairoDrawer(object):
-    def __init__(self, width_in_points=500, height_in_points=500, filename=None):
+    def __init__(self, width_in_points=500, height_in_points=500, filename=None, verbose_drawing=False):
         self.filename = filename
+        self.verbose_drawing = verbose_drawing
         self.surface = cairo.SVGSurface(self.filename, width_in_points, height_in_points)
         self.ctx = cairo.Context(self.surface)
         # self.ctx.scale(width_in_points, height_in_points)
@@ -524,13 +525,15 @@ class CairoDrawer(object):
         self.sketch_color = color
 
     def drawLine(self, p1, p2):
-        print(f'[CairoDrawer.py] drawLine({p1=}, {p2=})')
+        if self.verbose_drawing:
+            print(f'[CairoDrawer.py] drawLine({p1=}, {p2=})')
         self.ctx.move_to(p1[0], p1[1])
         self.ctx.line_to(p2[0], p2[1])
         return [{'move_to': (p1[0], p1[1]), 'line_to': (p2[0], p2[1])}]
 
     def drawArc(self, centerxy, startxy, endxy):
-        print(f'[CairoDrawer.py] drawArc({centerxy=}, {startxy=}, {endxy=})')
+        if self.verbose_drawing:
+            print(f'[CairoDrawer.py] drawArc({centerxy=}, {startxy=}, {endxy=})')
         EPS = 1e-3
         v1 = [startxy[0] - centerxy[0], startxy[1] - centerxy[1]]
         v2 = [endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]]
