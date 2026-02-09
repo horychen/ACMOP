@@ -4,8 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { LayoutDashboard, Settings, BarChart3, Box, Sparkles, Moon, Sun, FileSearch, Code2, ChevronLeft, ChevronRight, Wrench } from "lucide-react"
+import { BarChart3, Moon, Sun, ChevronLeft, ChevronRight, Wrench } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 import { useState, useEffect } from "react"
 
@@ -64,29 +63,7 @@ export function Sidebar({ className }: SidebarProps) {
           )}
           <div className="space-y-1">
             <Button 
-              variant={pathname === "/" ? "secondary" : "ghost"} 
-              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
-              asChild
-              title={isCollapsed ? "Dashboard" : undefined}
-            >
-              <Link href="/">
-                <LayoutDashboard className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
-                {!isCollapsed && "Dashboard"}
-              </Link>
-            </Button>
-            <Button 
-              variant={pathname === "/design" ? "secondary" : "ghost"} 
-              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
-              asChild
-              title={isCollapsed ? "Design Viewer" : undefined}
-            >
-              <Link href="/design">
-                <Box className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
-                {!isCollapsed && "Design Viewer"}
-              </Link>
-            </Button>
-            <Button 
-              variant={pathname === "/optimization" ? "secondary" : "ghost"} 
+              variant={pathname === "/optimization" || pathname === "/" ? "secondary" : "ghost"} 
               className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
               asChild
               title={isCollapsed ? "Optimization" : undefined}
@@ -105,61 +82,6 @@ export function Sidebar({ className }: SidebarProps) {
               <Link href="/fine-tune">
                 <Wrench className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
                 {!isCollapsed && "Fine-tune"}
-              </Link>
-            </Button>
-            <Button 
-              variant={pathname === "/visualizer" ? "secondary" : "ghost"} 
-              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
-              asChild
-              title={isCollapsed ? "Visualizer" : undefined}
-            >
-              <Link href="/visualizer">
-                <Sparkles className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
-                {!isCollapsed && "Visualizer"}
-              </Link>
-            </Button>
-            <Button 
-              variant={pathname === "/design-visualizer" ? "secondary" : "ghost"} 
-              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
-              asChild
-              title={isCollapsed ? "Design Visualizer (New)" : undefined}
-            >
-              <Link href="/design-visualizer">
-                <Box className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
-                {!isCollapsed && "Design Visualizer (New)"}
-              </Link>
-            </Button>
-            <Button 
-              variant={pathname === "/design-analyzer" ? "secondary" : "ghost"} 
-              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
-              asChild
-              title={isCollapsed ? "Design Analyzer" : undefined}
-            >
-              <Link href="/design-analyzer">
-                <FileSearch className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
-                {!isCollapsed && "Design Analyzer"}
-              </Link>
-            </Button>
-            <Button 
-              variant={pathname === "/csv-visualizer" ? "secondary" : "ghost"} 
-              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
-              asChild
-              title={isCollapsed ? "CSV Visualizer" : undefined}
-            >
-              <Link href="/csv-visualizer">
-                <BarChart3 className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
-                {!isCollapsed && "CSV Visualizer"}
-              </Link>
-            </Button>
-            <Button 
-              variant={pathname === "/developer" ? "secondary" : "ghost"} 
-              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
-              asChild
-              title={isCollapsed ? "开发者页面" : undefined}
-            >
-              <Link href="/developer">
-                <Code2 className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
-                {!isCollapsed && "开发者页面"}
               </Link>
             </Button>
           </div>
