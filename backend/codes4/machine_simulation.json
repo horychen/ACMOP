@@ -148,8 +148,6 @@
         "femm.deg_per_step": null
     },
 
-
-
     "#02x JMAG PMSM Evaluation Setting (zero torque)": {
 
         "TORQUE_CURRENT_RATIO" : 0.75,

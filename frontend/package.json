@@ -28,7 +28,7 @@
     "d3": "^7.9.0",
     "lucide-react": "^0.554.0",
     "monaco-editor": "^0.55.1",
-    "next": "16.0.3",
+    "next": "^16.1.6",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-dropzone": "^14.3.8",

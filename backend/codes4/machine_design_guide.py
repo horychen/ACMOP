@@ -1,15 +1,14 @@
+import json, math, base64, pickle, cairo, os, jsonpickle, logging, utility, JMAG, builtins
 from dataclasses import dataclass, fields
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
-import json, math, base64, pickle, cairo, os, jsonpickle, logging, utility, JMAG
 from time import time as clock_time
-import builtins
-
 from modern_machine_designer_utility import Modern_Machine_Designer_Utility, Swarm_Data_Analyzer, swarm_data_container, Parameter, Geometry, Winding, CairoDrawer
 
 # Global verbose control for drawing operations
 # Set this to True to enable all print statements in CrossSect classes
 builtins.VERBOSE_DRAWING = False  # Default to False, can be changed in __post_init__ or elsewhere
+
 @dataclass
 class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
