@@ -678,13 +678,13 @@ class Modern_Machine_Designer_Utility(object):
     def get_pc_name():
         import platform, socket
         n1 = platform.node()
-        n2 = socket.gethostname()
-        n3 = os.environ["COMPUTERNAME"]
-        if n1 == n2 == n3:
-            return n1
-        else:
-            raise Exception(f"Computer names are not equal to each other. {n1,n2,n3}")
-
+        # n2 = socket.gethostname()
+        # n3 = os.environ["COMPUTERNAME"]
+        # if n1 == n2 == n3:
+        #     return n1
+        # else:
+        #     raise Exception(f"Computer names are not equal to each other. {n1,n2,n3}")
+        return n1
 
     ''' 实用
     '''

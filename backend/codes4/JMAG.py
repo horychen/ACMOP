@@ -2304,45 +2304,19 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # print(f'[utility.py] Cost_Fe: {Cost_Fe}')
         # print(f'[utility.py] Cost_Cu: {Cost_Cu}')
         # print(f'[utility.py] Cost_PM: {Cost_PM}')
-        
-        if acm_variant.fea_config_dict["moo.fitness_OA"] == 'TorqueDensity':
-            f1 = -TRV
-        elif acm_variant.fea_config_dict["moo.fitness_OA"] == 'Cost':
-            f1 = Cost
-        elif acm_variant.fea_config_dict["moo.fitness_OA"] == 'TorqueDensityOverSquireRootCopperLoss':
-            f1 = -TRV / math.sqrt(rated_stator_copper_loss_along_stack + stator_copper_loss_in_end_turn)
-        else:
-            raise 
 
-        if acm_variant.fea_config_dict["moo.fitness_OB"] == 'Efficiency':
-            # - Efficiency @ Rated Power
-            f2 = - rated_efficiency
-        elif acm_variant.fea_config_dict["moo.fitness_OB"] == 'TorqueRipple':
-            f2 = normalized_torque_ripple
-        elif acm_variant.fea_config_dict["moo.fitness_OB"] == 'ForceErrorMagnitude':
-            f2 = normalized_force_error_magnitude
-        else:
-            raise 
-
-        if acm_variant.fea_config_dict["moo.fitness_OC"] is not None:
-            if acm_variant.fea_config_dict["moo.fitness_OC"] == 'BearinglessRippleSum':
-                # Ripple Performance (Weighted Sum)
-                f3 = sum(list_weighted_ripples)
-            elif acm_variant.fea_config_dict["moo.fitness_OC"] == 'ForceErrorMagnitude':
-                f3 = normalized_force_error_magnitude
-            elif acm_variant.fea_config_dict["moo.fitness_OC"] == 'ForceErrorAngle':
-                f3 = force_error_angle
-            elif acm_variant.fea_config_dict["moo.fitness_OC"] == 'IronLoss':
-                f3 = rated_iron_loss
-            elif acm_variant.fea_config_dict["moo.fitness_OC"] == 'TorqueRipple':
-                f3 = normalized_torque_ripple
-            elif acm_variant.fea_config_dict["moo.fitness_OC"] == 'CoggingTorque':
-                raise Exception("CoggingTorque is not implemented")
-            else:
-                raise Exception("Unknown fitness function")
-
-        if acm_variant.fea_config_dict["moo.fitness_OD"] is not None:
-            f4 = 0
+        fitness_mapping = {
+            'TorqueDensity': -TRV,
+            'Cost': Cost,
+            'TorqueDensityOverSquireRootCopperLoss': -TRV / math.sqrt(rated_stator_copper_loss_along_stack + stator_copper_loss_in_end_turn),
+            'Efficiency': - rated_efficiency,
+            'TorqueRipple': normalized_torque_ripple,
+            'ForceErrorMagnitude': normalized_force_error_magnitude,
+            'ForceErrorAngle': force_error_angle,
+            'IronLoss': rated_iron_loss,
+            # 'CoggingTorque': raise Exception("CoggingTorque is not implemented")
+        }
+        f1, f2, f3 = fitness_mapping[acm_variant.fea_config_dict["moo.fitness_OA"]], fitness_mapping[acm_variant.fea_config_dict["moo.fitness_OB"]], fitness_mapping[acm_variant.fea_config_dict["moo.fitness_OC"]]
 
         FRW = ss_avg_force_magnitude / rotor_weight
         logger = logging.getLogger(__name__)
