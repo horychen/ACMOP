@@ -1,5 +1,7 @@
 codes3/streamlit_user_session_data.json
 
+.cursor/*
+
 .*/
 
 *.code-workspace

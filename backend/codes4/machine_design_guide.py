@@ -5,72 +5,30 @@ from typing import Dict, List, Optional, Any
 from collections import OrderedDict
 from time import time as clock_time
 from modern_machine_designer_utility import Modern_Machine_Designer_Utility, Swarm_Data_Analyzer, swarm_data_container, Parameter, Geometry, Winding, CairoDrawer
+from user_minitureMachine import MotorSpecs, convert_to_machine_design_input
 
 # Global verbose control for drawing operations
 # Set this to True to enable all print statements in CrossSect classes
 builtins.VERBOSE_DRAWING = False  # Default to False, can be changed in __post_init__ or elsewhere
 
-@dataclass
-class MachineDesignInput:
-    # Winding
-    m: int = 3
-    Qs: int = 12
-    p: int = 5
-    ps: int = 4
-    coil_pitch_y: int = 1
 
-    # Nameplate
-    RatedPower: float = 50e3 # W
-    RatedSpeed: float = 30000 # rpm
+def _default_machine_input():
+    """Default machine input from user_minitureMachine: dex13 -> convert_to_machine_design_input(dex13)."""
+    dex13 = MotorSpecs()
+    return convert_to_machine_design_input(dex13)
 
-    # Excitation
-    bool_WyeConnectOrDeltaConnect: bool = True
-    bool_weHavePlentyVoltage: bool = True
-    Temperature: float = 75
-    TORQUE_CURRENT_RATIO: float = 0.95
-    SUSPENSION_CURRENT_RATIO: float = 0.05
-    DCBusVoltage: float = 600
-    Js: float = 4e6
-    WindingFill: float = 0.3882
-    DriveW_Rs: float = 1.0 # [Ohm]
-    BeariW_Rs: float = 1.0 # [Ohm]
-
-    # Materials
-    SteelMaterial: str = "M-19 Steel Gauge-29"
-    Magnet_Name: str = "Arnold/Reversible/N40H"
-    LaminationFactor: float = 95
-    StatorCore_Material: Optional[str] = None
-    RotorCore_Material: Optional[str] = None
-
-    # Geometry (Fixed/Initial)
-    mm_stack_length_specified: float = 50 # mm
-    SR: float = 0.65 # 1.0 - 0.35
-    mm_r_so: float = 123.5
-    mm_d_mech_air_gap: float = 0.5
-
-    # Bounds
-    yoke_split_ratio_bounds: List[float] = field(default_factory=lambda: [0.5, 0.8])
-    tooth_split_ratio_at_middle_slot: List[float] = field(default_factory=lambda: [0.25, 0.45])
-
-    def __post_init__(self):
-        if self.StatorCore_Material is None:
-            self.StatorCore_Material = self.SteelMaterial
-        if self.RotorCore_Material is None:
-            self.RotorCore_Material = self.SteelMaterial
 
 @dataclass
 class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
+    # Machine design input (from user_minitureMachine: convert_to_machine_design_input(dex13))
+    machine_input: Any = field(default_factory=_default_machine_input)
+
     # Meta Data
     name: str = 'gen-0-ind-0'
     machine_class: str = 'SPMSM' # 'bearingless_spmsm_heart.bearingless_spmsm_design_variant'
-    machine_input: MachineDesignInput = field(default_factory=MachineDesignInput)
 
-    # Machine Geometry
-    bool_PermanentMagnet: bool = True
-    bool_StatorSlotClosed: bool = False
-    bool_RotorNotched: bool = True
-
+    # FEA Config
     select_FEA_tool: str = 'JMAG Designer' # FEMM
     # select_fea_config_dict: str = '#0213 JMAG Bearingless Sub-hamonics'
     # select_fea_config_dict: str = '#02 JMAG Bearingless Fast Evaluation'
@@ -103,6 +61,12 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
         # Unpack input
         inp = self.machine_input
+
+        # Machine Geometry
+        self.bool_PermanentMagnet = inp.bool_PermanentMagnet
+        self.bool_StatorSlotClosed = inp.bool_StatorSlotClosed
+        self.bool_RotorNotched = inp.bool_RotorNotched
+
         m = inp.m
         Qs = inp.Qs
         p = inp.p
@@ -112,8 +76,9 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         # 铭牌数据
         RatedPower = inp.RatedPower
         RatedSpeed = inp.RatedSpeed
+
         # 只有在名称不包含后缀时才追加（避免从 JSON 恢复时重复追加）
-        suffix = f'-{int(RatedPower)}W-{int(RatedSpeed)}rpm-try5'
+        suffix = f'minitureMachine'
         if not self.machine_class.endswith(suffix):
             self.machine_class = self.machine_class + suffix
         ExcitationFreqSimulated: float = RatedSpeed / 60 * p
@@ -176,7 +141,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
         # 利用不同的裂比去估算合理的边界值
         yoke_split_ratio_bounds = inp.yoke_split_ratio_bounds
-        tooth_split_ratio_at_middle_slot = inp.tooth_split_ratio_at_middle_slot
+        tooth_split_ratio_at_middle_slot_bounds = inp.tooth_split_ratio_at_middle_slot_bounds
 
         '''Fixed variables'''
         if True:
@@ -187,6 +152,8 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
             self.coil_pitch_y: Parameter = Parameter('coil_pitch_y', 'fixed', coil_pitch_y)
             self.mm_r_so: Parameter      = Parameter('stator_outer_radius', 'fixed', mm_r_so)
             self.mm_d_mech_air_gap: Parameter = Parameter('mechanical_air_gap_depth', 'fixed', inp.mm_d_mech_air_gap)
+            self.mm_d_sleeve: Parameter  = Parameter('rotor_sleeve_depth', 'fixed', 0) # 0 means no sleeve
+            self.mm_r_ri: Parameter      = Parameter('rotor_inner_radius', 'fixed', 0) # rotor shaft is not needed
 
             if self.bool_PermanentMagnet:
                 self.s: Parameter            = Parameter('number_of_magnet_segments_per_pole', 'fixed', 1)
@@ -202,16 +169,13 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
             if self.bool_PermanentMagnet:
                 self.mm_d_pm: Parameter      = Parameter('magnet_depth', 'free', 3, bounds=[2, 6])
-                self.mm_d_sleeve: Parameter  = Parameter('rotor_sleeve_depth', 'free', bounds=[1, 6])
 
             self.split_ratio: Parameter  = Parameter(
                 'split_ratio_r_si_slash_r_so',
                 'free',
                 SR,
-                calc_bounds=lambda self_param: [0.35, 0.7] if self.p.value < 10 else [0.65, 0.85],
+                calc_bounds=lambda self_param: [el for el in inp.split_ratio_r_si_slash_r_so_bounds]
             )
-            # "split_ratio":  [0.4, 0.6], # Binder-2020-MLMS-0953@Fig.7
-            # "split_ratio":  [0.35, 0.5], # Q12p4优化的时候，轭部经常不够用，所以就把split_ratio减小——Exception: ('Error: Negative derived parameter', "acmop_parameter(type='derived', name='stator_yoke_depth', value=-1.362043443071423, bounds=[None, None], calc=<function template_machine_as_numbers.__init__.<locals>.<lambda> at 0x00000237CC403D30)")
 
             # Later there is a dependency on mm_r_si, so it should be defined right after split_ratio and mm_r_so are defined
             # 计算 mm_r_si 的初始值用于 calc_bounds
@@ -224,7 +188,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                     el / self.Qs.value * math.pi * (
                         self.mm_r_so.value + mm_r_si_initial
                     )
-                    for el in tooth_split_ratio_at_middle_slot
+                    for el in tooth_split_ratio_at_middle_slot_bounds
                 ]
             )
 
@@ -237,7 +201,10 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 ]
             )
 
-            self.mm_d_sts: Parameter = Parameter('stator_tooth_shoe_depth', 'free', bounds=[1, 5])
+            if not self.bool_StatorSlotClosed:
+                self.mm_d_sts: Parameter = Parameter('stator_tooth_shoe_depth', 'free', bounds=[0.5, 1.5])
+            else:
+                self.mm_d_sts: Parameter = Parameter('stator_tooth_shoe_depth', 'fixed', 0)
 
             if not self.bool_StatorSlotClosed:
                 self.deg_alpha_st: Parameter = Parameter(
@@ -249,6 +216,8 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                     ],
                     unit='deg'
                 )
+            else:
+                self.deg_alpha_st: Parameter = Parameter('stator_tooth_span_angle', 'fixed', 0.0)
 
         # 创建以参数名为键的字典，用于 calc 函数，每次调用这个函数都会刷新 self.parameter_dict_by_name，引入新定义的 Parameter 对象
         self.parameter_dict_by_name = self.get_parameter_dict_by_name()
@@ -271,11 +240,6 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 parameter_dict=self.get_parameter_dict_by_name()
             )
             if self.bool_PermanentMagnet:
-                self.mm_d_ri: Parameter = Parameter(
-                    'rotor_iron (back iron) depth', 'derived',
-                    calc=lambda parameter_dict: 2.5*parameter_dict['magnet_depth'].value, # 6 if parameter_dict['magnet_depth'].value < 4 else 
-                    parameter_dict=self.get_parameter_dict_by_name()
-                )
                 self.mm_r_ro: Parameter = Parameter(
                     'rotor_outer_radius', 'derived',
                     calc=lambda parameter_dict: parameter_dict['stator_inner_radius'].value
@@ -283,13 +247,22 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                                                 - parameter_dict['rotor_sleeve_depth'].value,
                     parameter_dict=self.get_parameter_dict_by_name()
                 )
-                self.mm_r_ri: Parameter = Parameter(
-                    'rotor_inner_radius', 'derived',
-                    calc=lambda parameter_dict: parameter_dict['rotor_outer_radius'].value
-                                                - parameter_dict['magnet_depth'].value
-                                                - parameter_dict['rotor_iron (back iron) depth'].value,
+                self.mm_d_ri: Parameter = Parameter(
+                    'rotor_iron (back iron) depth', 'derived',
+                    calc=lambda parameter_dict: parameter_dict['rotor_outer_radius'].value - parameter_dict['magnet_depth'].value,
                     parameter_dict=self.get_parameter_dict_by_name()
                 )
+                # self.mm_r_ri: Parameter = Parameter(
+                #     'rotor_inner_radius', 'derived',
+                #     calc=lambda parameter_dict: parameter_dict['rotor_outer_radius'].value
+                #                                 - parameter_dict['magnet_depth'].value
+                #                                 - parameter_dict['rotor_iron (back iron) depth'].value,
+                #     parameter_dict=self.get_parameter_dict_by_name()
+                # )
+
+            # for k,v in self.get_parameter_dict_by_name().items():
+            #     print(f'[DEBUG] {k}: {v.value}')
+            # quit()
 
             if not self.bool_StatorSlotClosed:
                 self.mm_d_sto: Parameter = Parameter(
@@ -338,6 +311,8 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 self.mm_d_rs: Parameter = Parameter(
                     'inter_segment_iron_thickness', 'fixed', 0.0
                 )
+            else:
+                self.deg_alpha_rm: Parameter = Parameter('magnet_pole_span_angle', 'fixed', 180.0/self.p.value)
 
         # Initialize all derived variables
         for i, param in enumerate(self.get_parameters_by_type('derived').values()):
@@ -433,26 +408,26 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                     ).draw(drawer, **kwargs)
                 )
             ),
-            "shaft": Geometry(name='shaft',
-                GP={'mm_r_ri': self.mm_r_ri},
-                draw_function=lambda drawer, **kwargs: (
-                    CrossSectInnerNotchedRotor.CrossSectShaft(
-                        name="shaft",
-                        color="#0EE0E2",
-                        rotorCore=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
-                            mm_d_pm=self.mm_d_pm.value,
-                            deg_alpha_rm=self.deg_alpha_rm.value,
-                            deg_alpha_rs=self.deg_alpha_rm.value if self.s.value==1 else self.deg_alpha_rs.value,
-                            mm_d_ri=self.mm_d_ri.value,
-                            mm_r_ri=self.mm_r_ri.value,
-                            mm_d_rp=self.mm_d_rp.value,
-                            mm_d_rs=self.mm_d_rs.value,
-                            p=self.p.value,
-                            s=self.s.value
-                        )
-                    ).draw(drawer, **kwargs)
-                )
-            ),
+            # "shaft": Geometry(name='shaft',
+            #     GP={'mm_r_ri': self.mm_r_ri},
+            #     draw_function=lambda drawer, **kwargs: (
+            #         CrossSectInnerNotchedRotor.CrossSectShaft(
+            #             name="shaft",
+            #             color="#0EE0E2",
+            #             rotorCore=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
+            #                 mm_d_pm=self.mm_d_pm.value,
+            #                 deg_alpha_rm=self.deg_alpha_rm.value,
+            #                 deg_alpha_rs=self.deg_alpha_rm.value if self.s.value==1 else self.deg_alpha_rs.value,
+            #                 mm_d_ri=self.mm_d_ri.value,
+            #                 mm_r_ri=self.mm_r_ri.value,
+            #                 mm_d_rp=self.mm_d_rp.value,
+            #                 mm_d_rs=self.mm_d_rs.value,
+            #                 p=self.p.value,
+            #                 s=self.s.value
+            #             )
+            #         ).draw(drawer, **kwargs)
+            #     )
+            # ),
             "rotorMagnet": Geometry(name='rotorMagnet',
                 GP={
                     'mm_d_pm': self.mm_d_pm,
@@ -477,53 +452,76 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                     ).draw(drawer, **kwargs)
                 ),
             ),
-            "sleeve": Geometry(name='sleeve',
-                GP={
-                    'mm_r_ri': self.mm_r_ri,
-                    'mm_d_ri': self.mm_d_ri,
-                    'mm_d_pm': self.mm_d_pm,
-                    'p': self.p,
-                },
-                draw_function=lambda drawer, **kwargs: (
-                    CrossSectInnerNotchedRotor.CrossSectSleeve(
-                        mm_r_ri=self.mm_r_ri.value,
-                        mm_d_ri=self.mm_d_ri.value,
-                        mm_d_pm=self.mm_d_pm.value,
-                        p=self.p.value,
-                        d_sleeve=self.mm_d_sleeve.value
-                    ).draw(drawer, **kwargs)
-                )
-            ),
+            # "sleeve": Geometry(name='sleeve',
+            #     GP={
+            #         'mm_r_ri': self.mm_r_ri,
+            #         'mm_d_ri': self.mm_d_ri,
+            #         'mm_d_pm': self.mm_d_pm,
+            #         'p': self.p,
+            #     },
+            #     draw_function=lambda drawer, **kwargs: (
+            #         CrossSectInnerNotchedRotor.CrossSectSleeve(
+            #             mm_r_ri=self.mm_r_ri.value,
+            #             mm_d_ri=self.mm_d_ri.value,
+            #             mm_d_pm=self.mm_d_pm.value,
+            #             p=self.p.value,
+            #             d_sleeve=self.mm_d_sleeve.value
+            #         ).draw(drawer, **kwargs)
+            #     )
+            # ),
             "statorCore": Geometry(name='statorCore',
                 GP={
+                    'mm_r_so': self.mm_r_so,
                     'mm_r_si': self.mm_r_si,
-                    'mm_d_sto': self.mm_d_sto,
                     'mm_d_sts': self.mm_d_sts,
                     'mm_d_st': self.mm_d_st,
                     'mm_d_sy': self.mm_d_sy,
                     'mm_w_st': self.mm_w_st,
-                    'deg_alpha_st': self.deg_alpha_st,
-                    'deg_alpha_sto': self.deg_alpha_sto,
-                    'mm_r_si': self.mm_r_si,
-                    'mm_d_sto': self.mm_d_sto,
                     'Q': self.Qs,
                 },
                 draw_function=lambda drawer, **kwargs: (
-                    CrossSectStator.CrossSectInnerRotorStator(
+                    CrossSectStator.CrossSectInnerRotorClosedSlotStator(
                         name="statorCore",
                         color="#BAFA01",
-                        deg_alpha_st=self.deg_alpha_st.value,
-                        deg_alpha_sto=self.deg_alpha_sto.value,
-                        mm_r_si=self.mm_r_si.value,
-                        mm_d_sto=self.mm_d_sto.value,
+                        mm_r_so=self.mm_r_so.value,
                         mm_d_sts=self.mm_d_sts.value,
+                        mm_r_si=self.mm_r_si.value,
                         mm_d_st=self.mm_d_st.value,
                         mm_d_sy=self.mm_d_sy.value,
                         mm_w_st=self.mm_w_st.value,
-                        Q=self.Qs.value
+                        Q=self.Qs.value,
                     ).draw(drawer, **kwargs)
                 ),
             ),
+            # "statorCore": Geometry(name='statorCore',
+            #     GP={
+            #         'mm_r_si': self.mm_r_si,
+            #         'mm_d_sto': self.mm_d_sto,
+            #         'mm_d_sts': self.mm_d_sts,
+            #         'mm_d_st': self.mm_d_st,
+            #         'mm_d_sy': self.mm_d_sy,
+            #         'mm_w_st': self.mm_w_st,
+            #         'deg_alpha_st': self.deg_alpha_st,
+            #         'deg_alpha_sto': self.deg_alpha_sto,
+            #         'mm_d_sto': self.mm_d_sto,
+            #         'Q': self.Qs,
+            #     },
+            #     draw_function=lambda drawer, **kwargs: (
+            #         CrossSectStator.CrossSectInnerRotorStator(
+            #             name="statorCore",
+            #             color="#BAFA01",
+            #             deg_alpha_st=self.deg_alpha_st.value,
+            #             deg_alpha_sto=self.deg_alpha_sto.value,
+            #             mm_r_si=self.mm_r_si.value,
+            #             mm_d_sto=self.mm_d_sto.value,
+            #             mm_d_sts=self.mm_d_sts.value,
+            #             mm_d_st=self.mm_d_st.value,
+            #             mm_d_sy=self.mm_d_sy.value,
+            #             mm_w_st=self.mm_w_st.value,
+            #             Q=self.Qs.value
+            #         ).draw(drawer, **kwargs)
+            #     ),
+            # ),
             "coils": None
         }
         self.machineGeometry['coils'] = Geometry(name='coils',
@@ -534,7 +532,8 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 'mm_d_st': self.mm_d_st,
             },
             draw_function=lambda drawer, **kwargs: (
-                CrossSectStator.CrossSectInnerRotorStatorWinding(
+                # CrossSectStator.CrossSectInnerRotorStatorWinding(
+                CrossSectStator.CrossSectInnerRotorClosedSlotStatorWinding(
                     stator_core=self.machineGeometry['statorCore'],
                 ).draw(drawer, **kwargs)
             )
@@ -565,10 +564,10 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
             # 直接调用 draw 方法，如果 machineGeometry 不存在或缺少必要的键，会直接报错
             list_regions = self.machineGeometry['rotorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-            list_regions = self.machineGeometry['shaft'].draw(drawer)
-            list_regions = self.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-            list_regions = self.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-            list_regions = self.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            # list_regions = self.machineGeometry['shaft'].draw(drawer)
+            # list_regions = self.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            # list_regions = self.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            # list_regions = self.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
 
             drawer.apply_stroke(lw=lw)
             drawer.convert_to_pdf()
@@ -586,7 +585,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         lw = 0.1 if self.mm_r_ro.value < 15 else 0.5
         width_in_points  = self.mm_r_so.value*2.1
         height_in_points = self.mm_r_so.value*2.1
-        draw_spmsm(lw, width_in_points, height_in_points)
+        draw_spmsm(lw, width_in_points, height_in_points, bool_draw_whole_model=bool_draw_whole_model)
 
     def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True, x_denorm=None, counter=None, counter_loop=0):
 
@@ -640,12 +639,13 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 # raise KeyboardInterrupt
 
                 # Shaft
-                list_regions = self.machineGeometry['shaft'].draw(toolJd)
-                if hasattr(toolJd, 'visualization_points') and 'shaft' in toolJd.visualization_points:
-                    self.machineGeometry['shaft'].visualization_points = toolJd.visualization_points['shaft']
-                toolJd.bMirror = False
-                toolJd.iRotateCopy = 1
-                region0 = toolJd.prepareSection(list_regions)
+                if not self.bool_StatorSlotClosed:
+                    list_regions = self.machineGeometry['shaft'].draw(toolJd)
+                    if hasattr(toolJd, 'visualization_points') and 'shaft' in toolJd.visualization_points:
+                        self.machineGeometry['shaft'].visualization_points = toolJd.visualization_points['shaft']
+                    toolJd.bMirror = False
+                    toolJd.iRotateCopy = 1
+                    region0 = toolJd.prepareSection(list_regions)
 
                 # Rotor Magnet
                 list_regions = self.machineGeometry['rotorMagnet'].draw(toolJd)
@@ -656,12 +656,13 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 region2 = toolJd.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
                 # Sleeve
-                list_regions = self.machineGeometry['sleeve'].draw(toolJd)
-                if hasattr(toolJd, 'visualization_points') and 'Sleeve' in toolJd.visualization_points:
-                    self.machineGeometry['sleeve'].visualization_points = toolJd.visualization_points['Sleeve']
-                toolJd.bMirror = False
-                toolJd.iRotateCopy = self.machineGeometry['rotorCore'].p*2
-                regionS = toolJd.prepareSection(list_regions)
+                if not self.bool_StatorSlotClosed:
+                    list_regions = self.machineGeometry['sleeve'].draw(toolJd)
+                    if hasattr(toolJd, 'visualization_points') and 'Sleeve' in toolJd.visualization_points:
+                        self.machineGeometry['sleeve'].visualization_points = toolJd.visualization_points['Sleeve']
+                    toolJd.bMirror = False
+                    toolJd.iRotateCopy = self.machineGeometry['rotorCore'].p*2
+                    regionS = toolJd.prepareSection(list_regions)
 
                 # Stator Core
                 list_regions = self.machineGeometry['statorCore'].draw(toolJd)
@@ -685,6 +686,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 toolJd.save(self.name, self.to_json())
 
             self.toolJd = toolJd = build_jmag_project(study_name)
+
             if 'PMSM' in self.machine_class:
                 draw_spmsm(self.toolJd)
 
@@ -1315,10 +1317,11 @@ if __name__ == "__main__":
         # mmd.start_optimization(bool_local_exploration_around_selected_individual=True, std_fraction=0.20)
 
     else:
-        # print(dir(mmd.machineGeometry['statorCore']))
+        mmd.show_geometry()
 
-        mmd.FEA_evaluate(counter=-997)
-        mmd.start_optimization()
+        # mmd.FEA_evaluate(counter=2026)
+        # mmd.start_optimization()
 
+        pass 
+    # mmd.remove_jfiles_folders(mmd.path2SwarmData)
 
-    mmd.remove_jfiles_folders(mmd.path2SwarmData)

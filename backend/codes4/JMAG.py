@@ -70,7 +70,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # Check if Steel_name does not contain 'M-15', 'M-19', or 'Arnon'
             if not any(substring in Steel_name for substring in ['M-15', 'M-19', 'Arnon']):
                 print('No custom steel is added to JMAG Designer.')
-                return None
 
             def add_steel(app, dir_parent, Steel_name: str):
 
@@ -233,6 +232,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 temp_path = expected_project_file_path[:-len('.jproj')] + 'attempts%d.jproj'%(attempts)
 
             expected_project_file_path = temp_path
+
 
         # app.Show()
         app.NewProject("Untitled")

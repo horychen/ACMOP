@@ -152,7 +152,8 @@ class CrossSectInnerNotchedRotor(object):
                     list_segments += drawer.drawLine(P1, P1p5); verbose_print('P1, P1p5')
                     list_segments += drawer.drawArc([0,0], P5, P1p5); verbose_print('[0,0], P5, P1p5')
                     list_segments += drawer.drawLine(P5, P6); verbose_print('P5, P6')
-                    list_segments += drawer.drawArc([0,0], P6, P1); verbose_print('[0,0], P6, P1')
+                    if r_ri > 0:
+                        list_segments += drawer.drawArc([0,0], P6, P1); verbose_print('[0,0], P6, P1')
             else:
                 if bool_draw_whole_model:
                     def iPark(P, theta):
@@ -166,15 +167,17 @@ class CrossSectInnerNotchedRotor(object):
                     for i in range(2*p):
                         draw_fraction(list_segments, iPark(P2, i*alpha_rp), iPark(P3, i*alpha_rp), iPark(P4, i*alpha_rp), iPark(P5, i*alpha_rp))
                     # draw a circle (this is officially suggested by FEMM)
-                    list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]]); verbose_print('[0,0], P1, [-P1[0], P1[1]]')
-                    list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1); verbose_print('[0,0],     [-P1[0], P1[1]], P1')
+                    if r_ri > 0:
+                        list_segments += drawer.drawArc([0,0], P1, [-P1[0], P1[1]]); verbose_print('[0,0], P1, [-P1[0], P1[1]]')
+                        list_segments += drawer.drawArc([0,0],     [-P1[0], P1[1]], P1); verbose_print('[0,0],     [-P1[0], P1[1]], P1')
                 else:
                     list_segments += drawer.drawLine(P1, P2); verbose_print('P1, P2')
                     list_segments += drawer.drawArc([0,0], P3, P2); verbose_print('[0,0], P3, P2')
                     list_segments += drawer.drawLine(P3, P4); verbose_print('P3, P4')
                     list_segments += drawer.drawArc([0,0], P5, P4); verbose_print('[0,0], P5, P4')
                     list_segments += drawer.drawLine(P5, P6); verbose_print('P5, P6')
-                    list_segments += drawer.drawArc([0,0], P6, P1); verbose_print('[0,0], P6, P1')
+                    if r_ri > 0:
+                        list_segments += drawer.drawArc([0,0], P6, P1); verbose_print('[0,0], P6, P1')
         else:
             if bool_draw_whole_model == True:
                 raise Exception('NOT IMPLEMENTED for s>1.')

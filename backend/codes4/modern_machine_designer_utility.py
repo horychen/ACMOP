@@ -503,6 +503,7 @@ class CairoDrawer(object):
         self.ctx.set_source_rgb(0.95, 0.95, 0.95)
         self.ctx.paint()
         self.ctx.restore()
+
     def apply_stroke(self, lw=0.5):
         self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
         self.ctx.set_line_width(lw)
