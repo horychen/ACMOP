@@ -67,6 +67,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # app.Quit()
             self.app = app # means that the JMAG Designer is turned ON now.
 
+            # Check if Steel_name does not contain 'M-15', 'M-19', or 'Arnon'
+            if not any(substring in Steel_name for substring in ['M-15', 'M-19', 'Arnon']):
+                print('No custom steel is added to JMAG Designer.')
+                return None
+
             def add_steel(app, dir_parent, Steel_name: str):
 
                 def add_M1xSteel(app, dir_parent, Steel_name="M-19 Steel Gauge-29"):
@@ -184,28 +189,35 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
 
 
-                if 'M15' in Steel_name:
+                if 'M-15' in Steel_name:
                     add_M1xSteel(app, dir_parent, Steel_name="M-15 Steel")
-                elif 'M19' in Steel_name:
+                elif 'M-19' in Steel_name:
                     add_M1xSteel(app, dir_parent)
                 elif 'Arnon5' == Steel_name:
-                    add_Arnon5(app, dir_parent)        
+                    add_Arnon5(app, dir_parent)       
+                else:
+                    return 'not custom steel'
 
-            # too avoid tons of the same material in JAMG's material library
+            # to avoid tons of the same material in JMAG's material library
             fname = dir_parent + 'BH/.jmag_state.txt'
-            if self.flag_material_already_loaded == False and os.path.exists(fname):
-                pc_name = self.fea_config_dict['pc_name']
+            pc_name = self.fea_config_dict['pc_name']
+            steel_material_entry = pc_name + '/' + Steel_name
+
+            # Check if file exists; if not, act as if material is not yet loaded
+            if os.path.exists(fname):
                 with open(fname, 'r') as f:
-                    for line in f.readlines():
-                        if pc_name + '/' + Steel_name in line:
+                    for line in f:
+                        if steel_material_entry in line:
                             self.flag_material_already_loaded = True
-                            # print('[JMAG.py] steel material already there:', pc_name + '/' + Steel_name)
+                            # print('[JMAG.py] steel material already there:', steel_material_entry)
                             break
-            if self.flag_material_already_loaded == False:
-                with open(fname, 'a') as f:
-                    f.write(self.fea_config_dict['pc_name'] + '/' + Steel_name + '\n')
-                add_steel(app, dir_parent, Steel_name=Steel_name)
-                self.flag_material_already_loaded = True
+
+            if not os.path.exists(fname):
+                if self.flag_material_already_loaded == False:
+                    add_steel(app, dir_parent, Steel_name=Steel_name)
+                    self.flag_material_already_loaded = True
+                    with open(fname, 'a') as f:
+                        f.write(steel_material_entry + '\n')
         else:
             app = self.app
 

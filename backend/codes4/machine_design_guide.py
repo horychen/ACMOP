@@ -1,5 +1,6 @@
 import json, math, base64, pickle, cairo, os, jsonpickle, logging, utility, JMAG, builtins
-from dataclasses import dataclass, fields
+import pygmo as pg
+from dataclasses import dataclass, fields, field
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
 from time import time as clock_time
@@ -10,11 +11,60 @@ from modern_machine_designer_utility import Modern_Machine_Designer_Utility, Swa
 builtins.VERBOSE_DRAWING = False  # Default to False, can be changed in __post_init__ or elsewhere
 
 @dataclass
+class MachineDesignInput:
+    # Winding
+    m: int = 3
+    Qs: int = 12
+    p: int = 5
+    ps: int = 4
+    coil_pitch_y: int = 1
+
+    # Nameplate
+    RatedPower: float = 50e3 # W
+    RatedSpeed: float = 30000 # rpm
+
+    # Excitation
+    bool_WyeConnectOrDeltaConnect: bool = True
+    bool_weHavePlentyVoltage: bool = True
+    Temperature: float = 75
+    TORQUE_CURRENT_RATIO: float = 0.95
+    SUSPENSION_CURRENT_RATIO: float = 0.05
+    DCBusVoltage: float = 600
+    Js: float = 4e6
+    WindingFill: float = 0.3882
+    DriveW_Rs: float = 1.0 # [Ohm]
+    BeariW_Rs: float = 1.0 # [Ohm]
+
+    # Materials
+    SteelMaterial: str = "M-19 Steel Gauge-29"
+    Magnet_Name: str = "Arnold/Reversible/N40H"
+    LaminationFactor: float = 95
+    StatorCore_Material: Optional[str] = None
+    RotorCore_Material: Optional[str] = None
+
+    # Geometry (Fixed/Initial)
+    mm_stack_length_specified: float = 50 # mm
+    SR: float = 0.65 # 1.0 - 0.35
+    mm_r_so: float = 123.5
+    mm_d_mech_air_gap: float = 0.5
+
+    # Bounds
+    yoke_split_ratio_bounds: List[float] = field(default_factory=lambda: [0.5, 0.8])
+    tooth_split_ratio_at_middle_slot: List[float] = field(default_factory=lambda: [0.25, 0.45])
+
+    def __post_init__(self):
+        if self.StatorCore_Material is None:
+            self.StatorCore_Material = self.SteelMaterial
+        if self.RotorCore_Material is None:
+            self.RotorCore_Material = self.SteelMaterial
+
+@dataclass
 class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
     # Meta Data
     name: str = 'gen-0-ind-0'
     machine_class: str = 'SPMSM' # 'bearingless_spmsm_heart.bearingless_spmsm_design_variant'
+    machine_input: MachineDesignInput = field(default_factory=MachineDesignInput)
 
     # Machine Geometry
     bool_PermanentMagnet: bool = True
@@ -23,7 +73,8 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
     select_FEA_tool: str = 'JMAG Designer' # FEMM
     # select_fea_config_dict: str = '#0213 JMAG Bearingless Sub-hamonics'
-    select_fea_config_dict: str = '#02 JMAG Bearingless Fast Evaluation'
+    # select_fea_config_dict: str = '#02 JMAG Bearingless Fast Evaluation'
+    select_fea_config_dict: str = '#0301 JMAG Non-Bearingless'
     fea_config_dict: dict = None
     bool_jmagDeleteResultsAfterCalculation: bool = False
 
@@ -50,16 +101,17 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         # Set global verbose control for drawing operations
         builtins.VERBOSE_DRAWING = self.verbose_drawing
 
-        # 绕组
-        m : int = 3
-        Qs: int = 12
-        p : int = 4
-        ps: int = 5
-        coil_pitch_y: int = 1
+        # Unpack input
+        inp = self.machine_input
+        m = inp.m
+        Qs = inp.Qs
+        p = inp.p
+        ps = inp.ps
+        coil_pitch_y = inp.coil_pitch_y
 
         # 铭牌数据
-        RatedPower: float = 50e3 # W
-        RatedSpeed: float = 30000 # rpm
+        RatedPower = inp.RatedPower
+        RatedSpeed = inp.RatedSpeed
         # 只有在名称不包含后缀时才追加（避免从 JSON 恢复时重复追加）
         suffix = f'-{int(RatedPower)}W-{int(RatedSpeed)}rpm-try5'
         if not self.machine_class.endswith(suffix):
@@ -80,51 +132,51 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         self.wily = Winding(m, Qs, p, ps, coil_pitch_y, bool_DPNVorSEPA=True)
 
         # 激励（含热负荷）
-        bool_WyeConnectOrDeltaConnect: bool = True
-        bool_weHavePlentyVoltage: bool = True
+        bool_WyeConnectOrDeltaConnect = inp.bool_WyeConnectOrDeltaConnect
+        bool_weHavePlentyVoltage = inp.bool_weHavePlentyVoltage
 
-        Temperature : float = 75
+        Temperature = inp.Temperature
         available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220] # according to JMAG
         Magnet_Temperature = min(available_temperature_list, key=lambda x:abs(x - Temperature))
 
-        TORQUE_CURRENT_RATIO: float = 0.95
-        SUSPENSION_CURRENT_RATIO: float = 0.05
+        TORQUE_CURRENT_RATIO = inp.TORQUE_CURRENT_RATIO
+        SUSPENSION_CURRENT_RATIO = inp.SUSPENSION_CURRENT_RATIO
 
-        SteelMaterial = "M-19 Steel Gauge-29"
+        SteelMaterial = inp.SteelMaterial
 
         self.EX = EX = {
             # 3D
-            'mm_stack_length_specified': 50, # mm
+            'mm_stack_length_specified': inp.mm_stack_length_specified, # mm
             # Materials
-            'Magnet_Name': u"Arnold/Reversible/N40H",
+            'Magnet_Name': inp.Magnet_Name,
             'Magnet_StartAngle': 0.5* 360/(2*p),
             'Magnet_Temperature': Magnet_Temperature,
             'SteelMaterial': SteelMaterial,
-            'StatorCore_Material': SteelMaterial, # "M-15 Steel", "Arnon5-final", u"35CS250", "DCMagnetic Type/50A1000",
-            'RotorCore_Material': SteelMaterial, # "M-15 Steel", "Arnon5-final", u"35CS250", "DCMagnetic Type/50A1000",
-            'LaminationFactor': 95,
+            'StatorCore_Material': inp.StatorCore_Material, 
+            'RotorCore_Material': inp.RotorCore_Material,
+            'LaminationFactor': inp.LaminationFactor,
             # Thermal
             'RatedPower': RatedPower,
             'RatedSpeed': RatedSpeed,
             'ExcitationFreqSimulated': ExcitationFreqSimulated,
             'bool_WyeConnectOrDeltaConnect' : bool_WyeConnectOrDeltaConnect,
-            'DCBusVoltage': 600,
-            'Js' : 4e6,
-            'Temperature': 75,
-            'WindingFill': 0.3882,
+            'DCBusVoltage': inp.DCBusVoltage,
+            'Js' : inp.Js,
+            'Temperature': Temperature,
+            'WindingFill': inp.WindingFill,
             'TORQUE_CURRENT_RATIO': TORQUE_CURRENT_RATIO,
             'SUSPENSION_CURRENT_RATIO': SUSPENSION_CURRENT_RATIO,
-            'DriveW_Rs': 1.0, # [Ohm]
-            'BeariW_Rs': 1.0, # [Ohm]
+            'DriveW_Rs': inp.DriveW_Rs, # [Ohm]
+            'BeariW_Rs': inp.BeariW_Rs, # [Ohm]
         }
 
         # 定子裂比和外径
-        SR: float = 1.0 - 0.35
-        mm_r_so: float = 123.5
+        SR = inp.SR
+        mm_r_so = inp.mm_r_so
 
         # 利用不同的裂比去估算合理的边界值
-        yoke_split_ratio_bounds: list[float] = [0.5, 0.8]
-        tooth_split_ratio_at_middle_slot: list[float] = [0.25, 0.45] # TODO: 下界需要考虑到w_st的宽度和半径的值
+        yoke_split_ratio_bounds = inp.yoke_split_ratio_bounds
+        tooth_split_ratio_at_middle_slot = inp.tooth_split_ratio_at_middle_slot
 
         '''Fixed variables'''
         if True:
@@ -134,7 +186,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
             self.ps: Parameter           = Parameter('suspension_pole_pair_number_ps', 'fixed', ps)
             self.coil_pitch_y: Parameter = Parameter('coil_pitch_y', 'fixed', coil_pitch_y)
             self.mm_r_so: Parameter      = Parameter('stator_outer_radius', 'fixed', mm_r_so)
-            self.mm_d_mech_air_gap: Parameter = Parameter('mechanical_air_gap_depth', 'fixed', 0.5)
+            self.mm_d_mech_air_gap: Parameter = Parameter('mechanical_air_gap_depth', 'fixed', inp.mm_d_mech_air_gap)
 
             if self.bool_PermanentMagnet:
                 self.s: Parameter            = Parameter('number_of_magnet_segments_per_pole', 'fixed', 1)
@@ -774,7 +826,9 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
             raise Exception('[acm_designer.py] Wrong string of select_FEA_tool:', self.select_FEA_tool)
 
     def evaluate_design_json_wrapper(self, x_denorm, counter=1, counter_loop=1):
-        # This is a wrapper for the wrapper, in order to build up a json profile for the design variant
+        # This is a wrapper for FEA, in order to build up a json profile for the design variant
+        builtins.ad = self  # share global variable between modules
+        ad = self
 
         # 这里应该返回新获得的设计，然后可以获得geometry_dict，然后包括x_denorm的信息方便重构设计。
         self.FEA_evaluate(bool_jmagDesignerShow=self.fea_config_dict["designer.Show"], x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
@@ -955,6 +1009,8 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         2. 评估帕累托前沿并基于拥挤距离选择最优个体
         3. 初始化种群并开始优化迭代
         """
+        builtins.ad = self  # share global variable between modules
+        ad = self
 
         # 设置路径和日志
         self.logger = self.myLogger(self.path2SwarmData + '/', prefix=self.machine_class)
@@ -1226,7 +1282,7 @@ if __name__ == "__main__":
     full_json_path = os.path.join(mmd.path2SwarmData, 'machine_designer_full.json')     # 保存完整信息到文件（类似 pickle）
     mmd.save_to_file_full(full_json_path)
 
-    if True:  # Add previous design parameters for evaluation
+    if False:  # Add previous design parameters for evaluation
         # ====== Inserted: Apply previous design parameters for evaluation ======
         prev_params = { # p4ps5 prototype from PEMD 2020 paper
             # "stator_outer_radius": 123.49969,
@@ -1266,61 +1322,3 @@ if __name__ == "__main__":
 
 
     mmd.remove_jfiles_folders(mmd.path2SwarmData)
-
-    quit()
-
-
-
-
-    # 从完整文件恢复对象（包含所有信息，包括 lambda 函数）
-    if False:
-        print(f"从文件恢复对象: {full_json_path}")
-        try:
-            mmd3 = Modern_Machine_Designer.load_from_file_full(full_json_path)
-            print("=== 已从完整文件恢复对象 ===")
-            
-            # 验证恢复的对象
-            print(f"恢复的对象名称: {mmd3.name}")
-            print(f"恢复的对象路径: {mmd3.path2SwarmData}")
-            print(f"Free 参数数量: {len(mmd3.get_free_variables())}")
-            print(f"Derived 参数数量: {len(mmd3.get_parameters_by_type('derived'))}")
-            
-            # 验证参数值是否正确恢复
-            print("\n=== 验证 Free 参数 ===")
-            for param in mmd3.get_free_variables():
-                print(f"  {param.name}: {param.value} (bounds: {param.bounds})")
-            
-            print("\n=== 验证 Derived 参数 ===")
-            for name, param in list(mmd3.get_parameters_by_type('derived').items())[:5]:  # 只显示前5个
-                print(f"  {name}: {param.value}")
-            
-            # 验证 machineGeometry 是否存在
-            if hasattr(mmd3, 'machineGeometry') and mmd3.machineGeometry:
-                print(f"\n=== MachineGeometry 组件 ===")
-                for key in mmd3.machineGeometry.keys():
-                    print(f"  {key}: {'存在' if mmd3.machineGeometry[key] is not None else 'None'}")
-            
-            # 验证是否能更新几何参数
-            print("\n=== 测试 update_geometric_parameters ===")
-            try:
-                free_vars_dict = mmd3.get_free_variables_as_dict()
-                print(f"  获取到 {len(free_vars_dict)} 个 free 参数")
-                # 测试更新（使用当前值）
-                mmd3.update_geometric_parameters(x_denorm_dict=free_vars_dict)
-                print("  [OK] update_geometric_parameters 成功")
-            except Exception as e:
-                print(f"  [FAIL] update_geometric_parameters 失败: {e}")
-                import traceback
-                traceback.print_exc()
-            
-            print("\n=== 对象恢复完成，所有验证通过 ===")
-            
-            # Example usage (取消注释以测试):
-            mmd3.draw_individual_from_swarm(3383)
-            
-        except Exception as e:
-            print(f"恢复对象时出错: {e}")
-            import traceback
-            traceback.print_exc()
-            raise
-

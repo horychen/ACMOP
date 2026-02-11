@@ -95,7 +95,6 @@
     "designer.JMAG_Scheduler":false, 
 
     "designer.max_nonlinear_iteration": 50,
-    "designer.meshSize_Magnet": 0.8,
     "designer.AddIronLossCondition": true,
     "designer.number_of_steps_1stTSS":24, 
     "designer.number_of_steps_2ndTSS":32, 
@@ -105,6 +104,12 @@
     "designer.number_cycles_in_3rdTSS":0, 
     "designer.number_cycles_prolonged":0, 
     "designer.TranRef-StepPerCycle":64, 
+
+    "designer.CircumferentialDivision": 720,
+    "designer.meshSize_Magnet": 8,
+    "designer.meshSize_Shaft": 40,
+    "designer.meshSizeAir": 4.0,
+    "designer.meshSize_General": 10.0,
 
     "femm.Coarse_Mesh": false,
     "femm.deg_per_step": null,

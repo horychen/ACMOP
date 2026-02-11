@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'backend', 'codes4')))
 
-from app.routers import project, optimization, results, design, acmop
+from app.routers import project, optimization, results, design, acmop, machine_specs
 
 app = FastAPI(title="ACMOP Backend", version="1.0.0")
 
@@ -26,6 +26,7 @@ app.include_router(optimization.router, prefix="/api/optimization", tags=["Optim
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
 app.include_router(design.router, prefix="/api/design", tags=["Design"])
 app.include_router(acmop.router)  # ACMOP v2 API
+app.include_router(machine_specs.router, prefix="/api", tags=["Machine Specs"])
 
 @app.get("/")
 async def root():

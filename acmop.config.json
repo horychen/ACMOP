@@ -1,0 +1,12 @@
+{
+  "backend": {
+    "virtualEnv": {
+      "type": "conda",
+      "name": "acmop"
+    },
+    "url": "http://localhost:8000"
+  },
+  "frontend": {
+    "backendUrl": "http://localhost:8000"
+  }
+}

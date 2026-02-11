@@ -1,5 +1,12 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## 后端与虚拟环境配置
+
+前端请求的后端地址由环境变量指定，并与项目根目录的 **`acmop.config.json`** 保持一致：
+
+- 复制 `frontend/.env.example` 为 `frontend/.env.local`，按需修改 `BACKEND_URL` 与 `NEXT_PUBLIC_BACKEND_URL`（默认 `http://localhost:8000`）。
+- 后端默认使用 conda 环境 `acmop`，可在 `acmop.config.json` 的 `backend.virtualEnv.name` 中修改；启动方式见项目根目录 README。
+
 ## Getting Started
 
 First, run the development server:

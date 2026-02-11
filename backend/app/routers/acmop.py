@@ -12,7 +12,20 @@ import json
 import os
 from datetime import datetime
 
+from app.config_loader import load_acmop_config
+
 router = APIRouter(prefix="/api/acmopv2", tags=["ACMOP v2"])
+
+
+# ==================== 用户配置 API ====================
+
+@router.get("/config")
+async def get_user_config() -> Dict[str, Any]:
+    """
+    获取用户配置文件 acmop.config.json 内容。
+    用于显式指定前端与后端所采用的虚拟环境，默认后端为 conda 环境 \"acmop\"。
+    """
+    return load_acmop_config()
 
 
 # ==================== 辅助函数：路径处理 ====================
