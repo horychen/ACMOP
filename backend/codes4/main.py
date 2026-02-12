@@ -37,8 +37,8 @@ def run_step_by_step():
     print("--- Step 4: Adding Stator Core (closed-slot) ---")
     my_machine.add_part(StatorCore(name="statorCore", options="closed-slot"))
 
-    # print(f"--- Step 5: Adding Coils ---")
-    # my_machine.add_part(Coil(name="coil", options="standard"))
+    print(f"--- Step 5: Adding Coils ---")
+    my_machine.add_part(Coil(name="coil", options="standard"))
 
     print("\n--- Step 6: Synchronizing Performance Metrics ---")
     my_machine.sync()
@@ -134,7 +134,8 @@ def run_step_by_step():
     try:
         draw_machine_using_JMAG(my_machine) # Uncomment this if you want to run JMAG
     except Exception as e:
-        print(f"JMAG Drawing failed (Expected if JMAG is not installed): {e}")
+        raise e
+        # print(f"JMAG Drawing failed (Expected if JMAG is not installed): {e}")
 
 
 

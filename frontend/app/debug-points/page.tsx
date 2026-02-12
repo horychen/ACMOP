@@ -33,6 +33,8 @@ interface GeometrySegment {
     p1: [number, number];
     p2: [number, number];
     center?: [number, number];
+    sweep_flag?: number;
+    large_arc_flag?: number;
 }
 
 interface GeometryRegion {
@@ -183,10 +185,16 @@ export default function DebugPointsPage() {
                                 const y2 = yScale(p2[1])
                                 const rx = rScale(r)
 
-                                // Sweep flag logic: if mirrored, we might need to flip the sweep
-                                // For now, let's keep it 1.
+                                // Flip sweep flag if mirrored
+                                let sweep = seg.sweep_flag ?? 1
+                                if (isMirrored) {
+                                    sweep = 1 - sweep
+                                }
+
+                                const laf = seg.large_arc_flag ?? 0
+
                                 g.append('path')
-                                    .attr('d', `M ${x1} ${y1} A ${rx} ${rx} 0 0 1 ${x2} ${y2}`)
+                                    .attr('d', `M ${x1} ${y1} A ${rx} ${rx} 0 ${laf} ${sweep} ${x2} ${y2}`)
                                     .attr('stroke', region.color || '#444')
                                     .attr('fill', 'none')
                                     .attr('stroke-width', 1.5)

@@ -29,7 +29,27 @@ class ReactDrawer:
     def drawArc(self, centerxy, startxy, endxy):
         if self.verbose_drawing:
             print(f'[ReactDrawer] drawArc({centerxy=}, {startxy=}, {endxy=})')
-        return [{'type': 'arc', 'center': centerxy, 'p1': startxy, 'p2': endxy}]
+        
+        # Calculate flags matching Cairo and JMAG logic
+        v1 = [startxy[0] - centerxy[0], startxy[1] - centerxy[1]]
+        v2 = [endxy[0] - centerxy[0], endxy[1] - centerxy[1]]
+        
+        # Cross product to determine direction
+        cross_prod = v1[0]*v2[1] - v1[1]*v2[0]
+        sweep_flag = 1 if cross_prod >= 0 else 0
+        
+        # For motor design segments, we almost always use small arcs (large_arc_flag=0)
+        # Cairo's implementation uses acos, so it's always <= PI.
+        large_arc_flag = 0
+            
+        return [{
+            'type': 'arc', 
+            'center': centerxy, 
+            'p1': startxy, 
+            'p2': endxy,
+            'sweep_flag': sweep_flag,
+            'large_arc_flag': large_arc_flag
+        }]
 
     def getSketch(self, name, color):
         pass

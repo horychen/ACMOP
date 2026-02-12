@@ -3,7 +3,6 @@ from machine_designer_v2 import AllPoints, Machine, RotorCore, StatorCore, Magne
 from ReactDrawer import ReactDrawer
 
 router = APIRouter()
-print("--- DEBUG ROUTER LOADED ---")
 
 @router.get("/points")
 async def get_debug_points():
@@ -59,8 +58,12 @@ async def get_debug_geometry():
     machine = Machine(all_points=points)
     
     # Add parts matching the current main.py flow
-    machine.add_part(RotorCore(name="rotorCore", options="inner_notched"))
+    machine.add_part(RotorCore(name="rotorCore", options="notched"))
     machine.add_part(StatorCore(name="statorCore", options="closed-slot"))
+    # Add Magnets
+    machine.add_part(Magnet(name="magnet", color="#FF0000"))
+    # Add Coils
+    machine.add_part(Coil(name="coil", color="#0000FF"))
     
     drawer = ReactDrawer()
     regions = drawer.draw_machine(machine)

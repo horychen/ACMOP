@@ -1,5 +1,9 @@
 # This script is used to generate the geometry of a machine
 # other performance and excitation calculations are done in other scripts
+# 
+# IMPORTANT: All arcs (marked with "~") must be drawn in Counter-Clockwise (CCW) fashion.
+# This means the first point should have a smaller angle than the second point 
+# in the context of the arc segment being drawn (e.g., lower_angle ~ higher_angle).
 
 from dataclasses import dataclass, field, InitVar
 from typing import List, Dict, Any, Optional
@@ -104,6 +108,14 @@ def parse_point_name(name, all_points, rotation_deg=0):
     if name.endswith("_M"):
         is_mirror = True
         name = name[:-2]
+    
+    # Support HP_M[...] and RP_M[...] syntax
+    if name.startswith("HP_M["):
+        is_mirror = True
+        name = "HP[" + name[5:]
+    elif name.startswith("RP_M["):
+        is_mirror = True
+        name = "RP[" + name[5:]
 
     if name.startswith("HP[") and name.endswith("]"):
         idx = int(name[3:-1])
@@ -129,15 +141,24 @@ def draw_instruction_parser(part, all_points, drawer):
     result = part.draw_instruction()
     
     if isinstance(result, dict):
-        instructions = result.get("几何绘制字符串", [])
         bMirror, mirrorAxis = result.get("镜像与否以及镜像轴", (False, None))
         copyCount = result.get("旋转拷贝的个数", 1)
+        
+        # Check for new region-based format
+        if "区域的几何绘制指导" in result:
+            dict_regions = result["区域的几何绘制指导"]
+            instructions_list = list(dict_regions.values())
+        else:
+            # Fallback to legacy single list format
+            scalar_instrs = result.get("几何绘制字符串", [])
+            instructions_list = [scalar_instrs]
     else:
-        instructions = result
+        # result is just a list of instructions
+        instructions_list = [result]
         bMirror, mirrorAxis = (False, None)
         copyCount = 1
 
-    list_segments = []
+    list_regions = []
     list_coords = []
     
     drawer.getSketch(part.name, part.color)
@@ -151,33 +172,46 @@ def draw_instruction_parser(part, all_points, drawer):
     if part_mirror is not None: bMirror = part_mirror
     if part_rotate is not None: copyCount = part_rotate
 
-    # If it's not an FEA drawer (like JMAG), we must handle the duplication manually for visualization
+    # If it's a visualization drawer (like ReactDrawer), we handle duplication manually
+    # If it's a CAD drawer (like JMAG), we let the CAD tool handle it
     is_fea = hasattr(drawer, 'prepareSection')
+    # ReactDrawer specifically needs the data for each copy to be provided if it doesn't handle them
+    # But ReactDrawer handles copies currently via collecting all regions.
+    # Actually, CairoDrawer and JMAG prefer not to have duplicate geometry definitions.
+    # We'll treat ReactDrawer as a CAD drawer for this logic to keep it consistent.
     loop_count = 1 if (is_fea or copyCount <= 1) else copyCount
     
     for i in range(loop_count):
         rotation_offset = i * (360.0 / copyCount)
         current_deg = part.rotation_deg + rotation_offset
         
-        for instr in instructions:
-            if getattr(drawer, 'verbose_drawing', False) and i == 0:
-                print(f"  Instr: {instr}")
-            if " ~ " in instr:
-                p1_name, p2_name = instr.split(" ~ ")
-                p1 = parse_point_name(p1_name, all_points, current_deg)
-                p2 = parse_point_name(p2_name, all_points, current_deg)
+        for instructions in instructions_list:
+            region_segments = []
+            for instr in instructions:
+                # Strip comments if any
+                instr = instr.split('#')[0].strip()
+                if not instr: continue
+                
                 if getattr(drawer, 'verbose_drawing', False) and i == 0:
-                    print(f"    Resolved Arc: {p1_name}->{p1}, {p2_name}->{p2}")
-                list_segments += drawer.drawArc((0,0), p1, p2)
-                list_coords.extend([p1, p2])
-            elif " - " in instr:
-                p1_name, p2_name = instr.split(" - ")
-                p1 = parse_point_name(p1_name, all_points, current_deg)
-                p2 = parse_point_name(p2_name, all_points, current_deg)
-                if getattr(drawer, 'verbose_drawing', False) and i == 0:
-                    print(f"    Resolved Line: {p1_name}->{p1}, {p2_name}->{p2}")
-                list_segments += drawer.drawLine(p1, p2)
-                list_coords.extend([p1, p2])
+                    print(f"  Instr: {instr}")
+                if " ~ " in instr:
+                    p1_name, p2_name = instr.split(" ~ ")
+                    p1 = parse_point_name(p1_name, all_points, current_deg)
+                    p2 = parse_point_name(p2_name, all_points, current_deg)
+                    if getattr(drawer, 'verbose_drawing', False) and i == 0:
+                        print(f"    Resolved Arc: {p1_name}->{p1}, {p2_name}->{p2}")
+                    # All arcs in this machine designer are concentric to the origin (0,0)
+                    region_segments += drawer.drawArc((0,0), p1, p2)
+                    list_coords.extend([p1, p2])
+                elif " - " in instr:
+                    p1_name, p2_name = instr.split(" - ")
+                    p1 = parse_point_name(p1_name, all_points, current_deg)
+                    p2 = parse_point_name(p2_name, all_points, current_deg)
+                    if getattr(drawer, 'verbose_drawing', False) and i == 0:
+                        print(f"    Resolved Line: {p1_name}->{p1}, {p2_name}->{p2}")
+                    region_segments += drawer.drawLine(p1, p2)
+                    list_coords.extend([p1, p2])
+            list_regions.append(region_segments)
             
     if not list_coords:
         return {'innerCoord': (0,0), 'list_regions': [[]], 'mirrorAxis': mirrorAxis, 'bMirror': bMirror, 'iRotateCopy': copyCount}
@@ -190,7 +224,7 @@ def draw_instruction_parser(part, all_points, drawer):
     
     return {
         'innerCoord': innerCoord, 
-        'list_regions': [list_segments], 
+        'list_regions': list_regions, 
         'mirrorAxis': mirrorAxis,
         'bMirror': bMirror,
         'iRotateCopy': copyCount
@@ -247,7 +281,7 @@ class RotorCore(MachinePart):
             instrs = ["HP[2] ~ HP[2]_M", "HP[2]_M ~ HP[2]"]
             
         return {
-            "几何绘制字符串": instrs,
+            "区域的几何绘制指导": {"region1": instrs},
             "镜像与否以及镜像轴": (False, None),
             "旋转拷贝的个数": 1 if self.options == "cylinder" else (self.all_points.num_poles if self.all_points else 1)
         }
@@ -262,27 +296,28 @@ class StatorCore(MachinePart):
         
         if self.options == "closed-slot" or self.options == "semi-closed-slot":
             instrs = [
-                "HP[4] - HP[9]",
-                "HP[9] ~ RP[9]",
-                "RP[9] - RP[8]",
-                "RP[8] ~ HP[7]",
-                "HP[7] - HP[6]",
-                "HP[6] ~ RP[6]",
-                "RP[6] - RP[4]",
-                "RP[4] ~ HP[4]"
+                # Start from tooth center outer back iron and follow a continuous CCW loop for half a sector
+                "HP[9] - HP[4]",  # Radial center line: Back iron outer -> Gap inner (IN)
+                "HP[4] ~ RP[4]",  # Air gap arc (CCW)
+                "RP[4] - RP[6]",  # Slot side radial line (OUT)
+                "HP[6] ~ RP[6]",  # Shoe arc (CCW)
+                "HP[6] - HP[7]",  # Tooth stalk side radial line (OUT)
+                "HP[7] ~ RP[8]",  # Back iron inner arc (CCW)
+                "RP[8] - RP[9]",  # Back iron slot center radial line (OUT)
+                "HP[9] ~ RP[9]"   # Back iron outer arc (CCW)
             ]
         elif self.options == "open-slot":
             instrs = [
-                "HP[4] ~ RP[4]",
-                "RP[4] - HP[7]",
-                "HP[7] ~ RP[8]",
-                "RP[8] - RP[9]",
-                "HP[9] ~ RP[9]",
-                "HP[9] - HP[4]"
+                "HP[9] - HP[4]",  # Radial center line (IN)
+                "HP[4] ~ RP[4]",  # Air gap arc (CCW)
+                "RP[4] - HP[7]",  # Open slot side (OUT) - Note: slightly different than closed
+                "HP[7] ~ RP[8]",  # Back iron inner arc (CCW)
+                "RP[8] - RP[9]",  # Radial (OUT)
+                "HP[9] ~ RP[9]"   # Outer Arc (CCW)
             ]
 
         return {
-            "几何绘制字符串": instrs,
+            "区域的几何绘制指导": {"region1": instrs},
             "镜像与否以及镜像轴": (True, None),
             "旋转拷贝的个数": num_slots
         }
@@ -293,15 +328,18 @@ class Magnet(MachinePart):
     def draw_instruction(self):
         num_poles = self.all_points.num_poles
         return {
-            "几何绘制字符串":
-            [
-            "RP[2]_M - RP[3]_M", 
-            "RP[3]_M ~ RP[3]",
-            "RP[3] - RP[2]", 
-            "RP[2]_M ~ RP[2]"
-        ],
-        "镜像与否以及镜像轴": (False, None),
-        "旋转拷贝的个数": num_poles,
+            "区域的几何绘制指导":
+            {
+                "region1":
+                [
+                    "RP[2]_M - RP[3]_M", 
+                    "RP[3]_M ~ RP[3]",
+                    "RP[3] - RP[2]", 
+                    "RP[2]_M ~ RP[2]"
+                ]
+            },
+            "镜像与否以及镜像轴": (False, None),
+            "旋转拷贝的个数": num_poles,
         }
 
 @dataclass
@@ -310,13 +348,26 @@ class Coil(MachinePart):
     def draw_instruction(self):
         num_slots = self.all_points.num_slots
         return {
-            "几何绘制字符串":
-            [
-            "HP[6] - HP[7]", "HP[7] ~ RP[8]", "RP[8] - RP[6]", "RP[6] ~ HP[6]",
-            "HP[4] ~ RP[4]" # Slot reference
-        ],
-        "镜像与否以及镜像轴": (False, None),
-        "旋转拷贝的个数": num_slots,
+            "区域的几何绘制指导":
+            {
+                "region1":
+                [
+                    "HP[6] - HP[7]", 
+                    "HP[7] ~ RP[8]", 
+                    "RP[8] - RP[6]", 
+                    "HP[6] ~ RP[6]",
+                ],
+                "region2":
+                [
+                    "HP_M[6] - HP_M[7]", 
+                    "RP_M[8] ~ HP_M[7]", 
+                    "RP_M[8] - RP_M[6]", 
+                    "RP_M[6] ~ HP_M[6]", 
+
+                ],
+            },
+            "镜像与否以及镜像轴": (False, None),
+            "旋转拷贝的个数": num_slots,
         }
 
 class Machine:
