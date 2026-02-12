@@ -42,8 +42,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         self.iRotateCopy = 0    # this is an integer
         self.consts      = None # Program constants (not used)
         self.defaultUnit = 'Millimeter' # Default length unit is mm (not used)
+        self.bool_suppressShaft = False
 
-        self.fea_config_dict = fea_config_dict
+        # Default fea_config_dict
+        self.fea_config_dict = fea_config_dict if fea_config_dict is not None else {}
 
         self.flag_material_already_loaded = False
 
@@ -240,20 +242,21 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         logger = logging.getLogger(__name__)
         logger.info('expected_project_file_path: %s', expected_project_file_path)
         if os.path.exists(expected_project_file_path):
-            logger.info('JMAG project exists already. I learned my lessions. I will NOT delete it but create a new one with a different name instead.')
-            # os.remove(expected_project_file_path)
-            attempts = 2
-            temp_path = expected_project_file_path[:-len('.jproj')] + 'attempts%d.jproj'%(attempts)
-            while os.path.exists(temp_path):
-                attempts += 1
+            try:
+                os.remove(expected_project_file_path)
+                logger.info('Deleted existing JMAG project file: %s', expected_project_file_path)
+            except Exception as e:
+                logger.warning('Could not delete existing JMAG project file (maybe locked): %s. Error: %s', expected_project_file_path, e)
+                attempts = 2
                 temp_path = expected_project_file_path[:-len('.jproj')] + 'attempts%d.jproj'%(attempts)
+                while os.path.exists(temp_path):
+                    attempts += 1
+                    temp_path = expected_project_file_path[:-len('.jproj')] + 'attempts%d.jproj'%(attempts)
+                expected_project_file_path = temp_path
+                logger.info('Will use alternative project file: %s', expected_project_file_path)
 
-            expected_project_file_path = temp_path
-
-
-        # app.Show()
         app.NewProject("Untitled")
-        app.SaveAs(os.path.abspath(expected_project_file_path)) # must be absolute path!
+        app.SaveAs(os.path.abspath(expected_project_file_path)) 
         logger = logging.getLogger(__name__)
         logger.info(r'Create JMAG project file: %s'%(expected_project_file_path))
         return app
@@ -305,10 +308,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         EX = acm_variant.EX
         p = acm_variant.p.value
-        s = acm_variant.s.value if acm_variant.bool_PermanentMagnet else 1
+        s = 1
         Q = acm_variant.Qs.value
-                                #   轴 转子 永磁体  护套 定子 绕组
-        if len(part_ID_list) != int(1 + 1 + p*2*s + 1 + 1 + Q*2):
+                                #   z子 永磁体 定子 绕组
+        if len(part_ID_list) != int(1 + p*2*s + 1 + Q*2):
             msg = 'Number of Parts is unexpected. Should be %d but get %d.\n'%(int(1 + 1 + p*2*s + 1 + 1 + Q*2), len(part_ID_list)) 
             #+ self.show(acm_variant,toString=False)
             export_image(app, model, acm_variant.path2SwarmData + '/', suffix='-BadNumberOfParts.png')
@@ -318,22 +321,22 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         export_image(app, model, acm_variant.path2SwarmData, suffix=acm_variant.project_name+'.png')
 
         self.id_rotorCore = id_rotorCore = part_ID_list[0]
-        id_shaft = part_ID_list[1]
-        partIDRange_Magnet = part_ID_list[2:int(2+p*s*2)]
-        id_sleeve = part_ID_list[int(2+p*s*2)]
-        self.id_statorCore = id_statorCore = part_ID_list[int(2+p*s*2)+1]
-        partIDRange_Coil = part_ID_list[int(2+p*s*2)+2 : int(2+p*s*2)+2 + int(Q*2)]
+        # id_shaft = part_ID_list[1]
+        partIDRange_Magnet = part_ID_list[1:int(1+p*s*2)]
+        # id_sleeve = part_ID_list[int(2+p*s*2)]
+        self.id_statorCore = id_statorCore = part_ID_list[int(1+p*s*2)]
+        partIDRange_Coil = part_ID_list[int(1+p*s*2) : int(1+p*s*2) + int(Q*2)]
 
         # debug
-        # print(id_rotorCore)
+        print(id_rotorCore)
         # print(id_shaft)
-        # print(partIDRange_Magnet)
+        print(partIDRange_Magnet)
         # print(id_sleeve)
-        # print(id_statorCore)
-        # print(partIDRange_Coil)
+        print(id_statorCore)
+        print(partIDRange_Coil)
 
-        self.bool_suppressShaft = False
-        model.SuppressPart(id_sleeve, 1)
+        # self.bool_suppressShaft = False
+        # model.SuppressPart(id_sleeve, 1)
 
         group("Magnet", partIDRange_Magnet)
         group("Coils", partIDRange_Coil)
@@ -361,7 +364,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # edge_set(u"AirGapCoast", 0, self.template.SI['GP']['mm_r_ro'].value+0.5*self.Length_AirGap)
 
         # Shaft
-        add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
+        # add_part_to_set('ShaftSet', 0.0, 0.0, ID=id_shaft) # 坐标没用，不知道为什么，而且都给了浮点数了
 
 
 
@@ -371,39 +374,28 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # THETA = 0.25*(Angle_StatorSlotSpan)/180.*math.pi
 
         def get_PCoil(acm_variant):
-            # Generate PCoil using acm_variant (not relying on local vars like r_si)
-            alpha_st = acm_variant.deg_alpha_st.value * math.pi/180
-            alpha_sto = acm_variant.deg_alpha_sto.value * math.pi/180
-            r_si = acm_variant.mm_r_si.value
-            d_sto = acm_variant.mm_d_sto.value
-            d_sp = acm_variant.mm_d_sts.value
-            d_st = acm_variant.mm_d_st.value
-            d_sy = acm_variant.mm_d_sy.value
-            w_st = acm_variant.mm_w_st.value
-            Q = acm_variant.Qs.value
-            alpha_slot_span = 360/Q * math.pi/180
-
-            P1 = [r_si, 0]
-            POpen = [(r_si+d_sp)*math.cos(alpha_slot_span*0.5*1.00), (r_si+d_sp)*-math.sin(alpha_slot_span*0.5*1.00)]
-
-            base_triangle = r_si + d_sp
-            height_triangle = w_st * 0.5
-            angle_triangle = math.atan(height_triangle / base_triangle)
-            P4 = [ base_triangle*math.cos(angle_triangle),
-                base_triangle*-math.sin(angle_triangle)]
-            P5 = [ P4[0] + d_st, P4[1]]
-
-            PMiddle45 = [0.5*(P4[0] + P5[0]), P4[1]]
-            TheRadius = (P5[0] - P4[0])*0.45
-
-            P6 = [ (r_si+d_sp+d_st)*math.cos(alpha_slot_span*0.5),
-                (r_si+d_sp+d_st)*-math.sin(alpha_slot_span*0.5) ]
-            # mm2_slot_area, print, etc, are not needed here since we only want PCoil
-
-            PMiddle6Open = [ 0.5*(P6[0]+POpen[0]), 0.5*(P6[1]+POpen[1])]
-            PCoil = [ 0.5*(PMiddle45[0]+PMiddle6Open[0]), 0.5*(PMiddle45[1]+PMiddle6Open[1])]
-            return PCoil
+            # Simplified: Use the inner_coords of the Coil part calculated during drawing
+            for part in acm_variant.geometry.parts:
+                if "coil" in part.name.lower():
+                    # Find a region with negative y (typically region2 in mirrored coil)
+                    for r_name, centroid in part.inner_coords.items():
+                        if centroid[1] < 0:
+                            return centroid
+                    
+                    # Fallback to any available region if none have negative y
+                    if part.inner_coords:
+                        return next(iter(part.inner_coords.values()))
+            
+            # Fallback if no coil part is found or inner_coords missing
+            print("[Warning] Coil part not found or inner_coords missing. Using fallback.")
+            return [acm_variant.mm_r_si.value + 2.0, -1.0] # Rough fallback
+        
         PCoil = get_PCoil(acm_variant)
+        print(f'PCoil={PCoil}')
+        print(f'PCoil={PCoil}')
+        print(f'PCoil={PCoil}')
+        print(f'PCoil={PCoil}')
+        
         # PCoil = acm_variant.drawer.visualization_points['Coils']['PCoil']
 
         R = math.sqrt(PCoil[0]**2 + PCoil[1]**2)
@@ -447,13 +439,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             Y = R*math.sin(THETA)
 
         # Create Set for Magnets
-        R = acm_variant.mm_r_si.value - acm_variant.mm_d_sleeve.value - acm_variant.mm_d_mech_air_gap.value - 0.5*acm_variant.mm_d_pm.value
-        alpha_rs = acm_variant.deg_alpha_rs.value /180*math.pi
+        R = acm_variant.geometry.gp['r_rotor_outer'] - 0.5 * acm_variant.geometry.gp['d_magnet']
         deg_pole_span = 360 / (p*2)
 
-        if s>1:
-            deg_alpha_notch  = (acm_variant.deg_alpha_rm.value - s*acm_variant.deg_alpha_rs.value) / (s-1) # inter-segment notch占的角度
-            alpha_notch = deg_alpha_notch /180*math.pi
+        alpha_slot_pitch = 360.0 / acm_variant.geometry.gp['num_slots']
+        alpha_pole_pitch = 360.0 / acm_variant.geometry.gp['num_poles']
 
         list_xy_magnets = []
         # list_xy_airWithinRotorSlot = []
@@ -462,22 +452,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             if s==1:
                       # v---This negative sign means we walk CCW to assign sets.
-                THETA = - (180/p - acm_variant.deg_alpha_rm.value + 0.5*acm_variant.deg_alpha_rm.value + deg_pole_span*ind) /180.*math.pi
+                THETA = - (180/p - alpha_pole_pitch + 0.5*alpha_pole_pitch + deg_pole_span*ind) /180.*math.pi
                 X = R*math.cos(THETA)
                 Y = R*math.sin(THETA)
 
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
             else:     # v---This negative sign means we walk CCW to assign sets.
-                THETA = - ( 180/p - acm_variant.deg_alpha_rm.value + 0.5*acm_variant.deg_alpha_rs.value + deg_pole_span*ind ) /180*math.pi # initial position
-                # THETA = ( 0.5*self.deg_alpha_rs + deg_pole_span*ind ) /180*math.pi # initial position
-                for _s in range(s):
-                    X = R*math.cos(THETA)
-                    Y = R*math.sin(THETA)
-                    add_part_to_set("Magnet %d s%d"%(natural_ind, _s), X, Y)
-                    list_xy_magnets.append([X,Y])
-                    THETA -= alpha_notch + alpha_rs
-                        # ^---This negative sign means we walk CCW to assign sets.
+                raise NotImplementedError
 
         # Create Set for Motion Region
         def part_list_set(name, list_xy, list_part_id=None, prefix=None):
@@ -491,7 +473,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 for ID in list_part_id:
                     sel.SelectPart(ID)
             model.GetSetList().GetSet(name).AddSelected(sel)
-        part_list_set('Motion_Region', list_xy_magnets, list_part_id=[id_rotorCore, id_shaft])
+        part_list_set('Motion_Region', list_xy_magnets, list_part_id=[id_rotorCore, ])
 
         part_list_set('MagnetSet', list_xy_magnets)
 
@@ -526,7 +508,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         #     wily = wily_as_obj
 
         study.GetStudyProperties().SetValue("ConversionType", 0)
-        study.GetStudyProperties().SetValue("NonlinearMaxIteration", acm_variant.fea_config_dict['designer.max_nonlinear_iteration'])
+        study.GetStudyProperties().SetValue("NonlinearMaxIteration", self.fea_config_dict['designer.max_nonlinear_iteration'])
         study.GetStudyProperties().SetValue("ModelThickness", EX['mm_stack_length_specified']) # [mm] Stack Length
 
         # Material
@@ -598,6 +580,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             DM.CreatePointArray("point_array/timevsdivision", "SectionStepTable")
 
             FREQUENCY = EX['ExcitationFreqSimulated']
+            print(f"DEBUG JMAG: FREQUENCY = {FREQUENCY}, number_cycles_in_1stTSS = {number_cycles_in_1stTSS}")
 
             if number_cycles_prolonged == 0:
                 if number_cycles_in_3rdTSS == 0:
@@ -1366,8 +1349,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     @staticmethod
     def run_study(acm_variant, app, study, fea_config_dict, toc):
         logger = logging.getLogger(__name__)
+        print(f"DEBUG JMAG: run_study called for study: {study.GetName()}")
         if fea_config_dict['designer.JMAG_Scheduler'] == False:
             logger.info('Run jam.exe...')
+            print("DEBUG JMAG: Running jam.exe (study.RunAllCases)...")
             # if run_list[1] == True:
             try:
                 study.RunAllCases()
@@ -1433,11 +1418,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMeshControl().GetCondition("MagnetMeshCtrl").ClearParts()
             study.GetMeshControl().GetCondition("MagnetMeshCtrl").AddSet(model.GetSetList().GetSet("MagnetSet"), 0)
 
-            if self.bool_suppressShaft == False:
-                study.GetMeshControl().CreateCondition("Part", "ShaftMeshCtrl")
-                study.GetMeshControl().GetCondition("ShaftMeshCtrl").SetValue("Size", meshSize_Shaft) 
-                study.GetMeshControl().GetCondition("ShaftMeshCtrl").ClearParts()
-                study.GetMeshControl().GetCondition("ShaftMeshCtrl").AddSet(model.GetSetList().GetSet("ShaftSet"), 0)
+            # if self.bool_suppressShaft == False:
+            #     study.GetMeshControl().CreateCondition("Part", "ShaftMeshCtrl")
+            #     study.GetMeshControl().GetCondition("ShaftMeshCtrl").SetValue("Size", meshSize_Shaft) 
+            #     study.GetMeshControl().GetCondition("ShaftMeshCtrl").ClearParts()
+            #     study.GetMeshControl().GetCondition("ShaftMeshCtrl").AddSet(model.GetSetList().GetSet("ShaftSet"), 0)
 
             def mesh_all_cases(study):
                 numCase = study.GetDesignTable().NumCases()
@@ -1700,7 +1685,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         basic_info = []
         time_list = []
         TorCon_list = []
-        with open(path_prefix + study_name + '_torque.csv', 'r') as f:
+        with open(os.path.join(path_prefix, study_name + '_torque.csv'), 'r') as f:
             count = 0
             for row in utility.csv_row_reader(f):
                 count +=1
@@ -1724,7 +1709,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # time_list = []
         ForConX_list = []
         ForConY_list = []
-        with open(path_prefix + study_name + '_force.csv', 'r') as f:
+        with open(os.path.join(path_prefix, study_name + '_force.csv'), 'r') as f:
             count = 0
             for row in utility.csv_row_reader(f):
                 count +=1
@@ -1744,7 +1729,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # Current
         key_list = []
         Current_dict = dict()
-        with open(path_prefix + study_name + '_circuit_current.csv', 'r') as f:
+        with open(os.path.join(path_prefix, study_name + '_circuit_current.csv'), 'r') as f:
             count = 0
             for row in utility.csv_row_reader(f):
                 count +=1
@@ -1764,7 +1749,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # FluxLinkage (2022)
         key_list = []
         FluxLinkage_dict = dict()
-        with open(path_prefix + study_name + '_flux_of_fem_coil.csv', 'r') as f:
+        with open(os.path.join(path_prefix, study_name + '_flux_of_fem_coil.csv'), 'r') as f:
             count = 0
             for row in utility.csv_row_reader(f):
                 count +=1
@@ -1782,7 +1767,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # Displacement angle (2022)
         DisplacementAngle_list = []
-        with open(path_prefix + study_name + '_total_rotational_displacement.csv', 'r') as f:
+        with open(os.path.join(path_prefix, study_name + '_total_rotational_displacement.csv'), 'r') as f:
             count = 0
             for row in utility.csv_row_reader(f):
                 count +=1
@@ -1795,7 +1780,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         new_key_list = []
         if fea_config_dict['delete_results_after_calculation'] == False:
             # file name is by individual_name like ID32-2-4_EXPORT_CIRCUIT_VOLTAGE.csv rather than ID32-2-4Tran2TSS_circuit_current.csv
-            fname = path_prefix + study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv"
+            fname = os.path.join(path_prefix, study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
             # print 'Terminal Voltage - look into:', fname
             with open(fname, 'r') as f:
                 count = 0
@@ -1815,7 +1800,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # Loss
         # Iron Loss
-        with open(path_prefix + study_name + '_iron_loss_loss.csv', 'r') as f:
+        with open(os.path.join(path_prefix, study_name + '_iron_loss_loss.csv'), 'r') as f:
             count = 0
             for row in utility.csv_row_reader(f):
                 count +=1
@@ -2117,8 +2102,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
     # def build_str_results(self, axeses, acm_variant, project_name, tran_study_name, path2FEACsv, fea_config_dict, femm_solver=None):
     def build_str_results(self, acm_variant, project_name, tran_study_name, path2FEACsv, fea_config_dict, femm_solver=None):
-        # originate from fobj
-
+        print(f"DEBUG JMAG: build_str_results called with acm_variant type: {type(acm_variant)}")
+        print(f"DEBUG JMAG: project_name: {project_name}")
         machine_type = acm_variant.machine_class
 
         try:

@@ -11,8 +11,8 @@ from fastapi.encoders import jsonable_encoder
 router = APIRouter()
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-_USER_MACHINE_PATH = os.path.join(_ROOT, "backend", "codes4", "user_minitureMachine.py")
-_WORKSPACE_MACHINE_PATH = os.path.join(r"c:\Users\lenovo\Codes\ACMOP", "backend", "codes4", "user_minitureMachine.py")
+_USER_MACHINE_PATH = os.path.join(_ROOT, "backend", "codes4", "machine_geometry.py")
+_WORKSPACE_MACHINE_PATH = os.path.join(r"c:\Users\lenovo\Codes\ACMOP", "backend", "codes4", "machine_geometry.py")
 _LOG_PATH = os.path.join(_ROOT, ".cursor", "debug.log")
 _DEBUG_LOG_FALLBACK = r"c:\Users\lenovo\Codes\ACMOP\.cursor\debug.log"
 
@@ -100,7 +100,7 @@ def _load_module_from_file():
     codes4_dir = os.path.dirname(path)
     if codes4_dir not in sys.path:
         sys.path.insert(0, codes4_dir)
-    module = types.ModuleType("user_minitureMachine")
+    module = types.ModuleType("machine_geometry")
     module.__file__ = path
     with open(path, "r", encoding="utf-8") as f:
         source = f.read()

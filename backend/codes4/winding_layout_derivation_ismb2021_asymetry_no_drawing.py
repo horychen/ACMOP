@@ -667,6 +667,7 @@ def main_derivation(m, Qs, p, ps, coil_pitch_y, verbose=None):
     for index, slot_pole_comb in enumerate(Slot_Pole_Combinations):
         wd = Winding_Derivation(slot_pole_comb, bool_double_layer_winding, verbose=verbose)
         wd.format_print_out_string()
+        return wd
 
 if __name__ == '__main__':
     main_derivation()

@@ -110,6 +110,12 @@ class Winding(object):
 
         # TODO: calculate winding factor
         self.kw1 = 0.933
+        # Default layer attributes
+        self.layer_X_phases = None
+        self.layer_X_signs = None
+        self.layer_Y_phases = None
+        self.layer_Y_signs = None
+
         derivation = self.get_winding_factor()
         # Get all winding factor information and phase/sign/grouping data from self.derivation
         # If self.derivation is a dict or an object with these attributes, extract them.
@@ -152,6 +158,14 @@ class Winding(object):
             elif isinstance(derivation, dict) and 'grouping_AC' in derivation:
                 self.grouping_AC = derivation['grouping_AC']
 
+            # Populate dict_coil_connection for JMAG.py compatibility
+            self.dict_coil_connection = {
+                'layer X phases': self.layer_X_phases,
+                'layer X signs': self.layer_X_signs,
+                'layer Y phases': self.layer_Y_phases,
+                'layer Y signs': self.layer_Y_signs,
+            }
+
 
         # Excitation for DPNV
         self.bool_DPNVorSEPA = bool_DPNVorSEPA
@@ -170,6 +184,14 @@ class Winding(object):
 
             self.CommutatingSequenceD = 1
             self.CommutatingSequenceB = 0
+            
+            # Update dict_coil_connection for DPNV defaults
+            self.dict_coil_connection = {
+                'layer X phases': self.layer_X_phases,
+                'layer X signs': self.layer_X_signs,
+                'layer Y phases': self.layer_Y_phases,
+                'layer Y signs': self.layer_Y_signs,
+            }
 
     def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self, layer_X_phases, coil_pitch):
         return layer_X_phases[-coil_pitch:] + layer_X_phases[:-coil_pitch]

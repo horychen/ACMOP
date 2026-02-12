@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-/** Sections and param keys aligned with backend/codes4/user_minitureMachine.py (GeometrySpecs, WindingSpecs, MaterialSpecs, PerformanceTargets) */
+/** Sections and param keys aligned with backend/codes4/machine_geometry.py (via MotorSpecs compatibility) */
 const PARAM_SECTIONS: {
   section: "geometry" | "winding" | "materials" | "targets";
   title: string;
