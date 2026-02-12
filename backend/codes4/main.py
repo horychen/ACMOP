@@ -34,11 +34,11 @@ def run_step_by_step():
     print(f"--- Step 3: Adding Magnets ---")
     my_machine.add_part(Magnet(name="magnet", options="arc"))
 
-    # print("--- Step 4: Adding Stator Core (semi-closed-slot) ---")
-    my_machine.add_part(StatorCore(name="statorCore", options="semi-closed-slot"))
+    print("--- Step 4: Adding Stator Core (closed-slot) ---")
+    my_machine.add_part(StatorCore(name="statorCore", options="closed-slot"))
 
-    print(f"--- Step 5: Adding Coils ---")
-    my_machine.add_part(Coil(name="coil", options="standard"))
+    # print(f"--- Step 5: Adding Coils ---")
+    # my_machine.add_part(Coil(name="coil", options="standard"))
 
     print("\n--- Step 6: Synchronizing Performance Metrics ---")
     my_machine.sync()
@@ -47,7 +47,7 @@ def run_step_by_step():
     print(f"Slot Current density: {my_machine.winding.rated_current_density_Js} A/mm2")
 
     print("\n--- Step 7: Generating SVG and Verifying Regions ---")
-    drawer = CairoDrawer(filename='machine_geometry.svg', scale=30.0)
+    drawer = CairoDrawer(filename='machine_geometry.svg', scale=30.0, bFillRegion=False)
     def draw_machine_using_CairoDrawer(machine):
         from machine_designer_v2 import draw_instruction_parser
         if machine.all_points is None:
@@ -55,10 +55,17 @@ def run_step_by_step():
         
         drawer.regions = []
         for part in machine.parts:
-            # draw_instruction_parser internally calls drawer.getSketch(part.name, part.color)
+
+            # if isinstance(part, Magnet):
+            #     part.iRotateCopy = 1
+
+            # draw_instruction_parser internally calls drawer.drawArc / drawLine
+            # which now return segment metadata instead of drawing immediately.
             region_dict = draw_instruction_parser(part, machine.all_points, drawer)
             drawer.regions.append(region_dict)
-            drawer.finalize_part() # Fill and stroke the current path
+
+            # Now explicitly render and fill the region
+            drawer.prepareSection(region_dict, color=part.color)
         
         drawer.surface.finish()
         print(f"Machine geometry drawn to {drawer.filename or 'SVG surface'}")
@@ -124,7 +131,10 @@ def run_step_by_step():
         toolJd.save("MachineModel", "Generated using optimized machine.parts architecture")
         print(f"JMAG geometry drawn and saved to {project_file}")
 
-    draw_machine_using_JMAG(my_machine) # Uncomment this if you want to run JMAG
+    try:
+        draw_machine_using_JMAG(my_machine) # Uncomment this if you want to run JMAG
+    except Exception as e:
+        print(f"JMAG Drawing failed (Expected if JMAG is not installed): {e}")
 
 
 

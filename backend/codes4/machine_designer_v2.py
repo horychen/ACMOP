@@ -4,6 +4,11 @@
 from dataclasses import dataclass, field, InitVar
 from typing import List, Dict, Any, Optional
 import math
+def rotate_point(p, deg):
+    rad = math.radians(deg)
+    x, y = p
+    return (x * math.cos(rad) - y * math.sin(rad),
+            x * math.sin(rad) + y * math.cos(rad))
 
 @dataclass
 class AllPoints:
@@ -12,6 +17,11 @@ class AllPoints:
     rotated_position: Dict[int, tuple] = field(default_factory=dict, init=False)
 
     def __post_init__(self, required_GP: dict):
+        # Helper for rotation around origin
+        def rotate(r, deg):
+            rad = math.radians(deg)
+            return (r * math.cos(rad), r * math.sin(rad))
+
         self.required_GP = required_GP
         r_shaft = required_GP['r_shaft']
         r_rotor_outer = required_GP['r_rotor_outer']
@@ -35,62 +45,58 @@ class AllPoints:
         r_sy = r_stator_outer - d_stator_yoke
         r_so = r_stator_outer
 
-        # HP: Horizontal Points (Angle 0, on Tooth Axis)
+        # Angles for the stalk boundaries (where the straight tooth meets the arcs)
+        alpha_si_deg = math.degrees(math.asin((w_stator_width * 0.5) / r_si)) if r_si > 0 else 0.0
+        alpha_ss_deg = math.degrees(math.asin((w_stator_width * 0.5) / r_ss)) if r_ss > 0 else 0.0
+        alpha_sy_deg = math.degrees(math.asin((w_stator_width * 0.5) / r_sy)) if r_sy > 0 else 0.0
+        alpha_so_deg = math.degrees(math.asin((w_stator_width * 0.5) / r_so)) if r_so > 0 else 0.0
+
+        # HP: Horizontal Points (Usually angle 0, but here used for corners on the tooth axis)
         self.HP = self.horizontal_position = {
             0: (0.0, 0.0),
             1: (r_shaft, 0.0),
             2: (r_rotor_outer - d_magnet, 0.0),
             3: (r_rotor_outer, 0.0),
-            4: (r_rotor_outer + d_air_gap, 0.0), # r_si
-            5: (r_rotor_outer + d_air_gap + d_stator_tooth_shoe, 0.0), # r_ss
-            6: (r_rotor_outer + d_air_gap + d_stator_tooth_shoe, w_stator_width / 2.0),
-            7: (r_stator_outer - d_stator_yoke, w_stator_width / 2.0), # r_sy
-            8: (r_stator_outer - d_stator_yoke, 0.0), # r_sy_bottom
-            9: (r_stator_outer, 0.0), # r_so
+            4: (r_si, 0.0),
+            5: (r_ss, 0.0),
+            6: rotate(r_ss, alpha_ss_deg), # Shoe corner
+            7: rotate(r_sy, alpha_sy_deg), # Yoke corner
+            8: (r_sy, 0.0),
+            9: (r_so, 0.0),
         }
 
-        # Mirrored points for tooth stalk and circle drawing
+        # Mirrored points for symmetry and circle drawing
         self.HP_mirror = {
-            1: (-self.HP[1][0], self.HP[1][1]), # Rotor shaft 180-deg
-            2: (-self.HP[2][0], self.HP[2][1]), # Rotor back iron 180-deg
-            3: (-self.HP[3][0], self.HP[3][1]), # Rotor surface 180-deg
-            4: (-self.HP[4][0], self.HP[4][1]), # Bore 180-deg
-            6: (self.HP[6][0], -self.HP[6][1]), # Stalk symmetry
-            7: (self.HP[7][0], -self.HP[7][1]), # Stalk symmetry
-            9: (-self.HP[9][0], self.HP[9][1]), # Outer surface 180-deg
+            1: (-self.HP[1][0], self.HP[1][1]), # 180-deg for circles
+            2: (-self.HP[2][0], self.HP[2][1]),
+            3: (-self.HP[3][0], self.HP[3][1]),
+            4: (-self.HP[4][0], self.HP[4][1]),
+            6: (self.HP[6][0], -self.HP[6][1]), # Tooth stalk symmetry
+            7: (self.HP[7][0], -self.HP[7][1]), # Tooth stalk symmetry
+            9: (-self.HP[9][0], self.HP[9][1]),
         }
 
-        # Helper for rotation
-        def rotate(r, deg):
-            rad = math.radians(deg)
-            return (r * math.cos(rad), r * math.sin(rad))
-
-        # Yoke boundary angle calculation
-        if r_sy > 0 and (w_stator_width * 0.5) / r_sy <= 1.0:
-            alpha_yoke_deg = math.degrees(math.asin((w_stator_width * 0.5) / r_sy))
-        else:
-            alpha_yoke_deg = 0.0
-            
-        # RP: Rotated Points (Usually at +half slot pitch, on Slot Center Axis)
-        half_pitch = alpha_slot_pitch / 2.0
+        # RP: Rotated Points (at slot center axis, angle half_pitch)
+        stator_half_pitch = alpha_slot_pitch / 2.0
+        rotor_half_pitch = alpha_pole_pitch / 2.0
         self.RP = self.rotated_position = {
-            0: (0.0, 0.0),
-            1: (r_shaft, 0.0),
-            2: rotate(self.HP[2][0], alpha_pole_pitch / 2.0),
-            3: rotate(self.HP[3][0], alpha_pole_pitch / 2.0), 
-            4: rotate(self.HP[4][0], half_pitch),
-            5: rotate(self.HP[5][0], half_pitch), 
-            6: rotate(self.HP[6][0], half_pitch), 
-            7: rotate(self.HP[7][0], half_pitch), 
-            8: rotate(self.HP[8][0], alpha_yoke_deg),
-            9: rotate(self.HP[9][0], half_pitch),
+            0: rotate(0.0, stator_half_pitch),
+            1: rotate(r_shaft, stator_half_pitch),
+            2: rotate(r_rotor_outer - d_magnet, rotor_half_pitch),
+            3: rotate(r_rotor_outer, rotor_half_pitch),
+            4: rotate(r_si, stator_half_pitch),
+            5: rotate(r_ss, stator_half_pitch),
+            6: rotate(r_ss, stator_half_pitch),
+            7: rotate(r_sy, stator_half_pitch),
+            8: rotate(r_sy, stator_half_pitch),
+            9: rotate(r_so, stator_half_pitch),
+
+            14: rotate(r_si, alpha_si_deg),
+            15: rotate(r_ss, alpha_ss_deg),
+            17: rotate(r_sy, alpha_sy_deg),
+            19: rotate(r_so, alpha_so_deg),
         }
 
-def rotate_point(p, deg):
-    rad = math.radians(deg)
-    x, y = p
-    return (x * math.cos(rad) - y * math.sin(rad),
-            x * math.sin(rad) + y * math.cos(rad))
 
 def parse_point_name(name, all_points, rotation_deg=0):
     name = name.split('(')[0].strip()
@@ -111,6 +117,8 @@ def parse_point_name(name, all_points, rotation_deg=0):
         idx = int(name[3:-1])
         p = all_points.RP[idx]
         if is_mirror:
+            # We don't typically need a separate RP_mirror dictionary
+            # as RP points can be mirrored across the Tooth Axis via Y-negation
             p = (p[0], -p[1])
     else:
         raise ValueError(f"Unknown point name: {name}")
@@ -135,6 +143,13 @@ def draw_instruction_parser(part, all_points, drawer):
     drawer.getSketch(part.name, part.color)
     if getattr(drawer, 'verbose_drawing', False):
         print(f"--- Parsing instructions for {part.name} (Base Rotation: {part.rotation_deg} deg, Copies: {copyCount}) ---")
+
+    # Priority for duplication: part attributes (overrides) > draw_instruction return values
+    part_mirror = getattr(part, 'bMirror', None)
+    part_rotate = getattr(part, 'iRotateCopy', None)
+    
+    if part_mirror is not None: bMirror = part_mirror
+    if part_rotate is not None: copyCount = part_rotate
 
     # If it's not an FEA drawer (like JMAG), we must handle the duplication manually for visualization
     is_fea = hasattr(drawer, 'prepareSection')
@@ -226,7 +241,7 @@ class RotorCore(MachinePart):
         instrs = []
         if self.options == "notched":
             instrs = [
-                "RP[1]_M - RP[2]_M", "RP[2]_M ~ RP[2]", "RP[2] - RP[1]", "RP[1] ~ RP[1]_M"
+                "RP[1]_M - RP[2]_M", "RP[2]_M ~ RP[2]", "RP[2] - RP[1]", "RP[1]_M ~ RP[1]"
             ]
         elif self.options == "cylinder":
             instrs = ["HP[2] ~ HP[2]_M", "HP[2]_M ~ HP[2]"]
@@ -245,34 +260,31 @@ class StatorCore(MachinePart):
         num_slots = self.all_points.num_slots if self.all_points else 1
         bFullCircle = False
         
-        if self.options == "closed-slot":
+        if self.options == "closed-slot" or self.options == "semi-closed-slot":
             instrs = [
-                "HP[9] ~ HP[9]_M", "HP[9]_M ~ HP[9]",
-                "HP[4] ~ HP[4]_M", "HP[4]_M ~ HP[4]"
-            ]
-            bFullCircle = True
-        elif self.options == "semi-closed-slot":
-            instrs = [
-                "RP[4]_M ~ HP[4]", "HP[4] ~ RP[4]",
-                "RP[4] - RP[5]", "RP[5] - RP[7]", "RP[7] - RP[9]",
-                "RP[9] ~ HP[9]", "HP[9] ~ RP[9]_M",
-                "RP[9]_M - RP[7]_M", "RP[7]_M - RP[5]_M", "RP[5]_M - RP[4]_M"
+                "HP[4] - HP[9]",
+                "HP[9] ~ RP[9]",
+                "RP[9] - RP[8]",
+                "RP[8] ~ HP[7]",
+                "HP[7] - HP[6]",
+                "HP[6] ~ RP[6]",
+                "RP[6] - RP[4]",
+                "RP[4] ~ HP[4]"
             ]
         elif self.options == "open-slot":
             instrs = [
-                "RP[4]_M ~ HP[4]", "HP[4] ~ RP[4]",
-                "RP[4] - RP[7]", "RP[7] - RP[9]",
-                "RP[9] ~ HP[9]", "HP[9] ~ RP[9]_M",
-                "RP[9]_M - RP[7]_M", "RP[7]_M - RP[4]_M"
+                "HP[4] ~ RP[4]",
+                "RP[4] - HP[7]",
+                "HP[7] ~ RP[8]",
+                "RP[8] - RP[9]",
+                "HP[9] ~ RP[9]",
+                "HP[9] - HP[4]"
             ]
-        else:
-            instrs = ["HP[9] ~ HP[9]_M", "HP[9]_M ~ HP[9]"]
-            bFullCircle = True
-            
+
         return {
             "几何绘制字符串": instrs,
-            "镜像与否以及镜像轴": (False, None),
-            "旋转拷贝的个数": 1 if bFullCircle else num_slots
+            "镜像与否以及镜像轴": (True, None),
+            "旋转拷贝的个数": num_slots
         }
 
 @dataclass
@@ -300,8 +312,8 @@ class Coil(MachinePart):
         return {
             "几何绘制字符串":
             [
-            "HP[6] - HP[7]", "HP[7] ~ RP[7]", "RP[7] - RP[6]", "RP[6] ~ HP[6]",
-            "RP[4] - RP[9]" # Slot divider
+            "HP[6] - HP[7]", "HP[7] ~ RP[8]", "RP[8] - RP[6]", "RP[6] ~ HP[6]",
+            "HP[4] ~ RP[4]" # Slot reference
         ],
         "镜像与否以及镜像轴": (False, None),
         "旋转拷贝的个数": num_slots,

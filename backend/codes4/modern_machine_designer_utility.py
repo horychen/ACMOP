@@ -489,12 +489,18 @@ class Geometry(object):
         return self.components_make_region
 
 class CairoDrawer(object):
-    def __init__(self, width_in_points=500, height_in_points=500, filename=None, verbose_drawing=False, scale=1.0):
+    def __init__(self, width_in_points=500, height_in_points=500, filename=None, verbose_drawing=False, scale=1.0, bFillRegion=True):
         self.filename = filename
         self.verbose_drawing = verbose_drawing
         self.scale = scale
-        self.surface = cairo.SVGSurface(self.filename, width_in_points, height_in_points)
-        self.ctx = cairo.Context(self.surface)
+        self.bFillRegion = bFillRegion
+        self.iRotateCopy = 0
+        self.bMirror = False
+        self.ctx = None
+        self.surface = None
+        if self.filename:
+            self.surface = cairo.SVGSurface(self.filename, width_in_points, height_in_points)
+            self.ctx = cairo.Context(self.surface)
         # self.ctx.scale(width_in_points, height_in_points)
         # m = cairo.Matrix(yy=-1, y0=height_in_points) # Cartetian Coordinate
         m = cairo.Matrix(yy=-1, y0=0.5*height_in_points, x0=+0.5*width_in_points) # Offset to center
@@ -530,43 +536,6 @@ class CairoDrawer(object):
 
         self.sketch_color = color
 
-    def drawLine(self, p1, p2):
-        if self.verbose_drawing:
-            print(f'[CairoDrawer.py] drawLine({p1=}, {p2=})')
-        self.ctx.move_to(p1[0], p1[1])
-        self.ctx.line_to(p2[0], p2[1])
-        return [{'move_to': (p1[0], p1[1]), 'line_to': (p2[0], p2[1])}]
-
-    def drawArc(self, centerxy, startxy, endxy):
-        if self.verbose_drawing:
-            print(f'[CairoDrawer.py] drawArc({centerxy=}, {startxy=}, {endxy=})')
-        EPS = 1e-3
-        v1 = [startxy[0] - centerxy[0], startxy[1] - centerxy[1]]
-        v2 = [endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]]
-        
-        radius = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
-        if radius < EPS:
-            if self.verbose_drawing:
-                print(f'[CairoDrawer.py] drawArc radius too small ({radius=}), skipping arc.')
-            self.ctx.move_to(startxy[0], startxy[1])
-            return [{'move_to': (startxy[0], startxy[1])}]
-
-        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (radius * math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]))
-        if 1.0 < cos夹角 < 1.0+EPS:
-            cos夹角 = 1.0
-        elif -1.0-EPS < cos夹角 < -1.0:
-            cos夹角 = -1.0
-        angle_between = math.acos(cos夹角)
-
-        radius = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
-        angle_start = math.atan2(v1[1], v1[0])
-        angle_end = angle_start + angle_between
-
-        self.ctx.move_to(startxy[0], startxy[1])
-        self.ctx.arc(centerxy[0], centerxy[1], radius, angle_start, angle_end)
-        # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_end, angle_start)
-        return [{'move_to': (centerxy[0], centerxy[1]), 'arc': (radius, angle_start, angle_end)}]
-
     def hex_to_rgb(self, hex_color):
         if not hex_color or not isinstance(hex_color, str):
             return (0.0, 0.0, 0.0)
@@ -583,18 +552,106 @@ class CairoDrawer(object):
         except ValueError:
             return (0.0, 0.0, 0.0)
 
+    def drawLine(self, p1, p2):
+        if self.verbose_drawing:
+            print(f'[CairoDrawer.py] drawLine({p1=}, {p2=})')
+        return [{'type': 'line', 'p1': p1, 'p2': p2}]
+
+    def drawArc(self, centerxy, startxy, endxy):
+        if self.verbose_drawing:
+            print(f'[CairoDrawer.py] drawArc({centerxy=}, {startxy=}, {endxy=})')
+        return [{'type': 'arc', 'center': centerxy, 'p1': startxy, 'p2': endxy}]
+
     def getSketch(self, name, color):
-        self.current_color = color
-        self.ctx.new_path()
+        # We handle sketches (paths) in prepareSection now
+        pass
+
+    def prepareSection(self, region_dict, color=None, **kwargs):
+        list_regions = region_dict.get('list_regions', [])
+        
+        # Priority: kwargs > region_dict (from part) > Drawer Attributes
+        bMirror = kwargs.get('bMirror', region_dict.get('bMirror', getattr(self, 'bMirror', False)))
+        copyCount = kwargs.get('iRotateCopy', region_dict.get('iRotateCopy', getattr(self, 'iRotateCopy', 0)))
+        
+        rgb = self.hex_to_rgb(color or "#888888")
+        
+        # If copyCount is 0 or 1, we just do one rotation (base)
+        loop_count = copyCount if copyCount >= 2 else 1
+        
+        if self.ctx is None:
+            return region_dict
+
+        for i in range(loop_count):
+            rotation_offset = i * (360.0 / loop_count) if loop_count > 1 else 0.0
+            self.ctx.save()
+            self.ctx.rotate(math.radians(rotation_offset))
+            
+            # Helper to draw the segments
+            def draw_region_content(segments_list):
+                for segments in segments_list:
+                    if not segments: continue
+                    
+                    # Track current position to avoid unnecessary move_to or unwanted lines
+                    current_pos = None
+                    
+                    for seg in segments:
+                        p1 = seg['p1']
+                        p2 = seg['p2']
+                        
+                        # If not at the start of the segment, move_to p1
+                        # Use a small epsilon for float comparison if needed, but simple compare is usually fine for exact coordinates
+                        if current_pos is None or current_pos != p1:
+                            self.ctx.move_to(p1[0], p1[1])
+                        
+                        if seg['type'] == 'line':
+                            self.ctx.line_to(p2[0], p2[1])
+                            current_pos = p2
+                        elif seg['type'] == 'arc':
+                            center = seg['center']
+                            v1 = [p1[0] - center[0], p1[1] - center[1]]
+                            v2 = [p2[0] - center[0], p2[1] - center[1]]
+                            radius = math.sqrt(v1[0]**2 + v1[1]**2)
+                            angle_start = math.atan2(v1[1], v1[0])
+                            
+                            dot = v1[0]*v2[0] + v1[1]*v2[1]
+                            mag = radius * math.sqrt(v2[0]**2 + v2[1]**2)
+                            cos_val = max(-1.0, min(1.0, dot / mag))
+                            angle_diff = math.acos(cos_val)
+                            cross_prod = v1[0]*v2[1] - v1[1]*v2[0]
+                            if cross_prod < 0:
+                                self.ctx.arc_negative(center[0], center[1], radius, angle_start, angle_start - angle_diff)
+                            else:
+                                self.ctx.arc(center[0], center[1], radius, angle_start, angle_start + angle_diff)
+                            current_pos = p2
+
+            # Draw original
+            self.ctx.new_path()
+            draw_region_content(list_regions)
+            
+            # Fill and Stroke
+            if self.bFillRegion:
+                self.ctx.set_source_rgba(*rgb, 0.6)
+                self.ctx.fill_preserve()
+            
+            self.ctx.set_source_rgba(*rgb, 1.0)
+            self.ctx.set_line_width(0.01)
+            self.ctx.stroke()
+            
+            if bMirror:
+                self.ctx.scale(1, -1)
+                self.ctx.new_path()
+                draw_region_content(list_regions)
+                if self.bFillRegion:
+                    self.ctx.set_source_rgba(*rgb, 0.6)
+                    self.ctx.fill_preserve()
+                self.ctx.set_source_rgba(*rgb, 1.0)
+                self.ctx.stroke()
+
+            self.ctx.restore()
 
     def finalize_part(self):
-        if hasattr(self, 'current_color'):
-            rgb = self.hex_to_rgb(self.current_color)
-            self.ctx.set_source_rgba(*rgb, 0.4) # Transparent fill
-            self.ctx.fill_preserve()
-            self.ctx.set_source_rgba(*rgb, 1.0) # Solid stroke
-            self.ctx.set_line_width(0.05)
-            self.ctx.stroke()
+        # Decommissioned in favor of prepareSection
+        pass
 
 class Modern_Machine_Designer_Utility(object):
     def __init__(self, specs: 'MotorSpecs'):
