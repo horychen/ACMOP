@@ -21,28 +21,7 @@ def _default_machine_input():
 @dataclass
 class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
-    # Machine design input (from user_minitureMachine: convert_to_machine_design_input(dex13))
-    machine_input: Any = field(default_factory=_default_machine_input)
 
-    # Meta Data
-    name: str = 'gen-0-ind-0'
-    machine_class: str = 'SPMSM' # 'bearingless_spmsm_heart.bearingless_spmsm_design_variant'
-
-    # FEA Config
-    select_FEA_tool: str = 'JMAG Designer' # FEMM
-    # select_fea_config_dict: str = '#0213 JMAG Bearingless Sub-hamonics'
-    # select_fea_config_dict: str = '#02 JMAG Bearingless Fast Evaluation'
-    select_fea_config_dict: str = '#0301 JMAG Non-Bearingless'
-    fea_config_dict: dict = None
-    bool_jmagDeleteResultsAfterCalculation: bool = False
-
-    # Optimization
-    generation: int = 0
-    counter: int = 0
-    counter_fitness_called: int = 0
-    counter_fitness_return: int = 0
-    toolJd: JMAG.JMAG = None
-    
     # Verbose control for drawing operations
     verbose_drawing: bool = False
 

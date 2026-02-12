@@ -5,10 +5,9 @@ import time
 import types
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
+from fastapi.encoders import jsonable_encoder
 
-router = APIRouter()
-# Project root: backend/app/routers -> backend/app -> backend -> project root
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 _USER_MACHINE_PATH = os.path.join(_ROOT, "backend", "codes4", "user_minitureMachine.py")
 _WORKSPACE_MACHINE_PATH = os.path.join(r"c:\Users\lenovo\Codes\ACMOP", "backend", "codes4", "user_minitureMachine.py")
@@ -28,21 +27,59 @@ def _agent_log(payload: dict) -> None:
         except Exception:
             continue
 
+def _robust_dict(obj):
+    """Deeply convert dataclasses to dicts, with name-based fallback for dynamic Parameter objects."""
+    if is_dataclass(obj):
+        # asdict is usually fine, but let's be safe for nested stuff
+        return {k: _robust_dict(v) for k, v in asdict(obj).items()}
+    
+    # Check by class name to catch Parameter objects from dynamic modules or utilities
+    if type(obj).__name__ == "Parameter":
+        # Handle both my dataclass and the utility one
+        if hasattr(obj, "to_dict"):
+            return _robust_dict(obj.to_dict())
+        return {
+            "name": getattr(obj, "name", ""),
+            "type": getattr(obj, "type", ""),
+            "value": getattr(obj, "value", 0.0),
+            "bounds": getattr(obj, "bounds", None),
+            "unit": getattr(obj, "unit", "mm")
+        }
+    
+    if isinstance(obj, dict):
+        return {k: _robust_dict(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_robust_dict(v) for v in obj]
+    return obj
+
 def _specs_to_api_response(specs):
-    """Build API response from MotorSpecs; geometry/winding use asdict so all fields match user_minitureMachine.py."""
-    g = specs.geometry
-    w = specs.winding
-    stack_opts = getattr(g, "stack_length_options", [6.0, 10.0, 16.0])
-    stack_length = float(stack_opts[len(stack_opts) // 2] if stack_opts else 10.0)
-    geom = asdict(g)
-    geom["stack_length"] = stack_length
-    wind = asdict(w)
-    return {
-        "geometry": geom,
-        "winding": wind,
-        "materials": asdict(specs.materials),
-        "targets": asdict(specs.targets),
+    """Build API response from MotorSpecs; using robust conversion for dynamic classes."""
+    # Debug class identity
+    test_param = specs.geometry.d_stator_outer
+    _agent_log({
+        "location": "serialization_debug",
+        "type": str(type(test_param)),
+        "is_dataclass": is_dataclass(test_param),
+        "has_fields": hasattr(test_param, "__dataclass_fields__")
+    })
+    
+    # Ensure all derived params are up to date
+    specs.geometry.update_derived()
+    
+    # Manually build the structure to ensure everything is serializable
+    data = {
+        "geometry": _robust_dict(specs.geometry),
+        "winding": _robust_dict(specs.winding),
+        "materials": _robust_dict(specs.materials),
+        "targets": _robust_dict(specs.targets),
+        "validations": {
+            "geometry": specs.validate_inputs("geometry"),
+            "materials": specs.validate_inputs("materials"),
+            "winding": specs.validate_inputs("winding"),
+            "targets": specs.validate_inputs("targets"),
+        }
     }
+    return jsonable_encoder(data)
 
 def _get_machine_file_path():
     """Use workspace path if it exists, else computed path, so we always read the file the user edits."""
@@ -90,14 +127,16 @@ async def get_machine_specs():
         g = specs.geometry
         out = _specs_to_api_response(specs)
         # #region agent log
-        _agent_log({"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": _get_machine_file_path(), "g_tooth_width": g.tooth_width, "g_tooth_depth": g.tooth_depth, "out_tooth_width": out["geometry"]["tooth_width"], "out_tooth_depth": out["geometry"]["tooth_depth"]}, "timestamp": time.time() * 1000})
+        _agent_log({"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": _get_machine_file_path(), "g_tooth_width": g.tooth_width.value, "g_tooth_depth": g.tooth_depth.value, "out_tooth_width": out["geometry"]["tooth_width"]["value"], "out_tooth_depth": out["geometry"]["tooth_depth"]["value"]}, "timestamp": time.time() * 1000})
         path_used = _get_machine_file_path()
         out["_debug"] = {
             "source": "workspace_machine_specs",
-            "tooth_width_from_py": g.tooth_width,
+            "tooth_width_from_py": g.tooth_width.value,
             "path_used": path_used,
         }
         # #endregion
         return JSONResponse(content=out, headers={"Cache-Control": "no-store"})
     except Exception as e:
+        import traceback
+        _agent_log({"location": "API_ERROR", "error": str(e), "traceback": traceback.format_exc()})
         raise HTTPException(status_code=500, detail=str(e))
