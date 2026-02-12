@@ -1,11 +1,15 @@
 import json, math, base64, pickle, cairo, os, jsonpickle, logging, utility, JMAG, builtins
-import pygmo as pg
+try:
+    import pygmo as pg
+except ImportError:
+    from unittest.mock import MagicMock
+    pg = MagicMock()
 from dataclasses import dataclass, fields, field
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
 from time import time as clock_time
 from modern_machine_designer_utility import Modern_Machine_Designer_Utility, Swarm_Data_Analyzer, swarm_data_container, Parameter, Geometry, Winding, CairoDrawer
-from user_minitureMachine import MotorSpecs, convert_to_machine_design_input
+from user_minitureMachine import MotorSpecs
 
 # Global verbose control for drawing operations
 # Set this to True to enable all print statements in CrossSect classes
@@ -13,17 +17,29 @@ builtins.VERBOSE_DRAWING = False  # Default to False, can be changed in __post_i
 
 
 def _default_machine_input():
-    """Default machine input from user_minitureMachine: dex13 -> convert_to_machine_design_input(dex13)."""
-    dex13 = MotorSpecs()
-    return convert_to_machine_design_input(dex13)
+    """Default machine input from user_minitureMachine: MotorSpecs()."""
+    return MotorSpecs()
 
 
 @dataclass
 class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
-
-    # Verbose control for drawing operations
-    verbose_drawing: bool = False
+    def __init__(self, specs: MotorSpecs, machine_class: str = 'dex13', select_fea_config_dict: str = '#0301 JMAG Non-Bearingless', verbose_drawing: bool = False):
+        """
+        Initialize the Modern_Machine_Designer with MotorSpecs.
+        """
+        super().__init__(specs)
+        self.machine_class = machine_class
+        self.select_fea_config_dict = select_fea_config_dict
+        self.verbose_drawing = verbose_drawing
+        
+        # Internal control
+        self.counter = 0
+        self.bool_jmagDeleteResultsAfterCalculation = False
+        self.name = 'SPMSM'
+        
+        # Run initialization logic
+        self._init_components()
 
     def get_path2SwarmData(self, folder_name):
         self.dir_parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
@@ -34,321 +50,156 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         if not os.path.isdir(self.path2SwarmData): os.makedirs(self.path2SwarmData)
         os.chdir(self.dir_codes)
 
-    def __post_init__(self):
+    def _init_components(self):
+        """
+        Setup components, parameters, and FEA configuration.
+        """
         # Set global verbose control for drawing operations
         builtins.VERBOSE_DRAWING = self.verbose_drawing
 
-        # Unpack input
-        inp = self.machine_input
+        # Ensure specs are synced
+        self.specs.sync()
+        specs = self.specs
+        
+        # Unpack essential winding/geometry info from specs for compatibility
+        m = specs.winding.m
+        Qs = specs.winding.num_slots
+        p = specs.winding.num_poles // 2
+        ps = 4 # Default placeholder for ps if not in specs
+        coil_pitch_y = specs.winding.coil_pitch_y
 
-        # Machine Geometry
-        self.bool_PermanentMagnet = inp.bool_PermanentMagnet
-        self.bool_StatorSlotClosed = inp.bool_StatorSlotClosed
-        self.bool_RotorNotched = inp.bool_RotorNotched
+        RatedPower = specs.winding.rated_power
+        RatedSpeed = specs.winding.rated_speed
 
-        m = inp.m
-        Qs = inp.Qs
-        p = inp.p
-        ps = inp.ps
-        coil_pitch_y = inp.coil_pitch_y
-
-        # 铭牌数据
-        RatedPower = inp.RatedPower
-        RatedSpeed = inp.RatedSpeed
-
-        # 只有在名称不包含后缀时才追加（避免从 JSON 恢复时重复追加）
+        # Setup paths and FEA config
         suffix = f'minitureMachine'
         if not self.machine_class.endswith(suffix):
             self.machine_class = self.machine_class + suffix
-        ExcitationFreqSimulated: float = RatedSpeed / 60 * p
 
-        ''' 工程和文件路径 '''
         self.get_path2SwarmData(self.machine_class)
 
-        # 修复文件未找到的bug，使用绝对路径，避免相对路径依赖问题
         machine_sim_json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'machine_simulation.json')
         with open(machine_sim_json_path, 'r') as f:
             raw_fea_config_dicts = json.load(f)
             self.fea_config_dict = OrderedDict(raw_fea_config_dicts[self.select_fea_config_dict])
             self.fea_config_dict['pc_name'] = self.get_pc_name()
 
+        self.wily = specs.winding.wily
 
-        self.wily = Winding(m, Qs, p, ps, coil_pitch_y, bool_DPNVorSEPA=True)
+        # Legacy flags and tool selection from specs
+        self.bool_PermanentMagnet = specs.geometry.bool_PermanentMagnet
+        self.bool_StatorSlotClosed = specs.geometry.bool_StatorSlotClosed
+        self.bool_RotorNotched = specs.geometry.bool_RotorNotched
+        self.select_FEA_tool = specs.targets.select_FEA_tool
+        self.bool_jmagDeleteResultsAfterCalculation = specs.targets.bool_jmagDeleteResultsAfterCalculation
 
-        # 激励（含热负荷）
-        bool_WyeConnectOrDeltaConnect = inp.bool_WyeConnectOrDeltaConnect
-        bool_weHavePlentyVoltage = inp.bool_weHavePlentyVoltage
+        # Re-attach Parameters to self for existing code to work
+        g = specs.geometry
+        self.m = Parameter('phase_number_m', 'fixed', m)
+        self.Qs = Parameter('stator_slot_number_Qs', 'fixed', Qs)
+        self.p = specs.geometry.p
+        self.ps = Parameter('suspension_pole_pair_number_ps', 'fixed', ps)
+        self.coil_pitch_y = Parameter('coil_pitch_y', 'fixed', coil_pitch_y)
+        self.mm_r_so = g.r_stator_outer
+        self.mm_d_mech_air_gap = g.d_air_gap
+        self.mm_d_sleeve = g.d_sleeve
+        self.mm_r_ri = g.r_rotor_inner
+        self.mm_w_st = g.w_tooth
+        self.mm_d_sy = g.d_stator_yoke
+        self.split_ratio = g.split_ratio
+        self.mm_d_pm = g.d_magnet
+        self.deg_alpha_rm = g.alpha_magnet_pole
+        # Attach these others which might be needed
+        self.mm_d_sts = g.d_tooth_shoe
+        self.deg_alpha_st = g.tooth_specs.alpha_tooth if hasattr(g.tooth_specs, 'alpha_tooth') else Parameter("stator_tooth_span_angle", "fixed", 0.0)
+        self.s = specs.geometry.s
 
-        Temperature = inp.Temperature
-        available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220] # according to JMAG
-        Magnet_Temperature = min(available_temperature_list, key=lambda x:abs(x - Temperature))
-
-        TORQUE_CURRENT_RATIO = inp.TORQUE_CURRENT_RATIO
-        SUSPENSION_CURRENT_RATIO = inp.SUSPENSION_CURRENT_RATIO
-
-        SteelMaterial = inp.SteelMaterial
-
-        self.EX = EX = {
-            # 3D
-            'mm_stack_length_specified': inp.mm_stack_length_specified, # mm
-            # Materials
-            'Magnet_Name': inp.Magnet_Name,
-            'Magnet_StartAngle': 0.5* 360/(2*p),
-            'Magnet_Temperature': Magnet_Temperature,
-            'SteelMaterial': SteelMaterial,
-            'StatorCore_Material': inp.StatorCore_Material, 
-            'RotorCore_Material': inp.RotorCore_Material,
-            'LaminationFactor': inp.LaminationFactor,
-            # Thermal
-            'RatedPower': RatedPower,
-            'RatedSpeed': RatedSpeed,
-            'ExcitationFreqSimulated': ExcitationFreqSimulated,
-            'bool_WyeConnectOrDeltaConnect' : bool_WyeConnectOrDeltaConnect,
-            'DCBusVoltage': inp.DCBusVoltage,
-            'Js' : inp.Js,
-            'Temperature': Temperature,
-            'WindingFill': inp.WindingFill,
-            'TORQUE_CURRENT_RATIO': TORQUE_CURRENT_RATIO,
-            'SUSPENSION_CURRENT_RATIO': SUSPENSION_CURRENT_RATIO,
-            'DriveW_Rs': inp.DriveW_Rs, # [Ohm]
-            'BeariW_Rs': inp.BeariW_Rs, # [Ohm]
-        }
-
-        # 定子裂比和外径
-        SR = inp.SR
-        mm_r_so = inp.mm_r_so
-
-        # 利用不同的裂比去估算合理的边界值
-        yoke_split_ratio_bounds = inp.yoke_split_ratio_bounds
-        tooth_split_ratio_at_middle_slot_bounds = inp.tooth_split_ratio_at_middle_slot_bounds
-
-        '''Fixed variables'''
-        if True:
-            self.m: Parameter            = Parameter('phase_number_m', 'fixed', m)
-            self.Qs: Parameter           = Parameter('stator_slot_number_Qs', 'fixed', Qs)
-            self.p: Parameter            = Parameter('pole_pair_number_p', 'fixed', p)
-            self.ps: Parameter           = Parameter('suspension_pole_pair_number_ps', 'fixed', ps)
-            self.coil_pitch_y: Parameter = Parameter('coil_pitch_y', 'fixed', coil_pitch_y)
-            self.mm_r_so: Parameter      = Parameter('stator_outer_radius', 'fixed', mm_r_so)
-            self.mm_d_mech_air_gap: Parameter = Parameter('mechanical_air_gap_depth', 'fixed', inp.mm_d_mech_air_gap)
-            self.mm_d_sleeve: Parameter  = Parameter('rotor_sleeve_depth', 'fixed', 0) # 0 means no sleeve
-            self.mm_r_ri: Parameter      = Parameter('rotor_inner_radius', 'fixed', 0) # rotor shaft is not needed
-
-            if self.bool_PermanentMagnet:
-                self.s: Parameter            = Parameter('number_of_magnet_segments_per_pole', 'fixed', 1)
-
-        # 更新 parameter_dict 以包含新创建的参数
+        # Now update dicts
         self.parameter_dict = self.get_parameter_dict_by_name()
         self.parameter_dict_by_name = self.get_parameter_dict_by_name()
 
-        '''Free variables'''
-        if True:
-            # 先创建 parameter_dict 的占位符，稍后会被更新
-            self.parameter_dict = self.get_parameter_dict_by_name()
+        self.machineGeometry = OrderedDict()
+        
+        # Derived variables - Re-attach these using legacy naming and lambdas
+        p_dict = self.parameter_dict_by_name
+        self.mm_r_si = Parameter('stator_inner_radius', 'derived', calc=lambda d: d['stator_outer_radius'].value * d['split_ratio_r_si_slash_r_so'].value, parameter_dict=p_dict)
+        p_dict['stator_inner_radius'] = self.mm_r_si
+        
+        self.mm_d_st = Parameter('stator_tooth_depth', 'derived', calc=lambda d: d['stator_outer_radius'].value - d['stator_inner_radius'].value - d['stator_yoke_depth'].value - d['stator_tooth_shoe_depth'].value, parameter_dict=p_dict)
+        p_dict['stator_tooth_depth'] = self.mm_d_st
+        
+        self.mm_r_ro = Parameter('rotor_outer_radius', 'derived', calc=lambda d: d['stator_inner_radius'].value - d['mechanical_air_gap_depth'].value - d['rotor_sleeve_depth'].value, parameter_dict=p_dict)
+        p_dict['rotor_outer_radius'] = self.mm_r_ro
+        
+        self.mm_d_ri = Parameter('rotor_iron (back iron) depth', 'derived', calc=lambda d: d['rotor_outer_radius'].value - d['magnet_depth'].value, parameter_dict=p_dict)
+        p_dict['rotor_iron (back iron) depth'] = self.mm_d_ri
+        
+        self.mm_d_sto = Parameter('stator_tooth_open_depth', 'derived', calc=lambda d: d['stator_tooth_shoe_depth'].value * 0.667, parameter_dict=p_dict)
+        p_dict['stator_tooth_open_depth'] = self.mm_d_sto
+        
+        self.deg_alpha_sto = Parameter('stator_tooth_open_angle', 'derived', calc=lambda d: (d['stator_tooth_span_angle'].value if d['stator_tooth_span_angle'].value is not None else 0) * 0.5, parameter_dict=p_dict)
+        p_dict['stator_tooth_open_angle'] = self.deg_alpha_sto
+        
+        self.deg_alpha_rs = Parameter('magnet_segment_span_angle', 'derived', calc=lambda d: d['magnet_pole_span_angle'].value, parameter_dict=p_dict)
+        p_dict['magnet_segment_span_angle'] = self.deg_alpha_rs
+        
+        self.mm_d_rp = Parameter('inter_polar_iron_thickness', 'derived', calc=lambda d: d['magnet_depth'].value, parameter_dict=p_dict)
+        p_dict['inter_polar_iron_thickness'] = self.mm_d_rp
+        
+        self.mm_d_rs = Parameter('inter_segment_iron_thickness', 'fixed', 0.0)
+        p_dict['inter_segment_iron_thickness'] = self.mm_d_rs
 
-            if self.bool_PermanentMagnet:
-                self.mm_d_pm: Parameter      = Parameter('magnet_depth', 'free', 3, bounds=[2, 6])
-
-            self.split_ratio: Parameter  = Parameter(
-                'split_ratio_r_si_slash_r_so',
-                'free',
-                SR,
-                calc_bounds=lambda self_param: [el for el in inp.split_ratio_r_si_slash_r_so_bounds]
-            )
-
-            # Later there is a dependency on mm_r_si, so it should be defined right after split_ratio and mm_r_so are defined
-            # 计算 mm_r_si 的初始值用于 calc_bounds
-            mm_r_si_initial = mm_r_so * SR
-
-            self.mm_w_st: Parameter = Parameter(
-                'stator_tooth_width',
-                'free',
-                calc_bounds=lambda self_param: [
-                    el / self.Qs.value * math.pi * (
-                        self.mm_r_so.value + mm_r_si_initial
-                    )
-                    for el in tooth_split_ratio_at_middle_slot_bounds
-                ]
-            )
-
-            self.mm_d_sy: Parameter = Parameter(
-                'stator_yoke_depth',
-                'free',
-                calc_bounds=lambda self_param: [
-                    el * (self.mm_r_so.value - mm_r_si_initial)
-                    for el in yoke_split_ratio_bounds
-                ]
-            )
-
-            if not self.bool_StatorSlotClosed:
-                self.mm_d_sts: Parameter = Parameter('stator_tooth_shoe_depth', 'free', bounds=[0.5, 1.5])
-            else:
-                self.mm_d_sts: Parameter = Parameter('stator_tooth_shoe_depth', 'fixed', 0)
-
-            if not self.bool_StatorSlotClosed:
-                self.deg_alpha_st: Parameter = Parameter(
-                    'stator_tooth_span_angle',
-                    'free',
-                    calc_bounds=lambda self_param: [
-                        360 / self.Qs.value * 0.2,
-                        360 / self.Qs.value * 0.7
-                    ],
-                    unit='deg'
-                )
-            else:
-                self.deg_alpha_st: Parameter = Parameter('stator_tooth_span_angle', 'fixed', 0.0)
-
-        # 创建以参数名为键的字典，用于 calc 函数，每次调用这个函数都会刷新 self.parameter_dict_by_name，引入新定义的 Parameter 对象
+        # Refresh dicts again after adding derived
+        self.parameter_dict = self.get_parameter_dict_by_name()
         self.parameter_dict_by_name = self.get_parameter_dict_by_name()
 
-        '''Derived variables have dependency on the other geometric parameters'''
-        if True:
-            # NOTE: Use parameter_dict_by_name to look up dependencies for all derived parameters
-            # parameter_dict_by_name 的键是 Parameter.name，用于 calc 函数
-            self.mm_r_si: Parameter      = Parameter(
-                'stator_inner_radius', 'derived', 
-                calc=lambda parameter_dict: parameter_dict['stator_outer_radius'].value * parameter_dict['split_ratio_r_si_slash_r_so'].value,
-                parameter_dict=self.get_parameter_dict_by_name()
-            )
-            self.mm_d_st: Parameter      = Parameter(
-                'stator_tooth_depth', 'derived',
-                calc=lambda parameter_dict: parameter_dict['stator_outer_radius'].value
-                                            - parameter_dict['stator_inner_radius'].value
-                                            - parameter_dict['stator_yoke_depth'].value
-                                            - parameter_dict['stator_tooth_shoe_depth'].value,
-                parameter_dict=self.get_parameter_dict_by_name()
-            )
-            if self.bool_PermanentMagnet:
-                self.mm_r_ro: Parameter = Parameter(
-                    'rotor_outer_radius', 'derived',
-                    calc=lambda parameter_dict: parameter_dict['stator_inner_radius'].value
-                                                - parameter_dict['mechanical_air_gap_depth'].value
-                                                - parameter_dict['rotor_sleeve_depth'].value,
-                    parameter_dict=self.get_parameter_dict_by_name()
-                )
-                self.mm_d_ri: Parameter = Parameter(
-                    'rotor_iron (back iron) depth', 'derived',
-                    calc=lambda parameter_dict: parameter_dict['rotor_outer_radius'].value - parameter_dict['magnet_depth'].value,
-                    parameter_dict=self.get_parameter_dict_by_name()
-                )
-                # self.mm_r_ri: Parameter = Parameter(
-                #     'rotor_inner_radius', 'derived',
-                #     calc=lambda parameter_dict: parameter_dict['rotor_outer_radius'].value
-                #                                 - parameter_dict['magnet_depth'].value
-                #                                 - parameter_dict['rotor_iron (back iron) depth'].value,
-                #     parameter_dict=self.get_parameter_dict_by_name()
-                # )
+        # Update all derived values exactly once
+        self.update_geometric_parameters()
 
-            # for k,v in self.get_parameter_dict_by_name().items():
-            #     print(f'[DEBUG] {k}: {v.value}')
-            # quit()
+        self.InitialRotationAngle = specs.targets.initial_rotation_angle = self.get_InitialRotationAngle()
 
-            if not self.bool_StatorSlotClosed:
-                self.mm_d_sto: Parameter = Parameter(
-                    'stator_tooth_open_depth', 'derived',
-                    calc=lambda parameter_dict: parameter_dict['stator_tooth_shoe_depth'].value * 0.667,
-                    parameter_dict=self.get_parameter_dict_by_name()
-                )
-                # deg_alpha_sto 依赖于 deg_alpha_st，使用 deg_alpha_st 的当前值（如果已计算）或使用 bounds 的中间值
-                def _deg_alpha_st_default(parameter_dict):
-                    par = parameter_dict['stator_tooth_span_angle']
-                    if par.value is not None:
-                        return par.value
-                    elif par.bounds:
-                        return (par.bounds[0] + par.bounds[1]) / 2
-                    else:
-                        return 360/12*0.1*0.5
-                self.deg_alpha_sto: Parameter = Parameter(
-                    'stator_tooth_open_angle', 'derived',
-                    calc=lambda parameter_dict: _deg_alpha_st_default(parameter_dict) * 0.5,
-                    parameter_dict=self.get_parameter_dict_by_name()
-                )
+        # [Important] Print summary
+        specs.print_summary()
 
-            if self.bool_RotorNotched:
-                self.deg_alpha_rm: Parameter = Parameter('magnet_pole_span_angle', 'free', bounds=[180/self.p.value*0.7, 180/self.p.value])
+        EX = {
+            # 3D
+            'mm_stack_length_specified': specs.geometry.l_stack.value, # mm
+            # Materials
+            'Magnet_Name': specs.materials.magnet_grade,
+            'Magnet_StartAngle': 0.5* 360/(2*p),
+            'Magnet_Temperature': specs.materials.magnet_temperature,
+            'SteelMaterial': specs.materials.stator_core_material, 
+            'StatorCore_Material': specs.materials.stator_core_material, 
+            'RotorCore_Material': specs.materials.rotor_core_material,
+            'LaminationFactor': specs.materials.steel_stack_factor * 100.0,
+            # Thermal
+            'RatedPower': specs.winding.rated_power,
+            'RatedSpeed': specs.winding.rated_speed,
+            'ExcitationFreqSimulated': specs.winding.rated_speed / 60.0 * p,
+            'bool_WyeConnectOrDeltaConnect' : specs.winding.bool_WyeConnectOrDeltaConnect,
+            'DCBusVoltage': specs.winding.dc_bus_voltage,
+            'Js' : specs.winding.rated_current_density_Js,
+            'Temperature': specs.materials.magnet_temperature, # Using magnet temperature as general temperature
+            'WindingFill': specs.winding.winding_fill_factor,
+            'TORQUE_CURRENT_RATIO': specs.winding.torque_current_ratio,
+            'SUSPENSION_CURRENT_RATIO': specs.winding.suspension_current_ratio,
+            'DriveW_Rs': specs.winding.drive_winding_resistance, # [Ohm]
+            'BeariW_Rs': specs.winding.bearing_winding_resistance, # [Ohm]
+        }
+        self.EX = EX
 
-                # deg_alpha_rs 依赖于 deg_alpha_rm，使用 deg_alpha_rm 的当前值（如果已计算）或使用 bounds 的中间值
-                def _deg_alpha_rm_default(parameter_dict):
-                    par = parameter_dict['magnet_pole_span_angle']
-                    if par.value is not None:
-                        return par.value
-                    elif par.bounds:
-                        return (par.bounds[0] + par.bounds[1]) / 2
-                    else:
-                        return 360/12*0.1
-                self.deg_alpha_rs: Parameter = Parameter(
-                    'magnet_segment_span_angle', 'derived',
-                    calc=lambda parameter_dict: _deg_alpha_rm_default(parameter_dict),
-                    parameter_dict=self.get_parameter_dict_by_name()
-                )
-
-                self.mm_d_rp: Parameter = Parameter(
-                    'inter_polar_iron_thickness', 'derived',
-                    calc=lambda parameter_dict: parameter_dict['magnet_depth'].value,
-                    parameter_dict=self.get_parameter_dict_by_name()
-                )
-                self.mm_d_rs: Parameter = Parameter(
-                    'inter_segment_iron_thickness', 'fixed', 0.0
-                )
-            else:
-                self.deg_alpha_rm: Parameter = Parameter('magnet_pole_span_angle', 'fixed', 180.0/self.p.value)
-
-        # Initialize all derived variables
-        for i, param in enumerate(self.get_parameters_by_type('derived').values()):
-            if param.calc is not None and param.parameter_dict is not None:
-                try:
-                    param.value = param.calc(param.parameter_dict)
-                except Exception as e:
-                    print(f"Warning: Failed to initialize derived parameter '{param.name}' due to KeyError: {e}")
-
-        # Collect all parameters whose initialized is False
-        uninitialized_params = [param for param in self.get_parameters_by_type('derived').values() 
-                                if not getattr(param, 'initialized', True)]
-        # Try to initialize their values again
-        for param in uninitialized_params:
-            if param.calc is not None and param.parameter_dict is not None:
-                try:
-                    param.value = param.calc(param.parameter_dict)
-                    print('[DEBUG] Re-initialized derived parameter: ', param.name)
-                except Exception as e:
-                    # Optionally, log or print this if initialization fails
-                    print(f"Warning: Failed to re-initialize derived parameter '{param.name}': {e}")
-
-        V_stator_phase_voltage_amp = math.sqrt(2) *EX['DCBusVoltage'] / (math.sqrt(3) if bool_WyeConnectOrDeltaConnect else 1.0) 
-        V_desired_emf_Em = 0.95 * V_stator_phase_voltage_amp
-        alpha_i = 2.0/math.pi # ideal sinusoidal flux density distribusion, when the saturation happens in teeth, alpha_i becomes higher.
-        T_air_gap_flux_density_Bg_guessed = 0.9 # T
-        mm_stack_length_specified = EX['mm_stack_length_specified']
-        mm_d_magnetic_air_gap = self.mm_d_mech_air_gap.value + self.mm_d_sleeve.value
-        mm_stack_length_effective = mm_stack_length_specified + 2 * mm_d_magnetic_air_gap
-        mm_pole_pitch_tau_p = math.pi *self.mm_r_si.value / p
-        Wb_air_gap_flux_Phi_m = alpha_i * T_air_gap_flux_density_Bg_guessed * mm_pole_pitch_tau_p*1e-3 * mm_stack_length_effective*1e-3 # Wb
-        no_series_coil_turns_N = V_desired_emf_Em / (2*math.pi* ExcitationFreqSimulated * self.wily.kw1 * Wb_air_gap_flux_Phi_m)
-        no_series_coil_turns_N = round(no_series_coil_turns_N)
-        SPP = Qs / (2*p*m) # slot per pole per phase
-
-        if bool_weHavePlentyVoltage:
-            no_series_coil_turns_N = min([p*SPP*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
-        else:
-            no_series_coil_turns_N = min([p*SPP*i for i in range(1000)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
-        if no_series_coil_turns_N > 990:
-            raise Exception(f'What? no_series_coil_turns_N is too large: {no_series_coil_turns_N=}')
-        # print(f'[zQ] We need {no_series_coil_turns_N=} to reach the desired voltage: {V_desired_emf_Em=} V when {EX["DCBusVoltage"]=} V')
-        # print(f'[zQ] {no_series_coil_turns_N=} should be multiple of pq: q * p = {SPP} * {p}')
-        EX['no_series_coil_turns_N'] = no_series_coil_turns_N
-        EX['DriveW_zQ'] = no_conductors_per_slot_zQ = 2* m * no_series_coil_turns_N / Qs * self.wily.number_of_parallel_branch
-        EX['BeariW_zQ'] = EX['DriveW_zQ'] if self.wily.bool_DPNVorSEPA == True else EX['DriveW_zQ'] / EX['TORQUE_CURRENT_RATIO'] * EX['SUSPENSION_CURRENT_RATIO']
-
-        ''' Excitations Consiering Thermal Capability Limit (Simple) '''
-        mm_r_sy = self.mm_r_so.value - self.mm_d_sy.value  # radius stator yoke
-        mm_r_ss = self.mm_r_si.value + self.mm_d_sts.value # radius stator slot
-        EX['mm2_slot_area']            = (math.pi*(mm_r_sy**2 - mm_r_ss**2) / Qs - self.mm_w_st.value * self.mm_d_st.value) # 计算槽面积
-        EX['CurrentAmp_in_the_slot']   = EX['mm2_slot_area'] * 1e-6 * EX['Js'] * EX['WindingFill'] * math.sqrt(2)
-        EX['CurrentAmp_per_conductor'] = EX['CurrentAmp_in_the_slot'] / EX['DriveW_zQ']
-        EX['CurrentAmp_per_phase']     = EX['CurrentAmp_per_conductor'] * self.wily.number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
-        EX['DriveW_CurrentAmp'] = EX['TORQUE_CURRENT_RATIO']     * EX['CurrentAmp_per_phase']
-        EX['BeariW_CurrentAmp'] = EX['SUSPENSION_CURRENT_RATIO'] * EX['CurrentAmp_per_phase']
-        EX['slot_current_utilizing_ratio_for_torque'] = (EX['DriveW_CurrentAmp'] + EX['BeariW_CurrentAmp']) / EX['CurrentAmp_per_phase']
+        # Update EX with values from specs.targets
+        EX['no_series_coil_turns_N'] = specs.targets.no_series_coil_turns_N
+        EX['DriveW_zQ'] = specs.targets.no_conductors_per_slot_zQ
+        EX['BeariW_zQ'] = specs.targets.no_conductors_per_slot_zQ if specs.winding.wily.bool_DPNVorSEPA == True else specs.targets.no_conductors_per_slot_zQ / specs.winding.torque_current_ratio * specs.winding.suspension_current_ratio
+        EX['mm2_slot_area'] = specs.targets.mm2_slot_area
+        EX['CurrentAmp_in_the_slot'] = specs.targets.CurrentAmp_in_the_slot
+        EX['CurrentAmp_per_conductor'] = specs.targets.CurrentAmp_per_conductor
+        EX['CurrentAmp_per_phase'] = specs.targets.CurrentAmp_per_phase
+        EX['DriveW_CurrentAmp'] = specs.targets.DriveW_CurrentAmp
+        EX['BeariW_CurrentAmp'] = specs.targets.BeariW_CurrentAmp
+        EX['slot_current_utilizing_ratio_for_torque'] = specs.targets.slot_current_utilizing_ratio_for_torque
+        EX['mm2_magnet_area'] = specs.targets.mm2_magnet_area
 
         EX['InitialRotationAngle'] = self.get_InitialRotationAngle()
 
@@ -544,9 +395,9 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
             # 直接调用 draw 方法，如果 machineGeometry 不存在或缺少必要的键，会直接报错
             list_regions = self.machineGeometry['rotorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
             # list_regions = self.machineGeometry['shaft'].draw(drawer)
-            # list_regions = self.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-            # list_regions = self.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-            # list_regions = self.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
 
             drawer.apply_stroke(lw=lw)
             drawer.convert_to_pdf()
@@ -564,7 +415,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         lw = 0.1 if self.mm_r_ro.value < 15 else 0.5
         width_in_points  = self.mm_r_so.value*2.1
         height_in_points = self.mm_r_so.value*2.1
-        draw_spmsm(lw, width_in_points, height_in_points, bool_draw_whole_model=bool_draw_whole_model)
+        draw_spmsm(lw, width_in_points, height_in_points, filename=filename or 'machine_geometry.svg', bool_draw_whole_model=bool_draw_whole_model)
 
     def FEA_evaluate(self, project_loc=fr'../_default/', bool_jmagDesignerShow: bool = True, x_denorm=None, counter=None, counter_loop=0):
 
@@ -1259,7 +1110,8 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
 if __name__ == "__main__":
     # 创建对象并导出为 JSON
-    mmd = Modern_Machine_Designer()
+    specs = MotorSpecs()
+    mmd = Modern_Machine_Designer(specs)
     full_json_path = os.path.join(mmd.path2SwarmData, 'machine_designer_full.json')     # 保存完整信息到文件（类似 pickle）
     mmd.save_to_file_full(full_json_path)
 

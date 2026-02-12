@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { BarChart3, Moon, Sun, ChevronLeft, ChevronRight, Wrench, Eye } from "lucide-react"
+import { BarChart3, Moon, Sun, ChevronLeft, ChevronRight, Wrench, Eye, Bug } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 import { useState, useEffect } from "react"
 
@@ -62,9 +62,9 @@ export function Sidebar({ className }: SidebarProps) {
             </h2>
           )}
           <div className="space-y-1">
-            <Button 
-              variant={pathname === "/optimization" || pathname === "/" ? "secondary" : "ghost"} 
-              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
+            <Button
+              variant={pathname === "/optimization" || pathname === "/" ? "secondary" : "ghost"}
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")}
               asChild
               title={isCollapsed ? "Optimization" : undefined}
             >
@@ -73,9 +73,9 @@ export function Sidebar({ className }: SidebarProps) {
                 {!isCollapsed && "Optimization"}
               </Link>
             </Button>
-            <Button 
-              variant={pathname === "/fine-tune" ? "secondary" : "ghost"} 
-              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
+            <Button
+              variant={pathname === "/fine-tune" ? "secondary" : "ghost"}
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")}
               asChild
               title={isCollapsed ? "Fine-tune" : undefined}
             >
@@ -84,15 +84,26 @@ export function Sidebar({ className }: SidebarProps) {
                 {!isCollapsed && "Fine-tune"}
               </Link>
             </Button>
-            <Button 
-              variant={pathname === "/machine-visualization" ? "secondary" : "ghost"} 
-              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")} 
+            <Button
+              variant={pathname === "/machine-visualization" ? "secondary" : "ghost"}
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")}
               asChild
               title={isCollapsed ? "Machine Visualization" : undefined}
             >
               <Link href="/machine-visualization">
                 <Eye className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
                 {!isCollapsed && "Visualization"}
+              </Link>
+            </Button>
+            <Button
+              variant={pathname === "/debug-points" ? "secondary" : "ghost"}
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")}
+              asChild
+              title={isCollapsed ? "Debug Points" : undefined}
+            >
+              <Link href="/debug-points">
+                <Bug className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+                {!isCollapsed && "Debug Points"}
               </Link>
             </Button>
           </div>

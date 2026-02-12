@@ -7,6 +7,13 @@ import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /** Sections and param keys aligned with backend/codes4/user_minitureMachine.py (GeometrySpecs, WindingSpecs, MaterialSpecs, PerformanceTargets) */
 const PARAM_SECTIONS: {
@@ -18,16 +25,18 @@ const PARAM_SECTIONS: {
       section: "geometry",
       title: "Geometry",
       keys: [
-        { key: "d_stator_outer", label: "Stator OD (mm)" },
-        { key: "d_rotor_outer", label: "Rotor OD (mm)" },
-        { key: "d_shaft", label: "Shaft (mm)" },
-        { key: "air_gap", label: "Air gap (mm)" },
-        { key: "magnet_thickness", label: "Magnet thick. (mm)" },
-        { key: "tooth_width", label: "Tooth width (mm)" },
-        { key: "tooth_depth", label: "Tooth depth (mm)" },
-        { key: "tooth_shoe_depth", label: "Tooth shoe (mm)" },
+        { key: "r_stator_outer", label: "Stator OR (mm)" },
+        { key: "r_rotor_outer", label: "Rotor OR (mm)" },
+        { key: "r_shaft", label: "Shaft R (mm)" },
+        { key: "d_air_gap", label: "Air gap (mm)" },
+        { key: "d_magnet", label: "Magnet thick. (mm)" },
+        { key: "w_tooth", label: "Tooth width (mm)" },
+        { key: "d_tooth", label: "Tooth depth (mm)" },
+        { key: "d_stator_yoke", label: "Yoke depth (mm)" },
+        { key: "d_tooth_shoe", label: "Tooth shoe (mm)" },
         { key: "tooth_shape", label: "Tooth Shape", type: "select", optionsKey: "tooth_shape_options" },
-        { key: "stack_length", label: "Stack (mm)", type: "select", optionsKey: "stack_length_options" },
+        { key: "l_stack", label: "Stack (mm)", type: "select", optionsKey: "stack_length_options" },
+        { key: "split_ratio", label: "Split Ratio" },
       ],
     },
     {
@@ -52,9 +61,13 @@ const PARAM_SECTIONS: {
         { key: "magnet_br", label: "B_r (T)" },
         { key: "magnet_h_cj", label: "H_cj (kA/m)" },
         { key: "magnet_temp_max", label: "Magnet T_max (°C)" },
-        { key: "stator_steel", label: "Stator steel", type: "text" },
+        { key: "magnet_temperature", label: "Operation Temp (°C)" },
+        { key: "stator_steel", label: "Stator steel (legacy)", type: "text" },
+        { key: "stator_core_material", label: "Stator core", type: "text" },
+        { key: "rotor_core_material", label: "Rotor core", type: "text" },
         { key: "steel_thickness", label: "Steel thick. (mm)" },
         { key: "steel_stack_factor", label: "Stack factor" },
+        { key: "lamination_factor", label: "Lamination (%)" },
         { key: "steel_max_flux_density", label: "B_sat (T)" },
       ],
     },
@@ -105,17 +118,18 @@ function specsToInputValues(specs: MachineSpecs): Record<string, string> {
 /** Matches backend MotorSpecs (GeometrySpecs, WindingSpecs, MaterialSpecs, PerformanceTargets) */
 interface MachineSpecs {
   geometry: {
-    d_stator_outer: ParameterObj;
-    d_rotor_outer: ParameterObj;
-    d_shaft: ParameterObj;
-    air_gap: ParameterObj;
-    magnet_thickness: ParameterObj;
-    tooth_width: ParameterObj;
-    tooth_depth: ParameterObj;
-    tooth_shoe_depth: ParameterObj;
+    r_stator_outer: ParameterObj;
+    r_rotor_outer: ParameterObj;
+    r_shaft: ParameterObj;
+    d_air_gap: ParameterObj;
+    d_magnet: ParameterObj;
+    w_tooth: ParameterObj;
+    d_tooth: ParameterObj;
+    d_stator_yoke: ParameterObj;
+    d_tooth_shoe: ParameterObj;
     tooth_shape: string;
     tooth_shape_options?: string[];
-    stack_length: ParameterObj;
+    l_stack: ParameterObj;
     stack_length_options?: number[];
     split_ratio: ParameterObj;
   };
@@ -135,9 +149,13 @@ interface MachineSpecs {
     magnet_br: number;
     magnet_h_cj: number;
     magnet_temp_max: number;
+    magnet_temperature: number;
     stator_steel: string;
+    stator_core_material: string;
+    rotor_core_material: string;
     steel_thickness: number;
     steel_stack_factor: number;
+    lamination_factor: number;
     steel_max_flux_density: number;
   };
   targets: {
@@ -154,6 +172,172 @@ interface MachineSpecs {
     fill_factor?: number | string;
   }>;
 }
+
+const MachineCrossSection = React.memo(({
+  geometry,
+  winding,
+  size = 400,
+  showLabels = true
+}: {
+  geometry: MachineSpecs["geometry"],
+  winding: MachineSpecs["winding"],
+  size?: number,
+  showLabels?: boolean
+}) => {
+  const R_so = (typeof geometry.r_stator_outer.value === "number" ? geometry.r_stator_outer.value : 13.0 / 2);
+  const R_ro = (typeof geometry.r_rotor_outer.value === "number" ? geometry.r_rotor_outer.value : 8.0 / 2);
+  const gap = (typeof geometry.d_air_gap.value === "number" ? geometry.d_air_gap.value : 0.15);
+  const R_si = R_so * (typeof geometry.split_ratio.value === "number" ? geometry.split_ratio.value : 0.615);
+  const toothDepth = (typeof geometry.d_tooth.value === "number" ? geometry.d_tooth.value : 2.0);
+  const R_sb = R_si + toothDepth; // Slot bottom
+  const toothWidth = (typeof geometry.w_tooth.value === "number" ? geometry.w_tooth.value : 1.2);
+  const shoeDepth = (typeof geometry.d_tooth_shoe.value === "number" ? geometry.d_tooth_shoe.value : 0.5);
+  const toothShape = geometry.tooth_shape;
+
+  const numSlots = winding.num_slots;
+  const numPoles = winding.num_poles;
+  const conductorsPerSlot = winding.conductors_per_slot;
+  const wireDiam = winding.wire_diameter_with_insulation;
+  const wireRad = wireDiam / 2;
+  const magnetThickness = (typeof geometry.d_magnet.value === "number" ? geometry.d_magnet.value : 3.0);
+  const R_shaft = (typeof geometry.r_shaft.value === "number" ? geometry.r_shaft.value : 2.0) / 2;
+
+  const getPt = (r: number, theta: number) => {
+    const rad = (theta * Math.PI) / 180;
+    return { x: r * Math.cos(rad), y: r * Math.sin(rad) };
+  };
+
+  const R_mag_in = R_ro - magnetThickness;
+  const hasBackIron = R_mag_in > R_shaft + 0.01;
+
+  const magnetPaths: { d: string, color: string }[] = [];
+  if (numPoles > 0) {
+    const poleAngle = 360 / numPoles;
+    for (let i = 0; i < numPoles; i++) {
+      const startAngle = i * poleAngle;
+      const endAngle = (i + 1) * poleAngle;
+      const p1 = getPt(R_ro, startAngle);
+      const p2 = getPt(R_ro, endAngle);
+      const p3 = getPt(R_mag_in, endAngle);
+      const p4 = getPt(R_mag_in, startAngle);
+      let d = `M ${p1.x} ${p1.y} A ${R_ro} ${R_ro} 0 0 1 ${p2.x} ${p2.y} L ${p3.x} ${p3.y} A ${R_mag_in} ${R_mag_in} 0 0 0 ${p4.x} ${p4.y} Z`;
+      magnetPaths.push({ d, color: i % 2 === 0 ? "#fca5a5" : "#93c5fd" });
+    }
+  }
+
+  // Radial Partition Lines (Slot Center Axis)
+  const partitionLines: { x1: number, y1: number, x2: number, y2: number }[] = [];
+  for (let i = 0; i < numSlots; i++) {
+    const angle = (i + 0.5) * 360 / numSlots;
+    const p1 = getPt(R_si, angle);
+    const p2 = getPt(R_sb, angle);
+    partitionLines.push({ x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y });
+  }
+
+  const getToothPoints = (angle: number, r: number, w: number) => {
+    const rad = (angle * Math.PI) / 180;
+    const u = { x: Math.cos(rad), y: Math.sin(rad) };
+    const n = { x: -Math.sin(rad), y: Math.cos(rad) };
+    const h = w / 2;
+    if (r < h) return null;
+    const d = Math.sqrt(r * r - h * h);
+    return { cw: { x: d * u.x - h * n.x, y: d * u.y - h * n.y }, ccw: { x: d * u.x + h * n.x, y: d * u.y + h * n.y } };
+  };
+
+  let d_path = "";
+  for (let i = 0; i < numSlots; i++) {
+    const angle = i * 360 / numSlots;
+    const root = getToothPoints(angle, R_sb, toothWidth);
+    const stalk = getToothPoints(angle, R_si + shoeDepth, toothWidth);
+    let curW = toothWidth;
+    if (toothShape === "semi-closed") curW = (2 * Math.PI * R_si / numSlots) - (toothWidth * 0.4);
+    else if (toothShape === "closed") curW = (2 * Math.PI * R_si / numSlots) - 0.05;
+    const tip = getToothPoints(angle, R_si, Math.min(curW, 2 * Math.PI * R_si / numSlots - 0.1));
+    if (!tip || !root || !stalk) continue;
+
+    const nextAngle = (i + 1) * 360 / numSlots;
+    const nextRoot = getToothPoints(nextAngle, R_sb, toothWidth);
+    const nextStalk = getToothPoints(nextAngle, R_si + shoeDepth, toothWidth);
+    let ncurW = toothWidth;
+    if (toothShape === "semi-closed") ncurW = (2 * Math.PI * R_si / numSlots) - (toothWidth * 0.4);
+    else if (toothShape === "closed") ncurW = (2 * Math.PI * R_si / numSlots) - 0.05;
+    const nextTip = getToothPoints(nextAngle, R_si, Math.min(ncurW, 2 * Math.PI * R_si / numSlots - 0.1));
+    if (!nextRoot || !nextStalk || !nextTip) continue;
+
+    if (i === 0) d_path += `M ${tip.cw.x} ${tip.cw.y} `;
+    d_path += `A ${R_si} ${R_si} 0 0 1 ${tip.ccw.x} ${tip.ccw.y} L ${stalk.ccw.x} ${stalk.ccw.y} L ${root.ccw.x} ${root.ccw.y} A ${R_sb} ${R_sb} 0 0 1 ${nextRoot.cw.x} ${nextRoot.cw.y} L ${nextStalk.cw.x} ${nextStalk.cw.y} L ${nextTip.cw.x} ${nextTip.cw.y} `;
+  }
+  d_path += "Z";
+  const fullStatorPath = `M ${R_so} 0 A ${R_so} ${R_so} 0 1 1 ${-R_so} 0 A ${R_so} ${R_so} 0 1 1 ${R_so} 0 Z ` + d_path;
+
+  // Concentrated Winding Arrangement (Packing against tooth walls)
+  const conductorsPerSide = Math.floor(conductorsPerSlot / 2);
+  const effR = wireRad + 0.005;
+  const dy = effR * 2;
+  const dx = effR * Math.sqrt(3);
+
+  const points: { x: number, y: number }[] = [];
+  const rMin = R_si + shoeDepth + wireRad + 0.05;
+  const rMax = R_sb - wireRad - 0.05;
+  const slotCenterAngle = (180 / numSlots); // Half slot angle in degrees
+
+  // For one tooth side (the CCW side of the tooth at angle 0)
+  // This side is in the slot at positive angles.
+  for (let layer = 0; points.length < conductorsPerSide; layer++) {
+    const xDist = (toothWidth / 2) + wireRad + layer * dx;
+    // Check if this layer exceeds the slot center line at any radius
+    // xDist / r < sin(slotCenterAngle) => r > xDist / sin(slotCenterAngle)
+    const sinCenter = Math.sin(slotCenterAngle * Math.PI / 180);
+    const rLimit = xDist / sinCenter;
+
+    if (rLimit > rMax) break; // Entire layer is beyond slot center
+
+    const endR = Math.max(rMin, rLimit);
+    const startR = rMax - (layer % 2) * wireRad;
+    for (let r = startR; r >= endR && points.length < conductorsPerSide; r -= dy) {
+      const theta = Math.asin(xDist / r) * 180 / Math.PI;
+      points.push(getPt(r, theta));
+    }
+    if (layer > 20) break; // Safety
+  }
+
+  const pad = 1.1;
+  const viewBoxSize = R_so * 2 * pad;
+  return (
+    <svg viewBox={`${-viewBoxSize / 2} ${-viewBoxSize / 2} ${viewBoxSize} ${viewBoxSize}`} className="w-full h-full">
+      {hasBackIron && <circle cx="0" cy="0" r={R_ro - magnetThickness} fill="#e5e7eb" stroke="#9ca3af" strokeWidth="0.01" />}
+      <circle cx="0" cy="0" r={R_shaft} fill="#fff" stroke="#9ca3af" strokeWidth="0.01" />
+      {magnetPaths.map((m, i) => <path key={`m-${i}`} d={m.d} fill={m.color} stroke="#fff" strokeWidth="0.01" />)}
+      <path d={fullStatorPath} fill="#4b5563" stroke="#1f2937" strokeWidth="0.01" fillRule="evenodd" />
+
+      {/* Slot Partition Lines (Radial center axis) */}
+      {partitionLines.map((l, i) => (
+        <line key={`pl-${i}`} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="#9ca3af" strokeWidth="0.01" strokeDasharray="0.05,0.05" />
+      ))}
+
+      {numSlots > 0 && Array.from({ length: numSlots }).map((_, s) => (
+        <g key={`s-${s}`} transform={`rotate(${s * 360 / numSlots})`}>
+          {/* Conductors belonging to tooth "s" CCW side (in slot "s") */}
+          {points.map((p, j) => (
+            <circle key={`ccw-${j}`} cx={p.x} cy={p.y} r={wireRad} fill="#fbbf24" stroke="#d97706" strokeWidth="0.005" />
+          ))}
+          {/* Conductors belonging to tooth "s+1" CW side (in slot "s") */}
+          {/* Slot center is (180/numSlots). Tooth center is at 0 and (360/numSlots). */}
+          {/* Tooth "s+1" CW side mirrored across slot center line at (180/numSlots) */}
+          <g transform={`rotate(${360 / numSlots}) scale(1,-1)`}>
+            {points.map((p, j) => (
+              <circle key={`cw-${j}`} cx={p.x} cy={p.y} r={wireRad} fill="#f59e0b" stroke="#b45309" strokeWidth="0.005" />
+            ))}
+          </g>
+        </g>
+      ))}
+      {showLabels && (
+        <g><line x1={R_so} y1="0" x2={R_so + 1} y2="0" stroke="#9ca3af" strokeWidth="0.01" /><text x={R_so + 1.2} y="0.5" style={{ fontSize: '1.2px' }} className="fill-muted-foreground">OD: {(R_so * 2).toFixed(1)}mm</text></g>
+      )}
+    </svg>
+  );
+});
+MachineCrossSection.displayName = "MachineCrossSection";
 
 const COUNTDOWN_SEC = 3;
 
@@ -185,9 +369,6 @@ export default function MachineVisualizer({ currentStepId = "geometry", onValida
         return res.json();
       })
       .then((data) => {
-        // #region agent log
-        fetch("http://127.0.0.1:7242/ingest/e5770a5a-cc34-4592-9d22-bc6eef1eb00c", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hypothesisId: "H2-H3-H5", location: "MachineVisualizer.tsx:fetchSpecs.then", message: "API response geometry", data: { api_tooth_width: data?.geometry?.tooth_width, api_tooth_depth: data?.geometry?.tooth_depth, geometry_keys: data?.geometry ? Object.keys(data.geometry) : [] }, timestamp: Date.now() }) }).catch(() => { });
-        // #endregion
         const normalized = {
           geometry: { ...data?.geometry },
           winding: { ...data?.winding },
@@ -195,10 +376,7 @@ export default function MachineVisualizer({ currentStepId = "geometry", onValida
           targets: { ...data?.targets },
           validations: data?.validations,
         } as MachineSpecs;
-        // #region agent log
         const inputV = specsToInputValues(normalized);
-        fetch("http://127.0.0.1:7242/ingest/e5770a5a-cc34-4592-9d22-bc6eef1eb00c", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hypothesisId: "H2-H3-H5", location: "MachineVisualizer.tsx:fetchSpecs.then", message: "normalized and inputValues", data: { norm_tooth_width: normalized.geometry?.tooth_width, norm_tooth_depth: normalized.geometry?.tooth_depth, input_geometry_tooth_width: inputV["geometry.tooth_width"], input_geometry_tooth_depth: inputV["geometry.tooth_depth"] }, timestamp: Date.now() }) }).catch(() => { });
-        // #endregion
         setApiDebug(data?._debug ?? null);
         setInitialSpecs(normalized);
         setSpecs(normalized);
@@ -266,8 +444,7 @@ export default function MachineVisualizer({ currentStepId = "geometry", onValida
 
   useEffect(() => {
     if (specs && onValidationChange) {
-      const currentValidation = specs.validations?.[currentStepId];
-      // Only "fail" blocks progression. "warn" and "pass" are allowed.
+      const currentValidation = specs.validations?.[currentStepId ?? "geometry"];
       onValidationChange(currentValidation?.status !== "fail");
     }
   }, [specs, currentStepId, onValidationChange]);
@@ -278,377 +455,73 @@ export default function MachineVisualizer({ currentStepId = "geometry", onValida
     }
   }, [specs]);
 
-  const MachineCrossSection = React.memo(({
-    geometry,
-    winding,
-    size = 400,
-    showLabels = true
-  }: {
-    geometry: MachineSpecs["geometry"],
-    winding: MachineSpecs["winding"],
-    size?: number,
-    showLabels?: boolean
-  }) => {
-    const R_so = Number(geometry.d_stator_outer.value) / 2;
-    const R_ro = Number(geometry.d_rotor_outer.value) / 2;
-    const gap = Number(geometry.air_gap.value);
-    const R_si = R_ro + gap;
-    const toothDepth = Number(geometry.tooth_depth.value);
-    const R_sb = R_si + toothDepth; // Slot bottom (outer radius of slot)
-    const toothWidth = Number(geometry.tooth_width.value);
-    const shoeDepth = Number(geometry.tooth_shoe_depth.value);
-    const toothShape = geometry.tooth_shape;
-
-    const numSlots = winding.num_slots;
-    const numPoles = winding.num_poles;
-    const conductorsPerSlot = winding.conductors_per_slot;
-    const wireDiam = winding.wire_diameter_with_insulation;
-    const wireRad = wireDiam / 2;
-    const magnetThickness = Number(geometry.magnet_thickness.value);
-    const R_shaft = Number(geometry.d_shaft.value) / 2;
-
-    // Helper to get point at radius r, angle theta (degrees)
-    const getPt = (r: number, theta: number) => {
-      const rad = (theta * Math.PI) / 180;
-      return { x: r * Math.cos(rad), y: r * Math.sin(rad) };
-    };
-
-    // --- Magnets & Back Iron ---
-    const R_mag_in = R_ro - magnetThickness;
-    const hasBackIron = R_mag_in > R_shaft + 0.01;
-
-    const magnetPaths: { d: string, color: string }[] = [];
-    if (numPoles > 0) {
-      const poleAngle = 360 / numPoles;
-      for (let i = 0; i < numPoles; i++) {
-        const startAngle = i * poleAngle;
-        const endAngle = (i + 1) * poleAngle;
-
-        const p1 = getPt(R_ro, startAngle);
-        const p2 = getPt(R_ro, endAngle);
-        const p3 = getPt(R_mag_in, endAngle);
-        const p4 = getPt(R_mag_in, startAngle);
-
-        let d = `M ${p1.x} ${p1.y} `;
-        d += `A ${R_ro} ${R_ro} 0 0 1 ${p2.x} ${p2.y} `;
-        d += `L ${p3.x} ${p3.y} `;
-        d += `A ${R_mag_in} ${R_mag_in} 0 0 0 ${p4.x} ${p4.y} `;
-        d += `Z`;
-
-        magnetPaths.push({
-          d,
-          color: i % 2 === 0 ? "#fca5a5" : "#93c5fd"
-        });
-      }
-    }
-
-    // --- Stator Geometry ---
-    const getToothPoints = (angle: number, r: number, w: number) => {
-      const rad = (angle * Math.PI) / 180;
-      const u = { x: Math.cos(rad), y: Math.sin(rad) };
-      const n = { x: -Math.sin(rad), y: Math.cos(rad) }; // Normal pointing CCW
-
-      const h = w / 2;
-      if (r < h) return null;
-
-      const d = Math.sqrt(r * r - h * h);
-
-      const p1 = { x: d * u.x + h * n.x, y: d * u.y + h * n.y };
-      const p2 = { x: d * u.x - h * n.x, y: d * u.y - h * n.y };
-      return { cw: p2, ccw: p1 };
-    };
-
-    let d_path = "";
-    for (let i = 0; i < numSlots; i++) {
-      const angle = i * 360 / numSlots;
-
-      // Root of the tooth (at R_sb)
-      const root = getToothPoints(angle, R_sb, toothWidth);
-      // Stalk part (at R_si + shoeDepth)
-      const stalk = getToothPoints(angle, R_si + shoeDepth, toothWidth);
-
-      // Tip width logic
-      let currentTipWidth = toothWidth;
-      if (toothShape === "semi-closed") {
-        const slotOpening = toothWidth * 0.4; // Fixed 40% for semi-closed
-        currentTipWidth = (2 * Math.PI * R_si / numSlots) - slotOpening;
-      } else if (toothShape === "closed") {
-        currentTipWidth = (2 * Math.PI * R_si / numSlots) - 0.05; // Almost closed
-      }
-
-      const tip = getToothPoints(angle, R_si, Math.min(currentTipWidth, 2 * Math.PI * R_si / numSlots - 0.1));
-
-      if (!tip || !root || !stalk) continue;
-
-      const nextAngle = (i + 1) * 360 / numSlots;
-      const nextRoot = getToothPoints(nextAngle, R_sb, toothWidth);
-      const nextStalk = getToothPoints(nextAngle, R_si + shoeDepth, toothWidth);
-
-      // Next tip logic
-      let nextTipWidth = toothWidth;
-      if (toothShape === "semi-closed") {
-        const slotOpening = toothWidth * 0.4;
-        nextTipWidth = (2 * Math.PI * R_si / numSlots) - slotOpening;
-      } else if (toothShape === "closed") {
-        nextTipWidth = (2 * Math.PI * R_si / numSlots) - 0.05;
-      }
-      const nextTip = getToothPoints(nextAngle, R_si, Math.min(nextTipWidth, 2 * Math.PI * R_si / numSlots - 0.1));
-
-      if (!nextRoot || !nextStalk || !nextTip) continue;
-
-      if (i === 0) {
-        d_path += `M ${tip.cw.x} ${tip.cw.y} `;
-      }
-
-      d_path += `A ${R_si} ${R_si} 0 0 1 ${tip.ccw.x} ${tip.ccw.y} `;
-      d_path += `L ${stalk.ccw.x} ${stalk.ccw.y} `;
-      d_path += `L ${root.ccw.x} ${root.ccw.y} `;
-      d_path += `A ${R_sb} ${R_sb} 0 0 1 ${nextRoot.cw.x} ${nextRoot.cw.y} `;
-      d_path += `L ${nextStalk.cw.x} ${nextStalk.cw.y} `;
-      d_path += `L ${nextTip.cw.x} ${nextTip.cw.y} `;
-    }
-    d_path += "Z";
-
-    const fullStatorPath = `M ${R_so} 0 A ${R_so} ${R_so} 0 1 1 ${-R_so} 0 A ${R_so} ${R_so} 0 1 1 ${R_so} 0 Z ` + d_path;
-
-    // --- Conductors: layer-by-layer winding (贴齿一层一层向外绕线) ---
-    const halfTooth = toothWidth / 2;
-    const slotAngle = 360 / numSlots;
-    const halfSlotAngle = slotAngle / 2;
-    const halfSlotRad = (halfSlotAngle * Math.PI) / 180;
-    const angleStep = 360 / numSlots;
-    const radStep = (angleStep * Math.PI) / 180;
-    const n2 = { x: -Math.sin(radStep), y: Math.cos(radStep) }; // Normal to Tooth 1 ray
-
-    const padding = 0.01;
-    const effR = wireRad + padding;
-    const conductorsPerSide = Math.ceil(conductorsPerSlot / 2);
-    const hexRowDy = effR * Math.sqrt(3);
-
-    /** 绕线工艺：第一层导体相切排列，第二层及以后与上一层交错嵌套（六边形密排），体现机械臂紧密绕制。 */
-    const packSideLayers = (isRightSide: boolean): { x: number, y: number }[] => {
-      const placed: { x: number, y: number }[] = [];
-      const splitRad = halfSlotRad;
-      const tanSplit = Math.tan(splitRad);
-
-      if (isRightSide) {
-        // 左侧半槽贴 Tooth 0。第一层 y = halfTooth + effR（贴齿相切），层间距 sqrt(3)*effR，奇偶层 x 错位 effR 形成交错嵌套。
-        let layerIndex = 0;
-        while (placed.length < conductorsPerSide) {
-          const yLayer = halfTooth + effR + layerIndex * hexRowDy;
-          if (yLayer > R_sb - effR) break;
-          const rInnerSq = (R_si + effR) ** 2 - yLayer * yLayer;
-          const rOuterSq = (R_sb - effR) ** 2 - yLayer * yLayer;
-          if (rInnerSq < 0 || rOuterSq < 0) { layerIndex++; continue; }
-          const xInner = Math.sqrt(rInnerSq);
-          const xOuter = Math.sqrt(rOuterSq);
-          const xSplit = yLayer / tanSplit;
-          const xMin = Math.max(xInner, xSplit + effR);
-          const xMax = xOuter;
-          if (xMin >= xMax - effR) { layerIndex++; continue; }
-          const rowOffset = (layerIndex % 2) * effR;
-          let x = xMin + effR + rowOffset;
-          const xStep = 2 * effR;
-          while (x <= xMax - effR && placed.length < conductorsPerSide) {
-            const r = Math.sqrt(x * x + yLayer * yLayer);
-            if (r >= R_si + effR && r <= R_sb - effR && x > xSplit + effR) {
-              placed.push({ x, y: yLayer });
-            }
-            x += xStep;
-          }
-          layerIndex++;
-        }
-      } else {
-        // 右侧半槽贴 Tooth 1。第一层线 p·n2 = -halfTooth - effR，之后每层向槽内移 sqrt(3)*effR，奇偶层沿齿向错位 effR。
-        const u1 = { x: Math.cos(radStep), y: Math.sin(radStep) };
-        let layerIndex = 0;
-        while (placed.length < conductorsPerSide) {
-          const lineVal = -halfTooth - effR - layerIndex * hexRowDy;
-          const d = lineVal;
-          const tMin = R_si + effR;
-          const tMax = R_sb - effR;
-          const tRange = tMax - tMin;
-          if (tRange < 2 * effR) { layerIndex++; continue; }
-          const rowOffset = (layerIndex % 2) * effR;
-          for (let j = 0; placed.length < conductorsPerSide; j++) {
-            const t = tMin + effR + rowOffset + j * 2 * effR;
-            if (t > tMax - effR) break;
-            const px = t * u1.x + d * n2.x;
-            const py = t * u1.y + d * n2.y;
-            const r = Math.sqrt(px * px + py * py);
-            if (r < R_si + effR || r > R_sb - effR) continue;
-            const angleP = Math.atan2(py, px);
-            if (angleP <= splitRad + 0.001) continue;
-            if (angleP >= radStep - 0.001) continue;
-            let overlap = false;
-            for (const ex of placed) {
-              const dx = px - ex.x, dy = py - ex.y;
-              if (dx * dx + dy * dy < (2 * effR) ** 2 - 0.0001) { overlap = true; break; }
-            }
-            if (!overlap) placed.push({ x: px, y: py });
-          }
-          layerIndex++;
-          if (Math.abs(lineVal) > R_sb + 1) break;
-        }
-      }
-      return placed;
-    };
-
-    const leftConductors = packSideLayers(true);
-    const rightConductors = packSideLayers(false);
-    const conductorPoints = [...leftConductors, ...rightConductors];
-
-    const totalFit = leftConductors.length + rightConductors.length;
-    let currentErrorMsg = null;
-    let currentMaxFit = totalFit;
-
-    if (leftConductors.length < conductorsPerSide || rightConductors.length < conductorsPerSide) {
-      currentErrorMsg = `Cannot fit ${conductorsPerSlot} conductors (Need ${conductorsPerSide} per side).`;
-    }
-
-    const pad = 1.1;
-    const viewBoxSize = R_so * 2 * pad;
-
-    return (
-      <svg viewBox={`${-viewBoxSize / 2} ${-viewBoxSize / 2} ${viewBoxSize} ${viewBoxSize}`} className="w-full h-full">
-        {hasBackIron && <circle cx="0" cy="0" r={R_ro - magnetThickness} fill="#e5e7eb" stroke="#9ca3af" strokeWidth="0.1" />}
-        <circle cx="0" cy="0" r={R_shaft} fill="#fff" stroke="#9ca3af" strokeWidth="0.1" />
-        {magnetPaths.map((m, i) => <path key={`magnet-${i}`} d={m.d} fill={m.color} stroke="#fff" strokeWidth="0.05" />)}
-        <path d={fullStatorPath} fill="#4b5563" stroke="#1f2937" strokeWidth="0.1" fillRule="evenodd" />
-        {numSlots > 0 && Array.from({ length: numSlots }).map((_, s) => {
-          const angle = s * 360 / numSlots;
-          return (
-            <g key={`slot-${s}`} transform={`rotate(${angle})`}>
-              {conductorPoints.map((p, j) => (
-                <circle key={`slot-${s}-conductor-${j}`} cx={p.x} cy={p.y} r={wireRad} fill="#fbbf24" stroke="#d97706" strokeWidth="0.02" />
-              ))}
-            </g>
-          );
-        })}
-        {showLabels && (
-          <g>
-            <line x1={R_so} y1="0" x2={R_so + 1} y2="0" stroke="#9ca3af" strokeWidth="0.1" />
-            <text x={R_so + 1.2} y="0.5" style={{ fontSize: '1.2px' }} className="fill-muted-foreground">OD: {R_so * 2}mm</text>
-          </g>
-        )}
-      </svg>
-    );
-  });
-  MachineCrossSection.displayName = "MachineCrossSection";
-
   const apiStatus =
     error
-      ? `请求失败: ${error}（请确认后端已启动且为 http://localhost:8000）`
+      ? `请求失败: ${error}`
       : apiDebug
-        ? `API: tooth_width_from_py=${String(apiDebug.tooth_width_from_py)} path=${apiDebug.path_used ?? ""}`
+        ? `API Mode`
         : specs
-          ? `API 响应无 _debug，当前 geometry.tooth_width=${specs.geometry?.tooth_width}（可能未打到 FastAPI 或后端未返回 _debug）`
+          ? `OK`
           : loading
-            ? "请求中..."
-            : "无数据";
+            ? "..."
+            : "No data";
 
-  if (loading) return <div className="flex flex-col items-center gap-4 p-8"><Loader2 className="animate-spin" /><p className="text-sm text-muted-foreground">API 状态: {apiStatus}</p></div>;
+  if (loading) return <div className="flex flex-col items-center gap-4 p-8"><Loader2 className="animate-spin" /></div>;
   if (error) return (
     <div className="space-y-2 p-4">
       <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
-      <p className="text-sm text-muted-foreground">请求 URL: /api/machine-specs（代理到后端 8000）— 请确认后端已启动。</p>
     </div>
   );
-  if (!specs) return <div className="p-4">No data. API 状态: {apiStatus}</div>;
+  if (!specs) return <div className="p-4">No data.</div>;
 
-  // These values are now calculated within MachineCrossSection, but we need them for the info panel.
-  // For simplicity, we'll re-calculate or pass them if needed.
-  // For now, let's assume conductorsPerSlot is directly from specs.winding
   const conductorsPerSlot = specs.winding.conductors_per_slot;
-  // errorMsg and maxFit would need to be derived from the MachineCrossSection component if it were to return them,
-  // or calculated here if the logic is simple enough.
-  // For this change, we'll assume they are not directly available from the new component structure
-  // and might need a separate state or calculation if they were critical for the parent.
-  // As per the instruction, we are just fixing the component return and usage.
-  const errorMsg = null; // Placeholder, as MachineCrossSection no longer returns this directly
-  const maxFit = 0; // Placeholder
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {/* Controls */}
-      <Card className="md:col-span-1">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            Parameters
-            <Button variant="outline" size="icon" onClick={fetchSpecs} title="Reload from File">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-            {PARAM_SECTIONS
-              .filter(({ section }) => !currentStepId || section === currentStepId)
-              .map(({ section, title, keys }) => {
-                const secSpecs = specs?.[section as keyof MachineSpecs] as Record<string, unknown> | undefined;
-                const secInitial = initialSpecs?.[section as keyof MachineSpecs] as Record<string, unknown> | undefined;
-                return (
-                  <div key={section} className="space-y-1.5">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide sticky top-0 bg-card py-0.5">{title}</p>
+  const renderStepContent = () => {
+    const section = currentStepId as "geometry" | "winding" | "materials" | "targets";
+    const sectionConfig = PARAM_SECTIONS.find(s => s.section === section);
+
+    if (section === "geometry") {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="md:col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between text-base">
+                Geometry Parameters
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={fetchSpecs} title="Reload">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                {sectionConfig && (
+                  <div className="space-y-1.5">
                     <div className="grid gap-x-2 gap-y-1.5 grid-cols-[1fr,auto] items-center">
-                      {keys.map(({ key, label, type, optionsKey }) => {
+                      {sectionConfig.keys.map(({ key, label, type, optionsKey }) => {
                         const k = paramKey(section, key);
-                        const v = (secSpecs as any)?.[key];
+                        const v = (specs.geometry as any)?.[key];
                         const param = typeof v === "object" ? v as ParameterObj : null;
-
                         const displayValue = inputValues[k] ?? (param ? String(param.value) : String(v ?? ""));
-                        const defaultVal = secInitial?.[key];
-                        const isPending = pendingUpdate?.section === section && pendingUpdate?.key === key;
-                        const options = (optionsKey && (secSpecs as any)?.[optionsKey] as (string | number)[]) || [];
+                        const options = (optionsKey && (specs.geometry as any)?.[optionsKey] as (string | number)[]) || [];
 
                         return (
                           <React.Fragment key={k}>
-                            <div className="flex items-center justify-between gap-1 min-w-0">
-                              <div className="flex flex-col">
-                                <Label className="text-xs shrink-0">{label}</Label>
-                                {param && (
-                                  <span className={`text-[8px] uppercase font-bold px-1 rounded-sm w-fit ${param.type === 'free' ? 'bg-green-100 text-green-700' :
-                                      param.type === 'derived' ? 'bg-blue-100 text-blue-700' :
-                                        'bg-slate-100 text-slate-600'
-                                    }`}>
-                                    {param.type}
-                                  </span>
-                                )}
-                              </div>
-                              {defaultVal !== undefined && defaultVal !== null && (
-                                <span className="text-[10px] text-muted-foreground truncate">默认: {String(defaultVal)}</span>
+                            <div className="flex flex-col">
+                              <Label className="text-xs">{label}</Label>
+                              {param && (
+                                <span className="text-[8px] uppercase font-bold text-muted-foreground">{param.type}</span>
                               )}
                             </div>
                             <div className="flex items-center gap-1">
                               {type === "select" ? (
-                                <Select
-                                  value={displayValue}
-                                  onValueChange={(val) => handleInputChange(section, key, val)}
-                                  disabled={param?.type === 'derived'}
-                                >
-                                  <SelectTrigger className="h-7 text-xs w-20 shrink-0">
-                                    <SelectValue />
-                                  </SelectTrigger>
+                                <Select value={displayValue} onValueChange={(val) => handleInputChange(section, key, val)}>
+                                  <SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger>
                                   <SelectContent>
-                                    {options.map((opt) => (
-                                      <SelectItem key={String(opt)} value={String(opt)}>
-                                        {String(opt)}
-                                      </SelectItem>
-                                    ))}
+                                    {options.map((opt) => <SelectItem key={String(opt)} value={String(opt)}>{String(opt)}</SelectItem>)}
                                   </SelectContent>
                                 </Select>
                               ) : (
-                                <Input
-                                  type={type === "text" ? "text" : "text"}
-                                  inputMode={type === "text" ? "text" : "decimal"}
-                                  value={displayValue}
-                                  onChange={(e) => handleInputChange(section, key, e.target.value)}
-                                  className="h-7 text-xs w-20 shrink-0"
-                                  disabled={param?.type === 'derived'}
-                                />
-                              )}
-                              {isPending && countdownSec > 0 && (
-                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">{countdownSec}s</span>
+                                <Input value={displayValue} onChange={(e) => handleInputChange(section, key, e.target.value)} className="h-7 text-xs w-24" />
                               )}
                             </div>
                           </React.Fragment>
@@ -656,95 +529,116 @@ export default function MachineVisualizer({ currentStepId = "geometry", onValida
                       })}
                     </div>
                   </div>
-                );
-              })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Visualization */}
-      <Card className="md:col-span-2">
-        <CardHeader>
-          <CardTitle>Cross-Section View</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center">
-          <div className="relative border rounded p-4 bg-white">
-            <div className="w-full h-full max-w-[600px] max-h-[600px]">
-              <MachineCrossSection geometry={specs.geometry} winding={specs.winding} />
-            </div>
-          </div>
-
-          <div className="w-full mt-4 space-y-2">
-            {specs.validations && specs.validations[currentStepId] && (
-              <>
-                {specs.validations[currentStepId].status !== "pass" && (
-                  <div className="space-y-2">
-                    {specs.validations[currentStepId].errors.map((err: string, i: number) => (
-                      <Alert key={`err-${i}`} variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>{currentStepId.toUpperCase()} Error</AlertTitle>
-                        <AlertDescription>{err}</AlertDescription>
-                      </Alert>
-                    ))}
-                    {specs.validations[currentStepId].warnings.map((warn: string, i: number) => (
-                      <Alert key={`warn-${i}`} className="border-amber-500 text-amber-700 bg-amber-50">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>{currentStepId.toUpperCase()} Warning</AlertTitle>
-                        <AlertDescription>{warn}</AlertDescription>
-                      </Alert>
-                    ))}
-                  </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
 
-                {specs.validations[currentStepId].status === "pass" && (
-                  <Alert className="border-green-500 text-green-700 bg-green-50">
-                    <AlertTitle>Step: {currentStepId.toUpperCase()} Validated</AlertTitle>
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Machine Cross-Section</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center">
+              <div className="relative border rounded p-4 bg-white shadow-inner">
+                <div className="w-[450px] h-[450px]">
+                  <MachineCrossSection geometry={specs.geometry} winding={specs.winding} />
+                </div>
+              </div>
+              <div className="w-full mt-4">
+                {specs.validations?.[section] && (
+                  <Alert variant={specs.validations[section].status === "fail" ? "destructive" : "default"} className={specs.validations[section].status === "warn" ? "border-amber-500 bg-amber-50" : ""}>
+                    <AlertTitle>{section.toUpperCase()} Status: {specs.validations[section].status}</AlertTitle>
                     <AlertDescription>
-                      Internal technical consistency check passed.
+                      {specs.validations[section].errors.map((e, i) => <div key={i}>• {e}</div>)}
+                      {specs.validations[section].warnings.map((w, i) => <div key={i}>• {w}</div>)}
                     </AlertDescription>
                   </Alert>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+          <GeometryMatrix specs={specs} />
+        </div>
+      );
+    }
 
-                {/* Technical Metrics Display */}
-                {specs.validations[currentStepId].metrics && Object.keys(specs.validations[currentStepId].metrics).length > 0 && (
-                  <div className="mt-4 p-3 bg-slate-100 rounded-lg border border-slate-200">
-                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Technical Metrics</h4>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                      {Object.entries(specs.validations[currentStepId].metrics).map(([key, val]) => (
-                        <div key={key} className="flex justify-between items-center text-xs border-b border-slate-200 pb-1">
-                          <span className="text-slate-600">{key}</span>
-                          <span className="font-mono font-medium">{val}</span>
-                        </div>
-                      ))}
+    // Default view for other steps
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{section.toUpperCase()} Specifications</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-y-4">
+              {sectionConfig?.keys.map(({ key, label, type, optionsKey }) => {
+                const k = paramKey(section, key);
+                const sectionData = specs[section as keyof MachineSpecs];
+                const v = (sectionData as any)?.[key];
+                const displayValue = inputValues[k] ?? String(v ?? "");
+                const options = (optionsKey && (sectionData as any)?.[optionsKey] as (string | number)[]) || [];
+
+                return (
+                  <div key={k} className="flex items-center justify-between">
+                    <Label className="text-sm text-muted-foreground">{label}</Label>
+                    <div className="w-48">
+                      {type === "select" ? (
+                        <Select value={displayValue} onValueChange={(val) => handleInputChange(section, key, val)}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {options.map((opt) => <SelectItem key={String(opt)} value={String(opt)}>{String(opt)}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={displayValue} onChange={(e) => handleInputChange(section, key, e.target.value)} />
+                      )}
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Technical Validation & Metrics</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {specs.validations?.[section] ? (
+              <div className="space-y-3">
+                <div className={`p-4 rounded-lg border ${specs.validations[section].status === "fail" ? "bg-red-50 border-red-200" : specs.validations[section].status === "warn" ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200"
+                  }`}>
+                  <p className="font-bold mb-1">Status: {specs.validations[section].status.toUpperCase()}</p>
+                  {specs.validations[section].errors.length > 0 && (
+                    <div className="text-sm text-red-700">
+                      {specs.validations[section].errors.map((e, i) => <p key={i}>• {e}</p>)}
+                    </div>
+                  )}
+                </div>
+                {specs.validations[section].metrics && (
+                  <div className="grid grid-cols-1 gap-2">
+                    {Object.entries(specs.validations[section].metrics).map(([mK, mV]) => (
+                      <div key={mK} className="flex justify-between items-center p-2 rounded bg-slate-50 border">
+                        <span className="text-xs font-medium text-slate-500">{mK}</span>
+                        <span className="text-xs font-mono font-bold">{String(mV)}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No validation data available for this step.</p>
             )}
-          </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
 
-          {errorMsg && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Fitting Error</AlertTitle>
-              <AlertDescription>{errorMsg}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="mt-4 text-sm text-muted-foreground">
-            <p className="text-xs mt-2 border-b pb-2 text-amber-700 bg-amber-50/80 rounded px-2 py-1" title="后端调试信息">
-              API 状态: {apiStatus}
-            </p>
-            <p>Stator OD: {Number(specs.geometry.d_stator_outer.value)}mm</p>
-            <p>Conductors/Slot: {conductorsPerSlot}</p>
-            <p>Wire Diameter: {specs.winding.wire_diameter_with_insulation}mm</p>
-            {errorMsg && <p className="font-bold text-red-500">Max Fit: {maxFit}</p>}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Geometry Exploration Matrix */}
-      {currentStepId === "geometry" && <GeometryMatrix specs={specs} />}
+  return (
+    <div className="p-6">
+      {renderStepContent()}
     </div>
   );
 }

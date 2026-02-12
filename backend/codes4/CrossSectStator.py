@@ -244,17 +244,30 @@ class CrossSectInnerRotorClosedSlotStator:
 
         list_segments = []
         if bool_draw_whole_model:
-            raise
+            def iPark(P, theta):
+                return [P[0]*math.cos(theta)+P[1]*-math.sin(theta), P[0]*math.sin(theta)+P[1]*math.cos(theta)]
+            def draw_fraction(list_segments, P1, P5, P1_Rotate, P3, P2_Rotate, P4, P6_Rotate, P5_Rotate):
+                list_segments += drawer.drawArc([0,0], P1, P1_Rotate)
+                list_segments += drawer.drawArc([0,0], P3, P2_Rotate)
+                list_segments += drawer.drawLine(P1_Rotate, P2_Rotate)
+                list_segments += drawer.drawLine(P3, P4)
+                list_segments += drawer.drawArc([0,0], P4, P6_Rotate)
+                list_segments += drawer.drawArc([0,0], P5, P5_Rotate)
+                list_segments += drawer.drawLine(P6_Rotate, P5_Rotate)
+                list_segments += drawer.drawLine(P1, P5)
+            for i in range(Q):
+                theta = i * alpha_slot_span
+                draw_fraction(list_segments, iPark(P1, theta), iPark(P5, theta), iPark(P1_Rotate, theta), 
+                                             iPark(P3, theta), iPark(P2_Rotate, theta), iPark(P4, theta), 
+                                             iPark(P6_Rotate, theta), iPark(P5_Rotate, theta))
         else:
             list_segments += drawer.drawArc([0,0], P1, P1_Rotate)
             list_segments += drawer.drawArc([0,0], P3, P2_Rotate)
             list_segments += drawer.drawLine(P1_Rotate, P2_Rotate)
             list_segments += drawer.drawLine(P3, P4)
-
             list_segments += drawer.drawArc([0,0], P4, P6_Rotate)
             list_segments += drawer.drawArc([0,0], P5, P5_Rotate)
             list_segments += drawer.drawLine(P6_Rotate, P5_Rotate)
-            
             list_segments += drawer.drawLine(P1, P5)
 
         self.innerCoord = ( 0.5*(P2[0]+P3[0]), 0.5*(P2[1]+P3[1]))

@@ -489,15 +489,17 @@ class Geometry(object):
         return self.components_make_region
 
 class CairoDrawer(object):
-    def __init__(self, width_in_points=500, height_in_points=500, filename=None, verbose_drawing=False):
+    def __init__(self, width_in_points=500, height_in_points=500, filename=None, verbose_drawing=False, scale=1.0):
         self.filename = filename
         self.verbose_drawing = verbose_drawing
+        self.scale = scale
         self.surface = cairo.SVGSurface(self.filename, width_in_points, height_in_points)
         self.ctx = cairo.Context(self.surface)
         # self.ctx.scale(width_in_points, height_in_points)
         # m = cairo.Matrix(yy=-1, y0=height_in_points) # Cartetian Coordinate
         m = cairo.Matrix(yy=-1, y0=0.5*height_in_points, x0=+0.5*width_in_points) # Offset to center
         self.ctx.transform(m)
+        self.ctx.scale(self.scale, self.scale)
         # Set a background color
         self.ctx.save()
         self.ctx.set_source_rgb(0.95, 0.95, 0.95)
@@ -514,15 +516,18 @@ class CairoDrawer(object):
     def convert_to_pdf(self, bool_open_pdf=False, filename=None): # 这个代码只是把SVG转换为PDF而已
         # self.surface.write_to_svg()
         self.surface.finish()
-        import cairosvg
-        cairosvg.svg2pdf(url=f'machine_geometry.svg', write_to=f'machine_geometry.pdf')
-        if bool_open_pdf:
-            import os
-            os.system('sumatraPDF2.exe ' + 'machine_geometry.pdf')
-        print('[machine_design_guide.py] Find the file machine_geometry.pdf in the current folder.')
+        try:
+            import cairosvg
+            cairosvg.svg2pdf(url=filename or f'machine_geometry.svg', write_to=f'machine_geometry.pdf')
+            if bool_open_pdf:
+                import os
+                os.system('sumatraPDF2.exe ' + 'machine_geometry.pdf')
+            print('[machine_design_guide.py] Find the file machine_geometry.pdf in the current folder.')
+        except ImportError:
+            print('[machine_design_guide.py] cairosvg not found, skipping PDF conversion.')
+        except Exception as e:
+            print(f'[machine_design_guide.py] PDF conversion failed: {e}')
 
-    def getSketch(self, name, color):
-        self.sketch_name = name
         self.sketch_color = color
 
     def drawLine(self, p1, p2):
@@ -538,7 +543,15 @@ class CairoDrawer(object):
         EPS = 1e-3
         v1 = [startxy[0] - centerxy[0], startxy[1] - centerxy[1]]
         v2 = [endxy[0]   - centerxy[0], endxy[1]   - centerxy[1]]
-        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])*math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]))
+        
+        radius = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
+        if radius < EPS:
+            if self.verbose_drawing:
+                print(f'[CairoDrawer.py] drawArc radius too small ({radius=}), skipping arc.')
+            self.ctx.move_to(startxy[0], startxy[1])
+            return [{'move_to': (startxy[0], startxy[1])}]
+
+        cos夹角 = (v1[0]*v2[0] + v1[1]*v2[1]) / (radius * math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]))
         if 1.0 < cos夹角 < 1.0+EPS:
             cos夹角 = 1.0
         elif -1.0-EPS < cos夹角 < -1.0:
@@ -554,9 +567,38 @@ class CairoDrawer(object):
         # self.ctx.arc_negative(centerxy[0], centerxy[1], radius, angle_end, angle_start)
         return [{'move_to': (centerxy[0], centerxy[1]), 'arc': (radius, angle_start, angle_end)}]
 
+    def hex_to_rgb(self, hex_color):
+        if not hex_color or not isinstance(hex_color, str):
+            return (0.0, 0.0, 0.0)
+        hex_color = hex_color.lstrip('#')
+        lv = len(hex_color)
+        try:
+            if lv == 3:
+                rgb = tuple(int(hex_color[i:i+1]*2, 16) for i in range(0, 3))
+            elif lv == 6:
+                rgb = tuple(int(hex_color[i:i+2], 16) for i in range(0, 6, 2))
+            else:
+                return (0.0, 0.0, 0.0)
+            return tuple(c/255.0 for c in rgb)
+        except ValueError:
+            return (0.0, 0.0, 0.0)
+
+    def getSketch(self, name, color):
+        self.current_color = color
+        self.ctx.new_path()
+
+    def finalize_part(self):
+        if hasattr(self, 'current_color'):
+            rgb = self.hex_to_rgb(self.current_color)
+            self.ctx.set_source_rgba(*rgb, 0.4) # Transparent fill
+            self.ctx.fill_preserve()
+            self.ctx.set_source_rgba(*rgb, 1.0) # Solid stroke
+            self.ctx.set_line_width(0.05)
+            self.ctx.stroke()
 
 class Modern_Machine_Designer_Utility(object):
-    def __init__(self):
+    def __init__(self, specs: 'MotorSpecs'):
+        self.specs = specs
         self.flag_do_not_evaluate_when_init_pop = False
 
     def _get_parameter_logger(self):

@@ -5,8 +5,10 @@ import time
 import types
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict, is_dataclass, fields
 from fastapi.encoders import jsonable_encoder
+
+router = APIRouter()
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 _USER_MACHINE_PATH = os.path.join(_ROOT, "backend", "codes4", "user_minitureMachine.py")
@@ -28,16 +30,21 @@ def _agent_log(payload: dict) -> None:
             continue
 
 def _robust_dict(obj):
-    """Deeply convert dataclasses to dicts, with name-based fallback for dynamic Parameter objects."""
+    """Deeply convert objects to dicts, manually iterating fields to avoid stale metadata issues."""
     if is_dataclass(obj):
-        # asdict is usually fine, but let's be safe for nested stuff
-        return {k: _robust_dict(v) for k, v in asdict(obj).items()}
+        res = {}
+        for f in fields(obj):
+            try:
+                # Use getattr with a sentinel to avoid AttributeError on stale fields
+                val = getattr(obj, f.name, None)
+                if val is not None:
+                    res[f.name] = _robust_dict(val)
+            except Exception:
+                continue
+        return res
     
     # Check by class name to catch Parameter objects from dynamic modules or utilities
     if type(obj).__name__ == "Parameter":
-        # Handle both my dataclass and the utility one
-        if hasattr(obj, "to_dict"):
-            return _robust_dict(obj.to_dict())
         return {
             "name": getattr(obj, "name", ""),
             "type": getattr(obj, "type", ""),
@@ -54,21 +61,19 @@ def _robust_dict(obj):
 
 def _specs_to_api_response(specs):
     """Build API response from MotorSpecs; using robust conversion for dynamic classes."""
-    # Debug class identity
-    test_param = specs.geometry.d_stator_outer
-    _agent_log({
-        "location": "serialization_debug",
-        "type": str(type(test_param)),
-        "is_dataclass": is_dataclass(test_param),
-        "has_fields": hasattr(test_param, "__dataclass_fields__")
-    })
     
-    # Ensure all derived params are up to date
-    specs.geometry.update_derived()
+    geometry_dict = _robust_dict(specs.geometry)
     
+    # Flatten tooth_specs into geometry if it exists
+    if hasattr(specs.geometry, "tooth_specs"):
+        ts_dict = _robust_dict(specs.geometry.tooth_specs)
+        for k, v in ts_dict.items():
+            if k != "shape": # Don't overwrite the main tooth_shape if there's a conflict
+                geometry_dict[k] = v
+
     # Manually build the structure to ensure everything is serializable
     data = {
-        "geometry": _robust_dict(specs.geometry),
+        "geometry": geometry_dict,
         "winding": _robust_dict(specs.winding),
         "materials": _robust_dict(specs.materials),
         "targets": _robust_dict(specs.targets),
@@ -99,6 +104,7 @@ def _load_module_from_file():
     module.__file__ = path
     with open(path, "r", encoding="utf-8") as f:
         source = f.read()
+    _agent_log({"location": "dynamic_load", "path": path, "source_start": source[:100]})
     code = compile(source, path, "exec")
     exec(code, module.__dict__)
     return module
@@ -124,14 +130,32 @@ async def get_machine_specs():
         # #endregion
         um_module = _load_module_from_file()
         specs = um_module.MotorSpecs()
+        _agent_log({
+            "location": "specs_init", 
+            "module": specs.__class__.__module__,
+            "file": getattr(sys.modules.get(specs.__class__.__module__), "__file__", "N/A"),
+            "sys_path": sys.path[:5]
+        })
         g = specs.geometry
         out = _specs_to_api_response(specs)
         # #region agent log
-        _agent_log({"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": _get_machine_file_path(), "g_tooth_width": g.tooth_width.value, "g_tooth_depth": g.tooth_depth.value, "out_tooth_width": out["geometry"]["tooth_width"]["value"], "out_tooth_depth": out["geometry"]["tooth_depth"]["value"]}, "timestamp": time.time() * 1000})
+        _agent_log({
+            "hypothesisId": "H1-H4", 
+            "location": "machine_specs.py:get_machine_specs", 
+            "message": "backend after load", 
+            "data": {
+                "path_used": _get_machine_file_path(), 
+                "g_w_tooth": g.w_tooth.value, 
+                "g_d_tooth": g.d_tooth.value, 
+                "out_w_tooth": out["geometry"]["w_tooth"]["value"], 
+                "out_d_tooth": out["geometry"]["d_tooth"]["value"]
+            }, 
+            "timestamp": time.time() * 1000
+        })
         path_used = _get_machine_file_path()
         out["_debug"] = {
             "source": "workspace_machine_specs",
-            "tooth_width_from_py": g.tooth_width.value,
+            "w_tooth_from_py": g.w_tooth.value,
             "path_used": path_used,
         }
         # #endregion

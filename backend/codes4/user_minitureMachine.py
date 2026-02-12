@@ -1,104 +1,368 @@
-from dataclasses import dataclass, field
-from typing import List, Optional
 import math
+from dataclasses import dataclass, field, fields
+from typing import List, Dict, Any, Optional
 import sys
 import os
+
+__version__ = "1.0.2_debug_renames"
+print(f"DEBUG: Loading user_minitureMachine.py version {__version__}")
 
 # Ensure the current directory is in the path to import from sibling files if needed
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from modern_machine_designer_utility import Parameter
+
+
 @dataclass
-class Parameter:
-    name: str
-    type: str  # 'free', 'fixed', 'derived'
-    value: float
-    bounds: Optional[List[float]] = None
-    unit: str = 'mm'
-
-    def __post_init__(self):
-        # Ensure value is within bounds if free
-        if self.type == 'free' and self.bounds and len(self.bounds) == 2:
-            if self.value < self.bounds[0]: self.value = self.bounds[0]
-            if self.value > self.bounds[1]: self.value = self.bounds[1]
-
-
-@dataclass(frozen=True)
 class MaterialSpecs:
     """Specifications for magnetic and conductive materials."""
     magnet_grade: str = "N42SH"
     magnet_br: float = 1.3  # Remanence [T]
     magnet_h_cj: float = 1592.0  # Coercivity [kA/m] (SH grade >= 20kOe)
     magnet_temp_max: float = 150.0  # [°C]
+    magnet_temperature: float = 20.0 # [°C]
     
     stator_steel: str = "20JNEH1200"
+    stator_core_material: str = "20JNEH1200"
+    rotor_core_material: str = "20JNEH1200"
     steel_thickness: float = 0.20  # [mm]
     steel_stack_factor: float = 0.95
+    lamination_factor: float = 95.0 # [%]
     steel_max_flux_density: float = 1.9  # [T] (Saturation knee)
 
+
+
+@dataclass
+class ToothGeometry:
+    """Base class for tooth geometry parameters."""
+    shape: str = field(init=False)
+
+@dataclass
+class OpenTooth(ToothGeometry):
+    shape: str = "open"
+    d_tooth_shoe: Parameter = field(default_factory=lambda: Parameter("stator_tooth_shoe_depth", "fixed", 0.0))
+
+@dataclass
+class SemiClosedTooth(ToothGeometry):
+    shape: str = "semi-closed"
+    alpha_tooth: Parameter = field(default_factory=lambda: Parameter("stator_tooth_span_angle", "fixed", 0.0))
+    d_tooth_open: Parameter = field(default_factory=lambda: Parameter("stator_tooth_open_depth", "derived"))
+    alpha_tooth_open: Parameter = field(default_factory=lambda: Parameter("stator_tooth_open_angle", "derived"))
+    d_tooth_shoe: Parameter = field(default_factory=lambda: Parameter("stator_tooth_shoe_depth", "fixed", 0.5))
+
+@dataclass
+class ClosedTooth(ToothGeometry):
+    shape: str = "closed"
+    d_tooth_shoe: Parameter = field(default_factory=lambda: Parameter("stator_tooth_shoe_depth", "fixed", 0.5))
 @dataclass
 class GeometrySpecs:
     """Physical dimensions and exploration space using structured Parameters."""
-    d_stator_outer: Parameter = field(default_factory=lambda: Parameter("Stator OD", "fixed", 13.0))
-    d_rotor_outer: Parameter = field(default_factory=lambda: Parameter("Rotor OD", "free", 8.0, [6.0, 10.0]))
-    d_shaft: Parameter = field(default_factory=lambda: Parameter("Shaft", "fixed", 2.0))
-    magnet_thickness: Parameter = field(default_factory=lambda: Parameter("Magnet thickness", "free", 3.0, [1.0, 5.0]))
-    air_gap: Parameter = field(default_factory=lambda: Parameter("Air gap", "fixed", 0.15))
+    # Fixed / Input
+    r_stator_outer: Parameter = field(default_factory=lambda: Parameter("stator_outer_radius", "fixed", 13.0/2.0))
+    r_rotor_outer: Parameter = field(default_factory=lambda: Parameter("rotor_outer_radius", "free", 8.0/2.0, [6.0/2.0, 10.0/2.0]))
+    r_shaft: Parameter = field(default_factory=lambda: Parameter("shaft_radius", "fixed", 2.0/2.0))
+    d_magnet: Parameter = field(default_factory=lambda: Parameter("magnet_depth", "free", 3.0, [1.0, 5.0]))
+    d_air_gap: Parameter = field(default_factory=lambda: Parameter("mechanical_air_gap_depth", "fixed", 0.15))
+    l_stack: Parameter = field(default_factory=lambda: Parameter("stack_length", "fixed", 16.0))
     
+    # Motor specific flags
+    bool_PermanentMagnet: bool = True
+    bool_StatorSlotClosed: bool = True
+    bool_RotorNotched: bool = True
+    bool_use_sleeve: bool = False
+    bool_use_shaft: bool = False
+    
+    tooth_shape: str = "closed" # Options: "open", "semi-closed", "closed"
+    tooth_specs: ToothGeometry = field(init=False)
+
     # Stator Tooth Geometry
-    tooth_width: Parameter = field(default_factory=lambda: Parameter("Tooth width", "free", 1.2, [0.8, 2.5]))
-    tooth_depth: Parameter = field(default_factory=lambda: Parameter("Tooth depth", "free", 2.0, [1.0, 4.0]))
-    tooth_shoe_depth: Parameter = field(default_factory=lambda: Parameter("Tooth shoe", "fixed", 0.5))
-    
-    tooth_shape: str = "closed"  # Options: "open", "semi-closed", "closed"
-    tooth_shape_options: List[str] = field(default_factory=lambda: ["open", "semi-closed", "closed"])
+    w_tooth: Parameter = field(default_factory=lambda: Parameter("stator_tooth_width", "free", 1.2))
+    d_tooth: Parameter = field(default_factory=lambda: Parameter("stator_tooth_depth", "derived"))
+    d_stator_yoke: Parameter = field(default_factory=lambda: Parameter("stator_yoke_depth", "free", 0.5))
+
+    # Rotor specific
+    r_rotor_inner: Parameter = field(default_factory=lambda: Parameter("rotor_inner_radius", "fixed", 0.0))
+    d_sleeve: Parameter = field(default_factory=lambda: Parameter("rotor_sleeve_depth", "fixed", 0.0))
+    alpha_magnet_pole: Parameter = field(default_factory=lambda: Parameter("magnet_pole_span_angle", "fixed", 18.0))
+    alpha_magnet_segment: Parameter = field(default_factory=lambda: Parameter("magnet_segment_span_angle", "derived"))
+    inter_polar_iron_thickness: Parameter = field(default_factory=lambda: Parameter("inter_polar_iron_thickness", "derived"))
+    inter_segment_iron_thickness: Parameter = field(default_factory=lambda: Parameter("inter_segment_iron_thickness", "fixed", 0.0))
 
     # Options for dropdowns
-    stack_length: Parameter = field(default_factory=lambda: Parameter("Stack length", "fixed", 16.0))
+    tooth_shape_options: List[str] = field(default_factory=lambda: ["open", "semi-closed", "closed"])
     stack_length_options: List[float] = field(default_factory=lambda: [6.0, 10.0, 16.0])
 
     # Derived parameter example
-    split_ratio: Parameter = field(default_factory=lambda: Parameter("Split ratio", "derived", 0.615))
-    
-    def update_derived(self):
+    split_ratio: Parameter = field(default_factory=lambda: Parameter("split_ratio_r_si_slash_r_so", "derived", 0.615))
+        
+    p: Parameter = field(default_factory=lambda: Parameter("pole_pair_number_p", "fixed", 5.0))
+    s: Parameter = field(default_factory=lambda: Parameter("number_of_magnet_segments_per_pole", "fixed", 1.0))
+
+    def __post_init__(self):
+        # Initialize tooth_specs based on tooth_shape
+        if self.tooth_shape == "open":
+            self.tooth_specs = OpenTooth()
+        elif self.tooth_shape == "semi-closed":
+            self.tooth_specs = SemiClosedTooth()
+        elif self.tooth_shape == "closed":
+            self.tooth_specs = ClosedTooth()
+        else:
+            self.tooth_specs = OpenTooth() # Fallback
+
+        self.update_derived()
+
+        # Import needed classes locally to avoid circular dependencies if any
+        from modern_machine_designer_utility import CairoDrawer
+        import CrossSectInnerNotchedRotor, CrossSectStator
+
+        # Geometry is defined by Key Points and relations among key points.
+        # geometric parameters are only used to define the key points
+        class Geometry(object):
+            def __init__(self, name, GP: dict = None, KP: dict = None, draw_function: callable = None, color: str = None):
+                self.name = name
+                self.color = color
+                self.GP = GP or {}
+                self.KP = KP or {}
+                self.draw_function = draw_function
+                for name, gp in self.GP.items():
+                    if isinstance(gp, Parameter):
+                        setattr(self, name, gp.value)
+
+        self.machineGeometry = {
+            "rotorCore": Geometry(name='rotorCore',
+                GP={
+                    'r_stator_outer': self.r_stator_outer,
+                    'r_rotor_outer': self.r_rotor_outer,
+                    'd_magnet': self.d_magnet,
+                    'r_rotor_inner': self.r_rotor_inner,
+                    'inter_polar_iron_thickness': self.inter_polar_iron_thickness,
+                    'inter_segment_iron_thickness': self.inter_segment_iron_thickness,
+                    'p': self.p,
+                    's': self.s,
+                },
+                draw_function=lambda drawer, **kwargs: (
+                    CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
+                        name="rotorCore",
+                        color="#FE840E",
+                        mm_d_pm=self.d_magnet.value,
+                        deg_alpha_rm=self.alpha_magnet_pole.value,
+                        deg_alpha_rs=self.alpha_magnet_pole.value if self.s.value==1 else self.alpha_magnet_segment.value,
+                        mm_d_ri=self.r_rotor_outer.value - self.d_magnet.value,
+                        mm_r_ri=self.r_rotor_inner.value,
+                        mm_d_rp=self.inter_polar_iron_thickness.value,
+                        mm_d_rs=self.inter_segment_iron_thickness.value,
+                        p=int(self.p.value),
+                        s=int(self.s.value)
+                    ).draw(drawer, **kwargs)
+                )
+            ),
+            "rotorMagnet": Geometry(name='rotorMagnet',
+                GP={
+                    'd_magnet': self.d_magnet,
+                    'r_rotor_outer': self.r_rotor_outer,
+                    'r_rotor_inner': self.r_rotor_inner,
+                },
+                draw_function=lambda drawer, **kwargs: (
+                    CrossSectInnerNotchedRotor.CrossSectInnerNotchedMagnet(
+                        name="rotorMagnet",
+                        color="#1C96E0",
+                        rotorCore=CrossSectInnerNotchedRotor.CrossSectInnerNotchedRotor(
+                            mm_d_pm=self.d_magnet.value,
+                            deg_alpha_rm=self.alpha_magnet_pole.value,
+                            deg_alpha_rs=self.alpha_magnet_pole.value if self.s.value==1 else self.alpha_magnet_segment.value,
+                            mm_d_ri=self.r_rotor_outer.value - self.d_magnet.value,
+                            mm_r_ri=self.r_rotor_inner.value,
+                            mm_d_rp=self.inter_polar_iron_thickness.value,
+                            mm_d_rs=self.inter_segment_iron_thickness.value,
+                            p=int(self.p.value),
+                            s=int(self.s.value)
+                        )
+                    ).draw(drawer, **kwargs)
+                ),
+            ),
+            "statorCore": Geometry(name='statorCore',
+                GP={
+                    'r_stator_outer': self.r_stator_outer,
+                    'd_tooth_shoe': self.tooth_specs.d_tooth_shoe,
+                    'd_tooth': self.d_tooth,
+                    'd_stator_yoke': self.d_stator_yoke,
+                    'w_tooth': self.w_tooth,
+                },
+                draw_function=lambda drawer, **kwargs: (
+                    CrossSectStator.CrossSectInnerRotorClosedSlotStator(
+                        name="statorCore",
+                        color="#BAFA01",
+                        mm_r_so=self.r_stator_outer.value,
+                        mm_d_sts=self.tooth_specs.d_tooth_shoe.value,
+                        mm_r_si=self.r_stator_outer.value * self.split_ratio.value,
+                        mm_d_st=self.d_tooth.value,
+                        mm_d_sy=self.d_stator_yoke.value,
+                        mm_w_st=self.w_tooth.value,
+                        Q=int(Parameter("stator_slot_number_Qs", "fixed", 12).value), 
+                    ).draw(drawer, **kwargs)
+                ),
+            ),
+            "coils": None
+        }
+        self.machineGeometry['coils'] = Geometry(name='coils',
+            GP={
+                'r_stator_outer': self.r_stator_outer,
+                'd_stator_yoke': self.d_stator_yoke,
+                'w_tooth': self.w_tooth,
+                'd_tooth': self.d_tooth,
+            },
+            draw_function=lambda drawer, **kwargs: (
+                CrossSectStator.CrossSectInnerRotorClosedSlotStatorWinding(
+                    stator_core=self.machineGeometry['statorCore'],
+                ).draw(drawer, **kwargs)
+            )
+        )
+
+    def show_geometry(self, filename=None):
+        from modern_machine_designer_utility import CairoDrawer
+        def draw_spmsm(lw, width_in_points, height_in_points, filename='machine_geometry.svg', bool_draw_whole_model=True):
+            self.drawer = drawer = CairoDrawer(width_in_points, height_in_points, filename=filename, verbose_drawing=getattr(self, 'verbose_drawing', False))
+
+            self.machineGeometry['rotorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            # self.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            # self.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            # self.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+
+            drawer.apply_stroke(lw=lw)
+            drawer.convert_to_pdf()
+
+        lw = 0.1 if self.r_rotor_outer.value < 15 else 0.5
+        width_in_points  = self.r_stator_outer.value*2.1
+        height_in_points = self.r_stator_outer.value*2.1
+        bool_draw_whole_model = True
+
+        draw_spmsm(lw, width_in_points, height_in_points, filename=filename or 'machine_geometry.svg', bool_draw_whole_model=bool_draw_whole_model)
+
+    def get_parameter_dict(self):
+        d = {}
+        for f in fields(self):
+            attr = getattr(self, f.name)
+            if isinstance(attr, Parameter):
+                d[attr.name] = attr
+        
+        # Add tooth_specs parameters
+        if hasattr(self, 'tooth_specs'):
+            for f in fields(self.tooth_specs):
+                attr = getattr(self.tooth_specs, f.name)
+                if isinstance(attr, Parameter):
+                    d[attr.name] = attr
+        return d
+
+    _derivation_errors: List[str] = field(default_factory=list, init=False, repr=False)
+
+    def _validate_positive(self, param_name, value, dependencies):
+        """Check if a derived value is positive. If not, log dependencies for debugging and store error."""
+        if value <= 0:
+            msg = f"ERROR: Derived parameter '{param_name}' is non-positive (value: {value:.3f})."
+            msg += " components: " + ", ".join([f"{k}={v:.3f}" for k, v in dependencies.items()])
+            print("\n" + msg)
+            if msg not in self._derivation_errors:
+                self._derivation_errors.append(msg)
+        return value
+
+    def update_derived(self, motor_specs=None):
         """Update derived parameters based on free/fixed values."""
-        self.split_ratio.value = self.d_rotor_outer.value / self.d_stator_outer.value
+        self._derivation_errors = []
+        # 1. Stator Inner Radius (derived from outer and split ratio)
+        r_so = self.r_stator_outer.value
+        r_si = r_so * self.split_ratio.value
+        
+        # 2. Tooth Depth
+        # Logic: r_so - r_si - yoke - shoe
+        val_td = r_so - r_si - self.d_stator_yoke.value - self.tooth_specs.d_tooth_shoe.value
+        self.d_tooth.value = self._validate_positive("d_tooth", val_td, {
+            "r_stator_outer": r_so,
+            "r_si": r_si,
+            "d_stator_yoke": self.d_stator_yoke.value,
+            "d_tooth_shoe": self.tooth_specs.d_tooth_shoe.value
+        })
+        
+        # 3. Rotor Outer Radius
+        r_ro = r_si - self.d_air_gap.value - self.d_sleeve.value
+        self.r_rotor_outer.value = r_ro
+        self._validate_positive("r_rotor_outer", self.r_rotor_outer.value, {
+            "r_si": r_si,
+            "d_air_gap": self.d_air_gap.value,
+            "d_sleeve": self.d_sleeve.value
+        })
+        
+        # 4. Rotor Iron Depth
+        self.inter_polar_iron_thickness.value = self.d_magnet.value
+        
+        # 5. Stator Tooth Open (OO parameters)
+        if hasattr(self.tooth_specs, 'd_tooth_open'):
+            self.tooth_specs.d_tooth_open.value = self.tooth_specs.d_tooth_shoe.value * 0.667
+            self._validate_positive("d_tooth_open", self.tooth_specs.d_tooth_open.value, {
+                "d_tooth_shoe": self.tooth_specs.d_tooth_shoe.value
+            })
+        
+        if hasattr(self.tooth_specs, 'alpha_tooth_open') and hasattr(self.tooth_specs, 'alpha_tooth'):
+            self.tooth_specs.alpha_tooth_open.value = self.tooth_specs.alpha_tooth.value * 0.5
+        
+        # 6. Magnet Segments
+        self.alpha_magnet_segment.value = self.alpha_magnet_pole.value
+        
+        # Update split_ratio for reporting if it's derived from final r_si
+        if r_so != 0:
+            self.split_ratio.value = r_si / r_so
 
 @dataclass
 class WindingSpecs:
     """Winding, electrical loading, and Back-EMF estimation."""
+    m: int = 3
     num_slots: int = 12
     num_poles: int = 10
+    ps: int = 5 # suspension_pole_pair_number
     coil_pitch_y: int = 1
+    bool_DPNVorSEPA: bool = True
+    number_of_parallel_branch: int = 2
     
     conductors_per_slot: int = 42  # z_Q
     wire_diameter_with_insulation: float = 0.21  # [mm]
     
     # Excitation & Nameplate
     rated_speed: float = 10000.0  # [rpm]
+    rated_power: float = 50.0  # [W]
     dc_bus_voltage: float = 24.0  # [V]
-    rated_current_density: float = 14.0  # [A/mm^2]
+    rated_current_density_Js: float = 14.0e6  # [A/m^2]
+    winding_fill_factor: float = 0.4
     
     winding_factor: float = 0.933  # k_w for 12S10P
     
+    # Connection and Ratios
+    bool_WyeConnectOrDeltaConnect: bool = True
+    torque_current_ratio: float = 1.0
+    suspension_current_ratio: float = 0.0
+    drive_winding_resistance: float = 1.0 # [Ohm]
+    bearing_winding_resistance: float = 1.0 # [Ohm]
+    
+    # Dynamic values (to be populated by sync)
+    wily: Any = None # Modern Winding object
+    no_series_coil_turns_N: int = 0
+    DriveW_zQ: float = 0.0
+    BeariW_zQ: float = 0.0
+    mm2_slot_area: float = 0.0
+    CurrentAmp_per_phase: float = 0.0
+    DriveW_CurrentAmp: float = 0.0
+    BeariW_CurrentAmp: float = 0.0
+
     def calculate_suggested_turns(self, flux_per_pole: float) -> int:
-        """
-        Estimate series turns N based on V_dc and speed.
-        V_emf = 4.44 * f * k_w * N * Phi
-        """
         if flux_per_pole <= 0: return 0
         freq = (self.rated_speed / 60.0) * (self.num_poles / 2.0)
-        # Target Back-EMF is ~90% of phase voltage
         v_phase_max = self.dc_bus_voltage / math.sqrt(3) # Star connection
-        v_target = 0.9 * v_phase_max
+        v_target = 0.95 * v_phase_max * math.sqrt(2) # Ampere value
         
-        # Simplified N calculation
         n_series = v_target / (2 * math.pi * freq * self.winding_factor * flux_per_pole)
         return int(round(n_series))
 
     def estimate_back_emf(self, flux_per_pole: float) -> float:
-        """Calculate peak phase Back-EMF [V]."""
         freq = (self.rated_speed / 60.0) * (self.num_poles / 2.0)
-        n_series = (self.conductors_per_slot * self.num_slots) / (2 * 3) # Simplified for 3-phase
+        n_series = self.no_series_coil_turns_N
         return 2 * math.pi * freq * self.winding_factor * n_series * flux_per_pole
 
 @dataclass
@@ -107,11 +371,37 @@ class PerformanceTargets:
     torque_target: float = 50.0 # [mNm]
     efficiency_target: float = 0.85
     
-    # FEA Post-processing results (Placeholders for time-domain waves)
+    # Extra Objectives
+    objectives: Dict[str, float] = field(default_factory=lambda: {
+        'TorqueDensity': 0.0,
+        'Cost': 0.0,
+        'TorqueDensityOverSquireRootCopperLoss': 0.0,
+        'Efficiency': 0.0,
+        'TorqueRipple': 0.0,
+        'ForceErrorMagnitude': 0.0,
+        'ForceErrorAngle': 0.0,
+        'IronLoss': 0.0,
+        'CoggingTorque': 0.0
+    })
+
+    # FEA Post-processing results
     last_fea_torque_wave: List[float] = field(default_factory=list)
     last_fea_time_steps: List[float] = field(default_factory=list)
     torque_ripple: float = 0.0
     thd_voltage: float = 0.0
+    initial_rotation_angle: float = 0.0
+    mm2_magnet_area: float = 0.0
+    
+    # Excitation Results
+    no_series_coil_turns_N: int = 0
+    no_conductors_per_slot_zQ: float = 0.0
+    mm2_slot_area: float = 0.0
+    CurrentAmp_in_the_slot: float = 0.0
+    CurrentAmp_per_conductor: float = 0.0
+    CurrentAmp_per_phase: float = 0.0
+    DriveW_CurrentAmp: float = 0.0
+    BeariW_CurrentAmp: float = 0.0
+    slot_current_utilizing_ratio_for_torque: float = 0.0
 
     # Meta Data
     individual_name_format: str = 'gen-0-ind-0'
@@ -179,289 +469,257 @@ class MotorSpecs:
     winding: WindingSpecs = field(default_factory=WindingSpecs)
     targets: PerformanceTargets = field(default_factory=PerformanceTargets)
     
-    def calculate_copper_area(self) -> float:
-        """Calculate total copper area in one slot [mm^2]."""
-        wire_radius = self.winding.wire_diameter_with_insulation / 2.0
-        return self.winding.conductors_per_slot * (math.pi * wire_radius**2)
+    def get_eccentricity_ratio(self) -> float:
+        """Calculate eccentricity ratio (offset/airgap). Placeholder implementation."""
+        # For a standard non-bearingless motor, this is 0
+        return 0.0
 
     def validate_inputs(self, step: str = "geometry") -> dict:
         """Validate inputs and return physics metrics for the given step."""
-        # Sync derived parameters first
-        self.geometry.update_derived()
-        errors = []
-        warnings = []
-        metrics = {}
-        
-        if step == "materials":
-            m = self.materials
-            if m.magnet_br < 0 or m.magnet_br > 2.0:
-                errors.append("Magnet Br out of physical range (0-2T)")
-            if m.steel_max_flux_density < 1.0:
-                warnings.append("Saturation target B_sat is unusually low")
+        try:
+            # Sync derived parameters first
+            self.geometry.update_derived(self)
+            errors = []
+            warnings = []
+            metrics = {}
             
-            # (BH)max estimate [MGOe]
-            mu0 = 4 * math.pi * 1e-7
-            mu_rec = 1.05
-            bh_max_si = (m.magnet_br**2) / (4 * mu0 * mu_rec) # [J/m^3]
-            bh_max_mgoe = bh_max_si / 7957.7 # Convert to MGOe approx
-            
-            metrics["Magnet Br"] = f"{m.magnet_br} T"
-            metrics["Magnet (BH)max"] = f"{bh_max_mgoe:.1f} MGOe"
-            metrics["Steel B_sat"] = f"{m.steel_max_flux_density} T"
-            metrics["Steel Grade"] = m.stator_steel
+            if step == "materials":
+                m = self.materials
+                if m.magnet_br < 0 or m.magnet_br > 2.0:
+                    errors.append("Magnet Br out of physical range (0-2T)")
+                if m.steel_max_flux_density < 1.0:
+                    warnings.append("Saturation target B_sat is unusually low")
+                
+                # (BH)max estimate [MGOe]
+                mu0 = 4 * math.pi * 1e-7
+                mu_rec = 1.05
+                bh_max_si = (m.magnet_br**2) / (4 * mu0 * mu_rec) # [J/m^3]
+                bh_max_mgoe = bh_max_si / 7957.7 # Convert to MGOe approx
+                
+                metrics["Magnet Br"] = f"{m.magnet_br} T"
+                metrics["Magnet (BH)max"] = f"{bh_max_mgoe:.1f} MGOe"
+                metrics["Steel B_sat"] = f"{m.steel_max_flux_density} T"
+                metrics["Steel Grade"] = m.stator_steel
 
-        elif step == "geometry":
-            g = self.geometry
-            if g.d_rotor_outer.value >= g.d_stator_outer.value:
-                errors.append("Rotor OD must be smaller than Stator OD")
-            
-            r_si = (g.d_rotor_outer.value / 2.0) + g.air_gap.value
-            if r_si >= (g.d_stator_outer.value / 2.0):
-                errors.append("Air gap extends beyond stator outer diameter!")
+            elif step == "geometry":
+                g = self.geometry
+                # Add derivation errors found during update_derived
+                if hasattr(g, "_derivation_errors") and g._derivation_errors:
+                    errors.extend(g._derivation_errors)
+                
+                r_so = g.r_stator_outer.value
+                r_ro = g.r_rotor_outer.value
+                
+                if r_ro >= r_so:
+                    errors.append("Rotor radius must be smaller than Stator radius")
+                
+                r_si = r_so * g.split_ratio.value
+                if r_si >= r_so:
+                    errors.append("Air gap extends beyond stator outer diameter!")
 
-            # Split Ratio
-            split_ratio = g.split_ratio.value # Using pre-updated derived param
-            metrics["Split Ratio"] = f"{split_ratio:.3f}"
-            
-            # Equivalent Air Gap
-            mu_rec = 1.05
-            metrics["Equivalent Gap"] = f"{g.air_gap.value + g.magnet_thickness.value/mu_rec:.3f} mm"
+                # Split Ratio
+                metrics["Split Ratio"] = f"{g.split_ratio.value:.3f} (r_si/r_so)"
+                
+                # Equivalent Air Gap
+                mu_rec = 1.05
+                metrics["Equivalent Gap"] = f"{g.d_air_gap.value + g.d_magnet.value/mu_rec:.3f} mm"
 
-            # Slot & Area Ratios
-            stator_inner_radius = r_si
-            slot_bottom_radius = stator_inner_radius + g.tooth_depth.value
-            avg_slot_width = (math.pi * (stator_inner_radius + slot_bottom_radius) / self.winding.num_slots) - g.tooth_width.value
-            slot_area = avg_slot_width * g.tooth_depth.value
-            copper_area = self.calculate_copper_area()
-            fill_factor = copper_area / slot_area if slot_area > 0 else 0
-            
-            metrics["Slot Area"] = f"{slot_area:.2f} mm²"
-            metrics["Copper Area"] = f"{copper_area:.2f} mm²"
-            metrics["Fill Factor"] = f"{fill_factor*100:.1f}%"
-            metrics["Conductors/Slot"] = str(self.winding.conductors_per_slot)
-            
-            # Volume & Weight Est (Very rough)
-            vol_stator = (math.pi * (g.d_stator_outer.value**2 - (2*r_si)**2) / 4.0) * g.stack_length.value * 1e-3 # [cm^3]
-            weight_stator = vol_stator * 7.7 * 1e-3 # [kg] (Iron + Winding approx)
-            metrics["Est. Core Weight"] = f"{weight_stator*1000:.1f} g"
+                # Slot & Area Ratios
+                stator_inner_radius = r_si
+                slot_bottom_radius = r_si + g.d_tooth.value
+                avg_slot_width = (math.pi * (stator_inner_radius + slot_bottom_radius) / self.winding.num_slots) - g.w_tooth.value
+                slot_area = avg_slot_width * g.d_tooth.value
+                copper_area = self.calculate_copper_area()
+                fill_factor = copper_area / slot_area if slot_area > 0 else 0
+                
+                metrics["Slot Area"] = f"{slot_area:.2f} mm²"
+                metrics["Copper Area"] = f"{copper_area:.2f} mm²"
+                metrics["Fill Factor"] = f"{fill_factor*100:.1f}%"
+                metrics["Conductors/Slot"] = str(self.winding.conductors_per_slot)
+                
+                # Volume & Weight Est (Very rough)
+                vol_stator = (math.pi * (r_so**2 - r_si**2)) * g.l_stack.value * 1e-3 # [cm^3]
+                weight_stator = vol_stator * 7.7 * 1e-3 # [kg]
+                metrics["Est. Core Weight"] = f"{weight_stator*1000:.1f} g"
 
-        elif step == "winding":
-            w = self.winding
-            g_specs = self.geometry
-            if w.num_slots % 3 != 0:
-                errors.append("Slot number must be multiple of 3")
-            
-            # 1. Bg Estimation
-            br = self.materials.magnet_br
-            hm = g_specs.magnet_thickness.value
-            gap_dist = g_specs.air_gap.value
-            b_gap = br * hm / (hm + 1.05 * gap_dist) if (hm + 1.05 * gap_dist) > 0 else 0
-            metrics["Est. Gap Flux Bg"] = f"{b_gap:.3f} T"
+            elif step == "winding":
+                w = self.winding
+                g_specs = self.geometry
+                if w.num_slots % 3 != 0:
+                    errors.append("Slot number must be multiple of 3")
+                
+                # 1. Bg Estimation
+                br = self.materials.magnet_br
+                hm = g_specs.d_magnet.value
+                gap_dist = g_specs.d_air_gap.value
+                b_gap = br * hm / (hm + 1.05 * gap_dist) if (hm + 1.05 * gap_dist) > 0 else 0
+                metrics["Est. Gap Flux Bg"] = f"{b_gap:.3f} T"
 
-            # 2. Electrical Metrics
-            wire_area = math.pi * (w.wire_diameter_with_insulation/2)**2
-            conductor_current = w.rated_current_density * wire_area
-            slot_current = conductor_current * w.conductors_per_slot
-            
-            # Resistance Estimation (Phase)
-            r_si = (g_specs.d_rotor_outer.value / 2.0) + g_specs.air_gap.value
-            end_winding = math.pi * (2*r_si) / w.num_slots * w.coil_pitch_y
-            turn_length = 2 * (g_specs.stack_length.value + end_winding) * 1e-3 # [m]
-            n_series = (w.conductors_per_slot * w.num_slots) / 6 # Turns per phase
-            rho_copper = 1.72e-8 # [Ohm-m]
-            resistance = rho_copper * (turn_length * n_series) / (wire_area * 1e-6)
-            
-            metrics["Magnet Br"] = f"{self.materials.magnet_br} T"
-            metrics["Phase Resistance"] = f"{resistance:.3f} Ω"
-            metrics["Conductor Current"] = f"{conductor_current:.2f} A"
-            metrics["Total Slot Current"] = f"{slot_current:.1f} A-t"
-            
-            # Copper Loss
-            p_cu = 3 * (conductor_current**2) * resistance
-            metrics["Copper Loss Pcu"] = f"{p_cu:.2f} W"
+                # 2. Electrical Metrics
+                wire_area = math.pi * (w.wire_diameter_with_insulation/2)**2
+                conductor_current = w.rated_current_density_Js * wire_area * 1e-6 
+                slot_current = conductor_current * w.conductors_per_slot
+                
+                # Resistance Estimation (Phase)
+                r_si = g_specs.r_stator_outer.value * g_specs.split_ratio.value
+                end_winding = math.pi * (2*r_si) / w.num_slots * w.coil_pitch_y
+                n_series = (w.conductors_per_slot * w.num_slots) / (2 * w.m * w.number_of_parallel_branch)
+                turn_length = 2 * (g_specs.l_stack.value + end_winding) * 1e-3 # [m]
+                rho_copper = 1.72e-8 # [Ohm-m]
+                resistance = rho_copper * (turn_length * n_series) / (wire_area * 1e-6)
+                
+                metrics["Magnet Br"] = f"{self.materials.magnet_br} T"
+                metrics["Phase Resistance"] = f"{resistance:.3f} Ω"
+                metrics["Conductor Current"] = f"{conductor_current:.2f} A"
+                metrics["Total Slot Current"] = f"{slot_current:.1f} A-t"
+                
+                # Copper Loss
+                p_cu = 3 * (conductor_current**2) * resistance
+                metrics["Copper Loss Pcu"] = f"{p_cu:.2f} W"
 
-            # Fill Factor (repeated for context)
-            stator_inner_radius = (g_specs.d_rotor_outer.value / 2.0) + g_specs.air_gap.value
-            slot_bottom_radius = stator_inner_radius + g_specs.tooth_depth.value
-            avg_slot_width = (math.pi * (stator_inner_radius + slot_bottom_radius) / w.num_slots) - g_specs.tooth_width.value
-            slot_area = avg_slot_width * g_specs.tooth_depth.value
-            copper_area = self.calculate_copper_area()
-            fill_factor = copper_area / slot_area if slot_area > 0 else 0
-            
-            metrics["Slot Area"] = f"{slot_area:.2f} mm²"
-            metrics["Winding Fill Factor"] = f"{fill_factor*100:.1f}%"
+                # Fill Factor
+                stator_inner_radius = r_si
+                slot_bottom_radius = r_si + g_specs.d_tooth.value
+                avg_slot_width = (math.pi * (stator_inner_radius + slot_bottom_radius) / w.num_slots) - g_specs.w_tooth.value
+                slot_area = avg_slot_width * g_specs.d_tooth.value
+                copper_area = self.calculate_copper_area()
+                fill_factor = copper_area / slot_area if slot_area > 0 else 0
+                
+                metrics["Slot Area"] = f"{slot_area:.2f} mm²"
+                metrics["Winding Fill Factor"] = f"{fill_factor*100:.1f}%"
 
-            # Back-EMF
-            area_pole = (2 * math.pi * r_si * g_specs.stack_length.value) / w.num_poles
-            estimated_flux = b_gap * area_pole * 1e-6 
-            emf = w.estimate_back_emf(estimated_flux)
-            metrics["Estimated Back-EMF"] = f"{emf:.2f} V"
+                # Back-EMF
+                area_pole = (2 * math.pi * r_si * g_specs.l_stack.value) / w.num_poles
+                estimated_flux = b_gap * area_pole * 1e-6 
+                emf = w.estimate_back_emf(estimated_flux)
+                metrics["Estimated Back-EMF"] = f"{emf:.2f} V"
 
-        elif step == "targets":
-            metrics["Torque Target"] = f"{self.targets.torque_target} mNm"
-            # Power Est
-            power = (self.targets.torque_target * 1e-3) * (self.winding.rated_speed * 2 * math.pi / 60.0)
-            metrics["Rated Power"] = f"{power:.2f} W"
+            elif step == "targets":
+                metrics["Torque Target"] = f"{self.targets.torque_target} mNm"
+                # Power Est
+                power = (self.targets.torque_target * 1e-3) * (self.winding.rated_speed * 2 * math.pi / 60.0)
+                metrics["Rated Power"] = f"{power:.2f} W"
 
-        status = "pass"
-        if errors: status = "fail"
-        elif warnings: status = "warn"
-            
-        return {
-            "status": status, 
-            "errors": errors, 
-            "warnings": warnings, 
-            "metrics": metrics,
-            "fill_factor": metrics.get("Fill Factor", "0%") # For backward compatibility
-        }
+            status = "pass"
+            if errors: status = "fail"
+            elif warnings: status = "warn"
+                
+            return {
+                "status": status, 
+                "errors": errors, 
+                "warnings": warnings, 
+                "metrics": metrics,
+                "fill_factor": metrics.get("Fill Factor", "0%")
+            }
+        except Exception as e:
+            return {
+                "status": "fail",
+                "errors": [f"Validation Crash: {str(e)}"],
+                "warnings": [],
+                "metrics": {},
+                "fill_factor": "0%"
+            }
 
     def validate_outputs(self, step: str, results: dict) -> dict:
-        """
-        Validate outputs/results of a specific step.
-        """
-        # Placeholder for future steps
+        """Validate outputs/results of a specific step."""
         return {"status": "pass", "errors": [], "warnings": []}
 
+    def sync(self):
+        """Orchestrate initialization logic matching Modern_Machine_Designer."""
+        from modern_machine_designer_utility import Winding
+        
+        # 1. Winding initialization
+        w = self.winding
+        w.wily = Winding(w.m, w.num_slots, w.num_poles // 2, w.ps, w.coil_pitch_y, bool_DPNVorSEPA=w.bool_DPNVorSEPA)
+
+        # 2. Material Temperature Adjustment
+        available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220]
+        self.materials.magnet_temperature = min(available_temperature_list, key=lambda x: abs(x - self.materials.magnet_temperature))
+
+        # 3. Parameter and Geometry Setup
+        g = self.geometry
+        p_dict = g.get_parameter_dict()
+        
+        # Link parameter_dicts
+        for p in p_dict.values():
+            p.parameter_dict = p_dict
+        
+        # Derived Variables (Sync logic)
+        g.update_derived(self)
+        
+        # 4. Turns and Excitation Logic
+        V_stator_phase_voltage_amp = math.sqrt(2) * self.winding.dc_bus_voltage / math.sqrt(3) # Assume Wye
+        V_desired_emf_Em = 0.95 * V_stator_phase_voltage_amp
+        
+        p = w.num_poles // 2
+        r_si = g.r_stator_outer.value * g.split_ratio.value
+        tau_p = math.pi * r_si / p
+        Wb_flux = (2.0/math.pi) * 0.9 * tau_p * 1e-3 * (g.l_stack.value + 2 * g.d_air_gap.value) * 1e-3
+        
+        freq = (w.rated_speed / 60) * p
+        no_series_coil_turns_N = V_desired_emf_Em / (2*math.pi* freq * w.wily.kw1 * Wb_flux) if Wb_flux > 0 else 0
+        w.no_series_coil_turns_N = round(no_series_coil_turns_N)
+        
+        # Voltage priority
+        SPP = w.num_slots / (2*p*w.m)
+        w.no_series_coil_turns_N = min([int(p*SPP*i) for i in range(100,0,-1)], key=lambda x:abs(x - w.no_series_coil_turns_N))
+        
+        w.DriveW_zQ = 2 * w.m * w.no_series_coil_turns_N / w.num_slots * w.number_of_parallel_branch
+        w.BeariW_zQ = w.DriveW_zQ
+
+        # Thermal / Current Density
+        r_sy = g.r_stator_outer.value - g.d_stator_yoke.value
+        r_ss = r_si + g.tooth_specs.d_tooth_shoe.value
+        w.mm2_slot_area = (math.pi*(r_sy**2 - r_ss**2) / w.num_slots - g.w_tooth.value * (r_sy - r_ss))
+        i_slot = w.mm2_slot_area * 1e-6 * w.rated_current_density_Js * w.winding_fill_factor * math.sqrt(2)
+        i_cond = i_slot / w.DriveW_zQ if w.DriveW_zQ > 0 else 0
+        w.CurrentAmp_per_phase = i_cond * w.number_of_parallel_branch
+        w.DriveW_CurrentAmp = 1.0 * w.CurrentAmp_per_phase 
+        w.BeariW_CurrentAmp = 0.0 * w.CurrentAmp_per_phase 
+        
+        # Targets
+        t = self.targets
+        t.no_series_coil_turns_N = w.no_series_coil_turns_N
+        t.no_conductors_per_slot_zQ = w.DriveW_zQ
+        t.mm2_slot_area = w.mm2_slot_area
+        t.CurrentAmp_in_the_slot = i_slot
+        t.CurrentAmp_per_conductor = i_cond
+        t.CurrentAmp_per_phase = w.CurrentAmp_per_phase
+        t.DriveW_CurrentAmp = w.DriveW_CurrentAmp
+        t.BeariW_CurrentAmp = w.BeariW_CurrentAmp
+
+    def print_summary(self):
+        """Print a summary of MotorSpecs."""
+        print("-" * 50)
+        print(f"{'Motor Specification Summary':^50}")
+        print("-" * 50)
+        g = self.geometry
+        w = self.winding
+        print(f"Geometry: {g.r_stator_outer.value*2}x{g.l_stack.value} mm, Split: {g.split_ratio.value:.3f}")
+        print(f"Winding:  {w.num_slots}S/{w.num_poles}P, Turns: {w.no_series_coil_turns_N}, zQ: {w.DriveW_zQ:.1f}")
+        print(f"Materials: Stator:{self.materials.stator_core_material}, Magnet:{self.materials.magnet_grade}")
+        print(f"Excitation: Js:{w.rated_current_density_Js/1e6:.1f} A/mm2, Current:{w.DriveW_CurrentAmp:.1f} A")
+        print("-" * 50)
+
     def calculate_copper_area(self) -> float:
-        """Calculate total copper cross-section area in mm^2."""
-        # Assuming 0.01mm insulation thickness
+        """Calculate total copper area in one slot [mm^2]."""
         d_bare = self.winding.wire_diameter_with_insulation - 0.02
-        return (math.pi * (d_bare**2) / 4.0) * self.winding.conductors_per_slot
+        return self.winding.conductors_per_slot * (math.pi * (d_bare / 2.0)**2)
 
+# Global helper for command line
+def run_visualization():
+    specs = MotorSpecs()
+    specs.sync()
+    specs.geometry.show_geometry()
+    print("Geometry visualization generated as machine_geometry.svg/pdf")
+    specs.print_summary()
 
-
-
-@dataclass
-class MachineDesignInputOri:
-    # Winding
-    m: int = 3
-    Qs: int = 12
-    p: int = 4
-    ps: int = 5
-    coil_pitch_y: int = 1
-
-    # Nameplate
-    RatedPower: float = 50e3 # W
-    RatedSpeed: float = 30000 # rpm
-
-    # Excitation
-    bool_WyeConnectOrDeltaConnect: bool = True
-    bool_weHavePlentyVoltage: bool = True
-    Temperature: float = 75
-    TORQUE_CURRENT_RATIO: float = 0.95
-    SUSPENSION_CURRENT_RATIO: float = 0.05
-    DCBusVoltage: float = 600
-    Js: float = 4e6
-    WindingFill: float = 0.3882
-    DriveW_Rs: float = 1.0 # [Ohm]
-    BeariW_Rs: float = 1.0 # [Ohm]
-
-    # Materials
-    SteelMaterial: str = "M-19 Steel Gauge-29"
-    Magnet_Name: str = "Arnold/Reversible/N40H"
-    LaminationFactor: float = 95
-    StatorCore_Material: Optional[str] = None
-    RotorCore_Material: Optional[str] = None
-
-    # Geometry (Fixed/Initial)
-    mm_stack_length_specified: float = 50 # mm
-    SR: float = (8+2*0.15) / 13 # 1.0 - 0.35
-    mm_r_so: float = 123.5
-    mm_d_mech_air_gap: float = 0.5
-
-    # Machine Geometry
-    bool_PermanentMagnet: bool = True
-    bool_StatorSlotClosed: bool = True
-    bool_RotorNotched: bool = True
-
-    # Bounds
-    split_ratio_r_si_slash_r_so_bounds: List[float] = field(default_factory=lambda: [0.55, 0.75])
-    yoke_split_ratio_bounds: List[float] = field(default_factory=lambda: [0.15, 0.35])
-    tooth_split_ratio_at_middle_slot_bounds: List[float] = field(default_factory=lambda: [0.4, 0.75])
-
-    def __post_init__(self):
-        if self.StatorCore_Material is None:
-            self.StatorCore_Material = self.SteelMaterial
-        if self.RotorCore_Material is None:
-            self.RotorCore_Material = self.SteelMaterial
-
-def convert_to_machine_design_input(specs: MotorSpecs) -> MachineDesignInputOri:
-    """
-    Convert MotorSpecs to MachineDesignInputOri for machine design workflow.
-    Fills in known parameters and uses placeholders for others.
-    """
-    # Geometry Calculations
-    r_so = specs.geometry.d_stator_outer / 2.0
-    r_ro = specs.geometry.d_rotor_outer / 2.0
-    # Assuming air gap is mechanical air gap and no sleeve for now
-    r_si = r_ro + specs.geometry.air_gap 
-    SR = r_si / r_so
-
-    return MachineDesignInputOri(
-        # Winding
-        Qs = specs.winding.num_slots,
-        p = specs.winding.num_poles // 2,
-        coil_pitch_y = specs.winding.coil_pitch_y,
-        m = 3, # Placeholder: Phase number (Usually 3)
-        ps = 4, # Placeholder: Suspension pole pair number (For bearingless motors)
-
-        # Nameplate
-        RatedPower = 10.0, # Placeholder: [W]
-        RatedSpeed = 10000.0, # Placeholder: [rpm]
-
-        # Excitation
-        Temperature = 60.0, # Placeholder: Operating temperature [C] (Limit is specs.targets.temp_limit)
-        DCBusVoltage = 24.0, # Placeholder: [V]
-        Js = specs.winding.rated_current_density * 1e6, # Convert [A/mm^2] to [A/m^2]
-        WindingFill = 0.4, # Placeholder: Slot fill factor
-        DriveW_Rs = 1.0, # Placeholder: Drive winding resistance [Ohm]
-        BeariW_Rs = 1.0, # Placeholder: Bearing winding resistance [Ohm]
-        bool_WyeConnectOrDeltaConnect = True, # Placeholder: Connection type
-        bool_weHavePlentyVoltage = True, # Placeholder: Voltage constraint assumption
-        TORQUE_CURRENT_RATIO = 1.0, # Placeholder
-        SUSPENSION_CURRENT_RATIO = 0.0, # Placeholder
-
-        # Materials
-        SteelMaterial = specs.materials.stator_steel,
-        Magnet_Name = specs.materials.magnet_grade,
-        LaminationFactor = specs.materials.steel_stack_factor * 100, # Convert to percentage
-        StatorCore_Material = specs.materials.stator_steel,
-        RotorCore_Material = specs.materials.stator_steel, # Assuming same material for rotor back iron
-
-        # Geometry (Fixed/Initial)
-        mm_stack_length_specified = specs.geometry.stack_length_options[-1], # Defaulting to middle option (16.0mm)
-        SR = SR,
-        mm_r_so = r_so,
-        mm_d_mech_air_gap = specs.geometry.air_gap,
-
-        # Machine Geometry (from GeometrySpecs)
-        bool_PermanentMagnet = specs.geometry.has_rotor_magnet,
-        bool_StatorSlotClosed = specs.geometry.tooth_shape=='closed',
-        bool_RotorNotched = specs.geometry.has_rotor_notch,
-
-        # Bounds (Using defaults from MachineDesignInputOri)
-    )
-
-# Example Usage:
 if __name__ == "__main__":
-    dex13 = MotorSpecs()
-    
-    print(f"Project: JIAHAO-DEX-13 Automation")
-    print(f"Eccentricity Ratio: {dex13.get_eccentricity_ratio():.2f}")
-    print(f"Total Slot Cu Area: {dex13.calculate_copper_area():.3f} mm^2")
-    
-    if dex13.get_eccentricity_ratio() > 0.3:
-        print("WARNING: High UMP Risk Detected. Mechanical stiffness check mandatory.")
-
-    # Convert to MachineDesignInputOri
-    machine_input = convert_to_machine_design_input(dex13)
-    print("\n--- Converted Machine Design Input ---")
-    print(f"Stator Outer Radius (mm_r_so): {machine_input.mm_r_so:.2f} mm")
-    print(f"Split Ratio (SR): {machine_input.SR:.4f}")
-    print(f"Stack Length: {machine_input.mm_stack_length_specified} mm")
-    print(f"Pole Pairs (p): {machine_input.p}")
-    print(f"Slots (Qs): {machine_input.Qs}")
-    print(f"Current Density (Js): {machine_input.Js:.2e} A/m^2")
-    print(f"Steel Material: {machine_input.SteelMaterial}")
-
-
+    if len(sys.argv) > 1 and sys.argv[1] == "--viz":
+        run_visualization()
+    else:
+        dex13 = MotorSpecs()
+        print(f"Project: JIAHAO-DEX-13 Automation")
+        print(f"Eccentricity Ratio: {dex13.get_eccentricity_ratio():.2f}")
+        dex13.sync()
+        dex13.print_summary()

@@ -115,12 +115,12 @@ export default function WindingDiagrams({ Qs, p, ps, m, layer_X_phases, layer_X_
             <h4 className="text-sm font-medium mb-2">{title}</h4>
             <svg width="300" height="300" viewBox="-120 -120 240 240" className="border rounded bg-white">
                 {/* Grid circles */}
-                <circle cx="0" cy="0" r="80" fill="none" stroke="#e5e7eb" strokeWidth="1" />
-                <circle cx="0" cy="0" r="60" fill="none" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" />
+                <circle cx="0" cy="0" r="80" fill="none" stroke="#e5e7eb" strokeWidth="0.5" />
+                <circle cx="0" cy="0" r="60" fill="none" stroke="#e5e7eb" strokeWidth="0.5" strokeDasharray="4 4" />
 
                 {/* Axes */}
-                <line x1="-100" y1="0" x2="100" y2="0" stroke="#e5e7eb" strokeWidth="1" />
-                <line x1="0" y1="-100" x2="0" y2="100" stroke="#e5e7eb" strokeWidth="1" />
+                <line x1="-100" y1="0" x2="100" y2="0" stroke="#e5e7eb" strokeWidth="0.5" />
+                <line x1="0" y1="-100" x2="0" y2="100" stroke="#e5e7eb" strokeWidth="0.5" />
 
                 {/* Slots */}
                 {data.map((slot) => (
@@ -129,7 +129,7 @@ export default function WindingDiagrams({ Qs, p, ps, m, layer_X_phases, layer_X_
                             x1="0" y1="0"
                             x2={slot.x} y2={slot.y}
                             stroke={getPhaseColor(slot.phase)}
-                            strokeWidth="1.5"
+                            strokeWidth="0.8"
                             markerEnd="url(#arrowhead)"
                         />
                         <text
@@ -160,7 +160,7 @@ export default function WindingDiagrams({ Qs, p, ps, m, layer_X_phases, layer_X_
             <h4 className="text-sm font-medium mb-2">Torque MMF (Connection Star)</h4>
             <svg width="300" height="300" viewBox="-120 -120 240 240" className="border rounded bg-white">
                 {/* Grid circles */}
-                <circle cx="0" cy="0" r="80" fill="none" stroke="#e5e7eb" strokeWidth="1" />
+                <circle cx="0" cy="0" r="80" fill="none" stroke="#e5e7eb" strokeWidth="0.5" />
 
                 {/* Phase Sectors (Simplified visualization) */}
                 {/* Ideally we should draw sectors based on m and phase_belt */}
@@ -183,7 +183,7 @@ export default function WindingDiagrams({ Qs, p, ps, m, layer_X_phases, layer_X_
                                 x1="0" y1="0"
                                 x2={pos.x} y2={pos.y}
                                 stroke={getPhaseColor(slot.phase)}
-                                strokeWidth="1.5"
+                                strokeWidth="0.8"
                                 markerEnd="url(#arrowhead)"
                             />
                             <text

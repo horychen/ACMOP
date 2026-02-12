@@ -1,5 +1,20 @@
-import win32com.client, os, logging, utility, numpy
-import pythoncom  # 用于 COM 初始化
+try:
+    import win32com.client
+except ImportError:
+    import sys
+    from unittest.mock import MagicMock
+    sys.modules["win32com"] = MagicMock()
+    sys.modules["win32com.client"] = MagicMock()
+
+import os, logging, utility, numpy
+
+try:
+    import pythoncom  # 用于 COM 初始化
+except ImportError:
+    import sys
+    from unittest.mock import MagicMock
+    sys.modules["pythoncom"] = MagicMock()
+
 from pylab import np, plt, mpl; import math
 # logger = logging.getLogger(__name__)
 # logger.debug('The mpl backend is %s', mpl.rcParams['backend'])
@@ -31,6 +46,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         self.fea_config_dict = fea_config_dict
 
         self.flag_material_already_loaded = False
+
+        self.verbose_drawing = False
 
     def open(self, Steel_name: str, expected_project_file_path: str, pc_name: str, dir_parent: str, bool_jmagDesignerShow: bool = True):
         if self.app is None:

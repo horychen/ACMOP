@@ -82,8 +82,8 @@ class CrossSectInnerNotchedRotor(object):
         d_ri     = self.mm_d_ri
         d_rp     = self.mm_d_rp
         d_rs     = self.mm_d_rs
-        p        = self.p
-        s        = self.s
+        p        = int(self.p)
+        s        = int(self.s)
         alpha_rp = 2*math.pi/(2*p) # pole span
 
         # Adjust alpha_rm if it's too close to alpha_rp
@@ -268,8 +268,8 @@ class CrossSectInnerNotchedMagnet(object):
         d_ri     = self.rotorCore.mm_d_ri
         d_rp     = self.rotorCore.mm_d_rp
         d_rs     = self.rotorCore.mm_d_rs
-        p        = self.rotorCore.p
-        s        = self.rotorCore.s
+        p        = int(self.rotorCore.p)
+        s        = int(self.rotorCore.s)
         alpha_rp = 2*math.pi/(2*p) # pole span
 
         # rotor inter-pole notch being too small
