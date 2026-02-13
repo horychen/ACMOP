@@ -349,15 +349,28 @@ class Coil(MachinePart):
             "旋转拷贝的个数": num_slots,
         }
 
+@dataclass
 class MachineGeometry:
-    def __init__(self, all_points: Optional[AllPoints] = None):
-        self.parts = []
-        self._next_index = 0
-        self.all_points = all_points
-        self.gp = {} # Parameters from target
-        self.l_stack = 16.0 # [mm]
-        self.num_slots = 0
-        self.num_poles = 0
+    parts: List[MachinePart] = field(default_factory=list)
+    _next_index: int = field(init=False, default=0)
+    all_points: Optional[AllPoints] = None
+    gp: dict = field(default_factory=dict) # Parameters from target
+    l_stack: float = 16.0 # [mm]
+    num_slots: int = 0
+    num_poles: int = 0
+
+    # These will be added dynamically in sync() as Parameter objects for compatibility
+    r_stator_outer: Any = field(init=False, default=None)
+    r_rotor_outer: Any = field(init=False, default=None)
+    d_magnet: Any = field(init=False, default=None)
+    d_air_gap: Any = field(init=False, default=None)
+    split_ratio: Any = field(init=False, default=None)
+    w_tooth: Any = field(init=False, default=None)
+    d_tooth: Any = field(init=False, default=None)
+    d_tooth_shoe: Any = field(init=False, default=None)
+    d_stator_yoke: Any = field(init=False, default=None)
+    tooth_shape: str = "closed"
+    r_shaft: Any = field(init=False, default=None)
 
     @property
     def machineGeometry(self):
@@ -387,6 +400,25 @@ class MachineGeometry:
         drawer.draw_machine(self)
         print(f"Geometry drawn to {filename} with scale {scale}")
 
+    def sync(self, gp: dict):
+        """Populate compatibility Parameter objects from GP dict."""
+        from modern_machine_designer_utility import Parameter
+        self.gp = gp
+        self.r_stator_outer = Parameter("stator_outer_radius", "fixed", gp['r_stator_outer'])
+        self.r_rotor_outer = Parameter("rotor_outer_radius", "free", gp['r_rotor_outer'])
+        self.d_magnet = Parameter("magnet_depth", "free", gp['d_magnet'])
+        self.d_air_gap = Parameter("mechanical_air_gap_depth", "fixed", gp['d_air_gap'])
+        self.split_ratio = Parameter("split_ratio", "derived", gp['r_rotor_outer'] / gp['r_stator_outer'] if gp['r_stator_outer'] else 0.615)
+        
+        self.w_tooth = Parameter("stator_tooth_width", "free", gp['w_stator_width'])
+        self.d_tooth_shoe = Parameter("stator_tooth_shoe_depth", "fixed", gp['d_stator_tooth_shoe'])
+        self.d_stator_yoke = Parameter("stator_yoke_depth", "fixed", gp['d_stator_yoke'])
+        self.tooth_shape = "closed"
+        
+        # d_tooth formula matches AllPoints formula: r_so - r_ro - g - dy - dt_shoe
+        self.d_tooth = Parameter("stator_tooth_depth", "derived", gp['r_stator_outer'] - (gp['r_rotor_outer'] + gp['d_air_gap']) - gp['d_stator_yoke'] - gp['d_stator_tooth_shoe'])
+        self.r_shaft = Parameter("shaft_radius", "fixed", gp['r_shaft'])
+
 @dataclass
 class MotorSpecs:
     """Compatibility class to match legacy MotorSpecs interface."""
@@ -411,13 +443,27 @@ class MotorSpecs:
     def sync(self):
         """Synchronize all components."""
         gp = self.target.get_required_GP()
-        self.geometry.gp = gp
         self.geometry.all_points = AllPoints(required_GP=gp)
         # Update winding/poles if they changed in target
         self.winding.slot_count = self.target.fixed_parameters['num_slots']
         self.winding.pole_count = self.target.fixed_parameters['num_poles']
         self.geometry.num_slots = self.winding.slot_count
         self.geometry.num_poles = self.winding.pole_count
+        
+        # Use geometry's own sync
+        self.geometry.sync(gp)
+        
+        # Populate parts
+        self.geometry.parts = []
+        self.geometry.add_part(RotorCore(name="rotorCore"))
+        self.geometry.add_part(StatorCore(name="statorCore"))
+        self.geometry.add_part(Magnet(name="rotorMagnet"))
+        self.geometry.add_part(Coil(name="coils"))
+        
+        # Update winding aliases
+        self.winding.num_slots = self.winding.slot_count
+        self.winding.num_poles = self.winding.pole_count
+        self.winding.wire_diameter_with_insulation = self.winding.wire_diameter + 0.02
         
         self.winding.sync(
             geometry_points=self.geometry.all_points.HP,

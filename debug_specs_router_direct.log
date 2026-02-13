@@ -1,0 +1,180 @@
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928788549.4321}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928788.555444}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928788.576971}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928788.973194}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928788984.4443}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928788.9876008}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928789.0046322}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928789.007137}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928789018.7263}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928789.0222323}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928789.039053}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928789.042608}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928789053.2375}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928789.055743}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928789.0743353}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928789.0768397}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928789088.338}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928789.0909278}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928789.1075444}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928789.1110625}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928789126.408}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928789.1295383}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928789.1460373}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928789.1495407}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928789160.1736}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928789.1621726}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928789.1792748}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928789.1827805}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928789192.9143}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928789.1959138}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928789.212142}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928789.2162066}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928789227.7358}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928789.2314045}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928789.248676}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928789.2520285}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928789264.6716}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928789.2680545}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928789.2860548}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928789.289827}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770928789300.4646}
+{"location": "before_MotorSpecs_init", "timestamp": 1770928789.3032327}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770928789.319153}
+{"location": "after_MotorSpecs_init", "timestamp": 1770928789.3231034}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770930864993.0515}
+{"location": "before_MotorSpecs_init", "timestamp": 1770930864.997052}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770930865.023998}
+{"location": "after_MotorSpecs_init", "timestamp": 1770930866.0744433}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"location": "API_ERROR", "error": "'MachineGeometry' object has no attribute 'w_tooth'", "traceback": "Traceback (most recent call last):\n  File \"C:\\_Codes\\ACMOP\\backend\\app\\routers\\machine_specs.py\", line 157, in get_machine_specs\n    \"g_w_tooth\": g.w_tooth.value,\n                ^^^^^^^^^\nAttributeError: 'MachineGeometry' object has no attribute 'w_tooth'\n"}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770930956985.7283}
+{"location": "before_MotorSpecs_init", "timestamp": 1770930956.9888804}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770930957.0082362}
+{"location": "after_MotorSpecs_init", "timestamp": 1770930957.4779825}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "g_w_tooth": 1.2, "g_d_tooth": 1.9999999999999996, "out_w_tooth": 1.2, "out_d_tooth": 1.9999999999999996}, "timestamp": 1770930957486.589}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770930957748.1443}
+{"location": "before_MotorSpecs_init", "timestamp": 1770930957.7536037}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770930957.7763522}
+{"location": "after_MotorSpecs_init", "timestamp": 1770930957.7803562}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "g_w_tooth": 1.2, "g_d_tooth": 1.9999999999999996, "out_w_tooth": 1.2, "out_d_tooth": 1.9999999999999996}, "timestamp": 1770930957787.7393}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770930957818.5955}
+{"location": "before_MotorSpecs_init", "timestamp": 1770930957.8223186}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770930957.8420827}
+{"location": "after_MotorSpecs_init", "timestamp": 1770930957.8450832}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "g_w_tooth": 1.2, "g_d_tooth": 1.9999999999999996, "out_w_tooth": 1.2, "out_d_tooth": 1.9999999999999996}, "timestamp": 1770930957852.6743}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770930974156.4653}
+{"location": "before_MotorSpecs_init", "timestamp": 1770930974.1601532}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770930974.1806774}
+{"location": "after_MotorSpecs_init", "timestamp": 1770930974.6022463}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "g_w_tooth": 1.2, "g_d_tooth": 1.9999999999999996, "out_w_tooth": 1.2, "out_d_tooth": 1.9999999999999996}, "timestamp": 1770930974618.8315}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770930974632.632}
+{"location": "before_MotorSpecs_init", "timestamp": 1770930974.6363473}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770930974.6555226}
+{"location": "after_MotorSpecs_init", "timestamp": 1770930974.6597576}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "g_w_tooth": 1.2, "g_d_tooth": 1.9999999999999996, "out_w_tooth": 1.2, "out_d_tooth": 1.9999999999999996}, "timestamp": 1770930974667.14}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770930988918.5386}
+{"location": "before_MotorSpecs_init", "timestamp": 1770930988.9310937}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770930988.9511135}
+{"location": "after_MotorSpecs_init", "timestamp": 1770930988.9546413}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "g_w_tooth": 1.2, "g_d_tooth": 1.9999999999999996, "out_w_tooth": 1.2, "out_d_tooth": 1.9999999999999996}, "timestamp": 1770930988961.6614}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770931059535.328}
+{"location": "before_MotorSpecs_init", "timestamp": 1770931059.538876}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770931059.5683577}
+{"location": "after_MotorSpecs_init", "timestamp": 1770931059.9013834}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "g_w_tooth": 1.2, "g_d_tooth": 1.9999999999999996, "out_w_tooth": 1.2, "out_d_tooth": 1.9999999999999996}, "timestamp": 1770931059907.5168}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "path_exists": true, "workspace_path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}, "timestamp": 1770931059922.1382}
+{"location": "before_MotorSpecs_init", "timestamp": 1770931059.925143}
+{"location": "dynamic_load", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "source_start": "# This script is used to generate the geometry of a machine\n# other performance and excitation calcu"}
+{"location": "before_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_exec", "path": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py"}
+{"location": "after_module_load", "timestamp": 1770931059.9427223}
+{"location": "after_MotorSpecs_init", "timestamp": 1770931059.9457295}
+{"location": "specs_init", "module": "machine_geometry", "file": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "sys_path": ["C:\\_Codes\\ACMOP\\backend", "C:\\Users\\horyc\\miniconda3\\Scripts\\uvicorn.exe", "C:\\Users\\horyc\\miniconda3\\python312.zip", "C:\\Users\\horyc\\miniconda3\\DLLs", "C:\\Users\\horyc\\miniconda3\\Lib"]}
+{"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend after load", "data": {"path_used": "C:\\_Codes\\ACMOP\\backend\\codes4\\machine_geometry.py", "g_w_tooth": 1.2, "g_d_tooth": 1.9999999999999996, "out_w_tooth": 1.2, "out_d_tooth": 1.9999999999999996}, "timestamp": 1770931059952.9421}

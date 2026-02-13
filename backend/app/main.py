@@ -29,6 +29,10 @@ app.include_router(acmop.router)  # ACMOP v2 API
 app.include_router(machine_specs.router, prefix="/api", tags=["Machine Specs"])
 app.include_router(debug.router, prefix="/api/debug", tags=["Debug"])
 
+@app.get("/api/health")
+async def health():
+    return {"status": "ok", "time": os.path.getmtime(__file__)}
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to ACMOP Backend API"}

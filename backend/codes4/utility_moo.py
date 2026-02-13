@@ -601,7 +601,7 @@ def pyx_draw_model(im):
 
         # rotate path and plot
         if is_at_stator(im, path):
-            Q = im.Qs
+            Q = im.winding.slot_count
         else:
             Q = im.Qr
         _ = 2*np.pi/Q

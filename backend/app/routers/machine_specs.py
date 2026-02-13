@@ -12,22 +12,22 @@ router = APIRouter()
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 _USER_MACHINE_PATH = os.path.join(_ROOT, "backend", "codes4", "machine_geometry.py")
-_WORKSPACE_MACHINE_PATH = os.path.join(r"c:\Users\lenovo\Codes\ACMOP", "backend", "codes4", "machine_geometry.py")
+_WORKSPACE_MACHINE_PATH = os.path.join(_ROOT, "backend", "codes4", "machine_geometry.py")
 _LOG_PATH = os.path.join(_ROOT, ".cursor", "debug.log")
-_DEBUG_LOG_FALLBACK = r"c:\Users\lenovo\Codes\ACMOP\.cursor\debug.log"
+_DEBUG_LOG_FALLBACK = os.path.join(_ROOT, "debug_specs_log.txt")
 
 def _agent_log(payload: dict) -> None:
-    codes4_log = os.path.join(os.path.dirname(_USER_MACHINE_PATH), "debug_specs_log.txt")
-    for path in (codes4_log, _LOG_PATH, _DEBUG_LOG_FALLBACK):
+    for path in (_LOG_PATH,):
         try:
             d = os.path.dirname(path)
             if d:
                 os.makedirs(d, exist_ok=True)
             with open(path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(payload) + "\n")
-            break
+                f.flush()
+                os.fsync(f.fileno())
         except Exception:
-            continue
+            pass
 
 def _robust_dict(obj):
     """Deeply convert objects to dicts, manually iterating fields to avoid stale metadata issues."""
@@ -57,6 +57,11 @@ def _robust_dict(obj):
         return {k: _robust_dict(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
         return [_robust_dict(v) for v in obj]
+    
+    # Handle regular objects by their __dict__ if they aren't caught above
+    if hasattr(obj, "__dict__") and not isinstance(obj, type):
+        return {k: _robust_dict(v) for k, v in obj.__dict__.items() if not k.startswith('_')}
+        
     return obj
 
 def _specs_to_api_response(specs):
@@ -105,8 +110,12 @@ def _load_module_from_file():
     with open(path, "r", encoding="utf-8") as f:
         source = f.read()
     _agent_log({"location": "dynamic_load", "path": path, "source_start": source[:100]})
+    print(f"DEBUG: Compiling {path}")
     code = compile(source, path, "exec")
+    print(f"DEBUG: Executing {path}")
+    _agent_log({"location": "before_exec", "path": path})
     exec(code, module.__dict__)
+    _agent_log({"location": "after_exec", "path": path})
     return module
 
 @router.get("/machine-specs-version")
@@ -128,8 +137,11 @@ async def get_machine_specs():
         _path_used = _get_machine_file_path()
         _agent_log({"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": _path_used, "path_exists": os.path.isfile(_path_used), "workspace_path": _WORKSPACE_MACHINE_PATH}, "timestamp": time.time() * 1000})
         # #endregion
+        _agent_log({"location": "before_MotorSpecs_init", "timestamp": time.time()})
         um_module = _load_module_from_file()
+        _agent_log({"location": "after_module_load", "timestamp": time.time()})
         specs = um_module.MotorSpecs()
+        _agent_log({"location": "after_MotorSpecs_init", "timestamp": time.time()})
         _agent_log({
             "location": "specs_init", 
             "module": specs.__class__.__module__,

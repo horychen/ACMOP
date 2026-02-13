@@ -71,6 +71,10 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         RatedPower = specs.winding.rated_power
         RatedSpeed = specs.winding.rated_speed
 
+        self.geometry = specs.geometry
+        self.winding = specs.winding
+        self.target = specs.targets
+
         # Setup paths and FEA config
         suffix = f'minitureMachine'
         if not self.machine_class.endswith(suffix):
@@ -110,7 +114,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         self.mm_d_pm = g.d_magnet
         self.deg_alpha_rm = g.alpha_magnet_pole
         # Attach these others which might be needed
-        self.mm_d_sts = g.d_tooth_shoe
+        self.mm_d_sts = g.tooth_specs.d_tooth_shoe if hasattr(g.tooth_specs, 'd_tooth_shoe') else Parameter("stator_tooth_shoe_depth", "fixed", 0.0)
         self.deg_alpha_st = g.tooth_specs.alpha_tooth if hasattr(g.tooth_specs, 'alpha_tooth') else Parameter("stator_tooth_span_angle", "fixed", 0.0)
         self.s = specs.geometry.s
 
@@ -118,7 +122,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         self.parameter_dict = self.get_parameter_dict_by_name()
         self.parameter_dict_by_name = self.get_parameter_dict_by_name()
 
-        self.machineGeometry = OrderedDict()
+        self.geometry.machineGeometry = OrderedDict()
         
         # Derived variables - Re-attach these using legacy naming and lambdas
         p_dict = self.parameter_dict_by_name
@@ -205,12 +209,12 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
         Rout = self.mm_r_ri.value+ self.mm_d_ri.value+ self.mm_d_pm.value
         Rin  = self.mm_r_ri.value+ self.mm_d_ri.value
-        deg_alpha_rp = 360 / (2*self.p.value)
+        deg_alpha_rp = 360 / (2*self.winding.p)
         EX['mm2_magnet_area'] = self.deg_alpha_rm.value/deg_alpha_rp * math.pi*(Rout**2 - Rin**2)
 
 
         import CrossSectInnerNotchedRotor, CrossSectStator
-        self.machineGeometry = {
+        self.geometry.machineGeometry = {
             "rotorCore": Geometry(name='rotorCore',
                 GP={
                     'mm_r_ro': self.mm_r_ro,
@@ -233,7 +237,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                         mm_r_ri=self.mm_r_ri.value,
                         mm_d_rp=self.mm_d_rp.value,
                         mm_d_rs=self.mm_d_rs.value,
-                        p=self.p.value,
+                        p=self.winding.p,
                         s=self.s.value
                     ).draw(drawer, **kwargs)
                 )
@@ -276,7 +280,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                             mm_r_ri=self.mm_r_ri.value,
                             mm_d_rp=self.mm_d_rp.value,
                             mm_d_rs=self.mm_d_rs.value,
-                            p=self.p.value,
+                            p=self.winding.p,
                             s=self.s.value
                         )
                     ).draw(drawer, **kwargs)
@@ -319,7 +323,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                         mm_d_st=self.mm_d_st.value,
                         mm_d_sy=self.mm_d_sy.value,
                         mm_w_st=self.mm_w_st.value,
-                        Q=self.Qs.value,
+                        Q=self.winding.slot_count,
                     ).draw(drawer, **kwargs)
                 ),
             ),
@@ -354,7 +358,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
             # ),
             "coils": None
         }
-        self.machineGeometry['coils'] = Geometry(name='coils',
+        self.geometry.machineGeometry['coils'] = Geometry(name='coils',
             GP={
                 'mm_r_so': self.mm_r_so,
                 'mm_d_sy': self.mm_d_sy,
@@ -364,7 +368,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
             draw_function=lambda drawer, **kwargs: (
                 # CrossSectStator.CrossSectInnerRotorStatorWinding(
                 CrossSectStator.CrossSectInnerRotorClosedSlotStatorWinding(
-                    stator_core=self.machineGeometry['statorCore'],
+                    stator_core=self.geometry.machineGeometry['statorCore'],
                 ).draw(drawer, **kwargs)
             )
         )
@@ -375,7 +379,7 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         # Implementation of id=0 control:
         #   After rotate the rotor by half the inter-pole notch span, The d-axis initial position is at pole pitch angle divided by 2.
         #   The U-phase current is sin(omega_syn*t) = 0 at t=0 and requires the d-axis to be at the winding phase axis (to obtain id=0 control)
-        deg_pole_span = 180/self.p.value
+        deg_pole_span = 180/self.winding.p
         #                           inter-pole notch is rotated to x-axis (0.5 for half)  winding placing bias (one slot angle)        align with q-axis
         self.InitialRotationAngle = (deg_pole_span-self.deg_alpha_rm.value)*0.5 + self.wily.deg_winding_U_phase_phase_axis_angle  # is made by set phase U current maximum at t=0, that is the current is a cosine function.
         # print(f"[bearingless_spmsm_design.py] [PMSM JMAG] {self.InitialRotationAngle} deg = ", (deg_pole_span-self.deg_alpha_rm.value)*0.5,  self.wily.deg_winding_U_phase_phase_axis_angle,  deg_pole_span*0.5)
@@ -393,11 +397,11 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
             self.drawer = drawer = CairoDrawer(width_in_points, height_in_points, filename=filename, verbose_drawing=getattr(self, 'verbose_drawing', False))
 
             # 直接调用 draw 方法，如果 machineGeometry 不存在或缺少必要的键，会直接报错
-            list_regions = self.machineGeometry['rotorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-            # list_regions = self.machineGeometry['shaft'].draw(drawer)
-            list_regions = self.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-            list_regions = self.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
-            list_regions = self.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.geometry.machineGeometry['rotorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            # list_regions = self.geometry.machineGeometry['shaft'].draw(drawer)
+            list_regions = self.geometry.machineGeometry['rotorMagnet'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.geometry.machineGeometry['statorCore'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
+            list_regions = self.geometry.machineGeometry['coils'].draw(drawer, bool_draw_whole_model=bool_draw_whole_model)
 
             drawer.apply_stroke(lw=lw)
             drawer.convert_to_pdf()
@@ -458,11 +462,11 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
                 color_rgb_B = np.array([226,226,226])/255
 
                 # Rotor Core
-                list_regions_1 = self.machineGeometry['rotorCore'].draw(toolJd)
+                list_regions_1 = self.geometry.machineGeometry['rotorCore'].draw(toolJd)
                 if hasattr(toolJd, 'visualization_points') and 'rotorCore' in toolJd.visualization_points:
-                    self.machineGeometry['rotorCore'].visualization_points = toolJd.visualization_points['rotorCore']
+                    self.geometry.machineGeometry['rotorCore'].visualization_points = toolJd.visualization_points['rotorCore']
                 toolJd.bMirror = False
-                toolJd.iRotateCopy = self.machineGeometry['rotorCore'].p*2
+                toolJd.iRotateCopy = self.geometry.machineGeometry['rotorCore'].winding.p*2
                 region1 = toolJd.prepareSection(list_regions_1, color=color_rgb_A)
 
                 # print(list_regions_1)
@@ -470,44 +474,44 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
 
                 # Shaft
                 if not self.bool_StatorSlotClosed:
-                    list_regions = self.machineGeometry['shaft'].draw(toolJd)
+                    list_regions = self.geometry.machineGeometry['shaft'].draw(toolJd)
                     if hasattr(toolJd, 'visualization_points') and 'shaft' in toolJd.visualization_points:
-                        self.machineGeometry['shaft'].visualization_points = toolJd.visualization_points['shaft']
+                        self.geometry.machineGeometry['shaft'].visualization_points = toolJd.visualization_points['shaft']
                     toolJd.bMirror = False
                     toolJd.iRotateCopy = 1
                     region0 = toolJd.prepareSection(list_regions)
 
                 # Rotor Magnet
-                list_regions = self.machineGeometry['rotorMagnet'].draw(toolJd)
+                list_regions = self.geometry.machineGeometry['rotorMagnet'].draw(toolJd)
                 if hasattr(toolJd, 'visualization_points') and 'rotorMagnet' in toolJd.visualization_points:
-                    self.machineGeometry['rotorMagnet'].visualization_points = toolJd.visualization_points['rotorMagnet']
+                    self.geometry.machineGeometry['rotorMagnet'].visualization_points = toolJd.visualization_points['rotorMagnet']
                 toolJd.bMirror = False
-                toolJd.iRotateCopy = self.machineGeometry['rotorCore'].p*2
+                toolJd.iRotateCopy = self.geometry.machineGeometry['rotorCore'].winding.p*2
                 region2 = toolJd.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
                 # Sleeve
                 if not self.bool_StatorSlotClosed:
-                    list_regions = self.machineGeometry['sleeve'].draw(toolJd)
+                    list_regions = self.geometry.machineGeometry['sleeve'].draw(toolJd)
                     if hasattr(toolJd, 'visualization_points') and 'Sleeve' in toolJd.visualization_points:
-                        self.machineGeometry['sleeve'].visualization_points = toolJd.visualization_points['Sleeve']
+                        self.geometry.machineGeometry['sleeve'].visualization_points = toolJd.visualization_points['Sleeve']
                     toolJd.bMirror = False
-                    toolJd.iRotateCopy = self.machineGeometry['rotorCore'].p*2
+                    toolJd.iRotateCopy = self.geometry.machineGeometry['rotorCore'].winding.p*2
                     regionS = toolJd.prepareSection(list_regions)
 
                 # Stator Core
-                list_regions = self.machineGeometry['statorCore'].draw(toolJd)
+                list_regions = self.geometry.machineGeometry['statorCore'].draw(toolJd)
                 if hasattr(toolJd, 'visualization_points') and 'statorCore' in toolJd.visualization_points:
-                    self.machineGeometry['statorCore'].visualization_points = toolJd.visualization_points['statorCore']
+                    self.geometry.machineGeometry['statorCore'].visualization_points = toolJd.visualization_points['statorCore']
                 toolJd.bMirror = True
-                toolJd.iRotateCopy = self.machineGeometry['statorCore'].Q
+                toolJd.iRotateCopy = self.winding.slot_count
                 region3 = toolJd.prepareSection(list_regions, color=color_rgb_A)
 
                 # Stator Winding
-                list_regions = self.machineGeometry['coils'].draw(toolJd)
+                list_regions = self.geometry.machineGeometry['coils'].draw(toolJd)
                 if hasattr(toolJd, 'visualization_points') and 'Coils' in toolJd.visualization_points:
-                    self.machineGeometry['coils'].visualization_points = toolJd.visualization_points['Coils']
+                    self.geometry.machineGeometry['coils'].visualization_points = toolJd.visualization_points['Coils']
                 toolJd.bMirror = False
-                toolJd.iRotateCopy = self.machineGeometry['statorCore'].Q
+                toolJd.iRotateCopy = self.winding.slot_count
                 region4 = toolJd.prepareSection(list_regions)
 
                 # self.calculate_excitation_current(acm_variant)

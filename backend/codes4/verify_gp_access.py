@@ -1,4 +1,4 @@
-from main import Machine
+from machine import Machine
 import os
 
 def verify():

@@ -1,7 +1,12 @@
 {
-    "python.languageServer": "Pylance",
+    "python.languageServer": "Jedi",
+    "python.defaultInterpreterPath": "C:\\Users\\horyc\\miniconda3\\python.exe",
     "python.analysis.extraPaths": [
         "backend",
         "backend/codes4"
-    ]
+    ],
+    "python.analysis.autoSearchPaths": true,
+    "pyre.enabled": false,
+    "python.linting.enabled": false,
+    "python.linting.pylintEnabled": false
 }

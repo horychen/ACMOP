@@ -362,11 +362,11 @@ class Geometry(object):
     def __init__(self, name, GP: dict = None, draw_function: callable = None, color: str = None):
         self.name = name
         self.color = color
-        self.GP = GP or []
+        self.GP = GP or {}
         self.draw_function = draw_function
-        for i, (name, gp) in enumerate(self.GP.items()):
+        for name, gp in self.GP.items():
             if isinstance(gp, Parameter):
-                exec(f"self.{name} = {gp.value}")
+                setattr(self, name, gp.value)
     
     def update_from_GP(self):
         """
@@ -678,6 +678,12 @@ class CairoDrawer(object):
 class Modern_Machine_Designer_Utility(object):
     def __init__(self, specs: 'MotorSpecs'):
         self.specs = specs
+        self.geometry = specs.geometry
+        self.winding = specs.winding
+        self.target = specs.targets
+        # Keep machine_class as an attribute for now if it's used directly, 
+        # but let's try to transition to self.target.machine_class
+        # self.machine_class = specs.targets.machine_class 
         self.flag_do_not_evaluate_when_init_pop = False
 
     def _get_parameter_logger(self):
@@ -767,8 +773,8 @@ class Modern_Machine_Designer_Utility(object):
                     logger.warning("计算导出参数 '%s' 失败: %s", param.name, e)
 
         # 更新几何对象中的值
-        if hasattr(self, "machineGeometry"):
-            for geo in self.machineGeometry.values():
+        if hasattr(self, "geometry") and hasattr(self.geometry, "machineGeometry"):
+            for geo in self.geometry.machineGeometry.values():
                 geo.update_from_GP()
 
     def update_geometric_parameters(self, x_denorm=None, x_denorm_dict=None):
@@ -793,8 +799,10 @@ class Modern_Machine_Designer_Utility(object):
 
         # 当几何参数更新后，调用此方法来同步 machineGeometry 中的值
         # 更新 machineGeometry 中所有 Geometry 对象的参数值
-        for geo_name, geo in self.machineGeometry.items():
-            geo.update_from_GP()
+        if hasattr(self, "geometry") and hasattr(self.geometry, "machineGeometry"):
+            for geo_name, geo in self.geometry.machineGeometry.items():
+                if geo is not None:
+                    geo.update_from_GP()
 
     @staticmethod
     def get_pc_name():
@@ -931,7 +939,10 @@ class Modern_Machine_Designer_Utility(object):
 
     def get_rotor_volume(self, stack_length=None):
         if stack_length is None:
-            return math.pi*(self.mm_r_ro.value*1e-3)**2 * (self.EX['mm_stack_length_specified']*1e-3)
+            if hasattr(self, 'winding') and hasattr(self.winding, 'EX'):
+                return math.pi*(self.mm_r_ro.value*1e-3)**2 * (self.winding.EX['mm_stack_length_specified']*1e-3)
+            else:
+                return 0.0 # Or raise an error, depending on desired behavior
         else:
             return math.pi*(self.mm_r_ro.value*1e-3)**2 * (stack_length*1e-3)
     def get_rotor_weight(self, gravity=9.8, stack_length=None):
@@ -946,7 +957,7 @@ class Modern_Machine_Designer_Utility(object):
         if stack_length is None:
             return gravity * self.get_rotor_volume() * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
         else:
-            return gravity * self.get_rotor_volume(stack_length=stack_length) * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 g/cm³. gravity: 9.8 N/kg
+            return gravity * self.get_rotor_volume(stack_length=stack_length) * material_density_rho # steel 7860 or 8050 kg/m^3. Copper/Density 8.96 N/kg
 
 
     # =========== 变量管理 ===========
@@ -1156,7 +1167,7 @@ class Modern_Machine_Designer_Utility(object):
     def __repr__(self):
         """提供类的字符串表示，包含参数摘要"""
         summary = self.get_parameters_summary()
-        return (f"Modern_Machine_Designer(machine_class='{self.machine_class}', "
+        return (f"Modern_Machine_Designer(machine_class='{self.target.machine_class}', "
                 f"parameters={summary['total_count']}, "
                 f"with_values={summary['with_values']})")
     
@@ -1313,7 +1324,7 @@ class Modern_Machine_Designer_Utility(object):
         
         # 1. 保存基本属性
         full_dict['name'] = self.name
-        full_dict['machine_class'] = self.machine_class
+        full_dict['machine_class'] = self.target.machine_class
         full_dict['bool_PermanentMagnet'] = self.bool_PermanentMagnet
         full_dict['bool_StatorSlotClosed'] = self.bool_StatorSlotClosed
         full_dict['bool_RotorNotched'] = self.bool_RotorNotched
@@ -1329,17 +1340,17 @@ class Modern_Machine_Designer_Utility(object):
         full_dict['parameters'] = parameters_dict
         
         # 3. 保存 Winding 对象
-        if hasattr(self, 'wily') and self.wily is not None:
-            full_dict['wily'] = self.wily.to_dict()
+        if hasattr(self, 'winding') and hasattr(self.winding, 'wily') and self.winding.wily is not None:
+            full_dict['wily'] = self.winding.wily.to_dict()
         
         # 4. 保存 EX 字典（激励参数）
-        if hasattr(self, 'EX') and self.EX is not None:
-            full_dict['EX'] = self.EX.copy()
+        if hasattr(self, 'winding') and hasattr(self.winding, 'EX') and self.winding.EX is not None:
+            full_dict['EX'] = self.winding.EX.copy()
         
         # 5. 保存 machineGeometry（完整版本）
-        if hasattr(self, 'machineGeometry') and self.machineGeometry is not None:
+        if hasattr(self, 'geometry') and hasattr(self.geometry, 'machineGeometry') and self.geometry.machineGeometry is not None:
             machine_geometry_dict = {}
-            for key, geo in self.machineGeometry.items():
+            for key, geo in self.geometry.machineGeometry.items():
                 if geo is None:
                     machine_geometry_dict[key] = None
                 elif isinstance(geo, Geometry):
@@ -1371,9 +1382,9 @@ class Modern_Machine_Designer_Utility(object):
         full_dict['_metadata'] = {
             'class_name': self.__class__.__name__,
             'module': self.__class__.__module__,
-            'has_machineGeometry': hasattr(self, 'machineGeometry') and self.machineGeometry is not None,
-            'has_wily': hasattr(self, 'wily') and self.wily is not None,
-            'has_EX': hasattr(self, 'EX') and self.EX is not None,
+            'has_machineGeometry': hasattr(self, 'geometry') and hasattr(self.geometry, 'machineGeometry') and self.geometry.machineGeometry is not None,
+            'has_wily': hasattr(self, 'winding') and hasattr(self.winding, 'wily') and self.winding.wily is not None,
+            'has_EX': hasattr(self, 'winding') and hasattr(self.winding, 'EX') and self.winding.EX is not None,
             'serialization_version': '2.0',  # 版本号，用于未来兼容性
             # 添加路径和项目信息到 metadata
             'path2SwarmData': getattr(self, 'path2SwarmData', None),
@@ -1420,13 +1431,20 @@ class Modern_Machine_Designer_Utility(object):
                 # 回退到新格式
                 pass
         
+        # New: Import necessary classes for deserialization
+        from .parameter import Parameter
+        from .winding import Winding
+        from .geometry import Geometry
+        from .winding import MachineWinding
+        from .geometry import MachineGeometry
+
         # 新格式：从纯 JSON 数据恢复
         # 创建对象实例
         instance = cls.__new__(cls)
         
         # 恢复基本属性
         instance.name = data.get('name', 'SPMSM')
-        instance.machine_class = data.get('machine_class', 'SPMSM')
+        instance.target.machine_class = data.get('machine_class', 'SPMSM')
         instance.bool_PermanentMagnet = data.get('bool_PermanentMagnet', True)
         instance.bool_StatorSlotClosed = data.get('bool_StatorSlotClosed', False)
         instance.bool_RotorNotched = data.get('bool_RotorNotched', True)
@@ -1446,11 +1464,16 @@ class Modern_Machine_Designer_Utility(object):
         
         # 恢复 Winding 对象
         if 'wily' in data and data['wily'] is not None:
-            instance.wily = Winding.from_dict(data['wily'])
+            if not hasattr(instance, 'winding'):
+                from machine_winding import MachineWinding
+                instance.winding = MachineWinding()
+            instance.winding.wily = Winding.from_dict(data['wily'])
         
-        # 恢复 EX 字典
-        if 'EX' in data:
-            instance.EX = data['EX'].copy()
+        if 'EX' in data and data['EX'] is not None:
+            if not hasattr(instance, 'winding'):
+                from machine_winding import MachineWinding
+                instance.winding = MachineWinding()
+            instance.winding.EX = data['EX'].copy()
         
         # 恢复其他属性
         for attr in ['path2SwarmData', 'project_name', 'expected_project_file', 
@@ -1505,15 +1528,18 @@ class Modern_Machine_Designer_Utility(object):
         # 恢复 machineGeometry（如果 JSON 中有保存）
         if 'machineGeometry' in data and data['machineGeometry'] is not None:
             # 注意：machineGeometry 中的 visualization_points 会被保留
-            # 但 draw_function 需要在 __post_init__ 中重建
+            if not hasattr(instance, 'geometry'):
+                from machine_geometry import MachineGeometry
+                instance.geometry = MachineGeometry()
+            
             for key, geo_data in data['machineGeometry'].items():
                 if geo_data is None:
-                    instance.machineGeometry[key] = None
+                    if hasattr(instance.geometry, 'machineGeometry'):
+                        instance.geometry.machineGeometry[key] = None
                 elif isinstance(geo_data, dict):
-                    # 尝试恢复 Geometry 对象
-                    # 由于 draw_function 无法序列化，我们只恢复可序列化的部分
-                    if hasattr(instance, 'machineGeometry') and key in instance.machineGeometry:
-                        geo = instance.machineGeometry[key]
+                    # 只有当 machineGeometry 中已经存在该几何体时才恢复
+                    if hasattr(instance.geometry, 'machineGeometry') and key in instance.geometry.machineGeometry:
+                        geo = instance.geometry.machineGeometry[key]
                         if geo is not None and isinstance(geo, Geometry):
                             # 恢复 visualization_points
                             if 'visualization_points' in geo_data:
@@ -1547,6 +1573,13 @@ class Modern_Machine_Designer_Utility(object):
         Returns:
             Modern_Machine_Designer: 重建的对象
         """
+        # New: Import necessary classes for deserialization
+        from .parameter import Parameter
+        from .winding import Winding
+        from .geometry import Geometry
+        from .winding import MachineWinding
+        from .geometry import MachineGeometry
+
         # 首先获取所有字段的默认值
         field_defaults = {}
         for field in fields(cls):
@@ -1580,7 +1613,7 @@ class Modern_Machine_Designer_Utility(object):
         instance = cls.__new__(cls)
         
         # 设置基本字段
-        instance.machine_class = data.get('machine_class', field_defaults.get('machine_class', cls.machine_class))
+        instance.target.machine_class = data.get('machine_class', field_defaults.get('machine_class', cls.target.machine_class))
         instance.bool_PermanentMagnet = data.get('bool_PermanentMagnet', field_defaults.get('bool_PermanentMagnet', True))
         instance.bool_StatorSlotClosed = data.get('bool_StatorSlotClosed', field_defaults.get('bool_StatorSlotClosed', False))
         instance.bool_RotorNotched = data.get('bool_RotorNotched', field_defaults.get('bool_RotorNotched', True))
@@ -1589,9 +1622,11 @@ class Modern_Machine_Designer_Utility(object):
         for field_name, param in param_dict.items():
             setattr(instance, field_name, param)
         
-        # 重建 Winding 对象
-        if 'winding' in data:
-            instance.wily = Winding.from_dict(data['winding'])
+        if 'winding' in data and data['winding'] is not None:
+            if not hasattr(instance, 'winding'):
+                from machine_winding import MachineWinding
+                instance.winding = MachineWinding()
+            instance.winding.wily = Winding.from_dict(data['winding'])
         
         # 调用 __post_init__ 来创建 machineGeometry 和其他依赖项
         # 注意：__post_init__ 会使用已设置的参数值来创建 machineGeometry

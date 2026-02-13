@@ -1,0 +1,7 @@
+{
+    "extraPaths": [
+        "backend",
+        "backend/codes4"
+    ],
+    "typeCheckingMode": "basic"
+}

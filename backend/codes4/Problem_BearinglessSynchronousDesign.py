@@ -48,7 +48,7 @@ class Problem_BearinglessSynchronousDesign(object):
 
             # if True:
             try:
-                ad.name = ad.machine_class + f'gen-{ad.generation}-ind-{ad.counter_fitness_called}'
+                ad.name = ad.target.machine_class + f'gen-{ad.generation}-ind-{ad.counter_fitness_called}'
                 cost_function, f1, f2, f3, FRW, \
                 normalized_torque_ripple, \
                 normalized_force_error_magnitude, \

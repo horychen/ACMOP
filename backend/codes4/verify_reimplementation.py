@@ -46,8 +46,12 @@ def capture_state(designer):
             state[f"param_{attr_name}"] = attr_val.value
     
     # Capture EX dictionary
-    if hasattr(designer, 'EX'):
-        for k, v in designer.EX.items():
+    EX = getattr(designer, 'EX', None)
+    if EX is None and hasattr(designer, 'winding'):
+        EX = getattr(designer.winding, 'EX', None)
+
+    if EX:
+        for k, v in EX.items():
             if k == 'mm2_magnet_area': continue # Skip if not in old
             state[f"EX_{k}"] = v
             
@@ -75,7 +79,7 @@ def run_verification():
     print(f"Comparison CSV generated: {os.path.abspath(csv_file)}")
     
     # Basic assertions to ensure logic is working
-    assert designer.mm_r_so.value == specs.geometry.d_stator_outer.value
+    assert designer.mm_r_so.value == specs.geometry.r_stator_outer.value
     assert designer.EX['DCBusVoltage'] == specs.winding.dc_bus_voltage
     
     print("Verification passed (basic checks)!")

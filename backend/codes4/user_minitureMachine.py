@@ -10,7 +10,7 @@ print(f"DEBUG: Loading user_minitureMachine.py version {__version__}")
 # Ensure the current directory is in the path to import from sibling files if needed
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from modern_machine_designer_utility import Parameter
+from modern_machine_designer_utility import Parameter, Geometry
 
 
 @dataclass
@@ -117,17 +117,6 @@ class GeometrySpecs:
 
         # Geometry is defined by Key Points and relations among key points.
         # geometric parameters are only used to define the key points
-        class Geometry(object):
-            def __init__(self, name, GP: dict = None, KP: dict = None, draw_function: callable = None, color: str = None):
-                self.name = name
-                self.color = color
-                self.GP = GP or {}
-                self.KP = KP or {}
-                self.draw_function = draw_function
-                for name, gp in self.GP.items():
-                    if isinstance(gp, Parameter):
-                        setattr(self, name, gp.value)
-
         self.machineGeometry = {
             "rotorCore": Geometry(name='rotorCore',
                 GP={
@@ -319,6 +308,11 @@ class WindingSpecs:
     num_poles: int = 10
     ps: int = 5 # suspension_pole_pair_number
     coil_pitch_y: int = 1
+
+    @property
+    def p(self): return self.num_poles // 2
+    @property
+    def Qs(self): return self.num_slots
     bool_DPNVorSEPA: bool = True
     number_of_parallel_branch: int = 2
     

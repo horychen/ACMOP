@@ -34,9 +34,10 @@ class ReactDrawer:
         v1 = [startxy[0] - centerxy[0], startxy[1] - centerxy[1]]
         v2 = [endxy[0] - centerxy[0], endxy[1] - centerxy[1]]
         
-        # Cross product to determine direction
+        # Cross product to determine direction: v1 x v2 > 0 means CCW
         cross_prod = v1[0]*v2[1] - v1[1]*v2[0]
-        sweep_flag = 1 if cross_prod >= 0 else 0
+        # SVG sweep_flag: 1 for CW, 0 for CCW.
+        sweep_flag = 0 if cross_prod >= 0 else 1
         
         # For motor design segments, we almost always use small arcs (large_arc_flag=0)
         # Cairo's implementation uses acos, so it's always <= PI.
@@ -60,7 +61,7 @@ class ReactDrawer:
         self.regions.append(region_dict)
 
     def draw_machine(self, machine):
-        from machine_designer_v2 import draw_instruction_parser
+        from machine_geometry import draw_instruction_parser
         self.regions = []
         for part in machine.parts:
             # draw_instruction_parser internally calls drawer.drawArc / drawLine

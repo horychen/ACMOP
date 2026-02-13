@@ -110,12 +110,12 @@ def communicate_database(spec):
                             'PS' if spec.PS_or_SC else 'SC',
                             'DPNV' if spec.DPNV_or_SEPA else 'SEPA',
                             spec.p,
-                            spec.ps,
+                            spec.winding.ps,
                             spec.mec_power,
                             spec.ExcitationFreq,
                             spec.VoltageRating,
                             spec.TangentialStress,
-                            spec.Qs,
+                            spec.winding.Qs,
                             spec.Qr,
                             spec.Js,
                             spec.Jr,
@@ -462,7 +462,7 @@ def get_windage_loss(im_variant, mm_stack_length, TEMPERATURE_OF_AIR=75):
     # logger.debug('\tRadius version old: %s', im_variant.mm_r_ro.value+im_variant.mm_d_mech_air_gap.value)
     # logger.debug('\tRadius version new: %s', im_variant.mm_r_ro.value+im_variant.mm_d_sleeve.value)
 
-    Omega = 2*math.pi*im_variant.EX['RatedSpeed']/60.
+    Omega = 2*math.pi*im_variant.winding.EX['RatedSpeed']/60.
 
     # Reynolds number
     Rey = R**2 * (Omega)/nu_Air
@@ -2129,13 +2129,13 @@ class SwarmDataAnalyzer(object):
         sw = self.sw
         # Basic information
         self.ExcitationFreqSimulated = spec.ExcitationFreqSimulated
-        self.speed_rpm         = self.ExcitationFreqSimulated * 60 / spec.p # rpm
+        self.speed_rpm         = self.ExcitationFreqSimulated * 60 / spec.winding.p # rpm
         self.Omega             = self.speed_rpm / 60. * 2*math.pi
         self.mec_power         = spec.mec_power / spec.ExcitationFreq * self.ExcitationFreqSimulated
         self.required_torque   = self.mec_power / self.Omega # Nm
         self.template.SI['GP']['mm_r_ro'].value = sw.im.template.SI['GP']['mm_r_ro'].value
         self.stack_length      = sw.im.stack_length
-        self.Qs                = sw.im.Qs
+        self.Qs                = sw.im.winding.slot_count
         self.Qr                = sw.im.Qr
         self.rotor_volume      = sw.im.get_rotor_volume()
         self.rotor_weight      = sw.im.get_rotor_weight()
