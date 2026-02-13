@@ -418,6 +418,8 @@ class MachineGeometry:
         # d_tooth formula matches AllPoints formula: r_so - r_ro - g - dy - dt_shoe
         self.d_tooth = Parameter("stator_tooth_depth", "derived", gp['r_stator_outer'] - (gp['r_rotor_outer'] + gp['d_air_gap']) - gp['d_stator_yoke'] - gp['d_stator_tooth_shoe'])
         self.r_shaft = Parameter("shaft_radius", "fixed", gp['r_shaft'])
+        self.deg_alpha_rm = Parameter("magnet_span_angle", "fixed", gp.get('deg_alpha_rm', 18.0))
+        self.d_sleeve = Parameter("rotor_sleeve_depth", "fixed", gp.get('d_sleeve', 0.0))
 
 @dataclass
 class MotorSpecs:
@@ -466,7 +468,7 @@ class MotorSpecs:
         self.winding.wire_diameter_with_insulation = self.winding.wire_diameter + 0.02
         
         self.winding.sync(
-            geometry_points=self.geometry.all_points.HP,
+            machineGeometry=self.geometry,
             materials=self.materials,
             l_stack=self.geometry.l_stack
         )

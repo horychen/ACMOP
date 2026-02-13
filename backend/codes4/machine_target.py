@@ -16,7 +16,10 @@ class MachineTarget:
         'd_stator_tooth': 2.0,
         'w_stator_width': 1.2,
         'num_slots': 12,
-        'num_poles': 10
+        'num_slots': 12,
+        'num_poles': 10,
+        'deg_alpha_rm': 18.0, # 180/p = 180/5 = 36, so 18 is half pole pitch. Actually draw_instruction uses num_poles to calculate pole pitch.
+        'd_sleeve': 0.0,
     })
 
     # Free Parameters (Search Space)

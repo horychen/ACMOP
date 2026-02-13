@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from machine_geometry import AllPoints, MachineGeometry as Machine, RotorCore, StatorCore, Magnet, Coil
 from ReactDrawer import ReactDrawer
-import main
+import machine
 
 router = APIRouter()
 
@@ -76,7 +76,7 @@ async def get_debug_geometry():
 
 @router.get("/inspection")
 async def get_inspection_data():
-    my_machine = main.Machine()
+    my_machine = machine.Machine()
     my_machine.sync() # Ensure all points and winding are updated
     
     return {

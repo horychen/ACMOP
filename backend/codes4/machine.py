@@ -55,7 +55,8 @@ class Machine:
         """Synchronize performance metrics."""
         self.sync_all_points()
         self.winding.sync(
-            geometry_points=self.geometry.all_points.HP,
+            # geometry_points=self.geometry.all_points.HP,
+            machineGeometry=self.geometry,
             materials=self.materials,
             l_stack=self.geometry.l_stack
         )
@@ -258,6 +259,10 @@ def run_step_by_step():
 
     print("--- Step 1: Geometry Setup ---")
     print(f"Target: {my_machine.winding.slot_count} slots, {my_machine.winding.pole_count} poles.\n")
+
+    # for attr in ['mm_d_mech_air_gap', 'mm_d_sleeve', 'mm_r_si', 'mm_r_so', 'mm_d_sy', 'mm_d_sts', 'mm_w_st', 'mm_d_st', 'mm_r_ri', 'mm_d_ri', 'mm_r_ro', 'mm_d_pm', 'deg_alpha_rm']:
+    #     print(f"{attr}: {getattr(my_machine.winding, attr)}")
+    # quit()
 
     print("--- Step 2: Adding Rotor Core ---")
     my_machine.geometry.add_part(RotorCore(name="rotorCore", options="cylinder"))
