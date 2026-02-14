@@ -8,8 +8,8 @@ import modern_machine_designer_utility
 class MachineWinding:
     # --- Basic Specifications ---
     phase_count: int = 3 # (num_phases)
-    slot_count: int = 12 # (num_slots, Qs)
-    pole_count: int = 10 # (num_poles, 2p)
+    slot_count: int = 12 # (slot_count, Qs)
+    pole_count: int = 10 # (pole_count, 2p)
     coil_pitch: int = 1 # (coil_pitch_y)
     
     # Aliases/Parameters for legacy compatibility
@@ -29,8 +29,8 @@ class MachineWinding:
     parallel_branch_count: int = 1 # (number_of_parallel_branch)
 
     # Frontend compatibility aliases
-    num_slots: int = 12
-    num_poles: int = 10
+    slot_count: int = 12
+    pole_count: int = 10
     wire_diameter_with_insulation: float = 0.23
     
     # --- Expanded Excitation & Thermal ---
@@ -89,7 +89,7 @@ class MachineWinding:
 
     def __post_init__(self):
         from types import SimpleNamespace
-        p = self.num_poles // 2
+        p = self.pole_count // 2
         # Try p-1 first, then p+1, and avoid multiples of phase_count (typically 3)
         for candidate in [p - 1, p + 1]:
             if candidate > 0 and candidate % self.phase_count != 0:

@@ -1,2 +1,4 @@
 .cursor/*
 *.svg
+*.jfiles/
+*.jproj

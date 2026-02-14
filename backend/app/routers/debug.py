@@ -18,8 +18,8 @@ async def get_debug_points():
         'd_stator_tooth': 2,
         'd_stator_tooth_shoe': 13/2 - 8/2 - 0.15 - 0.3 - 2,
         'w_stator_width': 1.2,
-        'num_slots': 12,
-        'num_poles': 10
+        'slot_count': 12,
+        'pole_count': 10
     }
 
     points = AllPoints(required_GP=GP_as_dict)
@@ -34,8 +34,8 @@ async def get_debug_points():
         "RP": points.RP,
         "RP_mirror": RP_mirror,
         "parameters": GP_as_dict,
-        "num_slots": GP_as_dict['num_slots'],
-        "num_poles": GP_as_dict['num_poles'],
+        "slot_count": GP_as_dict['slot_count'],
+        "pole_count": GP_as_dict['pole_count'],
         "version": "geometry-debugger-v1"
     }
 
@@ -51,8 +51,8 @@ async def get_debug_geometry():
         'd_stator_tooth': 2,
         'd_stator_tooth_shoe': 13/2 - 8/2 - 0.15 - 0.3 - 2,
         'w_stator_width': 1.2,
-        'num_slots': 12,
-        'num_poles': 10
+        'slot_count': 12,
+        'pole_count': 10
     }
     
     points = AllPoints(required_GP=GP_as_dict)

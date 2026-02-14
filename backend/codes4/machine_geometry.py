@@ -1,9 +1,7 @@
-# This script is used to generate the geometry of a machine
-# other performance and excitation calculations are done in other scripts
-# 
 # IMPORTANT: All arcs (marked with "~") must be drawn in Counter-Clockwise (CCW) fashion.
 # This means the first point should have a smaller angle than the second point 
 # in the context of the arc segment being drawn (e.g., lower_angle ~ higher_angle).
+# All arcs are drawn around the origin (0,0).
 
 from dataclasses import dataclass, field, InitVar
 from typing import List, Dict, Any, Optional
@@ -16,32 +14,32 @@ def rotate_point(p, deg):
 
 @dataclass
 class AllPoints:
-    required_GP: InitVar[dict]
+    user_input: InitVar[dict]
     horizontal_position: Dict[int, tuple] = field(default_factory=dict, init=False)
     rotated_position: Dict[int, tuple] = field(default_factory=dict, init=False)
 
-    def __post_init__(self, required_GP: dict):
+    def __post_init__(self, user_input: dict):
         # Helper for rotation around origin
         def rotate(r, deg):
             rad = math.radians(deg)
             return (r * math.cos(rad), r * math.sin(rad))
 
-        self.required_GP = required_GP
-        r_shaft = required_GP['r_shaft']
-        r_rotor_outer = required_GP['r_rotor_outer']
-        d_magnet = required_GP['d_magnet']
-        d_air_gap = required_GP['d_air_gap']
-        r_stator_outer = required_GP['r_stator_outer']
-        d_stator_yoke = required_GP['d_stator_yoke']
-        d_stator_tooth = required_GP['d_stator_tooth']
-        d_stator_tooth_shoe = required_GP['d_stator_tooth_shoe']
-        w_stator_width = required_GP['w_stator_width']
-        self.num_slots = num_slots = required_GP['num_slots']
-        self.num_poles = num_poles = required_GP['num_poles']
+        self.GP = GP = user_input['geometry']
+        r_shaft = GP['r_shaft']
+        r_rotor_outer = GP['r_rotor_outer']
+        d_magnet = GP['d_magnet']
+        d_air_gap = GP['d_air_gap']
+        r_stator_outer = GP['r_stator_outer']
+        d_stator_yoke = GP['d_stator_yoke']
+        d_stator_tooth = GP['d_stator_tooth']
+        d_stator_tooth_shoe = GP['d_stator_tooth_shoe']
+        w_stator_width = GP['w_stator_width']
+        self.slot_count = slot_count = user_input['winding']['slot_count']
+        self.pole_count = pole_count = user_input['winding']['pole_count']
         
         # Calculate key angles
-        alpha_slot_pitch = 360.0 / num_slots
-        alpha_pole_pitch = 360.0 / num_poles
+        alpha_slot_pitch = 360.0 / slot_count
+        alpha_pole_pitch = 360.0 / pole_count
         
         # Stator radii
         r_si = r_rotor_outer + d_air_gap
@@ -262,7 +260,7 @@ class RotorCore(MachinePart):
         return {
             "区域的几何绘制指导": {"region1": instrs},
             "镜像与否以及镜像轴": (False, None),
-            "旋转拷贝的个数": 1 if self.options == "cylinder" else (self.all_points.num_poles if self.all_points else 1)
+            "旋转拷贝的个数": 1 if self.options == "cylinder" else (self.all_points.pole_count if self.all_points else 1)
         }
 
 @dataclass
@@ -270,7 +268,7 @@ class StatorCore(MachinePart):
     color: str = "#666666" # Slightly lighter gray
     def draw_instruction(self):
         instrs = []
-        num_slots = self.all_points.num_slots if self.all_points else 1
+        slot_count = self.all_points.slot_count if self.all_points else 1
         bFullCircle = False
         
         if self.options == "closed-slot" or self.options == "semi-closed-slot":
@@ -298,14 +296,14 @@ class StatorCore(MachinePart):
         return {
             "区域的几何绘制指导": {"region1": instrs},
             "镜像与否以及镜像轴": (True, None),
-            "旋转拷贝的个数": num_slots
+            "旋转拷贝的个数": slot_count
         }
 
 @dataclass
 class Magnet(MachinePart):
     color: str = "#2222BB" # Blue
     def draw_instruction(self):
-        num_poles = self.all_points.num_poles
+        pole_count = self.all_points.pole_count
         return {
             "区域的几何绘制指导":
             {
@@ -318,14 +316,14 @@ class Magnet(MachinePart):
                 ]
             },
             "镜像与否以及镜像轴": (False, None),
-            "旋转拷贝的个数": num_poles,
+            "旋转拷贝的个数": pole_count,
         }
 
 @dataclass
 class Coil(MachinePart):
     color: str = "#B87333" # Copper
     def draw_instruction(self):
-        num_slots = self.all_points.num_slots
+        slot_count = self.all_points.slot_count
         return {
             "区域的几何绘制指导":
             {
@@ -346,7 +344,7 @@ class Coil(MachinePart):
                 ],
             },
             "镜像与否以及镜像轴": (False, None),
-            "旋转拷贝的个数": num_slots,
+            "旋转拷贝的个数": slot_count,
         }
 
 @dataclass
@@ -355,27 +353,27 @@ class MachineGeometry:
     _next_index: int = field(init=False, default=0)
     all_points: Optional[AllPoints] = None
     gp: dict = field(default_factory=dict) # Parameters from target
-    l_stack: float = 16.0 # [mm]
-    num_slots: int = 0
-    num_poles: int = 0
 
     # These will be added dynamically in sync() as Parameter objects for compatibility
+    slot_count: Any = field(init=False, default=None)
+    pole_count: Any = field(init=False, default=None)
+    d_air_gap: Any = field(init=False, default=None)
     r_stator_outer: Any = field(init=False, default=None)
     r_rotor_outer: Any = field(init=False, default=None)
-    d_magnet: Any = field(init=False, default=None)
-    d_air_gap: Any = field(init=False, default=None)
-    split_ratio: Any = field(init=False, default=None)
+    r_shaft: Any = field(init=False, default=None)
     w_tooth: Any = field(init=False, default=None)
     d_tooth: Any = field(init=False, default=None)
-    d_tooth_shoe: Any = field(init=False, default=None)
-    d_stator_yoke: Any = field(init=False, default=None)
-    tooth_shape: str = "closed"
-    r_shaft: Any = field(init=False, default=None)
+    d_magnet: Any = field(init=False, default=None)
 
-    @property
-    def machineGeometry(self):
-        """Legacy compatibility: returns a dict of parts by name."""
-        return {part.name: part for part in self.parts}
+    # derived 
+    split_ratio: Any = field(init=False, default=None)
+    d_stator_yoke: Any = field(init=False, default=None)
+    d_tooth_shoe: Any = field(init=False, default=None)
+    tooth_shape: str = "closed"
+
+    def __post_init__(self, winding):
+        self.slot_count = winding.slot_count
+        self.pole_count = winding.pole_count
 
     def add_part(self, part: MachinePart):
         part.index = self._next_index
@@ -418,81 +416,5 @@ class MachineGeometry:
         # d_tooth formula matches AllPoints formula: r_so - r_ro - g - dy - dt_shoe
         self.d_tooth = Parameter("stator_tooth_depth", "derived", gp['r_stator_outer'] - (gp['r_rotor_outer'] + gp['d_air_gap']) - gp['d_stator_yoke'] - gp['d_stator_tooth_shoe'])
         self.r_shaft = Parameter("shaft_radius", "fixed", gp['r_shaft'])
-        self.deg_alpha_rm = Parameter("magnet_span_angle", "fixed", gp.get('deg_alpha_rm', 18.0))
-        self.d_sleeve = Parameter("rotor_sleeve_depth", "fixed", gp.get('d_sleeve', 0.0))
-
-@dataclass
-class MotorSpecs:
-    """Compatibility class to match legacy MotorSpecs interface."""
-    def __init__(self):
-        from machine_materials import MachineMaterial
-        from machine_target import MachineTarget
-        from machine_winding import MachineWinding
-        
-        self.materials = MachineMaterial()
-        self.target = MachineTarget()
-        self.winding = MachineWinding()
-        self.geometry = MachineGeometry()
-        
-        # Sync immediately
-        self.sync()
-
-    @property
-    def targets(self):
-        """Legacy alias for target."""
-        return self.target
-
-    def sync(self):
-        """Synchronize all components."""
-        gp = self.target.get_required_GP()
-        self.geometry.all_points = AllPoints(required_GP=gp)
-        # Update winding/poles if they changed in target
-        self.winding.slot_count = self.target.fixed_parameters['num_slots']
-        self.winding.pole_count = self.target.fixed_parameters['num_poles']
-        self.geometry.num_slots = self.winding.slot_count
-        self.geometry.num_poles = self.winding.pole_count
-        
-        # Use geometry's own sync
-        self.geometry.sync(gp)
-        
-        # Populate parts
-        self.geometry.parts = []
-        self.geometry.add_part(RotorCore(name="rotorCore"))
-        self.geometry.add_part(StatorCore(name="statorCore"))
-        self.geometry.add_part(Magnet(name="rotorMagnet"))
-        self.geometry.add_part(Coil(name="coils"))
-        
-        # Update winding aliases
-        self.winding.num_slots = self.winding.slot_count
-        self.winding.num_poles = self.winding.pole_count
-        self.winding.wire_diameter_with_insulation = self.winding.wire_diameter + 0.02
-        
-        self.winding.sync(
-            machineGeometry=self.geometry,
-            materials=self.materials,
-            l_stack=self.geometry.l_stack
-        )
-
-    def validate_inputs(self, step: str = "geometry") -> dict:
-        """Compatibility wrapper for validation."""
-        # Simple implementation for now, mirroring legacy structure
-        self.sync()
-        
-        # Basic validation logic based on the step
-        errors = []
-        warnings = []
-        metrics = {}
-        
-        if step == "geometry":
-            gp = self.target.get_required_GP()
-            metrics["Stator OR"] = f"{gp['r_stator_outer']} mm"
-            metrics["Rotor OR"] = f"{gp['r_rotor_outer']} mm"
-            metrics["Air Gap"] = f"{gp['d_air_gap']} mm"
-            
-        return {
-            "status": "fail" if errors else ("warn" if warnings else "pass"),
-            "errors": errors,
-            "warnings": warnings,
-            "metrics": metrics,
-            "fill_factor": "40%" # Placeholder
-        }
+        # self.deg_alpha_rm = Parameter("magnet_span_angle", "fixed", gp.get('deg_alpha_rm', 18.0))
+        # self.d_sleeve = Parameter("rotor_sleeve_depth", "fixed", gp.get('d_sleeve', 0.0))

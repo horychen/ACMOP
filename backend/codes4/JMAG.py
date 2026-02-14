@@ -415,8 +415,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         R = acm_variant.geometry.gp['r_rotor_outer'] - 0.5 * acm_variant.geometry.gp['d_magnet']
         deg_pole_span = 360 / (p*2)
 
-        alpha_slot_pitch = 360.0 / acm_variant.geometry.gp['num_slots']
-        alpha_pole_pitch = 360.0 / acm_variant.geometry.gp['num_poles']
+        alpha_slot_pitch = 360.0 / acm_variant.geometry.gp['slot_count']
+        alpha_pole_pitch = 360.0 / acm_variant.geometry.gp['pole_count']
 
         list_xy_magnets = []
         # list_xy_airWithinRotorSlot = []

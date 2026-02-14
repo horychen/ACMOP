@@ -24,8 +24,8 @@ interface PointData {
     RP: Record<string, [number, number]>;
     RP_mirror: Record<string, [number, number]>;
     parameters: Record<string, any>;
-    num_slots: number;
-    num_poles: number;
+    slot_count: number;
+    pole_count: number;
 }
 
 interface GeometrySegment {

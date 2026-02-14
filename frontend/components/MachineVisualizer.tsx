@@ -43,8 +43,8 @@ const PARAM_SECTIONS: {
       section: "winding",
       title: "Winding",
       keys: [
-        { key: "num_slots", label: "Slots" },
-        { key: "num_poles", label: "Poles" },
+        { key: "slot_count", label: "Slots" },
+        { key: "pole_count", label: "Poles" },
         { key: "coil_pitch_y", label: "Coil pitch y" },
         { key: "conductors_per_slot", label: "Conductors/slot" },
         { key: "wire_diameter_with_insulation", label: "Wire diam. (mm)" },
@@ -134,8 +134,8 @@ interface MachineSpecs {
     split_ratio: ParameterObj;
   };
   winding: {
-    num_slots: number;
-    num_poles: number;
+    slot_count: number;
+    pole_count: number;
     coil_pitch_y: number;
     conductors_per_slot: number;
     wire_diameter_with_insulation: number;
@@ -194,8 +194,8 @@ const MachineCrossSection = React.memo(({
   const shoeDepth = (typeof geometry.d_tooth_shoe.value === "number" ? geometry.d_tooth_shoe.value : 0.5);
   const toothShape = geometry.tooth_shape;
 
-  const numSlots = winding.num_slots;
-  const numPoles = winding.num_poles;
+  const numSlots = winding.slot_count;
+  const numPoles = winding.pole_count;
   const conductorsPerSlot = winding.conductors_per_slot;
   const wireDiam = winding.wire_diameter_with_insulation;
   const wireRad = wireDiam / 2;

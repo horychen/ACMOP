@@ -11,7 +11,7 @@ try:
     if 'r_shaft' in geom:
         print(f"r_shaft: {geom['r_shaft']}")
         
-    w_keys = ['num_slots', 'num_poles', 'wire_diameter_with_insulation']
+    w_keys = ['slot_count', 'pole_count', 'wire_diameter_with_insulation']
     for k in w_keys:
         print(f"winding.{k}: {winding.get(k)}")
             

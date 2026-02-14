@@ -304,15 +304,15 @@ class GeometrySpecs:
 class WindingSpecs:
     """Winding, electrical loading, and Back-EMF estimation."""
     m: int = 3
-    num_slots: int = 12
-    num_poles: int = 10
+    slot_count: int = 12
+    pole_count: int = 10
     ps: int = 5 # suspension_pole_pair_number
     coil_pitch_y: int = 1
 
     @property
-    def p(self): return self.num_poles // 2
+    def p(self): return self.pole_count // 2
     @property
-    def Qs(self): return self.num_slots
+    def Qs(self): return self.slot_count
     bool_DPNVorSEPA: bool = True
     number_of_parallel_branch: int = 2
     
@@ -347,7 +347,7 @@ class WindingSpecs:
 
     def calculate_suggested_turns(self, flux_per_pole: float) -> int:
         if flux_per_pole <= 0: return 0
-        freq = (self.rated_speed / 60.0) * (self.num_poles / 2.0)
+        freq = (self.rated_speed / 60.0) * (self.pole_count / 2.0)
         v_phase_max = self.dc_bus_voltage / math.sqrt(3) # Star connection
         v_target = 0.95 * v_phase_max * math.sqrt(2) # Ampere value
         
@@ -355,7 +355,7 @@ class WindingSpecs:
         return int(round(n_series))
 
     def estimate_back_emf(self, flux_per_pole: float) -> float:
-        freq = (self.rated_speed / 60.0) * (self.num_poles / 2.0)
+        freq = (self.rated_speed / 60.0) * (self.pole_count / 2.0)
         n_series = self.no_series_coil_turns_N
         return 2 * math.pi * freq * self.winding_factor * n_series * flux_per_pole
 
@@ -521,7 +521,7 @@ class MotorSpecs:
                 # Slot & Area Ratios
                 stator_inner_radius = r_si
                 slot_bottom_radius = r_si + g.d_tooth.value
-                avg_slot_width = (math.pi * (stator_inner_radius + slot_bottom_radius) / self.winding.num_slots) - g.w_tooth.value
+                avg_slot_width = (math.pi * (stator_inner_radius + slot_bottom_radius) / self.winding.slot_count) - g.w_tooth.value
                 slot_area = avg_slot_width * g.d_tooth.value
                 copper_area = self.calculate_copper_area()
                 fill_factor = copper_area / slot_area if slot_area > 0 else 0
@@ -539,7 +539,7 @@ class MotorSpecs:
             elif step == "winding":
                 w = self.winding
                 g_specs = self.geometry
-                if w.num_slots % 3 != 0:
+                if w.slot_count % 3 != 0:
                     errors.append("Slot number must be multiple of 3")
                 
                 # 1. Bg Estimation
@@ -556,8 +556,8 @@ class MotorSpecs:
                 
                 # Resistance Estimation (Phase)
                 r_si = g_specs.r_stator_outer.value * g_specs.split_ratio.value
-                end_winding = math.pi * (2*r_si) / w.num_slots * w.coil_pitch_y
-                n_series = (w.conductors_per_slot * w.num_slots) / (2 * w.m * w.number_of_parallel_branch)
+                end_winding = math.pi * (2*r_si) / w.slot_count * w.coil_pitch_y
+                n_series = (w.conductors_per_slot * w.slot_count) / (2 * w.m * w.number_of_parallel_branch)
                 turn_length = 2 * (g_specs.l_stack.value + end_winding) * 1e-3 # [m]
                 rho_copper = 1.72e-8 # [Ohm-m]
                 resistance = rho_copper * (turn_length * n_series) / (wire_area * 1e-6)
@@ -574,7 +574,7 @@ class MotorSpecs:
                 # Fill Factor
                 stator_inner_radius = r_si
                 slot_bottom_radius = r_si + g_specs.d_tooth.value
-                avg_slot_width = (math.pi * (stator_inner_radius + slot_bottom_radius) / w.num_slots) - g_specs.w_tooth.value
+                avg_slot_width = (math.pi * (stator_inner_radius + slot_bottom_radius) / w.slot_count) - g_specs.w_tooth.value
                 slot_area = avg_slot_width * g_specs.d_tooth.value
                 copper_area = self.calculate_copper_area()
                 fill_factor = copper_area / slot_area if slot_area > 0 else 0
@@ -583,7 +583,7 @@ class MotorSpecs:
                 metrics["Winding Fill Factor"] = f"{fill_factor*100:.1f}%"
 
                 # Back-EMF
-                area_pole = (2 * math.pi * r_si * g_specs.l_stack.value) / w.num_poles
+                area_pole = (2 * math.pi * r_si * g_specs.l_stack.value) / w.pole_count
                 estimated_flux = b_gap * area_pole * 1e-6 
                 emf = w.estimate_back_emf(estimated_flux)
                 metrics["Estimated Back-EMF"] = f"{emf:.2f} V"
@@ -624,7 +624,7 @@ class MotorSpecs:
         
         # 1. Winding initialization
         w = self.winding
-        w.wily = Winding(w.m, w.num_slots, w.num_poles // 2, w.ps, w.coil_pitch_y, bool_DPNVorSEPA=w.bool_DPNVorSEPA)
+        w.wily = Winding(w.m, w.slot_count, w.pole_count // 2, w.ps, w.coil_pitch_y, bool_DPNVorSEPA=w.bool_DPNVorSEPA)
 
         # 2. Material Temperature Adjustment
         available_temperature_list = [-40, 20, 60, 80, 100, 120, 150, 180, 200, 220]
@@ -645,7 +645,7 @@ class MotorSpecs:
         V_stator_phase_voltage_amp = math.sqrt(2) * self.winding.dc_bus_voltage / math.sqrt(3) # Assume Wye
         V_desired_emf_Em = 0.95 * V_stator_phase_voltage_amp
         
-        p = w.num_poles // 2
+        p = w.pole_count // 2
         r_si = g.r_stator_outer.value * g.split_ratio.value
         tau_p = math.pi * r_si / p
         Wb_flux = (2.0/math.pi) * 0.9 * tau_p * 1e-3 * (g.l_stack.value + 2 * g.d_air_gap.value) * 1e-3
@@ -655,16 +655,16 @@ class MotorSpecs:
         w.no_series_coil_turns_N = round(no_series_coil_turns_N)
         
         # Voltage priority
-        SPP = w.num_slots / (2*p*w.m)
+        SPP = w.slot_count / (2*p*w.m)
         w.no_series_coil_turns_N = min([int(p*SPP*i) for i in range(100,0,-1)], key=lambda x:abs(x - w.no_series_coil_turns_N))
         
-        w.DriveW_zQ = 2 * w.m * w.no_series_coil_turns_N / w.num_slots * w.number_of_parallel_branch
+        w.DriveW_zQ = 2 * w.m * w.no_series_coil_turns_N / w.slot_count * w.number_of_parallel_branch
         w.BeariW_zQ = w.DriveW_zQ
 
         # Thermal / Current Density
         r_sy = g.r_stator_outer.value - g.d_stator_yoke.value
         r_ss = r_si + g.tooth_specs.d_tooth_shoe.value
-        w.mm2_slot_area = (math.pi*(r_sy**2 - r_ss**2) / w.num_slots - g.w_tooth.value * (r_sy - r_ss))
+        w.mm2_slot_area = (math.pi*(r_sy**2 - r_ss**2) / w.slot_count - g.w_tooth.value * (r_sy - r_ss))
         i_slot = w.mm2_slot_area * 1e-6 * w.rated_current_density_Js * w.winding_fill_factor * math.sqrt(2)
         i_cond = i_slot / w.DriveW_zQ if w.DriveW_zQ > 0 else 0
         w.CurrentAmp_per_phase = i_cond * w.number_of_parallel_branch
@@ -690,7 +690,7 @@ class MotorSpecs:
         g = self.geometry
         w = self.winding
         print(f"Geometry: {g.r_stator_outer.value*2}x{g.l_stack.value} mm, Split: {g.split_ratio.value:.3f}")
-        print(f"Winding:  {w.num_slots}S/{w.num_poles}P, Turns: {w.no_series_coil_turns_N}, zQ: {w.DriveW_zQ:.1f}")
+        print(f"Winding:  {w.slot_count}S/{w.pole_count}P, Turns: {w.no_series_coil_turns_N}, zQ: {w.DriveW_zQ:.1f}")
         print(f"Materials: Stator:{self.materials.stator_core_material}, Magnet:{self.materials.magnet_grade}")
         print(f"Excitation: Js:{w.rated_current_density_Js/1e6:.1f} A/mm2, Current:{w.DriveW_CurrentAmp:.1f} A")
         print("-" * 50)

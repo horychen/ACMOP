@@ -63,8 +63,8 @@ class Modern_Machine_Designer(Modern_Machine_Designer_Utility):
         
         # Unpack essential winding/geometry info from specs for compatibility
         m = specs.winding.m
-        Qs = specs.winding.num_slots
-        p = specs.winding.num_poles // 2
+        Qs = specs.winding.slot_count
+        p = specs.winding.pole_count // 2
         ps = 4 # Default placeholder for ps if not in specs
         coil_pitch_y = specs.winding.coil_pitch_y
 
