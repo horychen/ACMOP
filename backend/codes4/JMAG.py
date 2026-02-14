@@ -309,13 +309,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # app.View().ShowMeshGeometry() # 2nd btn
             app.View().ShowMesh() # 3rn btn
             app.View().Zoom(3)
-            app.View().Pan(-acm_variant.geometry.r_rotor_outer.value, 0)
+            app.View().Pan(-acm_variant.geometry.r_rotor_outer, 0)
             app.ExportImageWithSize(path2SwarmData + '/jmag_screenshots/'  + suffix, 2000, 2000)
 
         # 2022-04-12: this is a temporary fix for JMAG Designer 21.0
         # self.jd.GetProject().GetModel(acm_variant.target.project_name).GetStudy(acm_variant.target.project_name).GetMeshControl().GetCondition(u"MagnetMeshCtrl").SetValue(u"Size", 0.002)
         if self.fea_config_dict.get('designer.show', True):
-            app.View().Pan(-acm_variant.geometry.r_rotor_outer.value, 0)
+            app.View().Pan(-acm_variant.geometry.r_rotor_outer, 0)
 
         # Use winding and target attributes
         EX = acm_variant.winding.EX
@@ -415,8 +415,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         R = acm_variant.geometry.gp['r_rotor_outer'] - 0.5 * acm_variant.geometry.gp['d_magnet']
         deg_pole_span = 360 / (p*2)
 
-        alpha_slot_pitch = 360.0 / acm_variant.geometry.gp['slot_count']
-        alpha_pole_pitch = 360.0 / acm_variant.geometry.gp['pole_count']
+        alpha_slot_pitch = 360.0 / acm_variant.geometry.slot_count
+        alpha_pole_pitch = 360.0 / acm_variant.geometry.pole_count
 
         list_xy_magnets = []
         # list_xy_airWithinRotorSlot = []

@@ -19,7 +19,8 @@ if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
 class Machine:
-    def __init__(self):
+    def __init__(self, user_input: dict):
+        self.user_input = user_input
         self.materials = MachineMaterial()
         self.geometry = MachineGeometry()
         self.winding = MachineWinding()
@@ -42,20 +43,28 @@ class Machine:
         return self.target.free_parameters
 
     def sync(self):
-        """Update AllPoints based on current target parameters."""
-        gp = self.target.get_required_GP()
-        self.geometry.all_points = AllPoints(required_GP=gp)
-        # Update winding/poles if they changed in target
-        self.winding.slot_count = self.target.fixed_parameters['slot_count']
-        self.winding.pole_count = self.target.fixed_parameters['pole_count']
-        self.geometry.slot_count = self.winding.slot_count
-        self.geometry.pole_count = self.winding.pole_count
-        # Sync geometry compatibility parameters
-        self.geometry.sync(gp)
+        """Update AllPoints and sub-components based on user_input."""
+        # Update derived parameters in user_input
+        GP = self.user_input['geometry']
+        GP.update({
+            # derived geometric parameters
+            'd_yoke': GP['r_stator_outer'] - GP['r_rotor_outer'] - GP['d_tooth'],
+            'd_tooth_shoe': None if GP['tooth_shape']=='open' else GP['d_tooth_shoe'],
+            'alpha_stator_tooth_span': 360 / self.user_input['winding']['slot_count'] * 0.7 if GP['tooth_shape']=='semi-closed' else None,
+            'split_ratio': (GP['r_rotor_outer']+GP['d_air_gap']) / GP['r_stator_outer'],
+            'aspect_ratio': GP['r_stator_outer'] * 2 / self.user_input['winding']['l_stack']
+        })
 
-        """Synchronize performance metrics."""
+        # Sync geometry points
+        self.geometry.all_points = AllPoints(user_input=self.user_input)
+        
+        # Update parts' reference to all_points
+        for part in self.geometry.parts:
+            part.all_points = self.geometry.all_points
+
+        # Sync sub-components
+        self.geometry.sync(self.user_input)
         self.winding.sync(
-            # geometry_points=self.geometry.all_points.HP,
             machineGeometry=self.geometry,
             materials=self.materials,
             l_stack=self.geometry.l_stack
@@ -250,22 +259,22 @@ def run_step_by_step():
 
     # 用户需要输入的信息
     user_input = OrderedDict({
-        'widning':{
+        'winding':{
             'slot_count': 12,
             'pole_count': 10,
             'coil_pitch': 1,
-            'l_stack': 16,
-        }
+            'l_stack': 16.0,
+        },
         'geometry':{
             'tooth_shape': 'closed',
-            'd_tooth_shoe': 0.3, # this makes effective tooth depth beocmes: d_tooth - d_tooth_shoe
+            'd_tooth_shoe': 0.3, # this makes effective tooth depth becomes: d_tooth - d_tooth_shoe
             'd_air_gap': 0.15,
             'r_stator_outer': 13/2,
             'r_rotor_outer': 8/2,
             'r_shaft': 0.0,
             'd_tooth': 2.0,
             'w_width': 1.2,
-            'd_magnet': 3.0,
+            'd_magnet': 1.0,
         },
         'target': [
             'search w_stator_width within [1.0, 1.5]',
@@ -273,21 +282,12 @@ def run_step_by_step():
             'search d_magnet within [1.0, 3.0]',
         ]
     })
-    GP = user_input['geometry']
-    GP.update({
-        # derived geometric parameters
-        'd_yoke': GP['r_stator_outer'] - GP['r_rotor_outer'] - GP['d_tooth'],
-        'd_tooth_shoe': None if GP['tooth_shape']=='open' else GP['d_tooth_shoe'],
-        'alpha_stator_tooth_span': 360 / user_input['winding'].slot_count * 0.7 if GP['tooth_shape']=='semi-closed' else None
-        'split_raito': (GP['r_rotor_outer']+GP['d_air_gap']) / GP['r_stator_outer'] 
-        'aspect_ratio': GP['r_stator_outer'] * 2 / user_input['winding'].l_stack 
-    })
 
     print("--- Step 0: Initialize Composite Machine ---")
     dex13 = Machine(user_input)
 
-    # Initialize geometry points from default target GP
-    dex13.sync_all_points()
+    # Initialize geometry points from user_input
+    # dex13.sync_all_points()
 
     print("--- Step 2: Adding Rotor Core ---")
     dex13.geometry.add_part(RotorCore(name="rotorCore", options="cylinder"))

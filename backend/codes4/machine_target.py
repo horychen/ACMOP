@@ -7,26 +7,6 @@ from machine_geometry import RotorCore, StatorCore, Magnet
 
 @dataclass
 class MachineTarget:
-    # Fixed Parameters
-    fixed_parameters: Dict[str, Any] = field(default_factory=lambda: {
-        'r_shaft': 0.0,
-        'd_air_gap': 0.15,
-        'r_stator_outer': 6.5,
-        'd_stator_yoke': 0.3,
-        'd_stator_tooth': 2.0,
-        'w_stator_width': 1.2,
-        'slot_count': 12,
-        'pole_count': 10,
-        # 'deg_alpha_rm': 18.0, # 180/p = 180/5 = 36, so 18 is half pole pitch. Actually draw_instruction uses pole_count to calculate pole pitch.
-        # 'd_sleeve': 0.0, # no sleeve
-    })
-
-    # Free Parameters (Search Space)
-    free_parameters: Dict[str, Any] = field(default_factory=lambda: {
-        'r_rotor_outer': 4.0,
-        'd_magnet': 3.0,
-    })
-
     # FEA Configuration
     select_FEA_tool: str = "JMAG"
     machine_class: str = "PMSM"
@@ -57,38 +37,23 @@ class MachineTarget:
     swarm_data_json_file_path: str = "SwarmData.json"
     path2Data: str = ""
     path2SwarmData: str = ""
-    # project_name: str = field(default="", init=False)
     results_for_optimization: tuple = field(default=(), init=False)
     counter: int = field(default=0, init=False)
 
-    def update_free_parameters(self, x: list):
-        """Update free parameters from an optimization vector x."""
-        # Mapping needs to be consistent
-        keys = sorted(self.free_parameters.keys())
+    def update_free_parameters(self, user_input, x: list):
+        """Update geometric parameters in user_input from an optimization vector x."""
+        # This now targets user_input directly
+        keys = ['r_rotor_outer', 'd_magnet'] # Example search space
         for i, key in enumerate(keys):
-            self.free_parameters[key] = x[i]
+            user_input['geometry'][key] = x[i]
 
-    def get_required_GP(self):
-        """Combine fixed and free parameters into required_GP for AllPoints."""
-        gp = self.fixed_parameters.copy()
-        gp.update(self.free_parameters)
-        
-        # Calculate derived values if needed for AllPoints initialization
-        # The user said "We no longer need derived parameters for drawing. 
-        # We use updated free parameters and fixed parameters to update AllPoints object"
-        # However, d_stator_tooth_shoe was derived in machine.py:
-        # 'd_stator_tooth_shoe': 13/2 - 8/2 - 0.15 - 0.3 - 2
-        
-        r_so = gp['r_stator_outer']
-        r_ro = gp['r_rotor_outer']
-        g = gp['d_air_gap']
-        dy = gp['d_stator_yoke']
-        dt = gp['d_stator_tooth']
-        
-        # Explicitly calculate d_stator_tooth_shoe to satisfy AllPoints
-        gp['d_stator_tooth_shoe'] = r_so - r_ro - g - dy - dt
-        
-        return gp
+    def get_required_GP(self, user_input):
+        """Retrieve geometry dict from user_input."""
+        return user_input['geometry']
+
+if __name__ == "__main__":
+    target = MachineTarget()
+    print("MachineTarget simplified.")
 
 
 

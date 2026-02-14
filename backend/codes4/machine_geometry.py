@@ -30,10 +30,10 @@ class AllPoints:
         d_magnet = GP['d_magnet']
         d_air_gap = GP['d_air_gap']
         r_stator_outer = GP['r_stator_outer']
-        d_stator_yoke = GP['d_stator_yoke']
-        d_stator_tooth = GP['d_stator_tooth']
-        d_stator_tooth_shoe = GP['d_stator_tooth_shoe']
-        w_stator_width = GP['w_stator_width']
+        d_stator_yoke = GP['d_yoke']
+        d_stator_tooth = GP['d_tooth']
+        d_stator_tooth_shoe = GP['d_tooth_shoe']
+        w_stator_width = GP['w_width']
         self.slot_count = slot_count = user_input['winding']['slot_count']
         self.pole_count = pole_count = user_input['winding']['pole_count']
         
@@ -354,26 +354,29 @@ class MachineGeometry:
     all_points: Optional[AllPoints] = None
     gp: dict = field(default_factory=dict) # Parameters from target
 
-    # These will be added dynamically in sync() as Parameter objects for compatibility
-    slot_count: Any = field(init=False, default=None)
-    pole_count: Any = field(init=False, default=None)
-    d_air_gap: Any = field(init=False, default=None)
-    r_stator_outer: Any = field(init=False, default=None)
-    r_rotor_outer: Any = field(init=False, default=None)
-    r_shaft: Any = field(init=False, default=None)
-    w_tooth: Any = field(init=False, default=None)
-    d_tooth: Any = field(init=False, default=None)
-    d_magnet: Any = field(init=False, default=None)
+    # These will be simple attributes for compatibility
+    slot_count: int = 12
+    pole_count: int = 10
+    d_air_gap: float = 0.15
+    r_stator_outer: float = 6.5
+    r_rotor_outer: float = 4.0
+    r_shaft: float = 0.0
+    w_tooth: float = 1.2
+    d_tooth: float = 2.0
+    d_magnet: float = 3.0
 
     # derived 
-    split_ratio: Any = field(init=False, default=None)
-    d_stator_yoke: Any = field(init=False, default=None)
-    d_tooth_shoe: Any = field(init=False, default=None)
+    split_ratio: float = 0.615
+    d_stator_yoke: float = 0.3
+    d_tooth_shoe: float = 0.0
     tooth_shape: str = "closed"
+    deg_alpha_rm: float = 18.0
+    d_sleeve: float = 0.0
+    l_stack: float = 16.0
 
-    def __post_init__(self, winding):
-        self.slot_count = winding.slot_count
-        self.pole_count = winding.pole_count
+    def __post_init__(self):
+        # Initial values can be set here if needed, but sync() will do the real work
+        pass
 
     def add_part(self, part: MachinePart):
         part.index = self._next_index
@@ -398,23 +401,24 @@ class MachineGeometry:
         drawer.draw_machine(self)
         print(f"Geometry drawn to {filename} with scale {scale}")
 
-    def sync(self, gp: dict):
-        """Populate compatibility Parameter objects from GP dict."""
-        from modern_machine_designer_utility import Parameter
-        self.gp = gp
-        self.r_stator_outer = Parameter("stator_outer_radius", "fixed", gp['r_stator_outer'])
-        self.r_rotor_outer = Parameter("rotor_outer_radius", "free", gp['r_rotor_outer'])
-        self.d_magnet = Parameter("magnet_depth", "free", gp['d_magnet'])
-        self.d_air_gap = Parameter("mechanical_air_gap_depth", "fixed", gp['d_air_gap'])
-        self.split_ratio = Parameter("split_ratio", "derived", gp['r_rotor_outer'] / gp['r_stator_outer'] if gp['r_stator_outer'] else 0.615)
+    def sync(self, user_input: dict):
+        """Populate attributes from user_input dict."""
+        self.gp = gp = user_input['geometry']
+        self.slot_count = user_input['winding']['slot_count']
+        self.pole_count = user_input['winding']['pole_count']
+        self.l_stack = user_input['winding']['l_stack']
+
+        self.r_stator_outer = gp['r_stator_outer']
+        self.r_rotor_outer = gp['r_rotor_outer']
+        self.d_magnet = gp['d_magnet']
+        self.d_air_gap = gp['d_air_gap']
+        self.split_ratio = gp['split_ratio'] # Fixed typo
         
-        self.w_tooth = Parameter("stator_tooth_width", "free", gp['w_stator_width'])
-        self.d_tooth_shoe = Parameter("stator_tooth_shoe_depth", "fixed", gp['d_stator_tooth_shoe'])
-        self.d_stator_yoke = Parameter("stator_yoke_depth", "fixed", gp['d_stator_yoke'])
-        self.tooth_shape = "closed"
-        
-        # d_tooth formula matches AllPoints formula: r_so - r_ro - g - dy - dt_shoe
-        self.d_tooth = Parameter("stator_tooth_depth", "derived", gp['r_stator_outer'] - (gp['r_rotor_outer'] + gp['d_air_gap']) - gp['d_stator_yoke'] - gp['d_stator_tooth_shoe'])
-        self.r_shaft = Parameter("shaft_radius", "fixed", gp['r_shaft'])
-        # self.deg_alpha_rm = Parameter("magnet_span_angle", "fixed", gp.get('deg_alpha_rm', 18.0))
-        # self.d_sleeve = Parameter("rotor_sleeve_depth", "fixed", gp.get('d_sleeve', 0.0))
+        self.w_tooth = gp['w_width'] # matching machine.py key
+        self.d_tooth_shoe = gp['d_tooth_shoe']
+        self.d_stator_yoke = gp['d_yoke']
+        self.tooth_shape = gp['tooth_shape']
+        self.d_tooth = gp['d_tooth']
+        self.r_shaft = gp['r_shaft']
+        self.deg_alpha_rm = gp.get('deg_alpha_rm', 18.0)
+        self.d_sleeve = gp.get('d_sleeve', 0.0)

@@ -114,7 +114,7 @@ class MachineWinding:
 
     def get_InitialRotationAngle(self, machineGeometry):
         deg_pole_span = 180 / self.p
-        self.initial_rotation_angle = (deg_pole_span - machineGeometry.deg_alpha_rm.value) * 0.5 + self.wily.deg_winding_U_phase_phase_axis_angle
+        self.initial_rotation_angle = (deg_pole_span - machineGeometry.deg_alpha_rm) * 0.5 + self.wily.deg_winding_U_phase_phase_axis_angle
         return self.initial_rotation_angle
 
     def update_excitations(self, machineGeometry):
@@ -141,9 +141,9 @@ class MachineWinding:
         alpha_i = 2.0/math.pi
         T_air_gap_flux_density_Bg_guessed = 0.9 # T
         mm_stack_length_specified = EX['mm_stack_length_specified']
-        mm_d_magnetic_air_gap = machineGeometry.d_air_gap.value + machineGeometry.d_sleeve.value
+        mm_d_magnetic_air_gap = machineGeometry.d_air_gap + machineGeometry.d_sleeve
         mm_stack_length_effective = mm_stack_length_specified + 2 * mm_d_magnetic_air_gap
-        r_si = machineGeometry.r_rotor_outer.value + machineGeometry.d_air_gap.value
+        r_si = machineGeometry.r_rotor_outer + machineGeometry.d_air_gap
         mm_pole_pitch_tau_p = math.pi * r_si / p
         Wb_air_gap_flux_Phi_m = alpha_i * T_air_gap_flux_density_Bg_guessed * mm_pole_pitch_tau_p*1e-3 * mm_stack_length_effective*1e-3 # Wb
         
@@ -170,10 +170,10 @@ class MachineWinding:
         self.bearing_winding_conductors_per_slot = EX['BeariW_zQ']
 
         ''' Excitations Consiering Thermal Capability Limit (Simple) '''
-        mm_r_sy = machineGeometry.r_stator_outer.value - machineGeometry.d_stator_yoke.value
-        r_si = machineGeometry.r_rotor_outer.value + machineGeometry.d_air_gap.value
-        mm_r_ss = r_si + machineGeometry.d_tooth_shoe.value
-        EX['mm2_slot_area'] = (math.pi*(mm_r_sy**2 - mm_r_ss**2) / Qs - machineGeometry.w_tooth.value * machineGeometry.d_tooth.value)
+        mm_r_sy = machineGeometry.r_stator_outer - machineGeometry.d_stator_yoke
+        r_si = machineGeometry.r_rotor_outer + machineGeometry.d_air_gap
+        mm_r_ss = r_si + machineGeometry.d_tooth_shoe
+        EX['mm2_slot_area'] = (math.pi*(mm_r_sy**2 - mm_r_ss**2) / Qs - machineGeometry.w_tooth * machineGeometry.d_tooth)
         
         EX['CurrentAmp_in_the_slot']   = EX['mm2_slot_area'] * 1e-6 * EX['Js'] * EX['WindingFill'] * math.sqrt(2)
         
@@ -197,10 +197,10 @@ class MachineWinding:
 
         EX['InitialRotationAngle'] = self.get_InitialRotationAngle(machineGeometry)
 
-        Rout = machineGeometry.r_rotor_outer.value
-        Rin  = Rout - machineGeometry.d_magnet.value
+        Rout = machineGeometry.r_rotor_outer
+        Rin  = Rout - machineGeometry.d_magnet
         deg_alpha_rp = 360 / (2*self.p)
-        EX['mm2_magnet_area'] = machineGeometry.deg_alpha_rm.value/deg_alpha_rp * math.pi*(Rout**2 - Rin**2)
+        EX['mm2_magnet_area'] = machineGeometry.deg_alpha_rm/deg_alpha_rp * math.pi*(Rout**2 - Rin**2)
         self.magnet_area = EX['mm2_magnet_area']
 
     def sync(self, machineGeometry, materials, l_stack):
@@ -211,7 +211,7 @@ class MachineWinding:
         self.EX['LaminationFactor'] = materials.steel_stack_factor
         self.EX['Magnet_Name'] = materials.magnet_grade
         self.EX['Magnet_Temperature'] = 20 # Default
-        self.EX['Magnet_StartAngle'] = 0.5 * machineGeometry.deg_alpha_rm.value # Default
+        self.EX['Magnet_StartAngle'] = 0.5 * machineGeometry.deg_alpha_rm # Default
         self.EX['mm_stack_length_specified'] = l_stack
         
         # Update wily
@@ -231,10 +231,10 @@ class MachineWinding:
         m = materials
         
         # 1. Geometry-derived values
-        r_si = machineGeometry.r_rotor_outer.value + machineGeometry.d_air_gap.value
-        r_ro = machineGeometry.r_rotor_outer.value
-        hm = machineGeometry.d_magnet.value
-        gap_dist = machineGeometry.d_air_gap.value
+        r_si = machineGeometry.r_rotor_outer + machineGeometry.d_air_gap
+        r_ro = machineGeometry.r_rotor_outer
+        hm = machineGeometry.d_magnet
+        gap_dist = machineGeometry.d_air_gap
         
         # 2. Bg Estimation
         br = m.magnet_br
