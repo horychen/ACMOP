@@ -6,11 +6,17 @@ import modern_machine_designer_utility
 
 @dataclass
 class MachineWinding:
+    winding_dict: dict = field(default_factory=dict)
+    
     # --- Basic Specifications ---
-    phase_count: int = 3 # (num_phases)
-    slot_count: int = 12 # (slot_count, Qs)
-    pole_count: int = 10 # (pole_count, 2p)
-    coil_pitch: int = 1 # (coil_pitch_y)
+    @property
+    def phase_count(self) -> int: return self.winding_dict.get('phase_count', 3)
+    @property
+    def slot_count(self) -> int: return self.winding_dict['slot_count']
+    @property
+    def pole_count(self) -> int: return self.winding_dict['pole_count']
+    @property
+    def coil_pitch(self) -> int: return self.winding_dict['coil_pitch']
     
     # Aliases/Parameters for legacy compatibility
     @property
@@ -18,62 +24,60 @@ class MachineWinding:
     @property
     def p(self): return self.pole_count // 2
     
-    # Bearingless specific
-    s: int = 1 # Segment count
-    bool_PermanentMagnet: bool = True
-    conductors_per_slot: int = 42 # (conductors_per_slot)
-    wire_diameter: float = 0.21 # (wire_diameter)
-    connection_type: str = "Wye" # (connection)
-    rated_speed: float = 3000.0 # (rated_speed_rpm)
-    rated_current_density: float = 5.0 # [A/mm^2] (rated_current_density_Js)
-    parallel_branch_count: int = 1 # (number_of_parallel_branch)
-
-    # Frontend compatibility aliases
-    slot_count: int = 12
-    pole_count: int = 10
-    wire_diameter_with_insulation: float = 0.23
+    # TODO: use zQ to compute fill factor
+    @property
+    def conductors_per_slot(self) -> int: return self.winding_dict.get('conductors_per_slot', 42)
+    @property
+    def wire_diameter_with_insulation(self) -> float: return self.winding_dict.get('wire_diameter_with_insulation', 0.23)
+    @property
+    def wire_diameter(self) -> float: return self.winding_dict.get('wire_diameter', 0.21)
+    @property
+    def rated_current_density(self) -> float: return self.winding_dict.get('rated_current_density', 5.0)
+    @property
+    def parallel_branch_count(self) -> int: return self.wily.number_of_parallel_branch
     
-    # --- Expanded Excitation & Thermal ---
-    rated_power: float = 0.0 # [W] (RatedPower)
-    dc_bus_voltage: float = 0.0 # [V] (DCBusVoltage)
-    fill_factor: float = 0.4 # (WindingFill)
-    excitation_frequency: float = 0.0 # [Hz] (ExcitationFreqSimulated)
-    is_wye_connection: bool = True # (True: Wye) (bool_WyeConnectOrDeltaConnect)
+    # # --- Expanded Excitation & Thermal ---
+    @property
+    def connection_type(self) -> str: return self.winding_dict.get('connection_type', "Wye")
+    @property
+    def is_wye_connection(self) -> bool: return self.connection_type == "Wye"
+    @property
+    def rated_speed(self) -> float: return self.winding_dict.get('rated_speed', 10000.0)
+    # @property
+    # def rated_power(self) -> float: return self.winding_dict.get('rated_power', 50.0)
+    @property
+    def dc_bus_voltage(self) -> float: return self.winding_dict.get('dc_bus_voltage', 24.0)
+    @property
+    def fill_factor(self) -> float: return self.winding_dict.get('fill_factor', 0.4)
+    # @property
+    # def excitation_frequency(self) -> float: return self.winding_dict.get('excitation_frequency', 250.0)
     
-    # Bearingless specific
-    torque_current_ratio: float = 1.0 # (TORQUE_CURRENT_RATIO)
-    suspension_current_ratio: float = 0.0 # (SUSPENSION_CURRENT_RATIO)
-    drive_winding_resistance: float = 0.0 # [Ohm] (DriveW_Rs)
-    bearing_winding_resistance: float = 0.0 # [Ohm] (BeariW_Rs)
+    # @property
+    # def is_wye_connection(self) -> bool: return self.winding_dict.get('is_wye_connection', True)
+    
+    # # Bearingless specific
+    @property
+    def torque_current_ratio(self) -> float: return self.winding_dict.get('torque_current_ratio', 1.0)
+    @property
+    def suspension_current_ratio(self) -> float: return self.winding_dict.get('suspension_current_ratio', 0.0)
+    @property
+    def drive_winding_resistance(self) -> float: return self.winding_dict.get('drive_winding_resistance', 1.0)
+    @property
+    def bearing_winding_resistance(self) -> float: return self.winding_dict.get('bearing_winding_resistance', 1.0)
     
     # Performance & Design Targets
-    series_turns: int = 0 # (no_series_coil_turns_N)
-    drive_winding_conductors_per_slot: float = 0.0 # (DriveW_zQ)
-    bearing_winding_conductors_per_slot: float = 0.0 # (BeariW_zQ)
-    slot_area: float = 0.0 # (mm2_slot_area)
-    slot_current_amplitude: float = 0.0 # (CurrentAmp_in_the_slot)
-    conductor_current_amplitude: float = 0.0 # (CurrentAmp_per_conductor)
-    phase_current_amplitude: float = 0.0 # (CurrentAmp_per_phase)
-    drive_winding_current: float = 0.0 # (DriveW_CurrentAmp)
-    bearing_winding_current: float = 0.0 # (BeariW_CurrentAmp)
-    torque_current_utilization_ratio: float = 0.0 # (slot_current_utilizing_ratio_for_torque)
-    magnet_area: float = 0.0 # (mm2_magnet_area)
-    initial_rotation_angle: float = 0.0 # (InitialRotationAngle)
-
-    # # Geometric placeholders for legacy logic compatibility
-    # mm_d_mech_air_gap: Any = field(default=None, init=False)
-    # mm_d_sleeve: Any = field(default=None, init=False)
-    # mm_r_si: Any = field(default=None, init=False)
-    # mm_r_so: Any = field(default=None, init=False)
-    # mm_d_sy: Any = field(default=None, init=False)
-    # mm_d_sts: Any = field(default=None, init=False)
-    # mm_w_st: Any = field(default=None, init=False)
-    # mm_d_st: Any = field(default=None, init=False)
-    # mm_r_ri: Any = field(default=None, init=False)
-    # mm_d_ri: Any = field(default=None, init=False)
-    # mm_r_ro: Any = field(default=None, init=False)
-    # mm_d_pm: Any = field(default=None, init=False)
-    # deg_alpha_rm: Any = field(default=None, init=False)
+    # series_turns: int = 0 # (no_series_coil_turns_N)
+    # drive_winding_conductors_per_slot: float = 0.0 # (DriveW_zQ)
+    # bearing_winding_conductors_per_slot: float = 0.0 # (BeariW_zQ)
+    # slot_area: float = 0.0 # (mm2_slot_area)
+    # slot_current_amplitude: float = 0.0 # (CurrentAmp_in_the_slot)
+    # conductor_current_amplitude: float = 0.0 # (CurrentAmp_per_conductor)
+    # phase_current_amplitude: float = 0.0 # (CurrentAmp_per_phase)
+    # drive_winding_current: float = 0.0 # (DriveW_CurrentAmp)
+    # bearing_winding_current: float = 0.0 # (BeariW_CurrentAmp)
+    # torque_current_utilization_ratio: float = 0.0 # (slot_current_utilizing_ratio_for_torque)
+    # magnet_area: float = 0.0 # (mm2_magnet_area)
+    # initial_rotation_angle: float = 0.0 # (InitialRotationAngle)
     
     # Simulation & Configuration
     bool_DPNVorSEPA: bool = True
@@ -84,32 +88,29 @@ class MachineWinding:
     phase_resistance: float = 0.0
     estimated_back_emf: float = 0.0
     slot_current_at: float = 0.0
-    wily: Any = field(default=None, init=False)
+    # wily: Any = field(default=None, init=False)
     ps: int = field(init=False) # suspension_pole_pair_count
 
     def __post_init__(self):
         from types import SimpleNamespace
         p = self.pole_count // 2
-        # Try p-1 first, then p+1, and avoid multiples of phase_count (typically 3)
-        for candidate in [p - 1, p + 1]:
+        # Try p+1 first, then p-1, and avoid multiples of phase_count (typically 3)
+        for candidate in [p + 1, p - 1]:
             if candidate > 0 and candidate % self.phase_count != 0:
                 self.ps = candidate
                 break
-        
-        # for attr in ['mm_d_mech_air_gap', 'mm_d_sleeve', 'mm_r_si', 'mm_r_so', 
-        #             'mm_d_sy', 'mm_d_sts', 'mm_w_st', 'mm_d_st', 'mm_r_ri', 
-        #             'mm_d_ri', 'mm_r_ro', 'mm_d_pm', 'deg_alpha_rm']:
-        #     setattr(self, attr, SimpleNamespace(value=0.0))
 
-        # Initial wily setup (will be updated in sync)
+        # get winding layout
+        # val_wily = modern_machine_designer_utility.Winding(phase_number_m=3, stator_slot_number_Qs=24, pole_pair_number_p=2, suspension_pole_pair_number_ps=1, coil_pitch_y=6, bool_DPNVorSEPA=False, number_of_parallel_branch=1)
+        # val_wily = modern_machine_designer_utility.Winding(phase_number_m=3, stator_slot_number_Qs=12, pole_pair_number_p=5, suspension_pole_pair_number_ps=1, coil_pitch_y=1, bool_DPNVorSEPA=True, number_of_parallel_branch=2)
+        # val_wily = modern_machine_designer_utility.Winding(phase_number_m=3, stator_slot_number_Qs=12, pole_pair_number_p=2, suspension_pole_pair_number_ps=1, coil_pitch_y=3, bool_DPNVorSEPA=None, number_of_parallel_branch=1)
         self.wily = modern_machine_designer_utility.Winding(
-            phase_number_m=self.phase_count,
-            stator_slot_number_Qs=self.slot_count,
-            pole_pair_number_p=self.p,
-            suspension_pole_pair_number_ps=self.ps,
-            coil_pitch_y=self.coil_pitch,
-            bool_DPNVorSEPA=self.bool_DPNVorSEPA,
-            number_of_parallel_branch=self.parallel_branch_count
+            phase_number_m=self.phase_count, 
+            stator_slot_number_Qs=self.slot_count, 
+            pole_pair_number_p=p, 
+            suspension_pole_pair_number_ps=self.ps, 
+            coil_pitch_y=self.coil_pitch, 
+            bool_DPNVorSEPA=self.bool_DPNVorSEPA
         )
 
     def get_InitialRotationAngle(self, machineGeometry):
@@ -141,7 +142,7 @@ class MachineWinding:
         alpha_i = 2.0/math.pi
         T_air_gap_flux_density_Bg_guessed = 0.9 # T
         mm_stack_length_specified = EX['mm_stack_length_specified']
-        mm_d_magnetic_air_gap = machineGeometry.d_air_gap + machineGeometry.d_sleeve
+        mm_d_magnetic_air_gap = machineGeometry.d_air_gap # + machineGeometry.d_sleeve
         mm_stack_length_effective = mm_stack_length_specified + 2 * mm_d_magnetic_air_gap
         r_si = machineGeometry.r_rotor_outer + machineGeometry.d_air_gap
         mm_pole_pitch_tau_p = math.pi * r_si / p
@@ -215,6 +216,7 @@ class MachineWinding:
         self.EX['mm_stack_length_specified'] = l_stack
         
         # Update wily
+        # Update wily
         self.wily = modern_machine_designer_utility.Winding(
             phase_number_m=self.phase_count,
             stator_slot_number_Qs=self.slot_count,
@@ -222,7 +224,7 @@ class MachineWinding:
             suspension_pole_pair_number_ps=self.ps,
             coil_pitch_y=self.coil_pitch,
             bool_DPNVorSEPA=self.bool_DPNVorSEPA,
-            number_of_parallel_branch=self.parallel_branch_count
+            number_of_parallel_branch=self.wily.number_of_parallel_branch
         )
         
         # 1. Update Excitations (turns, current, etc.)

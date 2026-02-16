@@ -7,6 +7,7 @@ import JMAG
 import os, logging, jsonpickle, numpy as np, builtins
 from time import time as clock_time
 from collections import OrderedDict
+from rich import print
 
 # control printing out machine design pipeline
 builtins.verbose = True
@@ -23,7 +24,7 @@ class Machine:
         self.user_input = user_input
         self.materials = MachineMaterial()
         self.geometry = MachineGeometry()
-        self.winding = MachineWinding()
+        self.winding = MachineWinding(user_input['winding'])
         self.target = MachineTarget()
 
         if builtins.verbose:
@@ -283,8 +284,15 @@ def run_step_by_step():
         ]
     })
 
+
+
     print("--- Step 0: Initialize Composite Machine ---")
     dex13 = Machine(user_input)
+
+    print(dex13.materials)
+    print(dex13.geometry)
+    print(dex13.winding)
+    print(dex13.target)
 
     # Initialize geometry points from user_input
     # dex13.sync_all_points()

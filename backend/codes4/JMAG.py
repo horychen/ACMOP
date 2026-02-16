@@ -284,20 +284,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         start_time = clock_time()
         # logger.info('pre-process PMSM... Starting time: %g s.'%start_time)
 
-        # pre-process : you can select part by coordinate!
-        ''' Group '''
-        def group(name, id_list):
-            model.GetGroupList().CreateGroup(name)
-            for the_id in id_list:
-                model.GetGroupList().AddPartToGroup(name, the_id)
-                # model.GetGroupList().AddPartToGroup(name, name) #<- this also works
-
-        part_ID_list = model.GetPartIDs()
-        # print(part_ID_list, type(part_ID_list))
-        if isinstance(part_ID_list, int):
-            raise Exception(f'part_ID_list is an integer: {part_ID_list}')
-        # quit()
-
         # view = app.View()
         # view.ClearSelect()
         # sel = view.GetCurrentSelection()
@@ -330,10 +316,21 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         export_image(app, model, acm_variant.target.path2SwarmData, suffix=acm_variant.target.project_name+'.png')
 
+
+        # pre-process : you can select part by coordinate!
+        ''' Group '''
+        def group(name, id_list):
+            model.GetGroupList().CreateGroup(name)
+            for the_id in id_list:
+                model.GetGroupList().AddPartToGroup(name, the_id)
+                # model.GetGroupList().AddPartToGroup(name, name) #<- this also works
+
+        part_ID_list = model.GetPartIDs()
+
         self.id_rotorCore = id_rotorCore = part_ID_list[0]
         partIDRange_Magnet = part_ID_list[1:int(1+p*s*2)]
         self.id_statorCore = id_statorCore = part_ID_list[int(1+p*s*2)]
-        partIDRange_Coil = part_ID_list[int(1+p*s*2) : int(1+p*s*2) + int(Q*2)]
+        partIDRange_Coil = part_ID_list[int(2+p*s*2) : int(2+p*s*2) + int(Q*2)]
 
         # debug
         print(id_rotorCore)
@@ -367,13 +364,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 if 'coil' in part.name.lower():
                     if hasattr(part, 'inner_coords') and part.inner_coords:
                         # Pick the region with the most negative Y for JMAG compatibility
+                        print(f'[coil inner_coords] {part.inner_coords}')
                         return min(part.inner_coords.values(), key=lambda p: p[1])
             # Rough fallback based on GP
             gp = acm_variant.geometry.gp
-            return [gp['r_rotor_outer'] + gp['d_air_gap'] + 2.0, -1.0] 
-        
+            return [gp['r_rotor_outer'] + gp['d_air_gap'] + gp['d_tooth']*0.9, -gp['w_tooth']*0.5*1.1]         
         PCoil = get_PCoil(acm_variant)
-        # PCoil = acm_variant.drawer.visualization_points['Coils']['PCoil']
         
         # Start JMAG logic
         self.doc.GetSelection().Clear()
@@ -384,7 +380,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         X = R*math.cos(THETA)
         Y = R*math.sin(THETA)
         countXL = 0
-        wily = acm_variant.winding.wily
 
         for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
             countXL += 1 
@@ -413,7 +408,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # Create Set for Magnets
         R = acm_variant.geometry.gp['r_rotor_outer'] - 0.5 * acm_variant.geometry.gp['d_magnet']
-        deg_pole_span = 360 / (p*2)
+        # deg_pole_span = 360 / (p*2)
 
         alpha_slot_pitch = 360.0 / acm_variant.geometry.slot_count
         alpha_pole_pitch = 360.0 / acm_variant.geometry.pole_count
@@ -421,14 +416,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         list_xy_magnets = []
         # list_xy_airWithinRotorSlot = []
         for ind in range(int(p*2)):
-            natural_ind = ind + 1
-
             if s==1:
-                      # v---This negative sign means we walk CCW to assign sets.
-                THETA = - (180/p - alpha_pole_pitch + 0.5*alpha_pole_pitch + deg_pole_span*ind) /180.*math.pi
+                THETA = alpha_pole_pitch*ind /180.*math.pi
                 X = R*math.cos(THETA)
                 Y = R*math.sin(THETA)
-
+                natural_ind = ind + 1
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
             else:     # v---This negative sign means we walk CCW to assign sets.

@@ -354,25 +354,80 @@ class MachineGeometry:
     all_points: Optional[AllPoints] = None
     gp: dict = field(default_factory=dict) # Parameters from target
 
-    # These will be simple attributes for compatibility
-    slot_count: int = 12
-    pole_count: int = 10
-    d_air_gap: float = 0.15
-    r_stator_outer: float = 6.5
-    r_rotor_outer: float = 4.0
-    r_shaft: float = 0.0
-    w_tooth: float = 1.2
-    d_tooth: float = 2.0
-    d_magnet: float = 3.0
+    winding: dict = field(default_factory=dict)
 
-    # derived 
-    split_ratio: float = 0.615
-    d_stator_yoke: float = 0.3
-    d_tooth_shoe: float = 0.0
-    tooth_shape: str = "closed"
-    deg_alpha_rm: float = 18.0
-    d_sleeve: float = 0.0
-    l_stack: float = 16.0
+    @property
+    def slot_count(self) -> int:
+        return self.winding['slot_count']
+
+    @property
+    def pole_count(self) -> int:
+        return self.winding['pole_count']
+
+    @property
+    def l_stack(self) -> float:
+        return self.winding['l_stack']
+
+    @property
+    def d_air_gap(self) -> float:
+        return self.gp['d_air_gap']
+
+    @property
+    def r_stator_outer(self) -> float:
+        return self.gp['r_stator_outer']
+
+    @property
+    def r_rotor_outer(self) -> float:
+        return self.gp['r_rotor_outer']
+
+    @property
+    def r_shaft(self) -> float:
+        return self.gp['r_shaft']
+
+    @property
+    def w_tooth(self) -> float:
+        return self.gp['w_width']
+
+    @property
+    def d_tooth(self) -> float:
+        return self.gp['d_tooth']
+
+    @property
+    def d_magnet(self) -> float:
+        return self.gp['d_magnet']
+
+    @property
+    def tooth_shape(self) -> str:
+        return self.gp['tooth_shape']
+
+    @property
+    def deg_alpha_rm(self) -> float:
+        # for surface-mounted permanent magnet, we assume full span of magnet (not cost efficient)
+        return 360 / self.pole_count
+
+    @property
+    def split_ratio(self) -> float:
+        return (self.r_rotor_outer + self.d_air_gap) / self.r_stator_outer
+
+    @property
+    def d_stator_yoke(self) -> float:
+        return self.r_stator_outer - self.r_rotor_outer - self.d_tooth
+
+    @property
+    def d_tooth_shoe(self) -> Optional[float]:
+        if self.tooth_shape == 'open':
+            return None
+        return self.gp['d_tooth_shoe']
+    
+    @property
+    def alpha_stator_tooth_span(self) -> Optional[float]:
+        if self.tooth_shape == 'semi-closed':
+            return 360 / self.slot_count * 0.7
+        return None
+
+    @property
+    def aspect_ratio(self) -> float:
+        return self.r_stator_outer * 2 / self.l_stack
 
     def __post_init__(self):
         # Initial values can be set here if needed, but sync() will do the real work
@@ -403,22 +458,5 @@ class MachineGeometry:
 
     def sync(self, user_input: dict):
         """Populate attributes from user_input dict."""
-        self.gp = gp = user_input['geometry']
-        self.slot_count = user_input['winding']['slot_count']
-        self.pole_count = user_input['winding']['pole_count']
-        self.l_stack = user_input['winding']['l_stack']
-
-        self.r_stator_outer = gp['r_stator_outer']
-        self.r_rotor_outer = gp['r_rotor_outer']
-        self.d_magnet = gp['d_magnet']
-        self.d_air_gap = gp['d_air_gap']
-        self.split_ratio = gp['split_ratio'] # Fixed typo
-        
-        self.w_tooth = gp['w_width'] # matching machine.py key
-        self.d_tooth_shoe = gp['d_tooth_shoe']
-        self.d_stator_yoke = gp['d_yoke']
-        self.tooth_shape = gp['tooth_shape']
-        self.d_tooth = gp['d_tooth']
-        self.r_shaft = gp['r_shaft']
-        self.deg_alpha_rm = gp.get('deg_alpha_rm', 18.0)
-        self.d_sleeve = gp.get('d_sleeve', 0.0)
+        self.gp = user_input['geometry']
+        self.winding = user_input['winding']
