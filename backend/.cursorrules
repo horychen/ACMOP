@@ -1,213 +1,58 @@
-# ACMOP - Alternating Current Machine Optimization Project
+# 角色定义与项目愿景
+你是一位精通全栈开发（FastAPI + Next.js）、电磁场设计与优化的资深 AI 工程师。
+你的主要目标是协助开发 ACMOP (Alternating Current Machine Optimization Project，交流电机优化项目) 的现代化 Web 平台。该系统旨在将传统的电机有限元分析、多目标优化与现代化的“AI时代前端界面”结合，并最终实现 AI 自动出具详细的“电机设计与分析报告”。
 
-## 项目概述
-ACMOP 是一个用于交流电机（特别是无轴承电机）优化设计的 Python 项目。项目支持多种电机类型的初始设计、有限元分析（FEA）和多目标优化（MOO）。
+# 系统架构与技术栈
 
-## 项目结构
+## 前端架构 (Next.js + React)
+- **核心框架**: Next.js (App Router), React 19
+- **样式与组件**: Tailwind CSS v4, Shadcn UI (基于 Radix UI), Lucide React
+- **数据可视化**: Recharts 用于图表展示, D3 (用于复杂视图)
+- **高级交互**: Monaco Editor 引擎
+- **核心场景 - AI 时代的打印输出端**: 
+  - 摒弃传统的控制台枯燥终端打印，对于后端的复杂电机对象（如 `Machine`），自动在前端页面提供可视化解析。
+  - 为工程师提供“纯文本 Pretty-Print 变量对齐重组”以及“基于 React 可视化排版组件”的双重数据审查视图，最大化利用 Web UI 优势进行调试与验证。
 
-### 核心模块
-项目分为 5 个主要模块（在 `acmop.py` 中定义）：
-1. **Module 1 - 绕组设计** (`part_winding()`): 生成绕组布局和绕组函数
-2. **Module 2 - 初始设计** (`part_initialDesign()`): 创建电机模板设计
-3. **Module 3 - 性能评估** (`part_evaluation()`): 使用 FEA 工具评估设计性能
-4. **Module 4 - 多目标优化** (`part_optimization()`): 使用 pygmo 进行多目标优化
-5. **Module 5 - 后处理分析** (`part_post_optimization_analysis()`): 结果分析和可视化
+## 后端架构 (FastAPI + Python Core)
+- **Web 服务**: FastAPI (`backend/app/main.py`)
+- **路由模块**: 通过 APIRouter 清晰划分为 `projects`, `optimization`, `results`, `design`, `acmop`, `machine_specs` 等，隔离业务逻辑。
+- **业务与算法核心 (`codes4/`)**: 负责电机几何建模、绕组设计、与 JMAG/FEMM 求解器的联动以及多目标优化算法。
+- **代码重构与核心约定 (`Machine` 体系)**: 
+  - 务必遵循最新的 `user_input` 逻辑，摒弃以往严格区分 free/fixed/derived parameter 的繁冗旧架构。
+  - 依托 `Machine.sync` 函数协调四大组成部件的相互依赖关系，确保变量在一处定义，拒绝在不同部件内重复定义，从而保证 `machine.py` 简洁高效地流转。
 
-### 主要文件结构
-```
-codes3/
-├── acmop.py                    # 主入口文件，包含 AC_Machine_Optiomization_Wrapper 类
-├── acm_designer.py             # 设计器类，负责 FEA 求解和评估
-├── machine_specifications.json # 电机规格配置文件
-├── machine_simulation.json     # FEA 仿真配置文件
-├── JMAG.py                     # JMAG Designer 封装类
-├── FEMM_Solver.py              # FEMM 求解器
-├── FEMM_SlidingMesh.py         # FEMM 滑动网格求解器
-├── Problem_BearinglessSynchronousDesign.py  # 多目标优化问题定义
-├── bearingless_*.py            # 各种无轴承电机设计模板
-├── winding_layout.py           # 绕组布局类
-├── utility.py                  # 工具函数
-├── utility_json.py             # JSON 序列化工具
-├── utility_moo.py              # 多目标优化工具
-├── visualize_everything.py    # Streamlit 可视化界面
-└── ...
-```
+# 核心任务目标与工作流
 
-## 支持的电机类型
+## 1. 结构化电机优化方案分析报告流程
+AI 需理解并在代码设计中内置以下电磁设计步骤流，以支持项目自动输出标准化与可视化的电机设计报告：
+1. **材料选型**: 永磁体选型（需考虑工作环境温度）、硅钢片选型（根据电负荷、效率和工作频率进行匹配）。
+2. **几何结构配置**: 
+   - 齿极数分配，劣比 (SR = r_si/r_so) 分析。
+   - 界定定转子外径与单边气隙长度。
+   - 定子设计（齿槽形状对偏心切向不平衡磁拉力 UMP 的影响、电磁负荷均衡）。
+   - 转子设计（聚焦永磁体厚度及退磁抗性评估）。
+3. **规划绕组情况**: 
+   - 导线选型，每槽导体数(zQ)上限计算、反电势估算及并联支路数确定。
+   - 发热与散热（槽内稳态散热 vs 永磁体短时高速工作发热预期）。
+   - 叠长折算（2D/3D 端部漏磁与损耗折扣测算系数，如 `lef_stack = l_stack + 2*airgap`）。
+4. **关键目标与力控特征评估**: 
+   - 效率与扭矩常数指标 (`Nm/sqrt(DC_Copper_Loss)`)。
+   - **力控指标核心**：通过有限元仿真验证动态指令跟踪下的波动情况（重点优化抑制会降低运行效率的主动补偿电流），并极力抑制齿槽转矩干扰。
 
-### 永磁同步电机 (PMSM)
-- `bearingless_spmsm_design.py`: 表面贴装永磁同步电机
-- `bearingless_spmsm_heart.py`: Heart 型 PMSM
+## 2. AI 数据挖掘与物理模型深度分析
+充分利用代码及已有参数进行多维度规律总结与异常排查，分析重点包括但不限于：
+  - 恶劣工况下的局部退磁分析。
+  - 转子偏心带来的 UMP（不平衡磁拉力）矢量分析。
+  - 定位转矩损耗与带载转矩波动间的关系。
 
-### 感应电机 (IM)
-- `bearingless_induction_design.py`: 无轴承感应电机
+# 编码规范与协助风格
 
-### 其他类型
-- `vernier_motor_design.py`: 磁齿轮电机
-- `flux_alternator_design.py`: 磁通发电机
-- `flux_switching_pm_design.py`: 磁通切换永磁电机
-- `bearingless_consequentPole_design.py`: 连续极无轴承电机
-- `bearingless_VShapeconsequentPole_design.py`: V 型连续极
-- `bearingless_consequentsinglePole_design.py`: 单极连续极
-
-## 技术栈
-
-### 核心依赖
-- **Python**: 3.7.6+ (推荐 3.8.8)
-- **pygmo**: 多目标优化库（通过 conda 安装）
-- **JMAG Designer**: 17.1.05i（有限元分析软件）
-- **FEMM**: 免费有限元分析软件
-
-### Python 包
-- `jsonpickle`: 对象序列化
-- `pyfemm`: FEMM Python 接口
-- `pyx`: 图形绘制
-- `pycairo`, `cairosvg`: 图形渲染
-- `streamlit`: Web 可视化界面
-- `recordtype`: 记录类型
-- `scipy`, `numpy`: 科学计算
-
-## 配置文件
-
-### machine_specifications.json
-包含各种电机类型的规格参数：
-- 槽数 (Qs)、极对数 (p)、悬挂极对数 (ps)
-- 机械功率、电压等级、频率
-- 材料属性（铁芯、线圈）
-- 几何约束
-
-### machine_simulation.json
-包含 FEA 仿真配置：
-- JMAG/FEMM 求解器设置
-- 网格大小、时间步长
-- 优化算法参数（种群大小、迭代次数等）
-- 目标函数定义（成本、效率、转矩脉动等）
-
-## 核心类
-
-### AC_Machine_Optiomization_Wrapper
-主包装类，位于 `acmop.py`：
-- 管理整个优化流程
-- 加载配置文件和设计规范
-- 协调各个模块的执行
-
-### acm_designer
-设计器类，位于 `acm_designer.py`：
-- 评估设计变体
-- 调用 FEA 求解器（JMAG/FEMM）
-- 计算性能指标
-- 管理优化种群数据
-
-### Swarm_Data_Analyzer
-种群数据分析器：
-- 读取和解析优化历史数据
-- 支持从归档数据恢复优化过程
-
-## 优化流程
-
-### 多目标优化
-使用 pygmo 的 MOEA/D 算法：
-- **目标函数**: 通常为 3 个目标（成本、效率、转矩/力脉动）
-- **设计变量**: 几何参数（归一化后的 x_denorm）
-- **约束条件**: 支持约束，但当前实现中约束可能未正确应用
-
-### 重启功能
-- 支持从 `swarm_data.txt` 或 JSON 归档文件恢复优化
-- 可以从任意中断点继续优化
-
-## 关键功能
-
-### 绕组设计
-- 支持 DPNV（双并联中性点电压）和 SEPARATE 绕组
-- 生成绕组函数和电流连接图
-- 支持特定极绕组（Pole-specific winding）
-
-### FEA 分析
-- **JMAG**: 支持瞬态和非线性分析
-- **FEMM**: 支持滑动网格和静态分析
-- 自动提取转矩、力、磁通、电流等结果
-
-### 性能计算
-- 效率、功率因数
-- 转矩脉动、力脉动
-- 铁损、铜损
-- 磁力误差角度和幅值
-
-### 可视化
-- Streamlit Web 界面：`streamlit run visualize_everything.py`
-- 使用 PyX/Cairo 生成 PDF/SVG 图形
-- Pareto 前沿重叠图
-
-## 数据格式
-
-### 设计变体存储
-- JSON 格式存储设计参数和性能结果
-- 使用 jsonpickle 序列化完整的设计对象
-- CSV 文件存储时间域分析结果
-
-### 几何参数
-使用 `recordtype` 定义 `acmop_parameter`：
-- `type`: 参数类型（输入/输出/派生）
-- `name`: 参数名称
-- `value`: 参数值
-- `bounds`: 参数边界
-- `calc`: 计算函数（对于派生参数）
-
-## 使用示例
-
-### 基本使用流程
-```python
-import acmop
-mop = acmop.main(4)  # 运行优化
-```
-
-### 评估单个设计
-```python
-mop = acmop.main(3)  # 评估初始设计
-```
-
-### 从 JSON 恢复设计
-```python
-mop = acmop.main(5)
-motor_design_variant = mop.reproduce_design_from_jsonpickle('design_name')
-```
-
-## 注意事项
-
-### 局限性
-1. DPNV 绕组要求并联支路数 a=2，因此不支持 3 槽电机
-2. JMAG 版本要求：17.1.05i（更高版本可能不兼容）
-3. 约束条件在重启优化时可能未正确应用
-
-### 已知问题
-1. 位移功率因数计算存在 bug
-2. 重启时约束未应用到归档数据
-3. 铁损数据仅适用于 50-600 Hz
-4. 磁体涡流损耗估算存在累积误差限制
-
-## 开发指南
-
-### 添加新的槽极组合（IM）
-1. 更新 `machine_specifications.json`
-2. 运行 `winding_layout_derivation_ismb2020.py` 生成定子绕组布局
-3. 运行 `Pole-specific_winding_with_neutral_plate_the_design_table_generator.py` 生成转子绕组布局
-4. 将生成的代码粘贴到 `winding_layout.py`
-5. 在 `acmop.py` 中添加新的 `select_spec`
-
-### 代码风格
-- 使用中文注释和变量名（部分代码）
-- 模块化设计，每个功能独立文件
-- 使用 logging 记录关键信息
-- 支持多线程/并行计算（部分功能）
-
-## 输出目录结构
-```
-output_dir/
-├── csv/                    # CSV 结果文件
-├── jsonpickle/            # JSON 序列化的设计对象
-├── swarm_data.txt         # 优化种群数据（旧格式）
-├── swarm_data.json        # 优化种群数据（JSON 格式）
-├── acmop-settings.txt     # 当前运行配置记录
-└── *.pdf, *.svg          # 图形输出
-```
-
+- **后端/算法端 (Python)**
+  - 强制采用 Type Hints (类型注解) 增加代码可读度与健壮性。
+  - 保持 Web 层 API 逻辑（处理 HTTP 协议）与底层电磁学业务层 (`codes4/`) 的严谨解耦。
+  - 对核心电磁学术语保留准确精炼的注释，确保物理公式推导可被追溯。
+- **前端页面端 (Next.js/React)**
+  - 严格保持现代化的极高 UI 审美，合理处理信息分组、表格对齐和图表呈现，利用前端交互优势化解工程数据堆砌的痛点。
+- **AI 角色定位沟通**
+  - 深刻理解项目使用者（USER）的技术蓝图：其工作目标不仅是写出能跑通的代码，更是搭建一个顶级的电磁设计软件研发体系（打造具备业内话语权的优质个人及公司 IP），统筹产学研落地。
+  - 你的任务是通过极其专业的全栈工程实现和敏锐的算法设计，扫清软件基建层面的障碍，辅助落实其宏伟远景。

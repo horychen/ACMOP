@@ -6,7 +6,7 @@ except ImportError:
     sys.modules["win32com"] = MagicMock()
     sys.modules["win32com.client"] = MagicMock()
 
-import os, logging, utility, numpy
+import os, logging, utility, numpy, builtins
 
 try:
     import pythoncom  # 用于 COM 初始化
@@ -283,6 +283,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         print(f"DEBUG JMAG FILE: {__file__}")
         start_time = clock_time()
         # logger.info('pre-process PMSM... Starting time: %g s.'%start_time)
+        
+        def verbose_print(*args):
+            if getattr(builtins, 'verbose', False):
+                print(*args)
 
         # view = app.View()
         # view.ClearSelect()
@@ -333,14 +337,16 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         partIDRange_Coil = part_ID_list[int(2+p*s*2) : int(2+p*s*2) + int(Q*2)]
 
         # debug
-        print(id_rotorCore)
-        print(partIDRange_Magnet)
-        print(id_statorCore)
-        print(partIDRange_Coil)
+        verbose_print(f"id_rotorCore={id_rotorCore}")
+        verbose_print(f"partIDRange_Magnet={partIDRange_Magnet}")
+        verbose_print(f"id_statorCore={id_statorCore}")
+        verbose_print(f"partIDRange_Coil={partIDRange_Coil}")
         # model.SuppressPart(id_sleeve, 1)
 
         group("Magnet", partIDRange_Magnet)
+        verbose_print(f"Group 'Magnet' created with IDs: {partIDRange_Magnet}")
         group("Coils", partIDRange_Coil)
+        verbose_print(f"Group 'Coils' created with IDs: {partIDRange_Coil}")
 
         ''' Add Part to Set for later references '''
         def add_part_to_set(name, x, y, ID=None):
@@ -370,6 +376,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             gp = acm_variant.geometry.gp
             return [gp['r_rotor_outer'] + gp['d_air_gap'] + gp['d_tooth']*0.9, -gp['w_tooth']*0.5*1.1]         
         PCoil = get_PCoil(acm_variant)
+        verbose_print(f"PCoil={PCoil}, Angle_StatorSlotSpan={Angle_StatorSlotSpan}")
         
         # Start JMAG logic
         self.doc.GetSelection().Clear()
@@ -383,6 +390,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
             countXL += 1 
+            verbose_print(f"CoilLX: count={countXL}, Phase={UVW}, Sign={UpDown}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
             add_part_to_set("CoilLX%s%s %d"%(UVW,UpDown,countXL), X, Y)
 
             # print(X, Y, THETA)
@@ -400,6 +408,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         countYL = 0
         for UVW, UpDown in zip(wily.layer_Y_phases,wily.layer_Y_signs):
             countYL += 1 
+            verbose_print(f"CoilLY: count={countYL}, Phase={UVW}, Sign={UpDown}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
             add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
 
             THETA += Angle_StatorSlotSpan/180.*math.pi
@@ -408,8 +417,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # Create Set for Magnets
         R = acm_variant.geometry.gp['r_rotor_outer'] - 0.5 * acm_variant.geometry.gp['d_magnet']
-        # deg_pole_span = 360 / (p*2)
-
         alpha_slot_pitch = 360.0 / acm_variant.geometry.slot_count
         alpha_pole_pitch = 360.0 / acm_variant.geometry.pole_count
 
@@ -421,6 +428,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 X = R*math.cos(THETA)
                 Y = R*math.sin(THETA)
                 natural_ind = ind + 1
+                verbose_print(f"Magnet: ind={ind}, natural_ind={natural_ind}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
             else:     # v---This negative sign means we walk CCW to assign sets.
@@ -439,9 +447,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     sel.SelectPart(ID)
             model.GetSetList().GetSet(name).AddSelected(sel)
         part_list_set('Motion_Region', list_xy_magnets, list_part_id=[id_rotorCore, ])
-
         part_list_set('MagnetSet', list_xy_magnets)
-
         msg = 'Time spent on pre-process PMSM is %g s.'%(clock_time() - start_time)
         logger.info(msg)
 

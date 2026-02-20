@@ -221,13 +221,13 @@ def draw_instruction_parser(part, all_points, drawer):
     if not list_coords:
         return {'innerCoord': (0,0), 'inner_coords': {}, 'list_regions': [[]], 'mirrorAxis': mirrorAxis, 'bMirror': bMirror, 'iRotateCopy': copyCount}
         
-    # Calculate overall innerCoord
-    unique_coords = list(set([tuple(p) for p in list_coords]))
-    innerCoord = (sum(p[0] for p in unique_coords) / len(unique_coords), 
-                  sum(p[1] for p in unique_coords) / len(unique_coords))
+    # Calculate overall innerCoord (对于Coil来说，这样算出来是一对线圈的中点，不在Region的内部)
+    # unique_coords = list(set([tuple(p) for p in list_coords]))
+    # innerCoord = (sum(p[0] for p in unique_coords) / len(unique_coords), 
+    #               sum(p[1] for p in unique_coords) / len(unique_coords))
     
     return {
-        'innerCoord': innerCoord, 
+        # 'innerCoord': innerCoord, 
         'inner_coords': region_centroids,
         'list_regions': list_regions,
         'mirrorAxis': mirrorAxis,

@@ -172,6 +172,7 @@ class Machine:
             model = app.GetModel(self.target.project_name)
             toolJd.pre_process_PMSM(app, model, self)
             study = toolJd.add_magnetic_transient_study(app, model, path2FEACsv, study_name, self)
+            quit()
 
             # # 4. Mesh and Run
             # toolJd.mesh_study(self, app, model, study, output_dir=project_loc)
@@ -275,7 +276,7 @@ def run_step_by_step():
             'r_shaft': 0.0,
             'd_tooth': 2.0,
             'w_width': 1.2,
-            'd_magnet': 1.0,
+            'd_magnet': 3.0,
         },
         'target': [
             'search w_stator_width within [1.0, 1.5]',
@@ -289,10 +290,10 @@ def run_step_by_step():
     print("--- Step 0: Initialize Composite Machine ---")
     dex13 = Machine(user_input)
 
-    print(dex13.materials)
-    print(dex13.geometry)
-    print(dex13.winding)
-    print(dex13.target)
+    # print(dex13.materials)
+    # print(dex13.geometry)
+    # print(dex13.winding)
+    # print(dex13.target)
 
     # Initialize geometry points from user_input
     # dex13.sync_all_points()
@@ -323,7 +324,10 @@ def run_step_by_step():
     # Verify the first few regions
     if drawer.regions:
         print(f"Total Regions Collected: {len(drawer.regions)}")
-        print(f"Rotor innerCoord: {drawer.regions[0]['innerCoord']}")
+        print(f"Rotor innerCoord: {drawer.regions[0]['inner_coords']}")
+        print(f"Magnet innerCoord: {drawer.regions[1]['inner_coords']}")
+        print(f"Stator innerCoord: {drawer.regions[2]['inner_coords']}")
+        print(f"Coil innerCoord: {drawer.regions[3]['inner_coords']}")
 
     if False:
         print('--- Step 8: Drawing using JMAG Designer ---')
