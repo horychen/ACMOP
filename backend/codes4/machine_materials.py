@@ -4,6 +4,7 @@ import builtins
 @dataclass
 class MachineMaterial:
     magnet_grade: str = "N42SH"
+    magnet_bg: float = 1.23
     magnet_br: float = 1.3
     magnet_h_cj: float = 1592.0
     d_magnet: float = 3.0

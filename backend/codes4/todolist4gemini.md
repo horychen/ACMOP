@@ -37,6 +37,12 @@
                 - 带载转矩波动
             - 
 
+明显的bug：
+- 反电势的计算，要用的leakage inductance factor
+- 我们用的绕组是 p5ps4 还是 p4ps5，代码里面有地方是硬编码的winding_factor需要替换
+- b_gap 是可以估算的，不要在materials里面直接给定。
+- 更新了速度，更新了母线电压，现在槽满率接近了，但还是需要再出几个方案后去找潘总确认
+
 我更新了machine.py这部分的内容：hello@machine.py#L249-287 ，我们采用 user_input 的逻辑来简化整个代码的架构。在 Machine.sync 函数里，运行四个组成Machine的部件相互有依赖关系，从而避免一个变量在不同的部件内重复定义。以后不再区分 free parameter 和 fixed parameter 还有 derived parameter，这些不在当前的代码架构内体现，帮我更新项目代码，保证 machine.py 可以正常运行。
 
 # 我在舞肌的定位

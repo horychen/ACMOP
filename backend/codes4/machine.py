@@ -262,10 +262,23 @@ def run_step_by_step():
     # 用户需要输入的信息
     user_input = OrderedDict({
         'winding':{
+            'phase_count': 3,
             'slot_count': 12,
             'pole_count': 10,
             'coil_pitch': 1,
             'l_stack': 16.0,
+            'rated_current_density': 14, # A/mm^2
+            'dc_bus_voltage': 12, # V
+            'fill_factor': 0.58,
+            'wire_diameter_with_insulation': 0.226, # AWG31
+            'wire_diameter': 0.179, # AWG31
+            'connection_type': 'wye',
+            'rated_speed': 20000,
+            # 'is_wye_connection': True,
+            # 'conductors_per_slot': 10,
+            # 'excitation_frequency': 833.33,
+            'torque_current_ratio': 1.0,
+            'suspension_current_ratio': 0.0,
         },
         'geometry':{
             'tooth_shape': 'closed',
@@ -315,6 +328,9 @@ def run_step_by_step():
     print(f"Estimated Back-EMF: {dex13.winding.estimated_back_emf:.2f} V")
     print(f"Phase Resistance: {dex13.winding.phase_resistance:.3f} Ohm")
     print(f"Slot Current density: {dex13.winding.rated_current_density} A/mm2")
+
+    is_valid, report_str = dex13.winding.validate_fill_factor()
+    print(f"\n{report_str}\n")
 
     print("\n--- Step 7: Generating SVG and Verifying Regions ---")
     svg_path = os.path.join(DATA_DIR, 'machine_geometry.svg')
