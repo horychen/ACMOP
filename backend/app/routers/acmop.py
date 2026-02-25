@@ -92,125 +92,8 @@ async def get_all_parameters() -> Dict[str, Any]:
     返回完整的参数列表，用于前端预填充
     """
     try:
-        from codes4.machine_design_guide import Modern_Machine_Designer
-        import inspect
-        import traceback
-        
-        # 创建临时实例以获取参数信息
-        try:
-            designer = Modern_Machine_Designer()
-        except Exception as e:
-            raise HTTPException(
-                status_code=500, 
-                detail=f"创建 Modern_Machine_Designer 实例失败: {str(e)}\n{traceback.format_exc()}"
-            )
-        
-        # 获取所有参数
-        try:
-            all_params = designer.get_parameter_fields()
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"获取参数列表失败: {str(e)}\n{traceback.format_exc()}"
-            )
-        
-        # 按类型分组
-        try:
-            fixed_params = designer.get_parameters_by_type('fixed')
-            free_params = designer.get_parameters_by_type('free')
-            derived_params = designer.get_parameters_by_type('derived')
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"按类型分组参数失败: {str(e)}\n{traceback.format_exc()}"
-            )
-        
-        def format_calc(calc_func, args_list, param_name=""):
-            """格式化calc函数为字符串，提取完整的源代码"""
-            if calc_func is None:
-                return None
-            try:
-                # 尝试获取lambda函数的源代码
-                if hasattr(calc_func, '__code__'):
-                    try:
-                        # 获取完整的源代码
-                        source_lines = inspect.getsourcelines(calc_func)
-                        if source_lines and len(source_lines) > 0:
-                            source = ''.join(source_lines[0])
-                            # 提取lambda表达式部分
-                            if 'lambda' in source:
-                                # 找到lambda开始的位置
-                                lambda_start = source.find('lambda')
-                                if lambda_start != -1:
-                                    # 提取从lambda开始到行尾的内容
-                                    lambda_expr = source[lambda_start:].strip()
-                                    # 移除可能的换行，但保留代码结构
-                                    lines = lambda_expr.split('\n')
-                                    if len(lines) > 0:
-                                        # 取第一行，这通常包含完整的lambda
-                                        first_line = lines[0].strip()
-                                        # 如果第一行以逗号或右括号结束，去掉
-                                        if first_line.endswith(','):
-                                            first_line = first_line[:-1]
-                                        # 尝试找到完整的lambda表达式
-                                        # 查找匹配的括号
-                                        paren_count = 0
-                                        result = []
-                                        for char in first_line:
-                                            result.append(char)
-                                            if char == '(':
-                                                paren_count += 1
-                                            elif char == ')':
-                                                paren_count -= 1
-                                                if paren_count == 0 and 'lambda' in ''.join(result):
-                                                    break
-                                        
-                                        lambda_expr = ''.join(result).strip()
-                                        # 移除末尾的逗号
-                                        if lambda_expr.endswith(','):
-                                            lambda_expr = lambda_expr[:-1]
-                                        
-                                        return lambda_expr
-                                    return first_line.strip()
-                    except (OSError, TypeError, ValueError, AttributeError) as e:
-                        # 如果无法获取源代码，尝试其他方法
-                        pass
-                
-                # 如果无法获取源代码，尝试从args构建lambda表达式
-                if args_list and len(args_list) > 0:
-                    arg_names = []
-                    for arg in args_list:
-                        try:
-                            if hasattr(arg, 'name'):
-                                arg_names.append(arg.name)
-                            elif isinstance(arg, (int, float, str)):
-                                arg_names.append(str(arg))
-                            else:
-                                arg_names.append(str(arg))
-                        except:
-                            arg_names.append("arg")
-                    return f"lambda {', '.join(arg_names)}: ..."
-                
-                return str(calc_func)
-            except Exception as e:
-                return f"lambda: ...  # Error: {str(e)}"
-        
-        def format_args(args_list):
-            """格式化args列表为参数名称列表"""
-            if args_list is None:
-                return []
-            result = []
-            for arg in args_list:
-                try:
-                    if hasattr(arg, 'name'):
-                        result.append(arg.name)
-                    elif isinstance(arg, (int, float, str, list)):
-                        result.append(str(arg))
-                    else:
-                        result.append(str(arg))
-                except:
-                    result.append("arg")
-            return result
+        from app.routers.debug import get_default_user_input
+        user_input = get_default_user_input()
         
         parameters_info = {
             "fixed": [],
@@ -218,79 +101,33 @@ async def get_all_parameters() -> Dict[str, Any]:
             "derived": []
         }
         
-        # Fixed参数
-        for param_name, param_obj in fixed_params.items():
-            try:
-                param_info = {
-                    "name": param_name,
-                    "displayName": getattr(param_obj, 'name', param_name),
-                    "type": "fixed",
-                    "unit": param_obj.unit or "mm",
-                    "value": param_obj.value,
-                    "comment": getattr(param_obj, 'comment', None) or getattr(param_obj, 'comnment', None) or ""
-                }
-                parameters_info["fixed"].append(param_info)
-            except Exception as e:
-                # 如果某个参数处理失败，记录错误但继续处理其他参数
-                print(f"Warning: Failed to process fixed parameter '{param_name}': {e}")
-                continue
-        
-        # Free参数
-        for param_name, param_obj in free_params.items():
-            try:
-                param_info = {
-                    "name": param_name,
-                    "displayName": getattr(param_obj, 'name', param_name),
-                    "type": "free",
-                    "unit": param_obj.unit or "mm",
-                    "value": param_obj.value,
-                    "bounds": param_obj.bounds,
-                    "calc_bounds": format_calc(getattr(param_obj, 'calc_bounds', None), getattr(param_obj, 'args', None), param_name),
-                    "args": format_args(getattr(param_obj, 'args', None)),
-                    "comment": getattr(param_obj, 'comment', None) or getattr(param_obj, 'comnment', None) or ""
-                }
-                parameters_info["free"].append(param_info)
-            except Exception as e:
-                # 如果某个参数处理失败，记录错误但继续处理其他参数
-                print(f"Warning: Failed to process free parameter '{param_name}': {e}")
-                continue
-        
-        # Derived参数
-        for param_name, param_obj in derived_params.items():
-            try:
-                param_info = {
-                    "name": param_name,
-                    "displayName": getattr(param_obj, 'name', param_name),
-                    "type": "derived",
-                    "unit": param_obj.unit or "mm",
-                    "value": param_obj.value,
-                    "calc": format_calc(getattr(param_obj, 'calc', None), getattr(param_obj, 'args', None), param_name),
-                    "args": format_args(getattr(param_obj, 'args', None)),
-                    "comment": getattr(param_obj, 'comment', None) or getattr(param_obj, 'comnment', None) or ""
-                }
-                parameters_info["derived"].append(param_info)
-            except Exception as e:
-                # 如果某个参数处理失败，记录错误但继续处理其他参数
-                print(f"Warning: Failed to process derived parameter '{param_name}': {e}")
-                continue
+        # Populate fixed logic for geometries and windings from user_input
+        for section, params in user_input.items():
+            if isinstance(params, dict):
+                for key, val in params.items():
+                    parameters_info["fixed"].append({
+                        "name": key,
+                        "displayName": key,
+                        "type": "fixed",
+                        "unit": "mm" if isinstance(val, (int, float)) else "",
+                        "value": val,
+                        "comment": f"From {section}"
+                    })
         
         return {
             "parameters": parameters_info,
-            "machine_class": designer.machine_class,
+            "machine_class": "SPMSM",
             "summary": {
                 "fixed_count": len(parameters_info["fixed"]),
-                "free_count": len(parameters_info["free"]),
-                "derived_count": len(parameters_info["derived"]),
-                "total_count": len(all_params)
+                "free_count": 0,
+                "derived_count": 0,
+                "total_count": len(parameters_info["fixed"])
             }
         }
-        
-    except HTTPException:
-        raise
     except Exception as e:
         import traceback
         error_detail = f"获取参数列表时出错: {str(e)}\n{traceback.format_exc()}"
-        print(error_detail)  # 在服务器日志中打印详细错误
+        print(error_detail)
         raise HTTPException(status_code=500, detail=f"获取参数列表时出错: {str(e)}")
 
 

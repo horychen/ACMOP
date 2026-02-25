@@ -288,7 +288,7 @@ def run_step_by_step():
             'r_rotor_outer': 8/2,
             'r_shaft': 0.0,
             'd_tooth': 2.0,
-            'w_width': 1.2,
+            'w_tooth': 1.2,
             'd_magnet': 3.0,
         },
         'target': [

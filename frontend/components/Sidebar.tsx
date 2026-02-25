@@ -117,6 +117,17 @@ export function Sidebar({ className }: SidebarProps) {
                 {!isCollapsed && "Debug Points"}
               </Link>
             </Button>
+            <Button
+              variant={pathname === "/v2-validation" ? "secondary" : "ghost"}
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")}
+              asChild
+              title={isCollapsed ? "V2 Validation" : undefined}
+            >
+              <Link href="/v2-validation">
+                <Eye className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+                {!isCollapsed && "V2 Validation"}
+              </Link>
+            </Button>
           </div>
         </div>
 

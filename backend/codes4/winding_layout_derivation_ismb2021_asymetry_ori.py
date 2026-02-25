@@ -1318,12 +1318,12 @@ class winding_diagram:
                         #     ctx.close_path()
                         #     ctx.fill()
 
-                        def varrow(ctx, P1, P2, arrow_width=0.2, arrow_height=0.5):
+                        def varrow(ctx, P1, P2, arrow_tooth=0.2, arrow_height=0.5):
                             ctx.move_to(*P1)
                             ctx.line_to(*P2)
-                            ctx.rel_line_to(-arrow_width, (-1 if (P2[1]>P1[1]) else 1) * arrow_height)
+                            ctx.rel_line_to(-arrow_tooth, (-1 if (P2[1]>P1[1]) else 1) * arrow_height)
                             ctx.move_to(*P2)
-                            ctx.rel_line_to(arrow_width,  (-1 if (P2[1]>P1[1]) else 1) * arrow_height)
+                            ctx.rel_line_to(arrow_tooth,  (-1 if (P2[1]>P1[1]) else 1) * arrow_height)
                             ctx.set_line_join(cairo.LINE_JOIN_ROUND)
                             global_lw = ctx.get_line_width()
                             ctx.set_line_width(global_lw*0.8)

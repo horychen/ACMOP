@@ -2,27 +2,47 @@ from fastapi import APIRouter
 from machine_geometry import AllPoints, MachineGeometry as Machine, RotorCore, StatorCore, Magnet, Coil
 from ReactDrawer import ReactDrawer
 import machine
+from collections import OrderedDict
 
 router = APIRouter()
 
+def get_default_user_input():
+    return OrderedDict({
+        'winding':{
+            'phase_count': 3,
+            'slot_count': 12,
+            'pole_count': 10,
+            'coil_pitch': 1,
+            'l_stack': 16.0,
+            'rated_current_density': 14,
+            'dc_bus_voltage': 12,
+            'fill_factor': 0.58,
+            'wire_diameter_with_insulation': 0.226,
+            'wire_diameter': 0.179,
+            'connection_type': 'wye',
+            'rated_speed': 20000,
+            'torque_current_ratio': 1.0,
+            'suspension_current_ratio': 0.0,
+        },
+        'geometry':{
+            'tooth_shape': 'closed',
+            'd_tooth_shoe': 0.3,
+            'd_air_gap': 0.15,
+            'r_stator_outer': 13/2,
+            'r_rotor_outer': 8/2,
+            'r_shaft': 0.0,
+            'd_tooth': 2.0,
+            'w_tooth': 1.2,
+            'd_magnet': 3.0,
+            'd_yoke': 13/2 - 8/2 - 2.0,
+        },
+        'target': []
+    })
+
 @router.get("/points")
 async def get_debug_points():
-    # Default Geometric Parameters (required_GP) matching main.py example
-    GP_as_dict = {
-        'r_shaft': 0,
-        'r_rotor_outer': 8/2,
-        'd_magnet': 3,
-        'd_air_gap': 0.15,
-        'r_stator_outer': 13/2,
-        'd_stator_yoke': 0.3,
-        'd_stator_tooth': 2,
-        'd_stator_tooth_shoe': 13/2 - 8/2 - 0.15 - 0.3 - 2,
-        'w_stator_width': 1.2,
-        'slot_count': 12,
-        'pole_count': 10
-    }
-
-    points = AllPoints(required_GP=GP_as_dict)
+    user_input = get_default_user_input()
+    points = AllPoints(user_input=user_input)
     
     # Calculate RP_mirror dynamically like parse_point_name does
     RP_mirror = {idx: (p[0], -p[1]) for idx, p in points.RP.items()}
@@ -33,61 +53,50 @@ async def get_debug_points():
         "HP_mirror": getattr(points, 'HP_mirror', {}),
         "RP": points.RP,
         "RP_mirror": RP_mirror,
-        "parameters": GP_as_dict,
-        "slot_count": GP_as_dict['slot_count'],
-        "pole_count": GP_as_dict['pole_count'],
+        "parameters": user_input["geometry"],
+        "slot_count": user_input["winding"]["slot_count"],
+        "pole_count": user_input["winding"]["pole_count"],
         "version": "geometry-debugger-v1"
     }
 
 @router.get("/geometry")
 async def get_debug_geometry():
-    GP_as_dict = {
-        'r_shaft': 0,
-        'r_rotor_outer': 8/2,
-        'd_magnet': 3,
-        'd_air_gap': 0.15,
-        'r_stator_outer': 13/2,
-        'd_stator_yoke': 0.3,
-        'd_stator_tooth': 2,
-        'd_stator_tooth_shoe': 13/2 - 8/2 - 0.15 - 0.3 - 2,
-        'w_stator_width': 1.2,
-        'slot_count': 12,
-        'pole_count': 10
-    }
-    
-    points = AllPoints(required_GP=GP_as_dict)
-    machine = Machine(all_points=points)
+    user_input = get_default_user_input()
+    points = AllPoints(user_input=user_input)
+    machine_geom = Machine(all_points=points)
+    machine_geom.winding = user_input['winding']
     
     # Add parts matching the current main.py flow
-    machine.add_part(RotorCore(name="rotorCore", options="notched"))
-    machine.add_part(StatorCore(name="statorCore", options="closed-slot"))
+    machine_geom.add_part(RotorCore(name="rotorCore", options="notched"))
+    machine_geom.add_part(StatorCore(name="statorCore", options="closed-slot"))
     # Add Magnets
-    machine.add_part(Magnet(name="magnet", color="#FF0000"))
+    machine_geom.add_part(Magnet(name="magnet", color="#FF0000"))
     # Add Coils
-    machine.add_part(Coil(name="coil", color="#0000FF"))
+    machine_geom.add_part(Coil(name="coil", color="#0000FF"))
     
     drawer = ReactDrawer()
-    regions = drawer.draw_machine(machine)
+    regions = drawer.draw_machine(machine_geom)
     
     return {
         "regions": regions,
-        "parameters": GP_as_dict
+        "parameters": user_input["geometry"]
     }
 
 @router.get("/inspection")
 async def get_inspection_data():
-    my_machine = machine.Machine()
+    user_input = get_default_user_input()
+    my_machine = machine.Machine(user_input)
     my_machine.sync() # Ensure all points and winding are updated
     
     return {
         "m_spec": {
-            "fixed_parameters": my_machine.target.fixed_parameters,
+            "fixed_parameters": {"geometry": user_input["geometry"], "winding": user_input["winding"]},
             "materials": {
                 "stator_steel": my_machine.materials.stator_steel,
                 "rotor_steel": my_machine.materials.rotor_steel,
                 "magnet_grade": my_machine.materials.magnet_grade,
                 "magnet_br": my_machine.materials.magnet_br,
-                "copper_fill_factor": my_machine.materials.copper_fill_factor
+                "copper_fill_factor": user_input['winding']['fill_factor']
             }
         },
         "m_para": {
@@ -104,6 +113,6 @@ async def get_inspection_data():
                 "rotor_weight": my_machine.get_rotor_weight()
             }
         },
-        "design_parameters": my_machine.target.free_parameters,
+        "design_parameters": {"target": user_input["target"]},
         "jmag_study": my_machine.target.fea_config_dict
     }

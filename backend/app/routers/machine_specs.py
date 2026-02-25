@@ -64,59 +64,24 @@ def _robust_dict(obj):
         
     return obj
 
-def _specs_to_api_response(specs):
-    """Build API response from MotorSpecs; using robust conversion for dynamic classes."""
+def _specs_to_api_response(my_machine):
+    """Build API response from Machine object; using robust conversion for dynamic classes."""
     
-    geometry_dict = _robust_dict(specs.geometry)
-    
-    # Flatten tooth_specs into geometry if it exists
-    if hasattr(specs.geometry, "tooth_specs"):
-        ts_dict = _robust_dict(specs.geometry.tooth_specs)
-        for k, v in ts_dict.items():
-            if k != "shape": # Don't overwrite the main tooth_shape if there's a conflict
-                geometry_dict[k] = v
+    geometry_dict = _robust_dict(my_machine.geometry)
 
-    # Manually build the structure to ensure everything is serializable
     data = {
         "geometry": geometry_dict,
-        "winding": _robust_dict(specs.winding),
-        "materials": _robust_dict(specs.materials),
-        "targets": _robust_dict(specs.targets),
+        "winding": _robust_dict(my_machine.winding),
+        "materials": _robust_dict(my_machine.materials),
+        "targets": _robust_dict(my_machine.target),
         "validations": {
-            "geometry": specs.validate_inputs("geometry"),
-            "materials": specs.validate_inputs("materials"),
-            "winding": specs.validate_inputs("winding"),
-            "targets": specs.validate_inputs("targets"),
+            "geometry": [],
+            "materials": [],
+            "winding": [],
+            "targets": [],
         }
     }
     return jsonable_encoder(data)
-
-def _get_machine_file_path():
-    """Use workspace path if it exists, else computed path, so we always read the file the user edits."""
-    if os.path.isfile(_WORKSPACE_MACHINE_PATH):
-        return _WORKSPACE_MACHINE_PATH
-    return _USER_MACHINE_PATH
-
-def _load_module_from_file():
-    """
-    每次请求从磁盘读取 user_minitureMachine.py 源码并执行，避免 .pyc 缓存导致修改后仍读到旧默认值。
-    """
-    path = _get_machine_file_path()
-    codes4_dir = os.path.dirname(path)
-    if codes4_dir not in sys.path:
-        sys.path.insert(0, codes4_dir)
-    module = types.ModuleType("machine_geometry")
-    module.__file__ = path
-    with open(path, "r", encoding="utf-8") as f:
-        source = f.read()
-    _agent_log({"location": "dynamic_load", "path": path, "source_start": source[:100]})
-    print(f"DEBUG: Compiling {path}")
-    code = compile(source, path, "exec")
-    print(f"DEBUG: Executing {path}")
-    _agent_log({"location": "before_exec", "path": path})
-    exec(code, module.__dict__)
-    _agent_log({"location": "after_exec", "path": path})
-    return module
 
 @router.get("/machine-specs-version")
 async def get_machine_specs_version():
@@ -129,48 +94,19 @@ async def get_machine_specs_version():
 
 @router.get("/machine-specs")
 async def get_machine_specs():
-    """
-    每次请求时从工作区 backend/codes4/user_minitureMachine.py 文件路径加载模块，返回最新 MotorSpecs。
-    """
+    """采用新的 user_input Machine 模型替换遗留的 MotorSpecs"""
     try:
-        # #region agent log
-        _path_used = _get_machine_file_path()
-        _agent_log({"hypothesisId": "H1-H4", "location": "machine_specs.py:get_machine_specs", "message": "backend before load", "data": {"path_used": _path_used, "path_exists": os.path.isfile(_path_used), "workspace_path": _WORKSPACE_MACHINE_PATH}, "timestamp": time.time() * 1000})
-        # #endregion
-        _agent_log({"location": "before_MotorSpecs_init", "timestamp": time.time()})
-        um_module = _load_module_from_file()
-        _agent_log({"location": "after_module_load", "timestamp": time.time()})
-        specs = um_module.MotorSpecs()
-        _agent_log({"location": "after_MotorSpecs_init", "timestamp": time.time()})
-        _agent_log({
-            "location": "specs_init", 
-            "module": specs.__class__.__module__,
-            "file": getattr(sys.modules.get(specs.__class__.__module__), "__file__", "N/A"),
-            "sys_path": sys.path[:5]
-        })
-        g = specs.geometry
-        out = _specs_to_api_response(specs)
-        # #region agent log
-        _agent_log({
-            "hypothesisId": "H1-H4", 
-            "location": "machine_specs.py:get_machine_specs", 
-            "message": "backend after load", 
-            "data": {
-                "path_used": _get_machine_file_path(), 
-                "g_w_tooth": g.w_tooth.value, 
-                "g_d_tooth": g.d_tooth.value, 
-                "out_w_tooth": out["geometry"]["w_tooth"]["value"], 
-                "out_d_tooth": out["geometry"]["d_tooth"]["value"]
-            }, 
-            "timestamp": time.time() * 1000
-        })
-        path_used = _get_machine_file_path()
+        from app.routers.debug import get_default_user_input
+        from codes4.machine import Machine
+        
+        user_input = get_default_user_input()
+        my_machine = Machine(user_input)
+        my_machine.sync()
+        
+        out = _specs_to_api_response(my_machine)
         out["_debug"] = {
             "source": "workspace_machine_specs",
-            "w_tooth_from_py": g.w_tooth.value,
-            "path_used": path_used,
         }
-        # #endregion
         return JSONResponse(content=out, headers={"Cache-Control": "no-store"})
     except Exception as e:
         import traceback
