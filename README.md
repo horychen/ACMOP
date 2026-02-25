@@ -2,6 +2,61 @@
 
 > Alternating Current Machine Optimization Project
 
+## 🚀 Quick Start: Installation & Running
+
+This guide explains how to set up the modern frontend and backend for the ACMOP project.
+
+### 1. Backend Setup (Python)
+
+The backend uses FastAPI and requires Python (Anaconda is recommended).
+
+1. **Create and activate a conda environment:**
+   ```bash
+   conda create -n acmop python=3.8
+   conda activate acmop
+   ```
+
+2. **Install dependencies:**
+   Navigate to the `backend` directory and install the required packages:
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   ```
+   *(Note: For legacy simulation features like FEMM or JMAG, additional packages such as `pyfemm`, `pycairo`, and `scipy` may be required. See the legacy Requirements section below.)*
+
+3. **Start the Backend server:**
+   From the project root, you can run the provided startup script (Windows):
+   ```powershell
+   .\scripts\start_backend.ps1
+   ```
+   Or explicitly start it from the `backend` directory using Uvicorn:
+   ```bash
+   cd backend
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+   The backend API will be available at `http://localhost:8000`.
+
+### 2. Frontend Setup (Next.js)
+
+The frontend is a modern React web application built with Next.js and TailwindCSS.
+
+1. **Install Node.js:** Ensure you have Node.js installed (v18+ recommended).
+
+2. **Install dependencies:**
+   Navigate to the `frontend` directory and install the npm packages:
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+3. **Start the Frontend development server:**
+   ```bash
+   npm run dev
+   ```
+   The frontend UI will be available at `http://localhost:3000`.
+
+---
+
 ## 用户配置文件（前端与后端虚拟环境）
 
 项目根目录下的 **`acmop.config.json`** 用于显式指定前端与后端所采用的配置（含虚拟环境与后端地址），便于前端调用后端 Python 时使用统一环境。
