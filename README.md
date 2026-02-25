@@ -25,6 +25,8 @@ The backend uses FastAPI and requires Python (Anaconda is recommended).
    *(Note: For legacy simulation features like FEMM or JMAG, additional packages such as `pyfemm`, `pycairo`, and `scipy` may be required. See the legacy Requirements section below.)*
 
 3. **Start the Backend server:**
+   
+   **For the traditional backend (V1):**
    From the project root, you can run the provided startup script (Windows):
    ```powershell
    .\scripts\start_backend.ps1
@@ -34,6 +36,15 @@ The backend uses FastAPI and requires Python (Anaconda is recommended).
    cd backend
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
+   
+   **For the modern backend (V2):**
+   Navigate to the `backend_v2` directory to run it:
+   ```bash
+   cd backend_v2
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   ```
+   *Alternatively, you can just run `python main.py` inside the `backend_v2` directory to start the server.*
+
    The backend API will be available at `http://localhost:8000`.
 
 ### 2. Frontend Setup (Next.js)
