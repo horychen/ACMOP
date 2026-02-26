@@ -2,6 +2,31 @@ import os
 from collections import OrderedDict
 from machine_geometry import MachineGeometry
 
+class Dict2Obj:
+    def __init__(self, d):
+        self._d = d
+    def __getattr__(self, name):
+        if name in self._d:
+            return self._d[name]
+        # For legacy attribute names mapping:
+        if name == 'p': return self._d.get('pole_count', 10) // 2
+        if name == 'ps': return self._d.get('suspension_pole_count', 2) // 2
+        if name == 'drive_winding_conductors_per_slot': return self._d.get('wires_per_slot', 10) # Default fallback
+        if name == 'stack_length_specified': return self._d.get('l_stack', 16.0)
+        if name == 'drive_winding_current': return self._d.get('drive_winding_current', 0.0)
+        if name == 'bearing_winding_current': return self._d.get('bearing_winding_current', 0.0)
+        if name == 'excitation_frequency_simulated': return self._d.get('rated_speed', 20000)/60.0 * (self._d.get('pole_count', 10)/2.0)
+        if name == 'torque_current_utilization_ratio': return 1.0 # default fallback
+        if name == 'slot_area': return self._d.get('slot_area', 100.0)
+        if name == 'magnet_temperature': return self._d.get('magnet_temperature', 80)
+        if name == 'rated_speed': return self._d.get('rated_speed', 20000)
+        if name == 'rated_power': return self._d.get('rated_power', 1000)
+        if name == 'magnet_area': return self._d.get('magnet_area', 100)
+        # Target specific properties:
+        if name == 'fea_config_dict': return self._d.get('fea_config_dict', {})
+        if name == 'machine_class': return self._d.get('machine_class', 'SPMSM')
+        return super().__getattribute__(name)
+
 class Machine:
     """
     电机的顶层组装与调度类(Machine Wrapper)。
@@ -10,6 +35,17 @@ class Machine:
     def __init__(self, machine_dict: OrderedDict):
         self.machine_dict = machine_dict
         self.geometry = MachineGeometry()
+
+    @property
+    def winding(self):
+        return Dict2Obj(self.machine_dict.get('winding', {}))
+        
+    @property
+    def target(self):
+        # Merge target and fea_config_dict for proxy access
+        target_dict = self.machine_dict.get('target', {}).copy()
+        target_dict['fea_config_dict'] = self.machine_dict.get('fea_config_dict', {})
+        return Dict2Obj(target_dict)
         
     def sync(self):
         """
@@ -98,7 +134,7 @@ class Machine:
         import platform
         import JMAG
         
-        self.project_name = 'stator_v2'
+        self.project_name = os.path.splitext(os.path.basename(expected_project_file))[0]
         
         # JMAG 启动时的配置项设定 (本地机器的 node 验证及版本识别)
         fea_config_dict = {
@@ -221,12 +257,26 @@ class Machine:
             
             # NOTE: backend_v2 structure passing self to toolJd requires toolJd to be compatible.
             toolJd.pre_process_PMSM(app, model, self)
-            # study = toolJd.add_magnetic_transient_study(app, model, path2FEACsv, study_name, self)
-            # toolJd.mesh_study(self, app, model, study, output_dir=project_loc)
-            # toolJd.run_study(self, app, study, target_dict.get('fea_config_dict', {}), clock_time())
+            study = toolJd.add_magnetic_transient_study(app, model, path2FEACsv, study_name, self)
+            toolJd.mesh_study(self, app, model, study, output_dir=project_loc)
+            toolJd.run_study(self, app, study, self.target.fea_config_dict, clock_time())
+            
+            # 4. Monitor the output results are generated in the specified csv folder
+            import time
+            import os
+            expected_csv = os.path.join(path2FEACsv, f"{study_name}_torque.csv")
+            print(f"Monitoring output results generation in: {path2FEACsv}")
+            wait_time = 0
+            while not os.path.exists(expected_csv):
+                time.sleep(2)
+                wait_time += 2
+                if wait_time > 180: # 3 minutes timeout
+                    raise Exception(f"Timeout waiting for JMAG CSV results at {expected_csv}.")
+            print("CSV results detected. Waiting a few seconds for file flush...")
+            time.sleep(5) # Give JMAG some time to finish writing all CSV files
             
             # 5. Compile & Save Results
-            # self.compile_results(toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool)
+            self.compile_results(toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool)
         else:
             raise Exception(f"FEA tool {select_FEA_tool} not implemented or supported.")
 
@@ -352,6 +402,13 @@ if __name__ == "__main__":
             ('designer.StepPerCycle_3rdTSS', 64),
             ('designer.TranRef-StepPerCycle', 64),
             ('designer.AddIronLossCondition', True),
+            ('designer.CircumferentialDivision', 1440),
+            ('designer.meshSize_Magnet', 2.0),
+            ('designer.meshSize_Shaft', 4.0),
+            ('designer.meshSizeAir', 1.0),
+            ('designer.meshSize_General', 2.0),
+            ('designer.JMAG_Scheduler', False),
+            ('delete_results_after_calculation', False),
         ])),
         ('target', OrderedDict([
             ('select_FEA_tool', 'JMAG'),

@@ -225,7 +225,7 @@ def get_rotor_core_instruction(part_dict, all_points):
             "RP_M[1] - RP_M[2]", "RP_M[2] ~ RP[2]", "RP[2] - RP[1]", "RP_M[1] ~ RP[1]"
         ]
     elif options == "cylinder" or options == "":
-        instrs = ["HP[3] ~ HP_M[3]", "HP_M[3] ~ HP[3]"] # 画一个完整的内圆柱体
+        instrs = ["HP[2] ~ HP_M[2]", "HP_M[2] ~ HP[2]"] # 画一个完整的内圆柱体
         
     return {
         "区域的几何绘制指导": {"region1": instrs},

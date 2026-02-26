@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .machine_core import MotorParameters
+from machine_core import MotorParameters
 
 app = FastAPI(title="ACMOP Backend V2")
 

@@ -334,10 +334,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if isinstance(part_ID_list, int) or isinstance(part_ID_list, str):
             part_ID_list = (part_ID_list,)
 
+        pole_count = acm_variant.machine_dict.get('winding', {}).get('pole_count', 10)
         self.id_rotorCore = id_rotorCore = part_ID_list[0]
-        partIDRange_Magnet = [part_ID_list[1]] if len(part_ID_list) > 1 else []
-        self.id_statorCore = id_statorCore = part_ID_list[2] if len(part_ID_list) > 2 else None
-        partIDRange_Coil = [part_ID_list[3]] if len(part_ID_list) > 3 else []
+        partIDRange_Magnet = list(part_ID_list[1 : 1 + pole_count]) if len(part_ID_list) > 1 else []
+        self.id_statorCore = id_statorCore = part_ID_list[1 + pole_count] if len(part_ID_list) > 1 + pole_count else None
+        partIDRange_Coil = list(part_ID_list[2 + pole_count :]) if len(part_ID_list) > 2 + pole_count else []
 
         # debug
         verbose_print(f"id_rotorCore={id_rotorCore}")
@@ -379,7 +380,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             gp = acm_variant.machine_dict.get('geometry', {})
             return [gp.get('r_rotor_outer', 4) + gp.get('d_air_gap', 0.15) + gp.get('d_tooth', 2)*0.9, -gp.get('w_tooth', 1.2)*0.5*1.1]         
         PCoil = get_PCoil(acm_variant)
-        verbose_print(f"PCoil={PCoil}, Angle_StatorSlotSpan={Angle_StatorSlotSpan}")
+        print(f"PCoil={PCoil}, Angle_StatorSlotSpan={Angle_StatorSlotSpan}")
         
         # Start JMAG logic
         self.doc.GetSelection().Clear()
@@ -394,7 +395,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         for UVW, UpDown in zip(wily.layer_X_phases,wily.layer_X_signs):
             countXL += 1 
-            verbose_print(f"CoilLX: count={countXL}, Phase={UVW}, Sign={UpDown}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
+            print(f"CoilLX: count={countXL}, Phase={UVW}, Sign={UpDown}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
             add_part_to_set("CoilLX%s%s %d"%(UVW,UpDown,countXL), X, Y)
 
             # print(X, Y, THETA)
@@ -406,13 +407,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if PCoil[1] >= 0:
             raise Exception(f'Pay attention to the coil setup. The codes are written assuming the first coil is in the 12th slot. In other words PCoil[1] should negative, but {PCoil[1]=}')
         else:
-            THETA = math.atan2(-PCoil[1], PCoil[0]) - (2*math.pi)/Q # needed for case in which PCoil[1] < 0
+            THETA = math.atan2(-PCoil[1], PCoil[0]) # Start from Slot 1's left layer directly
         X = R*math.cos(THETA)
         Y = R*math.sin(THETA)
         countYL = 0
         for UVW, UpDown in zip(wily.layer_Y_phases,wily.layer_Y_signs):
             countYL += 1 
-            verbose_print(f"CoilLY: count={countYL}, Phase={UVW}, Sign={UpDown}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
+            print(f"CoilLY: count={countYL}, Phase={UVW}, Sign={UpDown}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
             add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
 
             THETA += Angle_StatorSlotSpan/180.*math.pi
@@ -433,7 +434,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 X = R*math.cos(THETA)
                 Y = R*math.sin(THETA)
                 natural_ind = ind + 1
-                verbose_print(f"Magnet: ind={ind}, natural_ind={natural_ind}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
+                print(f"Magnet: ind={ind}, natural_ind={natural_ind}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
                 add_part_to_set("Magnet %d"%(natural_ind), X, Y)
                 list_xy_magnets.append([X,Y])
             else:     # v---This negative sign means we walk CCW to assign sets.
@@ -685,7 +686,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # Check CSV reults for iron loss (You cannot check this for Freq study) # CSV and save space
         # Convert path2FEACsv to a full absolute path string
-        study.GetStudyProperties().SetValue("CsvOutputPath", os.path.abspath(path2FEACsv).replace('\\', '/')) # it's folder rather than file!
+        csv_path_str = os.path.abspath(path2FEACsv).replace('\\', '/')
+        if not csv_path_str.endswith('/'):
+            csv_path_str += '/'
+        study.GetStudyProperties().SetValue("CsvOutputPath", csv_path_str) # it's folder rather than file!
         if acm_variant.target.fea_config_dict["designer.AddIronLossCondition"]:
             if self.JMAG_version_number >= 21:
                 study.GetStudyProperties().SetValue(u"CsvResultTypes", u"Torque;Force;FEMCoilFlux;LineCurrent;TerminalVoltage;JouleLoss;StoredEnergy;TotalDisplacementAngle;Inductance;FEMCoilInductance;JouleLoss_IronLoss;IronLoss_IronLoss;HysteresisLoss_IronLoss") # new since 2022
@@ -817,7 +821,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
             if bool_3PhaseCurrentSource == True: # must use this for frequency analysis
                 print('Use 3-Phase Current Source')
-                quit()
+                # quit()
 
                 study.GetCircuit().CreateComponent("3PhaseCurrentSource", "CS%s"%(Grouping))
                 study.GetCircuit().CreateInstance("CS%s"%(Grouping), x-4, y+1)
@@ -882,10 +886,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         w_dict = acm_variant.machine_dict.get('winding', {})
         wily = w_dict.get('wily', None)
-        npb = wily.number_of_parallel_branch
-        nwl = wily.number_of_winding_layer # number of windign layers 
+        npb = wily.number_parallel_branch
+        nwl = wily.number_winding_layer # number of windign layers 
         # if acm_variant.target.fea_config_dict['DPNV_separate_winding_implementation'] == True or acm_variant.template.spec_input_dict['bool_DPNVorSEPA'] == False:
-        if wily.bool_DPNVorSEPA == False:
+        if wily.bool_DPNVorSEPA in [False, None]:
             # either a separate winding or a DPNV winding implemented as a separate winding
             ampD =  0.5 * (w_dict.get('drive_winding_current', 0)/npb + w_dict.get('bearing_winding_current', 0)) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
             ampB = -0.5 * (w_dict.get('drive_winding_current', 0)/npb - w_dict.get('bearing_winding_current', 0)) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
@@ -1953,10 +1957,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # enablePrint()
         else:
 
-            wily = acm_variant.wily
+            wily = acm_variant.winding.wily
             copper_loss_parameters = [acm_variant.mm_d_sleeve.value + acm_variant.mm_d_mech_air_gap.value,
                                 acm_variant.mm_w_st.value,
-                                wily.number_of_parallel_branch,
+                                wily.number_parallel_branch,
                                 acm_variant.winding.drive_winding_conductors_per_slot,
                                 wily.coil_pitch_y,
                                 acm_variant.winding.slot_count,

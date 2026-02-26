@@ -16,13 +16,33 @@ def infer_Y_layer_grpAC_from_X_layer_and_coil_pitch_y(grouping_AC, coil_pitch):
     # >>> a = [1,2,3,4,5,6,7,8,0]
     # >>> a[-7:] + a[:-7]
     # [3, 4, 5, 6, 7, 8, 0, 1, 2]
+from collections import OrderedDict
 
-class winding_layout_v2(object):
+class winding_layout_v2(OrderedDict):
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    def __setattr__(self, name, value):
+        if name.startswith('_'):
+            super().__setattr__(name, value)
+        else:
+            self[name] = value
+
     def __init__(self, DPNV_or_SEPA, Qs, p, ps=None, coil_pitch_y=None, pr=None, m=3, Wrap_Around=None):
         ''' Naming convention:
         # right layer = 1st layer = X layer = torque layer for separate winding
         # left layer  = 2nd layer = Y layer = suspension layer for separate winding
         '''
+        super().__init__()
+        self.bool_CustomizedCircuit = False
+        self.bool_DPNVorSEPA = DPNV_or_SEPA
+        self.CommutatingSequenceD = 0
+        self.CommutatingSequenceB = 0
+        self.grouping_AC = [1] * Qs
+        self.bool_distributed_or_concentrated = (coil_pitch_y != 1)
 
         # number of phase
         # m = 3
