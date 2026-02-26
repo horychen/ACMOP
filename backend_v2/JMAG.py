@@ -544,7 +544,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             DM = app.GetDataManager()
             DM.CreatePointArray("point_array/timevsdivision", "SectionStepTable")
 
-            FREQUENCY = w_dict.get('rated_speed', 20000) / 60.0 * (w_dict.get('pole_count', 10) / 2.0)
+            FREQUENCY = abs(w_dict.get('rated_speed', 20000) / 60.0 * (w_dict.get('pole_count', 10) / 2.0))
             print(f"DEBUG JMAG: FREQUENCY = {FREQUENCY}, number_cycles_in_1stTSS = {number_cycles_in_1stTSS}")
 
             if number_cycles_prolonged == 0:
@@ -612,8 +612,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         study.GetCondition("RotCon").SetValue("AngularVelocity", 'speed')
         if wily.bool_DPNVorSEPA == False:
             app.ShowCircuitGrid(True)
-            study.GetCircuit().GetComponent("CS4").SetValue("Frequency", "freq")
-            study.GetCircuit().GetComponent("CS2").SetValue("Frequency", "freq")
+            study.GetCircuit().GetComponent("CS4").SetValue("Frequency", FREQUENCY)
+            study.GetCircuit().GetComponent("CS2").SetValue("Frequency", FREQUENCY)
 
         # max_nonlinear_iteration = 50
         # study.GetStudyProperties().SetValue(u"NonlinearMaxIteration", max_nonlinear_iteration)
@@ -826,7 +826,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 study.GetCircuit().CreateComponent("3PhaseCurrentSource", "CS%s"%(Grouping))
                 study.GetCircuit().CreateInstance("CS%s"%(Grouping), x-4, y+1)
                 study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("Amplitude", ampD+ampB)
-                study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("Frequency", "freq") # this is not needed for freq analysis # "freq" is a variable
+                study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("Frequency", freq) # bypassed JMAG Equation string
                 study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("PhaseU", phase)
                 # Commutating sequence is essencial for the direction of the field to be consistent with speed: UVW rather than UWV
                 study.GetCircuit().GetComponent("CS%s"%(Grouping)).SetValue("CommutatingSequence", CommutatingSequenceD) 
@@ -886,8 +886,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         w_dict = acm_variant.machine_dict.get('winding', {})
         wily = w_dict.get('wily', None)
-        npb = wily.number_parallel_branch
-        nwl = wily.number_winding_layer # number of windign layers 
+        npb = getattr(wily, 'number_of_parallel_branch', getattr(wily, 'number_parallel_branch', 1))
+        nwl = getattr(wily, 'number_of_winding_layer', getattr(wily, 'number_winding_layer', 1)) # number of windign layers 
         # if acm_variant.target.fea_config_dict['DPNV_separate_winding_implementation'] == True or acm_variant.template.spec_input_dict['bool_DPNVorSEPA'] == False:
         if wily.bool_DPNVorSEPA in [False, None]:
             # either a separate winding or a DPNV winding implemented as a separate winding
@@ -907,11 +907,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                               ampB=-ampB, freq=w_dict.get('excitation_frequency_simulated', 500), phase=0,
                               CommutatingSequenceD=wily.CommutatingSequenceD,
                               CommutatingSequenceB=wily.CommutatingSequenceB)
-        circuit('GroupBD',  w_dict.get('bearing_winding_conductors_per_slot', 10)/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
-            Rs=w_dict.get('phase_resistance', 0.1),ampD= ampD,
-                              ampB=+ampB, freq=w_dict.get('excitation_frequency_simulated', 500), phase=0,
-                              CommutatingSequenceD=wily.CommutatingSequenceD,
-                              CommutatingSequenceB=wily.CommutatingSequenceB,x=25) # CS4 corresponds to uauc (conflict with following codes but it does not matter.)
+                              
+        if wily.bool_DPNVorSEPA is not None:
+            circuit('GroupBD',  w_dict.get('bearing_winding_conductors_per_slot', 10)/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
+                Rs=w_dict.get('phase_resistance', 0.1),ampD= ampD,
+                                  ampB=+ampB, freq=w_dict.get('excitation_frequency_simulated', 500), phase=0,
+                                  CommutatingSequenceD=wily.CommutatingSequenceD,
+                                  CommutatingSequenceB=wily.CommutatingSequenceB,x=25) # CS4 corresponds to uauc (conflict with following codes but it does not matter.)
 
         # Link FEM Coils to Coil Set     
         # if acm_variant.target.fea_config_dict['DPNV_separate_winding_implementation'] == True or acm_variant.template.spec_input_dict['bool_DPNVorSEPA'] == False:
@@ -959,7 +961,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # Create FEM Coil Condition
             # here we map circuit component `Coil2A' to FEM Coil Condition 'phaseAuauc
             # here we map circuit component `Coil4A' to FEM Coil Condition 'phaseAubud
-            for suffix, poles in zip(['GroupAC', 'GroupBD'], [acm_variant.winding.p, acm_variant.winding.ps]): # 仍然需要考虑poles，是因为为Coil设置Set那里的代码还没有更新。这里的2(acm_variant.DriveW_poles)和4(acm_variant.BeariW_poles)等价于leftlayer和rightlayer。
+            groups = ['GroupAC', 'GroupBD'] if wily.bool_DPNVorSEPA is not None else ['GroupAC']
+            poles_list = [acm_variant.winding.p, acm_variant.winding.ps] if wily.bool_DPNVorSEPA is not None else [acm_variant.winding.p]
+
+            for suffix, poles in zip(groups, poles_list): # 仍然需要考虑poles，是因为为Coil设置Set那里的代码还没有更新。这里的2(acm_variant.DriveW_poles)和4(acm_variant.BeariW_poles)等价于leftlayer和rightlayer。
                 for UVW in ['U','V','W']:
                     study.CreateCondition("FEMCoil", 'phase'+UVW+suffix)
                     # link between FEM Coil Condition and Circuit FEM Coil
@@ -1033,7 +1038,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 # print l_leftlayer1
                 index += 1
             # clean up
-            for suffix in ['GroupAC', 'GroupBD']:
+            for suffix in groups:
                 for UVW in ['U','V','W']:
                     condition = study.GetCondition('phase'+UVW+suffix)
                     condition.RemoveSubCondition("delete")
@@ -1744,21 +1749,25 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # FluxLinkage (2022)
         key_list = []
         FluxLinkage_dict = dict()
-        with open(os.path.join(path_prefix, study_name + '_flux_of_fem_coil.csv'), 'r') as f:
-            count = 0
-            for row in utility.csv_row_reader(f):
-                count +=1
-                if count<=8:
-                    if 'Time' in row[0]: # Time(s)
-                        for key in row:
-                            key_list.append(key)
-                            FluxLinkage_dict[key] = []
+        flux_csv_path = os.path.join(path_prefix, study_name + '_flux_of_fem_coil.csv')
+        if os.path.exists(flux_csv_path):
+            with open(flux_csv_path, 'r') as f:
+                count = 0
+                for row in utility.csv_row_reader(f):
+                    count +=1
+                    if count<=8:
+                        if 'Time' in row[0]: # Time(s)
+                            for key in row:
+                                key_list.append(key)
+                                FluxLinkage_dict[key] = []
+                        else:
+                            continue
                     else:
-                        continue
-                else:
-                    for ind, val in enumerate(row):
-                        FluxLinkage_dict[key_list[ind]].append(float(val))
-        FluxLinkage_dict['CircuitCoilDefault'] = FluxLinkage_dict[key_list[-1]]
+                        for ind, val in enumerate(row):
+                            FluxLinkage_dict[key_list[ind]].append(float(val))
+            FluxLinkage_dict['CircuitCoilDefault'] = FluxLinkage_dict[key_list[-1]]
+        else:
+            print(f"Warning: FEM Coil Flux CSV not found at {flux_csv_path}, skipping flux linkage processing.")
 
         # Displacement angle (2022)
         DisplacementAngle_list = []
@@ -1777,21 +1786,22 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # file name is by individual_name like ID32-2-4_EXPORT_CIRCUIT_VOLTAGE.csv rather than ID32-2-4Tran2TSS_circuit_current.csv
             fname = os.path.join(path_prefix, study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
             # print 'Terminal Voltage - look into:', fname
-            with open(fname, 'r') as f:
-                count = 0
-                for row in utility.csv_row_reader(f):
-                    count +=1
-                    if count==1: # Time | Terminal1 | Terminal2 | ... | Termial6
-                        if 'Time' in row[0]: # Time, s
-                            for key in row:
-                                new_key_list.append(key) # Yes, you have to use a new key list, because the ind below bgeins at 0.
-                                Current_dict[key] = []
+            if os.path.exists(fname):
+                with open(fname, 'r') as f:
+                    count = 0
+                    for row in utility.csv_row_reader(f):
+                        count +=1
+                        if count==1: # Time | Terminal1 | Terminal2 | ... | Termial6
+                            if 'Time' in row[0]: # Time, s
+                                for key in row:
+                                    new_key_list.append(key) # Yes, you have to use a new key list, because the ind below bgeins at 0.
+                                    Current_dict[key] = []
+                            else:
+                                raise Exception('Problem with csv file for terminal voltage.')
                         else:
-                            raise Exception('Problem with csv file for terminal voltage.')
-                    else:
-                        for ind, val in enumerate(row):
-                            Current_dict[new_key_list[ind]].append(float(val))
-        key_list += new_key_list
+                            for ind, val in enumerate(row):
+                                Current_dict[new_key_list[ind]].append(float(val))
+            key_list += new_key_list
 
         # Loss
         # Iron Loss
@@ -1811,19 +1821,21 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
                     if count == 7:  # Validate header row
-                        if 'rotorCore' not in row[1] or 'statorCore' not in row[3]:
-                            raise ValueError(f'Expected "rotorCore" at column index 1 in header, but found: {row[1] if len(row) > 1 else "missing"}')
-                            raise ValueError(f'Expected "statorCore" at column index 3 in header, but found: {row[3] if len(row) > 3 else "missing"}')
+                        if 'rotorCore' not in row[1] or 'statorCore' not in row[2]:
+                            if 'rotorCore' not in row[1]:
+                                raise ValueError(f'Expected "rotorCore" at column index 1 in header, but found: {row[1] if len(row) > 1 else "missing"}')
+                            if 'statorCore' not in row[2]:
+                                raise ValueError(f'Expected "statorCore" at column index 2 in header, but found: {row[2] if len(row) > 2 else "missing"}')
                     if count>7:
                         if float(row[0]) != 0.0:
                             logger = logging.getLogger(__name__)
                             logger.debug('This should be 0: %s. This is likely due to you set up cases in your JMAG project. This automation supports case number of 1 only.', float(row[0]))
                         rotor_iron_loss = float(row[1]) # Rotor Core
-                        stator_iron_loss = float(row[3]) # Stator Core (fixed: was row[4], should be row[3])
+                        stator_iron_loss = float(row[2]) # Stator Core
                         logger = logging.getLogger(__name__)
                         logger.info('Iron loss: %s W (Stator) and %s (Rotor)', stator_iron_loss, rotor_iron_loss)
                         break
-        with open(path_prefix + study_name + '_joule_loss_loss.csv', 'r') as f:
+        with open(os.path.join(path_prefix, study_name + '_joule_loss_loss.csv'), 'r') as f:
             count = 0
             for row in utility.csv_row_reader(f):
                 count +=1
@@ -1836,16 +1848,18 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
                     if count == 7:  # Validate header row
-                        if 'rotorCore' not in row[1] or 'statorCore' not in row[3]:
-                            raise ValueError(f'Expected "rotorCore" at column index 1 in header, but found: {row[1] if len(row) > 1 else "missing"}')
-                            raise ValueError(f'Expected "statorCore" at column index 3 in header, but found: {row[3] if len(row) > 3 else "missing"}')
+                        if 'rotorCore' not in row[1] or 'statorCore' not in row[2]:
+                            if 'rotorCore' not in row[1]:
+                                raise ValueError(f'Expected "rotorCore" at column index 1 in header, but found: {row[1] if len(row) > 1 else "missing"}')
+                            if 'statorCore' not in row[2]:
+                                raise ValueError(f'Expected "statorCore" at column index 2 in header, but found: {row[2] if len(row) > 2 else "missing"}')
                     if count>7:
                         rotor_eddycurrent_loss  = float(row[1]) # Rotor Core
-                        stator_eddycurrent_loss = float(row[3]) # Stator Core
+                        stator_eddycurrent_loss = float(row[2]) # Stator Core
                         logger = logging.getLogger(__name__)
                         logger.info('Eddy current loss: %s %s', stator_eddycurrent_loss, rotor_eddycurrent_loss)
                         break
-        with open(path_prefix + study_name + '_hysteresis_loss_loss.csv', 'r') as f:
+        with open(os.path.join(path_prefix, study_name + '_hysteresis_loss_loss.csv'), 'r') as f:
             count = 0
             for row in utility.csv_row_reader(f):
                 count +=1
@@ -1858,19 +1872,21 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                         break
                 elif 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
                     if count == 7:  # Validate header row
-                        if 'rotorCore' not in row[1] or 'statorCore' not in row[3]:
-                            raise ValueError(f'Expected "rotorCore" at column index 1 in header, but found: {row[1] if len(row) > 1 else "missing"}')
-                            raise ValueError(f'Expected "statorCore" at column index 3 in header, but found: {row[3] if len(row) > 3 else "missing"}')
+                        if 'rotorCore' not in row[1] or 'statorCore' not in row[2]:
+                            if 'rotorCore' not in row[1]:
+                                raise ValueError(f'Expected "rotorCore" at column index 1 in header, but found: {row[1] if len(row) > 1 else "missing"}')
+                            if 'statorCore' not in row[2]:
+                                raise ValueError(f'Expected "statorCore" at column index 2 in header, but found: {row[2] if len(row) > 2 else "missing"}')
                     if count>7:
                         rotor_hysteresis_loss  = float(row[1]) # Rotor Core
-                        stator_hysteresis_loss = float(row[3]) # Stator Core
+                        stator_hysteresis_loss = float(row[2]) # Stator Core
                         logger = logging.getLogger(__name__)
                         logger.info('Hysteresis loss: %s %s', stator_hysteresis_loss, rotor_hysteresis_loss)
                         break
 
         # Joule Loss (Copper and Magnet)
         rotor_Joule_loss_list = []
-        with open(path_prefix + study_name + '_joule_loss.csv', 'r') as f:
+        with open(os.path.join(path_prefix, study_name + '_joule_loss.csv'), 'r') as f:
             count = 0
             for row in utility.csv_row_reader(f):
                 count +=1
@@ -1958,26 +1974,29 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         else:
 
             wily = acm_variant.winding.wily
-            copper_loss_parameters = [acm_variant.mm_d_sleeve.value + acm_variant.mm_d_mech_air_gap.value,
-                                acm_variant.mm_w_st.value,
-                                wily.number_parallel_branch,
-                                acm_variant.winding.drive_winding_conductors_per_slot,
-                                wily.coil_pitch_y,
-                                acm_variant.winding.slot_count,
-                                acm_variant.winding.stack_length_specified,
-                                acm_variant.winding.drive_winding_current + acm_variant.winding.bearing_winding_current, # total current amplitude
-                                acm_variant.mm_r_ro.value,       # mm
-                                acm_variant.mm_r_so.value*2*1e-3 # m, stator_yoke_diameter_Dsyi
-                                ]
+            geo = acm_variant.machine_dict.get('geometry', {})
+            win = acm_variant.machine_dict.get('winding', {})
+            copper_loss_parameters = [
+                geo.get('d_sleeve', 0.0) + geo.get('d_air_gap', 0.15),
+                geo.get('w_tooth', 1.2),
+                wily.number_parallel_branch,
+                win.get('drive_winding_conductors_per_slot', win.get('wires_per_slot', 10)),
+                wily.coil_pitch_y,
+                win.get('slot_count', 12),
+                win.get('l_stack', 16.0),
+                win.get('drive_winding_current', 0.0) + win.get('bearing_winding_current', 0.0), # total current amplitude
+                geo.get('r_rotor_outer', 4.0),       # mm
+                geo.get('r_stator_outer', 6.5) * 2 * 1e-3 # m, stator_yoke_diameter_Dsyi
+            ]
             # slot_area_utilizing_ratio = (acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp) / acm_variant.CurrentAmp_per_phase
             # if slot_area_utilizing_ratio < 1:
             #     print('Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio, 'which means you are simulating a separate winding? If not, contrats--you found a bug...')
             #     print('DW, BW, Total:', acm_variant.DriveW_CurrentAmp, acm_variant.BeariW_CurrentAmp, acm_variant.CurrentAmp_per_phase)
             s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(
-                acm_variant.winding.torque_current_utilization_ratio*acm_variant.winding.slot_area*1e-6, 
+                win.get('torque_current_utilization_ratio', 1.0) * win.get('slot_area', 100.0) * 1e-6, 
                 copper_loss_parameters=copper_loss_parameters, 
-                STATOR_SLOT_FILL_FACTOR=acm_variant.winding.fill_factor,
-                TEMPERATURE_OF_COIL=acm_variant.winding.magnet_temperature)
+                STATOR_SLOT_FILL_FACTOR=win.get('fill_factor', 0.5),
+                TEMPERATURE_OF_COIL=win.get('magnet_temperature', 75.0))
             # s, r, sAlongStack, rAlongStack, Js, Jr = 0, 0, 0, 0, 0, 0
 
         class data_manager(object):
@@ -2018,15 +2037,32 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 else:
                     return self.basic_info, self.time_list, self.TorCon_list, self.ForConX_list, self.ForConY_list, self.ForConAbs_list
 
-            def terminal_voltage(self, which='GroupBDW'): # 2A 2B 2C 4A 4B 4C
-                return self.Current_dict['Terminal%s [Case 1]'%(which)]
-                # 端点电压是相电压吗？应该是，我们在中性点设置了地电位
+            def terminal_voltage(self, which='GroupBDW'):
+                for w in [which, 'GroupACW']:
+                    for suffix in [' [Case 1]', '']:
+                        k = 'Terminal%s%s' % (w, suffix)
+                        if k in self.Current_dict:
+                            return self.Current_dict[k]
+                return [0.0] * len(self.Current_dict.get('Time(s)', []))
 
             def coil_fluxLinkage(self, which='GroupBDW'):
-                return self.FluxLinkage_dict['CircuitCoil%s'%(which)]
+                for w in [which, 'GroupACW']:
+                    for suffix in [' [Case 1]', '']:
+                        k = 'CircuitCoil%s%s' % (w, suffix)
+                        if k in self.FluxLinkage_dict:
+                            return self.FluxLinkage_dict[k]
+                return [0.0] * len(self.Current_dict.get('Time(s)', []))
 
-            def circuit_current(self, which='GroupBDW'): # 2A 2B 2C 4A 4B 4C
-                return self.Current_dict['CircuitCoil%s'%(which)]
+            def circuit_current(self, which='GroupBDW'):
+                for w in [which, 'GroupACW']:
+                    for suffix in [' [Case 1]', '']:
+                        k = 'CircuitCoil%s%s' % (w, suffix)
+                        if k in self.Current_dict:
+                            return self.Current_dict[k]
+                # Fallback to Default
+                if 'CircuitCoilDefault' in self.Current_dict:
+                    return self.Current_dict['CircuitCoilDefault']
+                return [0.0] * len(self.Current_dict.get('Time(s)', []))
 
             def get_voltage_and_current(self, number_of_steps_at_steady_state):
 
@@ -2110,7 +2146,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 coil_flux_linkage_peak2peak_value_results.append( max(v) - min(v) )
                 logger = logging.getLogger(__name__)
                 logger.debug('%s max: %s, min: %s', k, max(v), min(v))
-            coil_flux_linkage_peak2peak_value = np.average(coil_flux_linkage_peak2peak_value_results)
+            if len(coil_flux_linkage_peak2peak_value_results) > 0:
+                coil_flux_linkage_peak2peak_value = np.average(coil_flux_linkage_peak2peak_value_results)
+            else:
+                coil_flux_linkage_peak2peak_value = 0.0
             logger = logging.getLogger(__name__)
             logger.debug('coil_flux_linkage_peak2peak_value_results: %s', coil_flux_linkage_peak2peak_value_results)
 
@@ -2156,9 +2195,16 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
 
         # compute the fitness 
-        rotor_volume = acm_variant.get_rotor_volume() 
-        rotor_weight = acm_variant.get_rotor_weight()
-        shaft_power  = acm_variant.winding.rated_speed/60. * 2*math.pi * torque_average # make sure update_mechanical_parameters is called so that Omega corresponds to slip_freq_breakdown_torque
+        geom = acm_variant.machine_dict.get('geometry', {})
+        wind = acm_variant.machine_dict.get('winding', {})
+        r_ro = geom.get('r_rotor_outer', 4.0)
+        r_ri = geom.get('r_rotor_inner', 1.0)
+        l_st = wind.get('l_stack', 16.0)
+        rated_speed = wind.get('rated_speed', wind.get('speed_rpm', 20000.0))
+
+        rotor_volume = math.pi * ((r_ro*1e-3)**2 - (r_ri*1e-3)**2) * (l_st*1e-3)
+        rotor_weight = rotor_volume * 7650.0  # approximate steel density kg/m^3
+        shaft_power  = rated_speed/60. * 2*math.pi * torque_average
 
         if 'IM' in acm_variant.target.machine_class:
             if False: # fea_config_dict['jmag_run_list'][0] == 0
@@ -2172,16 +2218,21 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 else:
                     copper_loss  = dm.femm_loss_list[0] + dm.femm_loss_list[1]
                 iron_loss = dm.jmag_loss_list[2] 
-        elif 'PM' in acm_variant.target.machine_class:
+        elif 'PM' in acm_variant.target.machine_class or 'SPMSM' in acm_variant.target.machine_class:
             # Rotor magnet loss by JMAG
             magnet_Joule_loss = dm.jmag_loss_list[1]
             # Stator copper loss by Binder and Bolognani 2006
-            copper_loss = dm.femm_loss_list[0] + magnet_Joule_loss
+            if len(dm.femm_loss_list) > 0 and dm.femm_loss_list[0] is not None:
+                copper_loss = dm.femm_loss_list[0] + magnet_Joule_loss
+            else:
+                copper_loss = magnet_Joule_loss # fallback
             iron_loss = dm.jmag_loss_list[2] 
         else:
             raise Exception('Unknown machine type:', acm_variant.target.machine_class)
 
-        windage_loss = utility.get_windage_loss(acm_variant, acm_variant.winding.stack_length_specified)
+        # TODO: Fix windage loss calculation with new dictionary
+        # windage_loss = utility.get_windage_loss(acm_variant, acm_variant.winding.stack_length_specified)
+        windage_loss = 0.0
 
         # 这样计算效率，输出转矩大的，铁耗大一倍也没关系了，总之就是气隙变得最小。。。要不就不要优化气隙了。。。
         total_loss   = copper_loss + iron_loss + windage_loss
@@ -2207,7 +2258,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # caculate the fitness
         logger = logging.getLogger(__name__)
         logger.info('Calculate the fitness for %s', acm_variant.target.machine_class)
-        logger.info('with x_denorm_dict: %s', dict(acm_variant.get_free_variables_as_dict()))
+        logger.info('with x_denorm_dict: %s', acm_variant.machine_dict.get('user_input', {}))
 
         # LOSS
         if 'IM' in machine_type:
@@ -2226,15 +2277,20 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
             rotor_copper_loss_in_end_turn  = 0
 
-        required_torque = acm_variant.winding.rated_power / (2*math.pi*acm_variant.winding.rated_speed)*60
+        wind_dict = acm_variant.machine_dict.get('winding', {})
+        rated_power = acm_variant.machine_dict.get('mec_power', wind_dict.get('rated_power', 250.0))
+        rated_speed = wind_dict.get('rated_speed', wind_dict.get('speed_rpm', 20000.0))
+        stack_length = acm_variant.machine_dict.get('geometry', {}).get('l_stack', 16.0)
 
-        rated_ratio                          = required_torque / torque_average 
-        rated_stack_length_mm                = rated_ratio * acm_variant.winding.stack_length_specified
+        required_torque = rated_power / (2*math.pi*rated_speed)*60
+
+        rated_ratio                          = required_torque / (torque_average if torque_average != 0 else 1e-9)
+        rated_stack_length_mm                = rated_ratio * stack_length
         rated_stator_copper_loss_along_stack = rated_ratio * stator_copper_loss_along_stack
         rated_magnet_Joule_loss              = rated_ratio * magnet_Joule_loss
         rated_rotor_copper_loss_along_stack  = rated_ratio * rotor_copper_loss_along_stack
         rated_iron_loss                      = rated_ratio * dm.jmag_loss_list[2]
-        rated_windage_loss                   = utility.get_windage_loss(acm_variant, rated_stack_length_mm)
+        rated_windage_loss                   = 0.0
 
         # print(acm_variant.template.SIacm_variant.winding.stack_length_specified)
         # print(rated_ratio)
@@ -2264,10 +2320,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             logger.info('Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2', stator_current_density)
             rotor_current_density = 0
 
-        rated_shaft_power  = acm_variant.winding.rated_speed/60. * 2*math.pi * required_torque
+        rated_shaft_power  = rated_power
         rated_efficiency   = rated_shaft_power / (rated_total_loss + rated_shaft_power)  # 效率计算：机械功率/(损耗+机械功率)
 
-        rated_rotor_volume = acm_variant.get_rotor_volume(stack_length=rated_stack_length_mm)
+        rated_rotor_volume = math.pi * ((r_ro*1e-3)**2 - (r_ri*1e-3)**2) * (rated_stack_length_mm*1e-3)
 
         # This weighted list suggests that peak-to-peak torque ripple of 5% is comparable with Em of 5% or Ea of 1 deg. Ref: Ye gu ECCE 2018
         # Eric suggests Ea is 1 deg. But I think this may be too much emphasis on Ea so large Trip does not matter anymore (not verified yet).
@@ -2284,22 +2340,20 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         price_per_volume_copper   = 1.2   * 61023.744 # $/in^3 wire or bar or end-ring
         price_per_volume_magnet   = 11.61 * 61023.744 # $/in^3 NdFeB PM
         # price_per_volume_aluminum = 0.88  / 16387.064 # $/in^3 wire or cast Al
-        # Vol_Fe = (2*acm_variant.template.SI['GP']['mm_r_so'].value*1e-3) ** 2 * (rated_stack_length_mm*1e-3) # 注意，硅钢片切掉的方形部分全部消耗了。# Option 1 (Jiahao)
-        Vol_Fe = ( math.pi*(acm_variant.geometry.r_stator_outer.value*1e-3)**2 - math.pi*(acm_variant.geometry.r_rotor_inner.value*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
+        
+        r_so = geom.get('r_stator_outer', 40.0)
+        Vol_Fe = ( math.pi*(r_so*1e-3)**2 - math.pi*(r_ri*1e-3)**2 ) * (rated_stack_length_mm*1e-3) # Option 2 (Eric)
+        
         if 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
             if 'FSPM' in machine_type:
                 # Find statorMagnet part
-                statorMagnetArea = 0.0
-                for part in acm_variant.geometry.parts:
-                    if 'statormagnet' in part.name.lower():
-                        statorMagnetArea = getattr(part, 'mm2_magnet_area', 0.0)
-                        break
+                statorMagnetArea = geom.get('stator_magnet_area', 100.0)
                 Vol_PM = (statorMagnetArea*1e-6) * (rated_stack_length_mm*1e-3)
                 logger = logging.getLogger(__name__)
                 logger.info('Area_PM %s', (statorMagnetArea*1e-6))
             else:
-                Vol_PM = (acm_variant.winding.magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
-                # logger.info('Area_PM %s', (acm_variant.winding.magnet_area*1e-6))
+                magnet_area = geom.get('magnet_area', 100.0)
+                Vol_PM = (magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
         else:
             Vol_PM = 0.0
         # print('[utility.py] Area_Fe', (acm_variant.template.SI['GP']['mm_r_so'].value*1e-3) ** 2)
@@ -2331,13 +2385,16 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             'IronLoss': rated_iron_loss,
             # 'CoggingTorque': raise Exception("CoggingTorque is not implemented")
         }
-        f1, f2, f3 = fitness_mapping[acm_variant.target.fea_config_dict["moo.fitness_OA"]], fitness_mapping[acm_variant.target.fea_config_dict["moo.fitness_OB"]], fitness_mapping[acm_variant.target.fea_config_dict["moo.fitness_OC"]]
+        eval_config = acm_variant.machine_dict.get('eval_config', {})
+        f1 = fitness_mapping.get(eval_config.get("moo.fitness_OA", "TorqueDensity"), 0.0)
+        f2 = fitness_mapping.get(eval_config.get("moo.fitness_OB", "Efficiency"), 0.0)
+        f3 = fitness_mapping.get(eval_config.get("moo.fitness_OC", "Cost"), 0.0)
 
-        FRW = ss_avg_force_magnitude / rotor_weight
+        FRW = ss_avg_force_magnitude / (rotor_weight if rotor_weight != 0 else 1)
         logger = logging.getLogger(__name__)
-        logger.info('FRW: %s, Rotor weight: %s, Stack length: %s, Rated stack length: %s', FRW, rotor_weight, acm_variant.winding.stack_length_specified, rated_stack_length_mm)
-        rated_rotor_volume = acm_variant.get_rotor_volume(stack_length=rated_stack_length_mm) 
-        rated_rotor_weight = acm_variant.get_rotor_weight(stack_length=rated_stack_length_mm)
+        logger.info('FRW: %s, Rotor weight: %s, Stack length: %s, Rated stack length: %s', FRW, rotor_weight, stack_length, rated_stack_length_mm)
+        rated_rotor_volume = math.pi * ((r_ro*1e-3)**2 - (r_ri*1e-3)**2) * (rated_stack_length_mm*1e-3)
+        rated_rotor_weight = rated_rotor_volume * 7650.0  # approximate steel density kg/m^3
         logger.info('rated_rotor_volume: %s, rated_rotor_weight: %s', rated_rotor_volume, rated_rotor_weight)
 
         rated_results = [   rated_shaft_power, 
@@ -2352,20 +2409,20 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                             rated_windage_loss,
                             rated_rotor_volume,
                             rated_stack_length_mm,  # new!
-                            acm_variant.winding.stack_length_specified]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
+                            stack_length]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
 
-        # print(type(acm_variant.target.counter)==type(''))
-        # print(type(acm_variant.target.counter)==type(''))
-        # print(type(acm_variant.target.counter)==type(''))
+        counter = eval_config.get('counter', -1)
+        popsize = eval_config.get('moo.popsize', 1)
+        gen = int(counter // popsize) if isinstance(counter, (int, float)) and popsize > 0 else -1
+        ind = counter if isinstance(counter, (int, float)) else -1
 
         str_results = '\n-------\n%s-%s\n%d,%d,O1=%g,O2=%g,f1=%g,f2=%g,f3=%g\n%s\n%s\n' % (
                         project_name, acm_variant.target.machine_class,
-                        -1 if type(acm_variant.target.counter)==type('') else int(acm_variant.target.counter//acm_variant.target.fea_config_dict["moo.popsize"]), # generation count
-                        -1 if type(acm_variant.target.counter)==type('') else acm_variant.target.counter, # individual count
+                        gen, 
+                        ind, 
                         cost_function_O1, cost_function_O2, f1, f2, f3,
                         str_machine_results,
                         ','.join(['%g'%(el) for el in rated_results]), # 改为输出 rated_results
-                        #','.join(['%g'%(el) for el in acm_variant.template.build_design_parameters_list()]) 
                         ) + str_results
 
         # str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, jmag_loss_list, femm_loss_list, power_factor, total_loss, cost_function = results_to_be_unpacked
@@ -2383,8 +2440,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         return (cost_function_O1, cost_function_O2), f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle, \
                 project_name, acm_variant.target.machine_class, \
-                -1 if type(acm_variant.target.counter)==type('') else int(acm_variant.target.counter//acm_variant.target.fea_config_dict["moo.popsize"]), \
-                acm_variant.target.counter,\
+                gen, \
+                ind,\
                 power_factor, \
                 rated_ratio, \
                 rated_stack_length_mm, \
@@ -2397,7 +2454,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 rated_iron_loss, \
                 rated_windage_loss, \
                 str_results, \
-                acm_variant.winding.slot_area, \
+                wind.get('slot_area', 100.0) if 'wind' in locals() else acm_variant.machine_dict.get('winding', {}).get('slot_area', 100.0), \
                 coil_flux_linkage_peak2peak_value, \
                 TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
                 ss_avg_force_magnitude, rotor_weight, torque_average

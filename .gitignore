@@ -4,3 +4,9 @@
 *.jproj
 __pycache__/
 *.pyc
+*.txt
+*.csv
+*.lock
+*.json
+*.png
+

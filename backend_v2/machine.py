@@ -8,23 +8,22 @@ class Dict2Obj:
     def __getattr__(self, name):
         if name in self._d:
             return self._d[name]
-        # For legacy attribute names mapping:
-        if name == 'p': return self._d.get('pole_count', 10) // 2
-        if name == 'ps': return self._d.get('suspension_pole_count', 2) // 2
-        if name == 'drive_winding_conductors_per_slot': return self._d.get('wires_per_slot', 10) # Default fallback
-        if name == 'stack_length_specified': return self._d.get('l_stack', 16.0)
-        if name == 'drive_winding_current': return self._d.get('drive_winding_current', 0.0)
-        if name == 'bearing_winding_current': return self._d.get('bearing_winding_current', 0.0)
-        if name == 'excitation_frequency_simulated': return self._d.get('rated_speed', 20000)/60.0 * (self._d.get('pole_count', 10)/2.0)
-        if name == 'torque_current_utilization_ratio': return 1.0 # default fallback
-        if name == 'slot_area': return self._d.get('slot_area', 100.0)
-        if name == 'magnet_temperature': return self._d.get('magnet_temperature', 80)
-        if name == 'rated_speed': return self._d.get('rated_speed', 20000)
-        if name == 'rated_power': return self._d.get('rated_power', 1000)
-        if name == 'magnet_area': return self._d.get('magnet_area', 100)
+        if name == 'p': return self._d['pole_count'] // 2
+        if name == 'ps': return self._d['suspension_pole_count'] // 2
+        if name == 'drive_winding_conductors_per_slot': return self._d['wires_per_slot']
+        if name == 'stack_length_specified': return self._d['l_stack']
+        if name == 'drive_winding_current': return self._d['drive_winding_current']
+        if name == 'bearing_winding_current': return self._d['bearing_winding_current']
+        if name == 'excitation_frequency_simulated': return abs(self._d['rated_speed']/60.0 * (self._d['pole_count']/2.0))
+        if name == 'torque_current_utilization_ratio': return self._d['torque_current_utilization_ratio']
+        if name == 'slot_area': return self._d['slot_area']
+        if name == 'magnet_temperature': return self._d['magnet_temperature']
+        if name == 'rated_speed': return self._d['rated_speed']
+        if name == 'rated_power': return self._d['rated_power']
+        if name == 'magnet_area': return self._d['magnet_area']
         # Target specific properties:
-        if name == 'fea_config_dict': return self._d.get('fea_config_dict', {})
-        if name == 'machine_class': return self._d.get('machine_class', 'SPMSM')
+        if name == 'fea_config_dict': return self._d['fea_config_dict']
+        if name == 'machine_class': return self._d['machine_class']
         return super().__getattribute__(name)
 
 class Machine:
@@ -38,13 +37,13 @@ class Machine:
 
     @property
     def winding(self):
-        return Dict2Obj(self.machine_dict.get('winding', {}))
+        return Dict2Obj(self.machine_dict['winding'])
         
     @property
     def target(self):
         # Merge target and fea_config_dict for proxy access
-        target_dict = self.machine_dict.get('target', {}).copy()
-        target_dict['fea_config_dict'] = self.machine_dict.get('fea_config_dict', {})
+        target_dict = self.machine_dict['target'].copy()
+        target_dict['fea_config_dict'] = self.machine_dict['fea_config_dict']
         return Dict2Obj(target_dict)
         
     def sync(self):
@@ -122,7 +121,9 @@ class Machine:
         expected_project_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stator_v2.jproj')
         
         # 1. 启动 JMAG 底层工具柄，并建立 35CS250 硅钢片工程
-        toolJd = self.open_jmag(expected_project_file, '35CS250')
+        material_dict = self.machine_dict['material']
+        steel_name = material_dict['stator_core_steel_name']
+        toolJd = self.open_jmag(expected_project_file, steel_name)
 
         # 2. 依次利用底层脚本将所有的形状绘制到 JMAG 中
         self.draw_jmag(toolJd)
@@ -136,11 +137,8 @@ class Machine:
         
         self.project_name = os.path.splitext(os.path.basename(expected_project_file))[0]
         
-        # JMAG 启动时的配置项设定 (本地机器的 node 验证及版本识别)
-        fea_config_dict = {
-            'pc_name': platform.node(),
-            'JMAG_Designer_Version': '20.0',
-        }
+        # JMAG 启动时的配置项设定 (从 global 传入)
+        fea_config_dict = self.machine_dict['fea_config_dict']
 
         toolJd = JMAG.JMAG(fea_config_dict=fea_config_dict)
         
@@ -196,21 +194,21 @@ class Machine:
         # 将评测设定合并到机器字典以便随处调用统一管理
         self.machine_dict['evaluation'] = eval_config
 
-        counter = eval_config.get('counter', 0)
-        counter_loop = eval_config.get('counter_loop', 0)
-        x_denorm = eval_config.get('x_denorm', None)
-        project_loc = eval_config.get('project_loc', os.path.dirname(os.path.abspath(__file__)))
-        bool_jmagDesignerShow = eval_config.get('bool_jmagDesignerShow', True)
+        counter = eval_config['counter']
+        counter_loop = eval_config['counter_loop']
+        x_denorm = eval_config['x_denorm']
+        project_loc = eval_config['project_loc']
+        bool_jmagDesignerShow = eval_config['bool_jmagDesignerShow']
         
         # 核心环节：动态注入 WindingLayout 实例，满足 JMAG 电路生成与绕组分布的硬性依赖 (原本处于 Dataclass 里)
         from winding_layout import winding_layout_v2
-        w_dict = self.machine_dict.get('winding', {})
+        w_dict = self.machine_dict['winding']
         # Notice DPNV_or_SEPA must be None for normal standard motors because winding_layout_v2 throws errors otherwise
         wily = winding_layout_v2(
-            DPNV_or_SEPA=None,
-            Qs=w_dict.get('slot_count', 12),
-            p=w_dict.get('pole_count', 10) // 2,
-            coil_pitch_y=w_dict.get('coil_pitch', 1)
+            DPNV_or_SEPA=w_dict['DPNV_or_SEPA'],
+            Qs=w_dict['slot_count'],
+            p=w_dict['pole_count'] // 2,
+            coil_pitch_y=w_dict['coil_pitch']
         )
         self.machine_dict['winding']['wily'] = wily
         
@@ -221,32 +219,35 @@ class Machine:
         self.sync()
 
         # Project and Path Setup
-        project_name = f"machine-ind{counter}"
+        prefix = eval_config['project_name_prefix']
+        project_name = f"{prefix}{counter}"
         if counter_loop > 0:
             project_name += f"-redo{counter_loop}"
             
         self.machine_dict['evaluation']['project_name'] = project_name
             
-        jmag_temp_dir = os.path.join(project_loc, "jmag_temp")
-        jmag_screenshots_dir = os.path.join(project_loc, "jmag_screenshots")
-        path2FEACsv = os.path.join(project_loc, "csv", f"{counter}")
+        jmag_temp_dir = os.path.join(project_loc, eval_config['jmag_temp_dir_name'])
+        jmag_screenshots_dir = os.path.join(project_loc, eval_config['jmag_screenshots_dir_name'])
+        path2FEACsv = os.path.join(project_loc, eval_config['jmag_csv_dir_name'], f"{counter}")
         
         for d in [jmag_temp_dir, jmag_screenshots_dir, path2FEACsv]:
             if not os.path.exists(d): 
                 os.makedirs(d)
                 
         expected_project_file = os.path.join(jmag_temp_dir, f"{project_name}.jproj")
-        swarm_data_json_file_path = os.path.join(project_loc, "SwarmData.json")
+        swarm_data_json_file_path = os.path.join(project_loc, eval_config['swarm_data_file_name'])
         self.machine_dict['evaluation']['swarm_data_json_file_path'] = swarm_data_json_file_path
 
-        target_dict = self.machine_dict.get('target', {})
-        select_FEA_tool = target_dict.get('select_FEA_tool', 'JMAG')
+        target_dict = self.machine_dict['target']
+        select_FEA_tool = target_dict['select_FEA_tool']
 
         if 'JMAG' in select_FEA_tool:
-            study_name = "Transient"
+            study_name = eval_config['study_name']
 
             # 1. Initialize JMAG Project
-            toolJd = self.open_jmag(expected_project_file, '35CS250', bool_jmagDesignerShow=bool_jmagDesignerShow)
+            material_dict = self.machine_dict['material']
+            steel_name = material_dict['stator_core_steel_name']
+            toolJd = self.open_jmag(expected_project_file, steel_name, bool_jmagDesignerShow=bool_jmagDesignerShow)
 
             # 2. Draw Machine Parts
             self.draw_jmag(toolJd)
@@ -267,13 +268,14 @@ class Machine:
             expected_csv = os.path.join(path2FEACsv, f"{study_name}_torque.csv")
             print(f"Monitoring output results generation in: {path2FEACsv}")
             wait_time = 0
+            timeout_limit = eval_config['timeout_csv_results_s']
             while not os.path.exists(expected_csv):
                 time.sleep(2)
                 wait_time += 2
-                if wait_time > 180: # 3 minutes timeout
+                if wait_time > timeout_limit: # timeout checks
                     raise Exception(f"Timeout waiting for JMAG CSV results at {expected_csv}.")
             print("CSV results detected. Waiting a few seconds for file flush...")
-            time.sleep(5) # Give JMAG some time to finish writing all CSV files
+            time.sleep(eval_config['csv_file_flush_sleep_s']) # Give JMAG some time to finish writing all CSV files
             
             # 5. Compile & Save Results
             self.compile_results(toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool)
@@ -284,9 +286,9 @@ class Machine:
         """Pack results into dictionary and save to JSON."""
         import os, jsonpickle
         project_name = self.machine_dict['evaluation']['project_name']
-        counter = self.machine_dict['evaluation'].get('counter', 0)
-        target_dict = self.machine_dict.get('target', {})
-        fea_config_dict = self.machine_dict.get('fea_config_dict', {})
+        counter = self.machine_dict['evaluation']['counter']
+        target_dict = self.machine_dict['target']
+        fea_config_dict = self.machine_dict['fea_config_dict']
         
         results = toolJd.build_str_results(self, project_name, study_name, path2FEACsv, fea_config_dict, femm_solver=None)
         
@@ -353,11 +355,10 @@ class Machine:
 
         target_dict['results_for_optimization'] = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
 
-if __name__ == "__main__":
-    from collections import OrderedDict
-    
-    # 1. 这个字典即等同于全链路的 Single Source of Truth，承载从用户前端接收的所有特征属性
-    user_input = OrderedDict([
+from collections import OrderedDict
+
+# 1. 这个字典即等同于全链路的 Single Source of Truth，承载从用户前端接收的所有特征属性
+user_input = OrderedDict([
         ('winding', OrderedDict([
             ('phase_count', 3),
             ('slot_count', 12),
@@ -370,9 +371,16 @@ if __name__ == "__main__":
             ('wire_diameter_with_insulation', 0.226), # AWG31 带漆外径
             ('wire_diameter', 0.179), # AWG31 裸铜直径
             ('connection_type', 'wye'),
+            ('DPNV_or_SEPA', None), # WindingLayout option
             ('rated_speed', 20000), # 额定评估转速点
             ('torque_current_ratio', 1.0),
             ('suspension_current_ratio', 0.0),
+            ('suspension_pole_count', 2),
+            ('wires_per_slot', 10),
+            ('drive_winding_current', 0.0),
+            ('bearing_winding_current', 0.0),
+            ('torque_current_utilization_ratio', 1.0),
+            ('slot_area', 100.0),
         ])),
         ('geometry', OrderedDict([
             ('tooth_shape', 'closed'), # 牙槽结构样式设定
@@ -385,41 +393,66 @@ if __name__ == "__main__":
             ('r_rotor_outer', 8/2),
             ('r_shaft', 0.0), # 转子轴向孔径 (0等于实心)
         ])),
+        ('material', OrderedDict([
+            ('stator_core_steel_name', '35CS250'),
+            ('rotor_core_steel_name', '35CS250'),
+            ('magnet_material_name', 'Ncut'),
+        ])),
         ('fea_config_dict', OrderedDict([
-            ('pc_name', 'your_pc_name'),
+            ('pc_name', 'localhost'),
             ('JMAG_Designer_Version', '20.0'),
-            ('delete_results_after_calculation', False),
             ('designer.show', True),
-            ('designer.OnlyTableResults', False),
             ('designer.max_nonlinear_iteration', 50),
-            ('designer.MultipleCPUs', True),
-            ('designer.number_cycles_in_1stTSS', 1),
-            ('designer.number_cycles_in_2ndTSS', 0.5),
-            ('designer.number_cycles_in_3rdTSS', 0.5),
-            ('designer.number_cycles_prolonged', 0),
-            ('designer.number_of_steps_1stTSS', 50),
-            ('designer.number_of_steps_2ndTSS', 32),
-            ('designer.StepPerCycle_3rdTSS', 64),
-            ('designer.TranRef-StepPerCycle', 64),
-            ('designer.AddIronLossCondition', True),
-            ('designer.CircumferentialDivision', 1440),
-            ('designer.meshSize_Magnet', 2.0),
-            ('designer.meshSize_Shaft', 4.0),
-            ('designer.meshSizeAir', 1.0),
-            ('designer.meshSize_General', 2.0),
-            ('designer.JMAG_Scheduler', False),
+            ('mesh.average_size', 0.002), # 2mm
             ('delete_results_after_calculation', False),
+            ('designer.JMAG_Scheduler', False),
+            ('designer.MultipleCPUs', False),
+            ('designer.AddIronLossCondition', True),
+            ('designer.OnlyTableResults', True),
+            ('designer.number_cycles_in_1stTSS', 0.5),
+            ('designer.number_cycles_in_2ndTSS', 0.5),
+            ('designer.number_cycles_in_3rdTSS', 0.0),
+            ('designer.number_cycles_prolonged', 0.0),
+            ('designer.number_of_steps_1stTSS', 20),
+            ('designer.number_of_steps_2ndTSS', 20),
+            ('designer.StepPerCycle_3rdTSS', 40),
+            ('designer.TranRef-StepPerCycle', 40),
+            ('designer.CircumferentialDivision', 720),
+            ('designer.meshSize_Magnet', 2.0),
+            ('designer.meshSize_Shaft', 2.0),
+            ('designer.meshSizeAir', 2.0),
+            ('designer.meshSize_General', 2.0),
         ])),
         ('target', OrderedDict([
+            ('machine_class', 'SPMSM'),
             ('select_FEA_tool', 'JMAG'),
+            ('magnet_temperature', 80),
+            ('magnet_area', 100.0),
+            ('rated_power', 1000),
             ('free_parameters', [
                 'search w_stator_width within [1.0, 1.5]',
                 'search d_stator_tooth within [1.6, 2.0]',
                 'search d_magnet within [1.0, 3.0]',
             ])
+        ])),
+        ('eval_config', OrderedDict([
+            ('project_loc', os.path.dirname(os.path.abspath(__file__))),
+            ('project_name_prefix', 'machine-ind'),
+            ('bool_jmagDesignerShow', True),
+            ('counter', 0),
+            ('counter_loop', 0),
+            ('x_denorm', None),
+            ('study_name', 'Transient'),
+            ('jmag_temp_dir_name', 'jmag_temp'),
+            ('jmag_csv_dir_name', 'csv'),
+            ('jmag_screenshots_dir_name', 'jmag_screenshots'),
+            ('swarm_data_file_name', 'SwarmData.json'),
+            ('timeout_csv_results_s', 180),
+            ('csv_file_flush_sleep_s', 5)
         ]))
     ])
 
+if __name__ == "__main__":
     # 直接将原始字典投射入 Machine 进行流传
     machine_dict = user_input
 
@@ -427,17 +460,22 @@ if __name__ == "__main__":
     mac.sync()
     
     # 执行分析：此阶段对绕组布局，安匝，KV和铁/铜性能进行第一遍快筛计算
-    from machine_analyzer import MotorPerformanceAnalyzer
-    analyzer = MotorPerformanceAnalyzer(machine_dict)
-    analysis = analyzer.analyze()
-    r_stator_outer = machine_dict['geometry']['r_stator_outer']
-    print(f"--- 12S10P {r_stator_outer*2}mm 微电机后端第一步分析结果 ---")
-    print(f"AWG: {analysis['awg']}, 满槽率: {analysis['slot_fill_factor_cu']}%, 槽内总导线: {analysis['wires_per_slot']} 根")
-    print(f"安匝(NI): {analysis['ampere_turns_per_slot']}, 热负荷 (AJ): {analysis['thermal_load_aj']} A^2/(cm*mm^2)")
-    print(f"KV 值估算: {analysis['KV_rpm_V']} RPM/V")
-    print(f"相电阻 (100°C): {analysis['phase_resistance_100C']} Ohm")
-    print(f"20k RPM 总损耗: {analysis['total_loss_W']} W (铜损 {analysis['copper_loss_W']}W, 铁损 {analysis['iron_loss_W']}W)")
-    print("-" * 60)
+    if True:
+        from machine_analyzer import MotorPerformanceAnalyzer
+        analyzer = MotorPerformanceAnalyzer(machine_dict)
+        analysis = analyzer.analyze()
+        
+        # FIX: Populate drive_winding_current for JMAG
+        machine_dict['winding']['drive_winding_current'] = analysis['current_per_wire_a'] * 1.41421356
+        machine_dict['winding']['bearing_winding_current'] = 0.0
+        r_stator_outer = machine_dict['geometry']['r_stator_outer']
+        print(f"--- 12S10P {r_stator_outer*2}mm 微电机后端第一步分析结果 ---")
+        print(f"AWG: {analysis['awg']}, 满槽率: {analysis['slot_fill_factor_cu']}%, 槽内总导线: {analysis['wires_per_slot']} 根")
+        print(f"安匝(NI): {analysis['ampere_turns_per_slot']}, 热负荷 (AJ): {analysis['thermal_load_aj']} A^2/(cm*mm^2)")
+        print(f"KV 值估算: {analysis['KV_rpm_V']} RPM/V")
+        print(f"相电阻 (100°C): {analysis['phase_resistance_100C']} Ohm")
+        print(f"20k RPM 总损耗: {analysis['total_loss_W']} W (铜损 {analysis['copper_loss_W']}W, 铁损 {analysis['iron_loss_W']}W)")
+        print("-" * 60)
     
     # 步骤二： 输出矢量截面图，用于在不启动 FEA 商业软件情况下的独立 Web UI 展示与几何校验
     output_svg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stator_v2.svg")
@@ -449,14 +487,5 @@ if __name__ == "__main__":
     # 屏蔽此段即可进行低成本的 CI/CD 或快速参数迭代
     # =================================================================
     
-    # 构建评估执行参数字典，完全摒弃零散的kwargs
-    eval_config = OrderedDict([
-        ('project_loc', os.path.dirname(os.path.abspath(__file__))),
-        ('bool_jmagDesignerShow', True),
-        ('counter', 0),
-        ('counter_loop', 0),
-        ('x_denorm', None)
-    ])
-    
     # 启用FEA_evaluate流水线
-    mac.FEA_evaluate(eval_config)
+    mac.FEA_evaluate(machine_dict['eval_config'])
