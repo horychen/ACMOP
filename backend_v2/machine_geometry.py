@@ -114,12 +114,22 @@ def calculate_all_points(machine_dict: OrderedDict) -> OrderedDict:
         19: rotate(r_so, alpha_so_deg),
     }
 
+    # Calculate actual slot and magnet areas
+    area_ring = math.pi * ((r_si + d_stator_tooth)**2 - r_si**2)
+    area_teeth = slot_count * w_stator_width * d_stator_tooth
+    slot_area = (area_ring - area_teeth) / slot_count
+
+    area_magnet_ring = math.pi * (r_rotor_outer**2 - (r_rotor_outer - d_magnet)**2)
+    magnet_area = area_magnet_ring / pole_count
+
     all_points = OrderedDict()
     all_points['HP'] = HP
     all_points['HP_mirror'] = HP_mirror
     all_points['RP'] = RP
     all_points['slot_count'] = slot_count
     all_points['pole_count'] = pole_count
+    all_points['slot_area'] = slot_area
+    all_points['magnet_area'] = magnet_area
 
     return all_points
 
@@ -394,6 +404,9 @@ class MachineGeometry:
     
     def sync(self, machine_dict: OrderedDict):
         self.all_points = calculate_all_points(machine_dict)
+        
+        self.slot_area = self.all_points['slot_area']
+        self.magnet_area = self.all_points['magnet_area']
 
     def draw_machine_using_CairoDrawer(self, drawer):
         """

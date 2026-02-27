@@ -108,15 +108,17 @@ class Winding(object):
             self.coil_pitch_y = self.Qs/self.p/2.0
             self.bool_distributed_or_concentrated: bool = True
 
-        # TODO: calculate winding factor
-        self.kw1 = 0.933
-        # Default layer attributes
-        self.layer_X_phases = None
-        self.layer_X_signs = None
-        self.layer_Y_phases = None
-        self.layer_Y_signs = None
+        # # TODO: calculate winding factor
+        # self.kw1 = 0.933
+        # # Default layer attributes
+        # self.layer_X_phases = None
+        # self.layer_X_signs = None
+        # self.layer_Y_phases = None
+        # self.layer_Y_signs = None
 
-        derivation = self.get_winding_factor()
+        import winding_layout_derivation_ismb2021_asymetry_no_drawing
+        derivation = winding_layout_derivation_ismb2021_asymetry_no_drawing.main_derivation(m=self.m, Qs=self.Qs, p=self.p, ps=self.ps, coil_pitch_y=self.coil_pitch_y)
+
         # Get all winding factor information and phase/sign/grouping data from self.derivation
         # If self.derivation is a dict or an object with these attributes, extract them.
         # Fallback to defaults if not present.
@@ -158,51 +160,55 @@ class Winding(object):
             elif isinstance(derivation, dict) and 'grouping_AC' in derivation:
                 self.grouping_AC = derivation['grouping_AC']
 
+            if not hasattr(self, 'layer_Y_phases') and hasattr(self, 'layer_X_phases'):
+                self.layer_Y_phases = self.infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            if not hasattr(self, 'layer_Y_signs') and hasattr(self, 'layer_X_signs'):
+                self.layer_Y_signs = self.infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
             # Populate dict_coil_connection for JMAG.py compatibility
             self.dict_coil_connection = {
-                'layer X phases': self.layer_X_phases,
-                'layer X signs': self.layer_X_signs,
-                'layer Y phases': self.layer_Y_phases,
-                'layer Y signs': self.layer_Y_signs,
+                'layer X phases': getattr(self, 'layer_X_phases', None),
+                'layer X signs': getattr(self, 'layer_X_signs', None),
+                'layer Y phases': getattr(self, 'layer_Y_phases', None),
+                'layer Y signs': getattr(self, 'layer_Y_signs', None),
             }
+
+        if not hasattr(self, 'kw1'):
+            self.kw1 = 0.933 # Default winding factor
+
 
 
         # Excitation for DPNV
         self.bool_DPNVorSEPA = bool_DPNVorSEPA
-        if self.bool_DPNVorSEPA == True:
+        # if self.bool_DPNVorSEPA == True:
 
-            self.bool_3PhaseCurrentSource = False
-            self.bool_CustomizedCircuit = False
+        #     self.bool_3PhaseCurrentSource = False
+        #     self.bool_CustomizedCircuit = False
 
-            # the first coil in layer Y is assigned to phase W then this code is correct.
-            self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-            self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-            self.layer_Y_phases = self.infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = self.infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+        #     # the first coil in layer Y is assigned to phase W then this code is correct.
+        #     self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
+        #     self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
+        #     self.layer_Y_phases = self.infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+        #     self.layer_Y_signs  = self.infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
 
-            self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
+        #     self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
 
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
+        #     self.CommutatingSequenceD = 1
+        #     self.CommutatingSequenceB = 0
             
-            # Update dict_coil_connection for DPNV defaults
-            self.dict_coil_connection = {
-                'layer X phases': self.layer_X_phases,
-                'layer X signs': self.layer_X_signs,
-                'layer Y phases': self.layer_Y_phases,
-                'layer Y signs': self.layer_Y_signs,
-            }
+        #     # Update dict_coil_connection for DPNV defaults
+        #     self.dict_coil_connection = {
+        #         'layer X phases': self.layer_X_phases,
+        #         'layer X signs': self.layer_X_signs,
+        #         'layer Y phases': self.layer_Y_phases,
+        #         'layer Y signs': self.layer_Y_signs,
+        #     }
 
     def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self, layer_X_phases, coil_pitch):
         return layer_X_phases[-coil_pitch:] + layer_X_phases[:-coil_pitch]
     def infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self, layer_X_signs, coil_pitch):
         temp = layer_X_signs[-coil_pitch:] + layer_X_signs[:-coil_pitch]
         return [('-' if el == '+' else '+') for el in temp]
-
-    def get_winding_factor(self):
-        import winding_layout_derivation_ismb2021_asymetry_no_drawing
-        derivation = winding_layout_derivation_ismb2021_asymetry_no_drawing.main_derivation(m=self.m, Qs=self.Qs, p=self.p, ps=self.ps, coil_pitch_y=self.coil_pitch_y)
-        return derivation
 
     @staticmethod
     def draw_winding_in_the_slot(u, Qs, list_layer_phases, list_layer_signs, text=''):

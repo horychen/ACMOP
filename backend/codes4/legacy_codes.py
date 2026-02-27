@@ -1,7 +1,5 @@
 from collections import OrderedDict
-from dataclasses import dataclass
 
-@dataclass
 class LegacyCodes:
     def PracticalInitialDesign(self, fea_config_dict, SI, GP, EX):
 

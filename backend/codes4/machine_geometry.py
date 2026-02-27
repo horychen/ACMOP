@@ -3,39 +3,37 @@
 # in the context of the arc segment being drawn (e.g., lower_angle ~ higher_angle).
 # All arcs are drawn around the origin (0,0).
 
-from dataclasses import dataclass, field, InitVar
 from typing import List, Dict, Any, Optional
 import math
+
 def rotate_point(p, deg):
     rad = math.radians(deg)
     x, y = p
     return (x * math.cos(rad) - y * math.sin(rad),
             x * math.sin(rad) + y * math.cos(rad))
 
-@dataclass
 class AllPoints:
-    user_input: InitVar[dict]
-    horizontal_position: Dict[int, tuple] = field(default_factory=dict, init=False)
-    rotated_position: Dict[int, tuple] = field(default_factory=dict, init=False)
+    def __init__(self, user_input: dict):
+        self.horizontal_position = {}
+        self.rotated_position = {}
 
-    def __post_init__(self, user_input: dict):
         # Helper for rotation around origin
         def rotate(r, deg):
             rad = math.radians(deg)
             return (r * math.cos(rad), r * math.sin(rad))
 
         self.GP = GP = user_input['geometry']
-        r_shaft = GP['r_shaft']
-        r_rotor_outer = GP['r_rotor_outer']
-        d_magnet = GP['d_magnet']
-        d_air_gap = GP['d_air_gap']
-        r_stator_outer = GP['r_stator_outer']
-        d_stator_yoke = GP['d_yoke']
-        d_stator_tooth = GP['d_tooth']
-        d_stator_tooth_shoe = GP['d_tooth_shoe']
-        w_stator_width = GP['w_tooth']
-        self.slot_count = slot_count = user_input['winding']['slot_count']
-        self.pole_count = pole_count = user_input['winding']['pole_count']
+        r_shaft = GP.get('r_shaft', 0.0)
+        r_rotor_outer = GP.get('r_rotor_outer', 4.0)
+        d_magnet = GP.get('d_magnet', 3.0)
+        d_air_gap = GP.get('d_air_gap', 0.15)
+        r_stator_outer = GP.get('r_stator_outer', 10.0)
+        d_stator_yoke = GP.get('d_yoke', r_stator_outer - r_rotor_outer - GP.get('d_tooth', 2.0))
+        d_stator_tooth = GP.get('d_tooth', 2.0)
+        d_stator_tooth_shoe = GP.get('d_tooth_shoe', 0.0)
+        w_stator_width = GP.get('w_tooth', 1.2)
+        self.slot_count = slot_count = user_input['winding'].get('slot_count', 12)
+        self.pole_count = pole_count = user_input['winding'].get('pole_count', 10)
         
         # Calculate key angles
         alpha_slot_pitch = 360.0 / slot_count
@@ -127,8 +125,6 @@ def parse_point_name(name, all_points, rotation_deg=0):
         idx = int(name[3:-1])
         p = all_points.RP[idx]
         if is_mirror:
-            # We don't typically need a separate RP_mirror dictionary
-            # as RP points can be mirrored across the Tooth Axis via Y-negation
             p = (p[0], -p[1])
     else:
         raise ValueError(f"Unknown point name: {name}")
@@ -138,7 +134,6 @@ def parse_point_name(name, all_points, rotation_deg=0):
 def draw_instruction_parser(part, all_points, drawer):
     result = part.draw_instruction()
     
-    # Initialize bMirror, mirrorAxis, copyCount from result first
     if isinstance(result, dict):
         bMirror, mirrorAxis = result.get("镜像与否以及镜像轴", (False, None))
         copyCount = result.get("旋转拷贝的个数", 1)
@@ -153,7 +148,6 @@ def draw_instruction_parser(part, all_points, drawer):
         instructions_list = list(dict_regions.values())
         region_names = list(dict_regions.keys())
     else:
-        # Fallback to legacy single list format
         scalar_instrs = result.get("几何绘制字符串", []) if isinstance(result, dict) else result
         instructions_list = [scalar_instrs]
         region_names = ["region1"]
@@ -165,20 +159,13 @@ def draw_instruction_parser(part, all_points, drawer):
     if getattr(drawer, 'verbose_drawing', False):
         print(f"--- Parsing instructions for {part.name} (Base Rotation: {part.rotation_deg} deg, Copies: {copyCount}) ---")
 
-    # Priority for duplication: part attributes (overrides) > draw_instruction return values
     part_mirror = getattr(part, 'bMirror', None)
     part_rotate = getattr(part, 'iRotateCopy', None)
     
     if part_mirror is not None: bMirror = part_mirror
     if part_rotate is not None: copyCount = part_rotate
 
-    # If it's a visualization drawer (like ReactDrawer), we handle duplication manually
-    # If it's a CAD drawer (like JMAG), we let the CAD tool handle it
     is_fea = hasattr(drawer, 'prepareSection')
-    # ReactDrawer specifically needs the data for each copy to be provided if it doesn't handle them
-    # But ReactDrawer handles copies currently via collecting all regions.
-    # Actually, CairoDrawer and JMAG prefer not to have duplicate geometry definitions.
-    # We'll treat ReactDrawer as a CAD drawer for this logic to keep it consistent.
     loop_count = 1 if (is_fea or copyCount <= 1) else copyCount
     
     for i in range(loop_count):
@@ -189,7 +176,6 @@ def draw_instruction_parser(part, all_points, drawer):
             region_segments = []
             region_coords = []
             for instr in instructions:
-                # Strip comments if any
                 instr = instr.split('#')[0].strip()
                 if not instr: continue
                 
@@ -211,7 +197,6 @@ def draw_instruction_parser(part, all_points, drawer):
             list_regions.append(region_segments)
             list_coords.extend(region_coords)
             
-            # Calculate centroid for this region (in the first copy)
             if i == 0 and region_coords:
                 unique_reg_coords = list(set([tuple(p) for p in region_coords]))
                 rx = sum(p[0] for p in unique_reg_coords) / len(unique_reg_coords)
@@ -221,13 +206,7 @@ def draw_instruction_parser(part, all_points, drawer):
     if not list_coords:
         return {'innerCoord': (0,0), 'inner_coords': {}, 'list_regions': [[]], 'mirrorAxis': mirrorAxis, 'bMirror': bMirror, 'iRotateCopy': copyCount}
         
-    # Calculate overall innerCoord (对于Coil来说，这样算出来是一对线圈的中点，不在Region的内部)
-    # unique_coords = list(set([tuple(p) for p in list_coords]))
-    # innerCoord = (sum(p[0] for p in unique_coords) / len(unique_coords), 
-    #               sum(p[1] for p in unique_coords) / len(unique_coords))
-    
     return {
-        # 'innerCoord': innerCoord, 
         'inner_coords': region_centroids,
         'list_regions': list_regions,
         'mirrorAxis': mirrorAxis,
@@ -235,19 +214,25 @@ def draw_instruction_parser(part, all_points, drawer):
         'iRotateCopy': copyCount
     }
 
-@dataclass
-class MachinePart:
-    name: str
-    all_points: Optional['AllPoints'] = field(default=None, repr=False)
-    index: int = field(init=False, default=0)
-    rotation_deg: float = 0.0
-    options: str = ""
-    color: str = "#000000"
-    inner_coords: Optional[Dict[str, tuple]] = field(default_factory=dict) # Centroids for each region
 
-@dataclass
+class MachinePart:
+    def __init__(self, name: str, rotation_deg: float = 0.0, options: str = "", color: str = "#000000"):
+        self.name = name
+        self.all_points = None
+        self.index = 0
+        self.rotation_deg = rotation_deg
+        self.options = options
+        self.color = color
+        self.inner_coords = {}
+        
+    def draw_instruction(self):
+        return {}
+
+
 class RotorCore(MachinePart):
-    color: str = "#555555" # Iron gray
+    def __init__(self, name: str, rotation_deg: float = 0.0, options: str = "", color: str = "#555555"):
+        super().__init__(name, rotation_deg, options, color)
+        
     def draw_instruction(self):
         instrs = []
         if self.options == "notched":
@@ -263,17 +248,17 @@ class RotorCore(MachinePart):
             "旋转拷贝的个数": 1 if self.options == "cylinder" else (self.all_points.pole_count if self.all_points else 1)
         }
 
-@dataclass
+
 class StatorCore(MachinePart):
-    color: str = "#666666" # Slightly lighter gray
+    def __init__(self, name: str, rotation_deg: float = 0.0, options: str = "", color: str = "#666666"):
+        super().__init__(name, rotation_deg, options, color)
+        
     def draw_instruction(self):
         instrs = []
         slot_count = self.all_points.slot_count if self.all_points else 1
-        bFullCircle = False
         
         if self.options == "closed-slot" or self.options == "semi-closed-slot":
             instrs = [
-                # Start from tooth center outer back iron and follow a continuous CCW loop for half a sector
                 "HP[9] - HP[4]",  # Radial center line: Back iron outer -> Gap inner (IN)
                 "HP[4] ~ RP[4]",  # Air gap arc (CCW)
                 "RP[4] - RP[6]",  # Slot side radial line (OUT)
@@ -299,11 +284,13 @@ class StatorCore(MachinePart):
             "旋转拷贝的个数": slot_count
         }
 
-@dataclass
+
 class Magnet(MachinePart):
-    color: str = "#2222BB" # Blue
+    def __init__(self, name: str, rotation_deg: float = 0.0, options: str = "", color: str = "#2222BB"):
+        super().__init__(name, rotation_deg, options, color)
+        
     def draw_instruction(self):
-        pole_count = self.all_points.pole_count
+        pole_count = self.all_points.pole_count if self.all_points else 1
         return {
             "区域的几何绘制指导":
             {
@@ -319,11 +306,13 @@ class Magnet(MachinePart):
             "旋转拷贝的个数": pole_count,
         }
 
-@dataclass
+
 class Coil(MachinePart):
-    color: str = "#B87333" # Copper
+    def __init__(self, name: str, rotation_deg: float = 0.0, options: str = "", color: str = "#B87333"):
+        super().__init__(name, rotation_deg, options, color)
+        
     def draw_instruction(self):
-        slot_count = self.all_points.slot_count
+        slot_count = self.all_points.slot_count if self.all_points else 1
         return {
             "区域的几何绘制指导":
             {
@@ -340,98 +329,42 @@ class Coil(MachinePart):
                     "RP_M[8] ~ HP_M[7]", 
                     "RP_M[8] - RP_M[6]", 
                     "RP_M[6] ~ HP_M[6]", 
-
                 ],
             },
             "镜像与否以及镜像轴": (False, None),
             "旋转拷贝的个数": slot_count,
         }
 
-@dataclass
+
 class MachineGeometry:
-    parts: List[MachinePart] = field(default_factory=list)
-    _next_index: int = field(init=False, default=0)
-    all_points: Optional[AllPoints] = None
-    gp: dict = field(default_factory=dict) # Parameters from target
+    def __init__(self):
+        self.parts: List[MachinePart] = []
+        self._next_index: int = 0
+        self.all_points: Optional[AllPoints] = None
+        self.gp: dict = {}
+        self.winding: dict = {}
 
-    winding: dict = field(default_factory=dict)
+    def get_deg_alpha_rm(self) -> float:
+        return 360 / self.winding.get('pole_count', 2)
 
-    @property
-    def slot_count(self) -> int:
-        return self.winding['slot_count']
+    def get_split_ratio(self) -> float:
+        return (self.gp.get('r_rotor_outer', 0.0) + self.gp.get('d_air_gap', 0.0)) / self.gp.get('r_stator_outer', 1.0)
 
-    @property
-    def pole_count(self) -> int:
-        return self.winding['pole_count']
+    def get_d_stator_yoke(self) -> float:
+        return self.gp.get('r_stator_outer', 0.0) - self.gp.get('r_rotor_outer', 0.0) - self.gp.get('d_tooth', 0.0)
 
-    @property
-    def l_stack(self) -> float:
-        return self.winding['l_stack']
-
-    @property
-    def d_air_gap(self) -> float:
-        return self.gp['d_air_gap']
-
-    @property
-    def r_stator_outer(self) -> float:
-        return self.gp['r_stator_outer']
-
-    @property
-    def r_rotor_outer(self) -> float:
-        return self.gp['r_rotor_outer']
-
-    @property
-    def r_shaft(self) -> float:
-        return self.gp['r_shaft']
-
-    @property
-    def w_tooth(self) -> float:
-        return self.gp['w_tooth']
-
-    @property
-    def d_tooth(self) -> float:
-        return self.gp['d_tooth']
-
-    @property
-    def d_magnet(self) -> float:
-        return self.gp['d_magnet']
-
-    @property
-    def tooth_shape(self) -> str:
-        return self.gp['tooth_shape']
-
-    @property
-    def deg_alpha_rm(self) -> float:
-        # for surface-mounted permanent magnet, we assume full span of magnet (not cost efficient)
-        return 360 / self.pole_count
-
-    @property
-    def split_ratio(self) -> float:
-        return (self.r_rotor_outer + self.d_air_gap) / self.r_stator_outer
-
-    @property
-    def d_stator_yoke(self) -> float:
-        return self.r_stator_outer - self.r_rotor_outer - self.d_tooth
-
-    @property
-    def d_tooth_shoe(self) -> Optional[float]:
-        if self.tooth_shape == 'open':
-            return None
-        return self.gp['d_tooth_shoe']
+    def get_d_tooth_shoe(self) -> Optional[float]:
+        if self.gp.get('tooth_shape', 'closed') == 'open':
+            return 0.0
+        return self.gp.get('d_tooth_shoe', 0.0)
     
-    @property
-    def alpha_stator_tooth_span(self) -> Optional[float]:
-        if self.tooth_shape == 'semi-closed':
-            return 360 / self.slot_count * 0.7
+    def get_alpha_stator_tooth_span(self) -> Optional[float]:
+        if self.gp.get('tooth_shape', 'closed') == 'semi-closed':
+            return 360 / self.winding.get('slot_count', 12) * 0.7
         return None
 
-    @property
-    def aspect_ratio(self) -> float:
-        return self.r_stator_outer * 2 / self.l_stack
-
-    def __post_init__(self):
-        # Initial values can be set here if needed, but sync() will do the real work
-        pass
+    def get_aspect_ratio(self) -> float:
+        return self.gp.get('r_stator_outer', 0.0) * 2 / self.winding.get('l_stack', 1.0)
 
     def add_part(self, part: MachinePart):
         part.index = self._next_index
@@ -458,5 +391,6 @@ class MachineGeometry:
 
     def sync(self, user_input: dict):
         """Populate attributes from user_input dict."""
-        self.gp = user_input['geometry']
-        self.winding = user_input['winding']
+        self.gp = user_input.get('geometry', {})
+        self.winding = user_input.get('winding', {})
+        self.all_points = AllPoints(user_input)
