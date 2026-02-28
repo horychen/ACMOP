@@ -13,6 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
 interface Point {
     0: number; // x
     1: number; // y
@@ -66,8 +68,8 @@ export default function DebugPointsPage() {
         setError(null)
         try {
             const [pointsRes, geomRes] = await Promise.all([
-                axios.get('http://localhost:8000/api/debug/points'),
-                axios.get('http://localhost:8000/api/debug/geometry')
+                axios.get(`${BACKEND_URL}/api/debug/points`),
+                axios.get(`${BACKEND_URL}/api/debug/geometry`)
             ])
             setData(pointsRes.data)
             setGeometry(geomRes.data)
