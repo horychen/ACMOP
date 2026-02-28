@@ -17,22 +17,14 @@ class MotorPerformanceAnalyzer:
     结合了几何干涉法 (v2) 与 完整的电气/热负荷/反电动势分析 (v1)。
     通过该类，我们可以从物理干涉上推断槽内导线最大数量，并在此基础上评估电机整体电磁性能。
     """
-    def __init__(self, machine_dict: OrderedDict):
-        self.machine_dict = machine_dict
+    def __init__(self, user_input: OrderedDict):
+        self.user_input = user_input
         
         # gp (Geometry Parameters): 包含所有的几何尺寸参数，如外径、内径、齿宽、气隙等
-        self.gp = machine_dict['geometry']
+        self.gp = user_input['geometry']
         
         # wp (Winding Parameters): 包含绕组配置信息，如极槽配合、线规、目标电流密度、转速等
-        self.wp = machine_dict['winding']
-        
-        # 添加默认的槽绝缘衬套厚度（liner），如果未指定，默认给 0.1mm
-        if 'liner' not in self.gp:
-            self.gp['liner'] = 0.1
-            
-        # 如果未指定使用的线规AWG，默认采用AWG 31
-        if 'awg' not in self.wp:
-            self.wp['awg'] = 31
+        self.wp = user_input['winding']
 
     def get_wire_properties(self, awg_size):
         """
@@ -58,14 +50,18 @@ class MotorPerformanceAnalyzer:
         stator_id = (self.gp['r_rotor_outer'] + self.gp['d_air_gap']) * 2
         r_in = stator_id / 2
         
-        # r_out 为定子槽底的半径 (内径 + 齿深)
-        r_out = r_in + self.gp['d_tooth']
+        # d_slot 是齿深减去靴高真正的有效深度
+        d_slot = self.gp['d_tooth'] - self.gp.get('d_tooth_shoe', 0)
+        
+        # r_out 为定子槽底的半径 (内径 + 槽深)
+        r_out = r_in + d_slot
         
         # 定子槽所在环形区域的总面积
-        total_annulus_area = math.pi * (r_out**2 - r_in**2)
+        r_slot_in = r_in + self.gp.get('d_tooth_shoe', 0)
+        total_annulus_area = math.pi * (r_out**2 - r_slot_in**2)
         
-        # 所有齿的面积 (假设齿为矩形: 槽数 * 齿宽 * 齿深)
-        total_teeth_area = self.wp['slot_count'] * self.gp['w_tooth'] * self.gp['d_tooth']
+        # 所有齿的面积 (假设槽部分对应的齿为矩形: 槽数 * 齿宽 * 槽深)
+        total_teeth_area = self.wp['slot_count'] * self.gp['w_tooth'] * d_slot
         
         # 计算单槽有效面积
         return (total_annulus_area - total_teeth_area) / self.wp['slot_count']
@@ -92,7 +88,7 @@ class MotorPerformanceAnalyzer:
         total_wires = 0
         w_tooth = self.gp['w_tooth']
         d_tooth = self.gp['d_tooth']
-        liner = self.gp['liner']
+        liner = self.wp['liner']
         
         # 遍历左侧齿壁和右侧齿壁，分别从两侧往中间填线
         for t_angle in tooth_angles:
@@ -106,8 +102,8 @@ class MotorPerformanceAnalyzer:
                 
                 # 在垂直方向上逐排（Row）放置导线，最大假设允许15排
                 for row in range(15):
-                    # 径向高度的垂直偏移 (沿半径方向)
-                    v_offset = liner + d_od / 2 + row * d_od
+                    # 径向高度的垂直偏移 (沿半径方向)，绕组从靴底上方开始算起
+                    v_offset = self.gp.get('d_tooth_shoe', 0) + liner + d_od / 2 + row * d_od
                     
                     # 超过齿的深度，说明碰到定子背铁边缘，本层排不下了，直接跳到下一层
                     if v_offset > d_tooth - liner:
@@ -148,7 +144,11 @@ class MotorPerformanceAnalyzer:
         # 假设双层绕组，所以每个线圈边的匝数是 z_slot / 2
         turns_per_phase = coils_per_phase * (z_slot / 2)
         
-        kw1 = 0.933 # 固定使用 12S10P 基波绕组系数
+        # Handle case where kw1 is set to None in user_input
+        kw1 = self.wp.get('kw1')
+        if kw1 is None:
+            kw1 = 0.933
+            
         pole_pairs = self.wp['pole_count'] / 2
         
         # 轭部厚度 = 定子外半径 - (内半径 + 气隙 + 齿深)

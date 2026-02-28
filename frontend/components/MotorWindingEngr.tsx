@@ -13,6 +13,7 @@ const MotorWindingSimulator = () => {
         statorId: 8.3,
         toothDepth: 2.1,
         toothWidth: 1.2,
+        toothShoe: 0.15,
         yoke: 0.25,
         slots: 12,
         liner: 0.1
@@ -29,9 +30,12 @@ const MotorWindingSimulator = () => {
     // 1. 槽面积几何计算 (mm^2)
     const slotArea = useMemo(() => {
         const rIn = motor.statorId / 2;
+        const Math_pow = Math.pow;
+        const rSlotIn = rIn + motor.toothShoe;
         const rOut = rIn + motor.toothDepth;
-        const totalAnnulus = Math.PI * (Math.pow(rOut, 2) - Math.pow(rIn, 2));
-        const totalTeethArea = motor.slots * motor.toothWidth * motor.toothDepth;
+        const totalAnnulus = Math.PI * (Math_pow(rOut, 2) - Math_pow(rSlotIn, 2));
+        const dSlot = motor.toothDepth - motor.toothShoe;
+        const totalTeethArea = motor.slots * motor.toothWidth * dSlot;
         return (totalAnnulus - totalTeethArea) / motor.slots;
     }, []);
 
@@ -58,7 +62,7 @@ const MotorWindingSimulator = () => {
                 // 计算层位横向偏移
                 const hOffset = (motor.toothWidth / 2 + motor.liner + w.d_od / 2 + layer * w.d_od * 0.88);
                 for (let row = 0; row < 15; row++) {
-                    const vOffset = motor.liner + w.d_od / 2 + row * w.d_od;
+                    const vOffset = motor.toothShoe + motor.liner + w.d_od / 2 + row * w.d_od;
                     if (vOffset > motor.toothDepth - motor.liner) break;
                     const r = rIn + vOffset;
                     if (hOffset >= r) continue;

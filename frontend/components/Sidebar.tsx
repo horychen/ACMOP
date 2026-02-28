@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { BarChart3, Moon, Sun, ChevronLeft, ChevronRight, Wrench, Eye, Bug, Search } from "lucide-react"
+import { BarChart3, Moon, Sun, ChevronLeft, ChevronRight, Wrench, Eye, Bug, Search, Activity } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 import { useState, useEffect } from "react"
 
@@ -126,6 +126,17 @@ export function Sidebar({ className }: SidebarProps) {
               <Link href="/v2-validation">
                 <Eye className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
                 {!isCollapsed && "V2 Validation"}
+              </Link>
+            </Button>
+            <Button
+              variant={pathname === "/fea-results" ? "secondary" : "ghost"}
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")}
+              asChild
+              title={isCollapsed ? "FEA Results" : undefined}
+            >
+              <Link href="/fea-results">
+                <Activity className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+                {!isCollapsed && "FEA Results"}
               </Link>
             </Button>
           </div>

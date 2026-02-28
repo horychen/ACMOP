@@ -8,7 +8,7 @@ class StatorParameters(BaseModel):
     toothDepth: float = 2.0
     toothWidth: float = 1.2
     tooth_shape: str = "closed"
-    liner: float = 0.1
+    toothShoe: float = 0.15
 
 class RotorParameters(BaseModel):
     OD: float = 8.0
@@ -23,6 +23,7 @@ class WindingParameters(BaseModel):
     l_stack: float = 50.0
     rated_speed: float = 3000.0
     rated_current_density: float = 5.0
+    liner: float = 0.1
 
 class MotorParameters(BaseModel):
     stator: StatorParameters = StatorParameters()
@@ -49,7 +50,7 @@ motor_params.stator.toothDepth = 2.0
 motor_params.stator.toothWidth = 1.2
 motor_params.stator.tooth_shape = "closed"
 
-from machine import user_input
+from main_dex13 import user_input
 
 @app.get("/api/motor-parameters")
 def get_motor_parameters():
@@ -72,9 +73,9 @@ def get_motor_parameters():
             "OD": r_so * 2,
             "ID": r_si * 2,
             "toothDepth": d_tooth,
+            "toothShoe": geo.get('d_tooth_shoe', 0.15),
             "toothWidth": w_tooth,
-            "yoke": yoke,
-            "liner": 0.1
+            "yoke": yoke
         },
         "rotor": {
             "OD": r_ro * 2,
@@ -84,7 +85,8 @@ def get_motor_parameters():
         },
         "winding": {
             "awg": 31,
-            "J": win.get('rated_current_density', 14)
+            "J": win.get('rated_current_density', 14),
+            "liner": win.get('liner', 0.1)
         }
     }
     return params
@@ -97,6 +99,7 @@ def update_motor_parameters(params: MotorParameters):
 
 from fastapi.responses import FileResponse
 import os
+import jsonpickle
 
 @app.get("/api/stator-svg")
 def get_stator_svg():
@@ -104,6 +107,15 @@ def get_stator_svg():
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="image/svg+xml")
     return {"error": "SVG file not found"}
+
+@app.get("/api/fea-results")
+def get_fea_results():
+    file_path = os.path.join(os.path.dirname(__file__), "SwarmData.json")
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        with open(file_path, "r") as f:
+            data = jsonpickle.decode(f.read())
+        return data
+    return {"error": "SwarmData.json not found or empty"}
 
 if __name__ == "__main__":
     import uvicorn

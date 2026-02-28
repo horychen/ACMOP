@@ -56,7 +56,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         self.verbose_drawing = False
 
-    def open(self, Steel_name: str, expected_project_file_path: str, pc_name: str, dir_parent: str, bool_jmagDesignerShow: bool = True):
+    def open(self, Steel_name: str, expected_project_file_path: str, pc_name: str, dir_parent: str):
         if self.app is None:
             # 在 Streamlit 等多线程环境中，需要显式初始化 COM
             # 使用 COINIT_APARTMENTTHREADED 模式（适合单线程单元模型）
@@ -84,7 +84,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             self.JMAG_version_string = app.VersionString(0)
             self.JMAG_version_number = float(app.VersionString(0)[:2])
 
-            if bool_jmagDesignerShow == True:
+            if self.fea_config_dict.get('designer.show', True) == True:
                 app.Show()
             else:
                 app.Hide()
@@ -760,31 +760,33 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         
         # Steel
-        safe_set_material(study, rotorCoreName, acm_variant.user_input['winding'].get('rotor_core_material', '35CS250'))
+        mat_dict = acm_variant.user_input['material']
+        
+        safe_set_material(study, rotorCoreName, mat_dict['rotor_core_steel_name'])
         study.GetMaterial(rotorCoreName).SetValue("Laminated", 1)
-        study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", acm_variant.user_input['winding'].get('lamination_factor', 0.95))
+        study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", mat_dict['lamination_factor'])
 
-        safe_set_material(study, "statorCore", acm_variant.user_input['winding'].get('stator_core_material', '35CS250'))
+        safe_set_material(study, "statorCore", mat_dict['stator_core_steel_name'])
         study.GetMaterial("statorCore").SetValue("Laminated", 1)
-        study.GetMaterial("statorCore").SetValue("LaminationFactor", acm_variant.user_input['winding'].get('lamination_factor', 0.95))
+        study.GetMaterial("statorCore").SetValue("LaminationFactor", mat_dict['lamination_factor'])
 
         # Copper
         study.SetMaterialByName("Coils", "Copper")
 
         # Magnet
-        target_dict = acm_variant.user_input.get('target', {})
-        if 'PMSM' in target_dict.get('machine_class', 'SPMSM'):
-            safe_set_material(study, u"Magnet", acm_variant.user_input['winding'].get('magnet_name', 'N42'))
+        target_dict = acm_variant.user_input['target']
+        if 'PMSM' in target_dict['machine_class']:
+            safe_set_material(study, u"Magnet", mat_dict['magnet_material_name'])
             study.GetMaterial(u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
-            study.GetMaterial(u"Magnet").SetValue(u"Temperature", acm_variant.user_input['winding'].get('magnet_temperature', 80)) 
+            study.GetMaterial(u"Magnet").SetValue(u"Temperature", target_dict['magnet_temperature']) 
 
-            study.GetMaterial(u"Magnet").SetValue(u"Poles", acm_variant.user_input['winding'].get('pole_count', 10))
+            study.GetMaterial(u"Magnet").SetValue(u"Poles", acm_variant.user_input['winding']['pole_count'])
             study.GetMaterial(u"Magnet").SetDirectionXYZ(1, 0, 0)
             study.GetMaterial(u"Magnet").SetAxisXYZ(0, 0, -1)
             study.GetMaterial(u"Magnet").SetOriginXYZ(0, 0, 0)
             study.GetMaterial(u"Magnet").SetPattern(u"RadialCircular")
             study.GetMaterial(u"Magnet").SetOrientation(True) # False: 南极朝右，北极朝左，True: 南极朝左，北极朝右
-            study.GetMaterial(u"Magnet").SetValue(u"StartAngle", acm_variant.user_input['winding'].get('magnet_start_angle', 0.0)) 
+            study.GetMaterial(u"Magnet").SetValue(u"StartAngle", mat_dict['magnet_start_angle']) 
             study.GetMaterial(u"Magnet").SetValue(u"UseAnisotropicMagnet", 0)
 
         # add_carbon_fiber_material(app)
@@ -1946,7 +1948,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # print(effective_part)
         else:
             rotor_Joule_loss = sum(effective_part) / len(effective_part)
-        if 'PMPM' in machine_type:
+        if 'PM' in machine_type:
             logger = logging.getLogger(__name__)
             logger.info('Magnet Joule loss: %s', rotor_Joule_loss)
 
@@ -1999,7 +2001,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             #     print('Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio, 'which means you are simulating a separate winding? If not, contrats--you found a bug...')
             #     print('DW, BW, Total:', acm_variant.DriveW_CurrentAmp, acm_variant.BeariW_CurrentAmp, acm_variant.CurrentAmp_per_phase)
             s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(
-                win.get('torque_current_utilization_ratio', 1.0) * acm_variant.geometry.slot_area * 1e-6, 
+                win.get('separate_winding_utilization_ratio_for_torque', 1.0) * acm_variant.geometry.slot_area * 1e-6, 
                 copper_loss_parameters=copper_loss_parameters, 
                 STATOR_SLOT_FILL_FACTOR=win.get('fill_factor', 0.5),
                 TEMPERATURE_OF_COIL=win.get('magnet_temperature', 75.0))

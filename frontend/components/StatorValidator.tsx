@@ -13,8 +13,8 @@ interface StatorParams {
     ID: number;
     toothDepth: number;
     toothWidth: number;
+    toothShoe: number;
     yoke: number;
-    liner: number;
 }
 interface RotorParams {
     OD: number;
@@ -25,6 +25,7 @@ interface RotorParams {
 interface WindingParams {
     awg: number;
     J: number;
+    liner: number;
 }
 interface MotorParams {
     stator: StatorParams;
@@ -37,9 +38,11 @@ export default function StatorValidator() {
     const [motorParams, setMotorParams] = useState<MotorParams | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
     React.useEffect(() => {
         // Fetch parameters from backend
-        fetch('http://localhost:8001/api/motor-parameters')
+        fetch(`${BACKEND_URL}/api/motor-parameters`)
             .then(res => res.json())
             .then(data => {
                 setMotorParams(data);
@@ -50,9 +53,9 @@ export default function StatorValidator() {
                 console.error("Failed to fetch motor parameters:", err);
                 // Fallback hardcoded values for development if backend is not running
                 setMotorParams({
-                    stator: { OD: 13.0, ID: 8.3, toothDepth: 2.1, toothWidth: 1.2, yoke: 0.25, liner: 0.1 },
+                    stator: { OD: 13.0, ID: 8.3, toothDepth: 2.1, toothWidth: 1.2, toothShoe: 0.15, yoke: 0.25 },
                     rotor: { OD: 8.0, ID: 2.0, magnetDepth: 3.0, airGap: 0.15 },
-                    winding: { awg: 31, J: 14 }
+                    winding: { awg: 31, J: 14, liner: 0.1 }
                 });
                 setLoading(false);
             });
@@ -68,9 +71,10 @@ export default function StatorValidator() {
         const OD = motorParams.stator.OD;
         const ID = motorParams.stator.ID;
         const toothDepth = motorParams.stator.toothDepth;
+        const toothShoe = motorParams.stator.toothShoe || 0.15;
         const toothWidth = motorParams.stator.toothWidth;
         const yoke = motorParams.stator.yoke;
-        const liner = motorParams.stator.liner;
+        const liner = motorParams.winding.liner;
         const J = motorParams.winding.J; // A/mm²
 
         const rInner = ID / 2; // 4.15 mm
@@ -81,7 +85,8 @@ export default function StatorValidator() {
         const slotBottomNet = ((Math.PI * (rOuter * 2)) / 12) - toothWidth - (2 * liner); // ~1.87 mm
 
         // Trapezoidal Slot Area Approximation (Net of liner)
-        const netArea = ((slotOpeningNet + slotBottomNet) / 2) * (toothDepth - liner); // ~2.77 mm^2 Net space
+        const dSlot = toothDepth - toothShoe;
+        const netArea = ((slotOpeningNet + slotBottomNet) / 2) * (dSlot - liner); // Net space avoiding shoe
 
         // Wire properties
         const wireData = WIRE_DATA[awg as keyof typeof WIRE_DATA];
@@ -91,7 +96,7 @@ export default function StatorValidator() {
         // Orthocyclic packing estimation (Max physical wires per half-slot)
         // Assuming double layer, we pack one side of the tooth
         const effectiveWidth = slotOpeningNet / 2; // Split for two coils
-        const layers = Math.floor((toothDepth - liner * 2) / (dCoated * 0.866)); // Hexagonal stacking height
+        const layers = Math.floor((dSlot - liner * 2) / (dCoated * 0.866)); // Hexagonal stacking height
         const wiresPerLayer = Math.max(1, Math.floor(effectiveWidth / dCoated));
 
         // Adjusting Z_slot based on realistic orthocyclic packing factor (0.88)
@@ -117,9 +122,9 @@ export default function StatorValidator() {
         return <div className="p-6 text-center text-slate-500">Loading Motor Parameters...</div>;
     }
 
-    const { OD, ID, toothDepth, toothWidth, yoke, liner } = motorParams.stator;
+    const { OD, ID, toothDepth, toothWidth, toothShoe = 0.15, yoke } = motorParams.stator;
     const { magnetDepth, airGap } = motorParams.rotor;
-    const { J } = motorParams.winding;
+    const { J, liner } = motorParams.winding;
 
     // 3. SVG Rendering Helpers
     const renderWires = () => {
@@ -142,7 +147,7 @@ export default function StatorValidator() {
                 const hOffset = (toothWidth / 2 + liner + dCoated / 2 + layer * dCoated * 0.88);
 
                 for (let row = 0; row < 15; row++) {
-                    const vOffset = liner + dCoated / 2 + row * dCoated;
+                    const vOffset = toothShoe + liner + dCoated / 2 + row * dCoated;
                     if (vOffset > toothDepth - liner) break; // Reached bottom of slot
 
                     const r = rIn + vOffset;

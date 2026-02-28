@@ -24,8 +24,8 @@ export default function StatorValidator() {
                 console.error("Failed to fetch motor parameters:", err);
                 // Fallback hardcoded values for development if backend is not running
                 setMotorParams({
-                    stator: { OD: 13.0, ID: 8.3, toothDepth: 2.1, toothWidth: 1.2, yoke: 0.25, liner: 0.1 },
-                    winding: { awg: 31, J: 14 }
+                    stator: { OD: 13.0, ID: 8.3, toothDepth: 2.1, toothWidth: 1.2, yoke: 0.25 },
+                    winding: { awg: 31, J: 14, liner: 0.1 }
                 });
                 setLoading(false);
             });
@@ -42,9 +42,10 @@ export default function StatorValidator() {
     const OD = motorParams.stator.OD;
     const ID = motorParams.stator.ID;
     const toothDepth = motorParams.stator.toothDepth;
+    const toothShoe = motorParams.stator.toothShoe || 0.15;
     const toothWidth = motorParams.stator.toothWidth;
     const yoke = motorParams.stator.yoke;
-    const liner = motorParams.stator.liner;
+    const liner = motorParams.winding.liner;
     const J = motorParams.winding.J; // A/mm²
 
     // 2. Derived Calculations
@@ -57,7 +58,8 @@ export default function StatorValidator() {
         const slotBottomNet = ((Math.PI * (rOuter * 2)) / 12) - toothWidth - (2 * liner); // ~1.87 mm
 
         // Trapezoidal Slot Area Approximation (Net of liner)
-        const netArea = ((slotOpeningNet + slotBottomNet) / 2) * (toothDepth - liner); // ~2.77 mm^2 Net space
+        const dSlot = toothDepth - toothShoe;
+        const netArea = ((slotOpeningNet + slotBottomNet) / 2) * (dSlot - liner); // ~2.77 mm^2 Net space
 
         // Wire properties
         const dCoated = WIRE_DATA[awg].coated;
@@ -66,7 +68,7 @@ export default function StatorValidator() {
         // Orthocyclic packing estimation (Max physical wires per half-slot)
         // Assuming double layer, we pack one side of the tooth
         const effectiveWidth = slotOpeningNet / 2; // Split for two coils
-        const layers = Math.floor((toothDepth - liner * 2) / (dCoated * 0.866)); // Hexagonal stacking height
+        const layers = Math.floor((dSlot - liner * 2) / (dCoated * 0.866)); // Hexagonal stacking height
         const wiresPerLayer = Math.max(1, Math.floor(effectiveWidth / dCoated));
 
         // Adjusting Z_slot based on realistic orthocyclic packing factor (0.88)

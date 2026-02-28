@@ -5,7 +5,7 @@ $ConfigPath = Join-Path $ProjectRoot "acmop.config.json"
 
 # Default configuration
 $envName = "acmop"
-$BackendFolder = "backend"
+$BackendFolder = "backend_v2"
 
 # Try to parse configuration
 if (Test-Path $ConfigPath) {
@@ -33,7 +33,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$Fr
 
 Write-Host "Starting Backend ($BackendFolder) in a new window using conda env: $envName..."
 # Starts backend in a new PowerShell window
-$BackendCmd = "Set-Location '$BackendDir'; conda run -n $envName --no-capture-output uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+$BackendCmd = "Set-Location '$BackendDir'; conda run -n $envName --no-capture-output uvicorn main:app --reload --host 0.0.0.0 --port 8000"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $BackendCmd
 
 Write-Host "Both services have been launched in separate windows."

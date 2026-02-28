@@ -8,5 +8,7 @@
     "python.analysis.autoSearchPaths": true,
     "pyre.enabled": false,
     "python.linting.enabled": false,
-    "python.linting.pylintEnabled": false
+    "python.linting.pylintEnabled": false,
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda"
 }
