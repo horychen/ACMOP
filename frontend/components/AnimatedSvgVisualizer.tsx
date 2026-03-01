@@ -13,11 +13,12 @@ export default function AnimatedSvgVisualizer() {
     const [spinSpeed, setSpinSpeed] = useState(4); // seconds per revolution
     const svgContainerRef = useRef<HTMLDivElement>(null);
 
-    const svgUrl = `http://localhost:8001/api/stator-svg?t=${Date.now()}`;
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
-    const fetchSvg = () => {
+    const fetchSvg = React.useCallback(() => {
         setLoading(true);
         setError(null);
+        const svgUrl = `${BACKEND_URL}/api/stator-svg?t=${Date.now()}`;
         fetch(svgUrl)
             .then(res => {
                 const contentType = res.headers.get("content-type");
@@ -39,11 +40,12 @@ export default function AnimatedSvgVisualizer() {
                 setError(err.message);
                 setLoading(false);
             });
-    };
+    }, [BACKEND_URL]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchSvg();
-    }, []);
+    }, [fetchSvg]);
 
     useEffect(() => {
         if (!svgContent || !svgContainerRef.current) return;

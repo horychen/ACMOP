@@ -23,7 +23,7 @@ description: Global agent rules and guidelines for ACMOP project (FastAPI + Next
 - `acmop.config.json`: Global configuration for environments and URLs.
 
 ## Python Development Rules & Core Agreements (后端与算法规范)
-- **Interpreter**: Always use the `acmop` conda environment.
+- **Interpreter & Execution**: Always use the `acmop` conda environment. When executing Python scripts in the terminal, ALWAYS use `conda run -n acmop python <script_name.py>` or ensure the `acmop` environment is activated first.
 - **Import Resolution**: 
   - The project uses `backend` and `backend/codes4` as extra search paths.
   - When working in `backend/`, imports may be relative to `codes4`.

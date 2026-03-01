@@ -103,14 +103,14 @@ import jsonpickle
 
 @app.get("/api/stator-svg")
 def get_stator_svg():
-    file_path = os.path.join(os.path.dirname(__file__), "stator_v2.svg")
+    file_path = os.path.join(os.path.dirname(__file__), "output", "stator_v2.svg")
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="image/svg+xml")
     return {"error": "SVG file not found"}
 
 @app.get("/api/fea-results")
 def get_fea_results():
-    file_path = os.path.join(os.path.dirname(__file__), "SwarmData.json")
+    file_path = os.path.join(os.path.dirname(__file__), "output", "SwarmData.json")
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         with open(file_path, "r") as f:
             data = jsonpickle.decode(f.read())

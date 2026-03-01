@@ -1729,7 +1729,7 @@ class Modern_Machine_Designer_Utility(object):
         import os
 
         # Path to SwarmData.json
-        swarm_data_path = os.path.join(self.path2SwarmData, "SwarmData.json")
+        swarm_data_path = os.path.join(self.path2SwarmData, "output", "SwarmData.json")
 
         # Read the SwarmData.json file
         with open(swarm_data_path, "r", encoding="utf-8") as f:

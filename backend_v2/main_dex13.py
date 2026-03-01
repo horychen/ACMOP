@@ -33,6 +33,7 @@ user_input = OrderedDict([
             ('liner', 0.1), # 添加默认的槽绝缘衬套厚度（liner），如果未指定，默认给 0.1mm
             ('connection_type', 'wye'), # or 'delta'
             ('kw1', None), 
+            ('phase_resistance', None),
         ])),
         ('geometry', OrderedDict([
             ('tooth_shape', 'closed'), # 牙槽结构样式设定
@@ -77,6 +78,7 @@ user_input = OrderedDict([
             ('designer.meshSize_General', 2.0),
         ])),
         ('target', OrderedDict([
+            ('initial_rotation_angle', 0.0), # 转子初始位置，需要和电流矢量垂直
             ('machine_class', 'SPMSM'),
             ('select_FEA_tool', 'JMAG'),
             ('magnet_temperature', 80),
@@ -88,7 +90,7 @@ user_input = OrderedDict([
             ])
         ])),
         ('eval_config', OrderedDict([
-            ('project_loc', os.path.dirname(os.path.abspath(__file__))),
+            ('project_loc', os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")),
             ('project_name_prefix', 'machine-ind'),
             ('counter', 0),
             ('counter_loop', 0),
@@ -138,7 +140,11 @@ if __name__ == "__main__":
         print("-" * 60)
                 
     # 步骤二： 输出矢量截面图，用于在不启动 FEA 商业软件情况下的独立 Web UI 展示与几何校验
-    output_svg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stator_v2.svg")
+    output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        
+    output_svg_path = os.path.join(output_dir, "stator_v2.svg")
     mac.draw_svg(output_svg_path)
     print(f"Exported {output_svg_path} successfully with user_input parameters.")
     

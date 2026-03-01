@@ -9,4 +9,4 @@ __pycache__/
 *.lock
 *.json
 *.png
-
+*.pdf

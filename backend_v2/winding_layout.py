@@ -57,6 +57,7 @@ class winding_layout_v2(OrderedDict):
         if DPNV_or_SEPA is None \
         and Qs == 12 \
         and p == 2 \
+        and ps == None \
         and coil_pitch_y == 3:
 
             self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
@@ -73,6 +74,7 @@ class winding_layout_v2(OrderedDict):
         if DPNV_or_SEPA is None \
         and Qs == 12 \
         and p == 5 \
+        and ps == None \
         and coil_pitch_y == 1:
 
             self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
@@ -340,7 +342,7 @@ class winding_layout_v2(OrderedDict):
                 self.bool_3PhaseCurrentSource = False
                 self.CommutatingSequenceD = 1
                 self.CommutatingSequenceB = 0
-        
+
         if DPNV_or_SEPA == True \
             and Qs == 12 \
             and p == 5 \

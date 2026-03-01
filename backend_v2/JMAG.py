@@ -84,7 +84,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             self.JMAG_version_string = app.VersionString(0)
             self.JMAG_version_number = float(app.VersionString(0)[:2])
 
-            if self.fea_config_dict.get('designer.show', True) == True:
+            if self.fea_config_dict['designer.show'] == True:
                 app.Show()
             else:
                 app.Hide()
@@ -278,6 +278,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     ''' PM Motor
     '''
     def pre_process_PMSM(self, app, model, acm_variant):
+        wp = acm_variant.user_input['winding']
 
         logger = logging.getLogger(__name__)
         print(f"DEBUG JMAG FILE: {__file__}")
@@ -295,6 +296,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # sel.SetBlockUpdateView(False)
 
         def export_image(app, model, path2SwarmData, suffix='.png'):
+            wp = acm_variant.user_input['winding']
             app.View().ShowAllAirRegions()
             # app.View().ShowMeshGeometry() # 2nd btn
             app.View().ShowMesh() # 3rn btn
@@ -304,16 +306,16 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # 2022-04-12: this is a temporary fix for JMAG Designer 21.0
         # self.jd.GetProject().GetModel(acm_variant.user_input['evaluation']['project_name']).GetStudy(acm_variant.user_input['evaluation']['project_name']).GetMeshControl().GetCondition(u"MagnetMeshCtrl").SetValue(u"Size", 0.002)
-        if self.fea_config_dict.get('designer.show', False):
+        if self.fea_config_dict['designer.show']:
             app.View().Pan(-acm_variant.user_input['geometry']['r_rotor_outer'], 0)
 
         # Use winding and target attributes
         
-        p = acm_variant.user_input['winding'].get('pole_count', 10) // 2
+        p = wp['pole_count'] // 2
         s = 1
-        Q = acm_variant.user_input['winding'].get('slot_count', 12)
-        project_name = acm_variant.user_input.get('evaluation', {}).get('project_name', 'machine')
-        path2SwarmData = acm_variant.user_input.get('evaluation', {}).get('project_loc', './')
+        Q = wp['slot_count']
+        project_name = acm_variant.user_input['evaluation']['project_name']
+        path2SwarmData = acm_variant.user_input['evaluation']['project_loc']
 
         if len(acm_variant.geometry.parts) < 3: # Rotor, Stator, Magnet(s)
             #+ self.show(acm_variant,toString=False)
@@ -325,6 +327,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # pre-process : you can select part by coordinate!
         ''' Group '''
         def group(name, id_list):
+            wp = acm_variant.user_input['winding']
             model.GetGroupList().CreateGroup(name)
             for the_id in id_list:
                 model.GetGroupList().AddPartToGroup(name, the_id)
@@ -334,7 +337,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if isinstance(part_ID_list, int) or isinstance(part_ID_list, str):
             part_ID_list = (part_ID_list,)
 
-        pole_count = acm_variant.user_input.get('winding', {}).get('pole_count', 10)
+        pole_count = wp['pole_count']
         self.id_rotorCore = id_rotorCore = part_ID_list[0]
         partIDRange_Magnet = list(part_ID_list[1 : 1 + pole_count]) if len(part_ID_list) > 1 else []
         self.id_statorCore = id_statorCore = part_ID_list[1 + pole_count] if len(part_ID_list) > 1 + pole_count else None
@@ -369,16 +372,17 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Angle_StatorSlotSpan = 360/Q
 
         def get_PCoil(acm_variant):
+            wp = acm_variant.user_input['winding']
             # Use the inner_coords centroids of the Coil part
             for part in acm_variant.geometry.parts:
-                if 'coil' in part.get('name', '').lower():
+                if 'coil' in part['name'].lower():
                     if 'inner_coords' in part and part['inner_coords']:
                         # Pick the region with the most negative Y for JMAG compatibility
                         print(f"[coil inner_coords] {part['inner_coords']}")
                         return min(part['inner_coords'].values(), key=lambda p: p[1])
             # Rough fallback based on GP
-            gp = acm_variant.user_input.get('geometry', {})
-            return [gp.get('r_rotor_outer', 4) + gp.get('d_air_gap', 0.15) + gp.get('d_tooth', 2)*0.9, -gp.get('w_tooth', 1.2)*0.5*1.1]         
+            gp = acm_variant.user_input['geometry']
+            return [gp['r_rotor_outer'] + gp['d_air_gap'] + gp['d_tooth']*0.9, -gp['w_tooth']*0.5*1.1]         
         PCoil = get_PCoil(acm_variant)
         print(f"PCoil={PCoil}, Angle_StatorSlotSpan={Angle_StatorSlotSpan}")
         
@@ -392,7 +396,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         Y = R*math.sin(THETA)
         countXL = 0
 
-        for UVW, UpDown in zip(acm_variant.user_input['winding'].get('layer_X_phases'),acm_variant.user_input['winding'].get('layer_X_signs')):
+        for UVW, UpDown in zip(wp['layer_X_phases'],wp['layer_X_signs']):
             countXL += 1 
             print(f"CoilLX: count={countXL}, Phase={UVW}, Sign={UpDown}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
             add_part_to_set("CoilLX%s%s %d"%(UVW,UpDown,countXL), X, Y)
@@ -406,11 +410,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if PCoil[1] >= 0:
             raise Exception(f'Pay attention to the coil setup. The codes are written assuming the first coil is in the 12th slot. In other words PCoil[1] should negative, but {PCoil[1]=}')
         else:
-            THETA = math.atan2(-PCoil[1], PCoil[0]) # Start from Slot 1's left layer directly
+            THETA = math.atan2(-PCoil[1], PCoil[0]) - (2*np.pi) / wp['slot_count']
         X = R*math.cos(THETA)
         Y = R*math.sin(THETA)
         countYL = 0
-        for UVW, UpDown in zip(acm_variant.user_input['winding'].get('layer_Y_phases'),acm_variant.user_input['winding'].get('layer_Y_signs')):
+        for UVW, UpDown in zip(wp['layer_Y_phases'],wp['layer_Y_signs']):
             countYL += 1 
             print(f"CoilLY: count={countYL}, Phase={UVW}, Sign={UpDown}, Location=({X:.4f}, {Y:.4f}), Angle={math.degrees(THETA):.4f} deg")
             add_part_to_set("CoilLY%s%s %d"%(UVW,UpDown,countYL), X, Y)
@@ -420,10 +424,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             Y = R*math.sin(THETA)
 
         # Create Set for Magnets
-        gp = acm_variant.user_input.get('geometry', {})
-        R = gp.get('r_rotor_outer', 4) - 0.5 * gp.get('d_magnet', 3)
-        alpha_slot_pitch = 360.0 / acm_variant.user_input['winding'].get('slot_count', 12)
-        alpha_pole_pitch = 360.0 / acm_variant.user_input['winding'].get('pole_count', 10)
+        gp = acm_variant.user_input['geometry']
+        R = gp['r_rotor_outer'] - 0.5 * gp['d_magnet']
+        alpha_slot_pitch = 360.0 / wp['slot_count']
+        alpha_pole_pitch = 360.0 / wp['pole_count']
 
         list_xy_magnets = []
         # list_xy_airWithinRotorSlot = []
@@ -459,6 +463,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         return True
 
     def add_magnetic_transient_study(self, app, model, path2FEACsv, study_name, acm_variant):
+        wp = acm_variant.user_input['winding']
         logger = logging.getLogger(__name__)
         # spmsm_variant = self
 
@@ -474,22 +479,22 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # misc
         
-        fea_config = acm_variant.user_input.get('fea_config_dict', {})
+        fea_config = acm_variant.user_input['fea_config_dict']
         
         study.GetStudyProperties().SetValue("ConversionType", 0)
-        study.GetStudyProperties().SetValue("NonlinearMaxIteration", self.fea_config_dict.get('designer.max_nonlinear_iteration', 50))
-        study.GetStudyProperties().SetValue("ModelThickness", acm_variant.user_input['winding'].get('l_stack', 16.0)) # [mm] Stack Length
+        study.GetStudyProperties().SetValue("NonlinearMaxIteration", self.fea_config_dict['designer.max_nonlinear_iteration'])
+        study.GetStudyProperties().SetValue("ModelThickness", wp['l_stack']) # [mm] Stack Length
 
         # Material
         self.add_material(study, acm_variant)
 
         # Conditions - Motion
         study.CreateCondition("RotationMotion", "RotCon") # study.GetCondition(u"RotCon").SetXYZPoint(u"", 0, 0, 1) # megbox warning
-        study.GetCondition("RotCon").SetValue("AngularVelocity", int(acm_variant.user_input['winding'].get('rated_speed', 20000)))
+        study.GetCondition("RotCon").SetValue("AngularVelocity", int(wp['rated_speed']))
         study.GetCondition("RotCon").ClearParts()
         study.GetCondition("RotCon").AddSet(model.GetSetList().GetSet("Motion_Region"), 0)
 
-        study.GetCondition("RotCon").SetValue(u"InitialRotationAngle", acm_variant.user_input['winding'].get('initial_rotation_angle', 0.0))
+        study.GetCondition("RotCon").SetValue(u"InitialRotationAngle", acm_variant.user_input['target']['initial_rotation_angle'])
         # if acm_variant.Rotation_Axis == -1:
         # study.GetCondition("RotCon").SetValue("Rotation Axis", "DownWard")
 
@@ -506,13 +511,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
 
         # Conditions - FEM Coils & Conductors (i.e. stator/rotor winding)
-        if acm_variant.user_input['winding'].get('bool_CustomizedCircuit') == True:
+        if wp['bool_CustomizedCircuit'] == True:
             acm_variant.add_circuit_customized(app, model, study)
         else:
-            self.add_circuit(app, model, study, acm_variant, bool_3PhaseCurrentSource=acm_variant.user_input['winding'].get('bool_3PhaseCurrentSource'))
+            self.add_circuit(app, model, study, acm_variant, bool_3PhaseCurrentSource=wp['bool_3PhaseCurrentSource'])
 
         # True: no mesh or field results are needed
-        study.GetStudyProperties().SetValue("OnlyTableResults", fea_config.get('designer.OnlyTableResults', False))
+        study.GetStudyProperties().SetValue("OnlyTableResults", fea_config['designer.OnlyTableResults'])
 
         # Linear Solver
         if False:
@@ -524,7 +529,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # https://www2.jmag-international.com/support/en/pdf/JMAG-Designer_Ver.17.1_ENv3.pdf
             study.GetStudyProperties().SetValue("DirectSolverType", 1)
 
-        if fea_config.get('designer.MultipleCPUs', True):
+        if fea_config['designer.MultipleCPUs']:
             # This SMP(shared memory process) is effective only if there are tons of elements. e.g., over 100,000.
             # too many threads will in turn make them compete with each other and slow down the solve. 2 is good enough for eddy current solve. 6~8 is enough for transient solve.
             study.GetStudyProperties().SetValue("UseMultiCPU", True)
@@ -532,17 +537,17 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # two sections of different time step size
         if True:
-            number_cycles_in_1stTSS = fea_config.get('designer.number_cycles_in_1stTSS', 1)
-            number_cycles_in_2ndTSS = fea_config.get('designer.number_cycles_in_2ndTSS', 0.5)
-            number_cycles_in_3rdTSS = fea_config.get('designer.number_cycles_in_3rdTSS', 0.5)
-            number_cycles_prolonged = fea_config.get('designer.number_cycles_prolonged', 0)
-            number_of_steps_1stTSS = fea_config.get('designer.number_of_steps_1stTSS', 50)
-            number_of_steps_2ndTSS = fea_config.get('designer.number_of_steps_2ndTSS', 32)
-            number_of_steps_3rdTSS = number_cycles_in_3rdTSS * fea_config.get('designer.StepPerCycle_3rdTSS', 64)
+            number_cycles_in_1stTSS = fea_config['designer.number_cycles_in_1stTSS']
+            number_cycles_in_2ndTSS = fea_config['designer.number_cycles_in_2ndTSS']
+            number_cycles_in_3rdTSS = fea_config['designer.number_cycles_in_3rdTSS']
+            number_cycles_prolonged = fea_config['designer.number_cycles_prolonged']
+            number_of_steps_1stTSS = fea_config['designer.number_of_steps_1stTSS']
+            number_of_steps_2ndTSS = fea_config['designer.number_of_steps_2ndTSS']
+            number_of_steps_3rdTSS = number_cycles_in_3rdTSS * fea_config['designer.StepPerCycle_3rdTSS']
             DM = app.GetDataManager()
             DM.CreatePointArray("point_array/timevsdivision", "SectionStepTable")
 
-            FREQUENCY = abs(acm_variant.user_input['winding'].get('rated_speed', 20000) / 60.0 * (acm_variant.user_input['winding'].get('pole_count', 10) / 2.0))
+            FREQUENCY = abs(wp['rated_speed'] / 60.0 * (wp['pole_count'] / 2.0))
             print(f"DEBUG JMAG: FREQUENCY = {FREQUENCY}, number_cycles_in_1stTSS = {number_cycles_in_1stTSS}")
 
             if number_cycles_prolonged == 0:
@@ -603,12 +608,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         study.GetDesignTable().AddEquation("speed")
         study.GetDesignTable().GetEquation("speed").SetType(1)
-        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %f" % (60 / (acm_variant.user_input['winding'].get('pole_count', 10) // 2) ))
+        study.GetDesignTable().GetEquation("speed").SetExpression("freq * %f" % (60 / (wp['pole_count'] // 2) ))
         study.GetDesignTable().GetEquation("speed").SetDescription("mechanical speed in r/min")
 
         # speed, freq, slip
         study.GetCondition("RotCon").SetValue("AngularVelocity", 'speed')
-        if acm_variant.user_input['winding'].get('bool_DPNVorSEPA') == False:
+        if wp['bool_DPNVorSEPA'] == False:
             app.ShowCircuitGrid(True)
             study.GetCircuit().GetComponent("CS4").SetValue("Frequency", FREQUENCY)
             study.GetCircuit().GetComponent("CS2").SetValue("Frequency", FREQUENCY)
@@ -632,10 +637,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # Iron Loss Calculation Condition
         # Stator 
-        if fea_config.get('designer.AddIronLossCondition', True):
+        if fea_config['designer.AddIronLossCondition']:
             cond = study.CreateCondition("Ironloss", "IronLossConStator")
-            cond.SetValue("RevolutionSpeed", int(acm_variant.user_input['winding'].get('rated_speed', 20000)))
-            cond.SetValue(u"Poles", acm_variant.user_input['winding'].get('pole_count', 10))
+            cond.SetValue("RevolutionSpeed", int(wp['rated_speed']))
+            cond.SetValue(u"Poles", wp['pole_count'])
             cond.ClearParts()
             sel = cond.GetSelection()
             # sel.SelectPartByPosition(acm_variant.template.SI['GP']['mm_r_si'].value + EPS, 0 ,0) # 2022-02-04 这里发现代码有点歧义：注意，实际上acm_variant.template.SI['GP']已经被修改了，acm_variant.template.SI['GP'] = acm_variant.GP。 # btw, this works!
@@ -733,7 +738,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # study.GetMaterial("Cage").SetValue("OutputResult", 0)
         # study.GetMaterial("Coil").SetValue("OutputResult", 0)
 
-        if acm_variant.user_input['winding'].get('bool_CustomizedCircuit'):
+        if wp['bool_CustomizedCircuit']:
             raise
 
         self.study_name = study_name
@@ -744,8 +749,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         pass
     # TranFEAwi2TSS
     def add_material(self, study, acm_variant):
+        wp = acm_variant.user_input['winding']
 
         def safe_set_material(study, part_name, material_name):
+            wp = acm_variant.user_input['winding']
             study.SetMaterialByName(part_name, material_name)
             # Check if material was actually set (some versions don't throw exception)
             if study.GetMaterial(part_name).GetName() == "":
@@ -753,7 +760,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # Find rotorCore part name
         rotorCoreName = "rotorCore" # Default
-        for part in acm_variant.user_input.get('geometry', {}).get('parts', []):
+        for part in acm_variant.geometry.parts:
             if 'rotor' in part['name'].lower() and 'core' in part['name'].lower():
                 rotorCoreName = part['name']
                 break
@@ -780,7 +787,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
             study.GetMaterial(u"Magnet").SetValue(u"Temperature", target_dict['magnet_temperature']) 
 
-            study.GetMaterial(u"Magnet").SetValue(u"Poles", acm_variant.user_input['winding']['pole_count'])
+            study.GetMaterial(u"Magnet").SetValue(u"Poles", wp['pole_count'])
             study.GetMaterial(u"Magnet").SetDirectionXYZ(1, 0, 0)
             study.GetMaterial(u"Magnet").SetAxisXYZ(0, 0, -1)
             study.GetMaterial(u"Magnet").SetOriginXYZ(0, 0, 0)
@@ -792,12 +799,14 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # add_carbon_fiber_material(app)
 
     def add_circuit(self, app, model, study, acm_variant, bool_3PhaseCurrentSource=True):
+        wp = acm_variant.user_input['winding']
         # Circuit - Current Source
         app.ShowCircuitGrid(True)
         study.CreateCircuit()
 
         # 4 pole motor Qs=24 dpnv implemented by two layer winding (6 coils). In this case, drive winding has the same slot turns as bearing winding
         def circuit(Grouping,turns,Rs,ampD,ampB,freq,phase=0, CommutatingSequenceD=0, CommutatingSequenceB=0, x=10,y=10, bool_3PhaseCurrentSource=True):
+            wp = acm_variant.user_input['winding']
             print(f'Add {Grouping} circuit')
             if bool_3PhaseCurrentSource:
                 study.GetCircuit().CreateComponent("3-Phase Current Source", Grouping)
@@ -846,8 +855,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
                 func = app.FunctionFactory().Composite()
                 f1 = app.FunctionFactory().Sin(ampD, freq, 0*phase_shift_drive) # JMAG Equation "freq" variable cannot be used here (Known API bug). So pay extra attension here when you create new case of a different freq.
-                target_dict = acm_variant.user_input.get('target', {})
-                mc = target_dict.get('machine_class', 'SPMSM')
+                target_dict = acm_variant.user_input['target']
+                mc = target_dict['machine_class']
                 if 'CPPM' in mc or 'CSPPM' in mc: 
                     dcB = ampB/math.sqrt(2)
                     f2 = app.FunctionFactory().Constant(dcB)
@@ -885,39 +894,39 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # 仔细看DPNV的接线，对于转矩逆变器，绕组的并联支路数为2，而对于悬浮逆变器，绕组的并联支路数为1。
 
         
-        npb = getattr(acm_variant.user_input['winding'], 'number_of_parallel_branch', getattr(acm_variant.user_input['winding'], 'number_parallel_branch', 1))
-        nwl = getattr(acm_variant.user_input['winding'], 'number_of_winding_layer', getattr(acm_variant.user_input['winding'], 'number_winding_layer', 1)) # number of windign layers 
+        npb = wp['number_parallel_branch']
+        nwl = wp['number_winding_layer']
         # if acm_variant.user_input['fea_config_dict']['DPNV_separate_winding_implementation'] == True or acm_variant.template.spec_input_dict['bool_DPNVorSEPA'] == False:
-        if acm_variant.user_input['winding'].get('bool_DPNVorSEPA') in [False, None]:
+        if wp['bool_DPNVorSEPA'] == False:
             # either a separate winding or a DPNV winding implemented as a separate winding
-            ampD =  0.5 * (acm_variant.user_input['winding'].get('drive_winding_current', 0)/npb + acm_variant.user_input['winding'].get('bearing_winding_current', 0)) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
-            ampB = -0.5 * (acm_variant.user_input['winding'].get('drive_winding_current', 0)/npb - acm_variant.user_input['winding'].get('bearing_winding_current', 0)) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
+            ampD =  0.5 * (wp['drive_winding_current']/npb + wp['bearing_winding_current']) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
+            ampB = -0.5 * (wp['drive_winding_current']/npb - wp['bearing_winding_current']) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
             if bool_3PhaseCurrentSource != True:
                 raise Exception('Logic Error Detected.')
         else:
             # case: DPNV as an actual two layer winding
-            ampD = acm_variant.user_input['winding'].get('drive_winding_current', 0)/npb
-            ampB = acm_variant.user_input['winding'].get('bearing_winding_current', 0)
+            ampD = wp['drive_winding_current']/npb
+            ampB = wp['bearing_winding_current']
             if bool_3PhaseCurrentSource != False:
                 raise Exception('Logic Error Detected.')
 
-        circuit('GroupAC',  acm_variant.user_input['winding'].get('drive_winding_conductors_per_slot', 10)/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
-            Rs=acm_variant.user_input['winding'].get('phase_resistance', 0.1),ampD= ampD,
-                              ampB=-ampB, freq=acm_variant.user_input['winding'].get('excitation_frequency_simulated', 500), phase=0,
-                              CommutatingSequenceD=acm_variant.user_input['winding'].get('CommutatingSequenceD'),
-                              CommutatingSequenceB=acm_variant.user_input['winding'].get('CommutatingSequenceB'))
+            circuit('GroupAC',  wp['wires_per_slot']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
+                Rs=wp['phase_resistance'],ampD= ampD,
+                                ampB=-ampB, freq=wp['excitation_frequency_simulated'], phase=0,
+                                CommutatingSequenceD=wp['CommutatingSequenceD'],
+                                CommutatingSequenceB=wp['CommutatingSequenceB'])
                               
-        if acm_variant.user_input['winding'].get('bool_DPNVorSEPA') is not None:
-            circuit('GroupBD',  acm_variant.user_input['winding'].get('bearing_winding_conductors_per_slot', 10)/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
-                Rs=acm_variant.user_input['winding'].get('phase_resistance', 0.1),ampD= ampD,
-                                  ampB=+ampB, freq=acm_variant.user_input['winding'].get('excitation_frequency_simulated', 500), phase=0,
-                                  CommutatingSequenceD=acm_variant.user_input['winding'].get('CommutatingSequenceD'),
-                                  CommutatingSequenceB=acm_variant.user_input['winding'].get('CommutatingSequenceB'),x=25) # CS4 corresponds to uauc (conflict with following codes but it does not matter.)
+            circuit('GroupBD',  wp['wires_per_slot']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
+                Rs=wp['phase_resistance'],ampD= ampD,
+                                  ampB=+ampB, freq=wp['excitation_frequency_simulated'], phase=0,
+                                  CommutatingSequenceD=wp['CommutatingSequenceD'],
+                                  CommutatingSequenceB=wp['CommutatingSequenceB'],x=25) # CS4 corresponds to uauc (conflict with following codes but it does not matter.)
 
         # Link FEM Coils to Coil Set     
         # if acm_variant.user_input['fea_config_dict']['DPNV_separate_winding_implementation'] == True or acm_variant.template.spec_input_dict['bool_DPNVorSEPA'] == False:
-        if acm_variant.user_input['winding'].get('bool_DPNVorSEPA') == False:
+        if wp['bool_DPNVorSEPA'] == False:
             def link_FEMCoils_2_CoilSet(SetPrefix, Grouping, l1, l2):
+                wp = acm_variant.user_input['winding']
                 # link between FEM Coil Condition and Circuit FEM Coil
                 for UVW in ['U','V','W']:
                     which_phase = "%s%s-Phase"%(Grouping,UVW)
@@ -947,11 +956,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                     condition = study.GetCondition(which_phase)
                     condition.RemoveSubCondition("delete")
             link_FEMCoils_2_CoilSet('LX', 'GroupAC', 
-                                    acm_variant.user_input['winding'].get('dict_coil_connection')['layer X phases'], 
-                                    acm_variant.user_input['winding'].get('dict_coil_connection')['layer X signs']) 
+                                    wp['dict_coil_connection']['layer X phases'], 
+                                    wp['dict_coil_connection']['layer X signs']) 
             link_FEMCoils_2_CoilSet('LY', 'GroupBD', 
-                                    acm_variant.user_input['winding'].get('dict_coil_connection')['layer Y phases'], 
-                                    acm_variant.user_input['winding'].get('dict_coil_connection')['layer Y signs'])
+                                    wp['dict_coil_connection']['layer Y phases'], 
+                                    wp['dict_coil_connection']['layer Y signs'])
         else:
             # 两个改变，一个是激励大小的改变（本来是200A 和 5A，现在是205A和195A），
             # 另一个绕组分组的改变，现在的A相是上层加下层为一相，以前是用俩单层绕组等效的。
@@ -960,8 +969,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # Create FEM Coil Condition
             # here we map circuit component `Coil2A' to FEM Coil Condition 'phaseAuauc
             # here we map circuit component `Coil4A' to FEM Coil Condition 'phaseAubud
-            groups = ['GroupAC', 'GroupBD'] if acm_variant.user_input['winding'].get('bool_DPNVorSEPA') is not None else ['GroupAC']
-            poles_list = [acm_variant.user_input['winding']['pole_count'] // 2, acm_variant.user_input['winding']['suspension_pole_count'] // 2] if acm_variant.user_input['winding'].get('bool_DPNVorSEPA') is not None else [acm_variant.user_input['winding']['pole_count'] // 2]
+            groups = ['GroupAC', 'GroupBD'] 
+            poles_list = [wp['pole_count'] // 2, wp['suspension_pole_count'] // 2] if wp['bool_DPNVorSEPA'] is not None else [wp['pole_count'] // 2]
 
             for suffix, poles in zip(groups, poles_list): # 仍然需要考虑poles，是因为为Coil设置Set那里的代码还没有更新。这里的2(acm_variant.DriveW_poles)和4(acm_variant.BeariW_poles)等价于leftlayer和rightlayer。
                 for UVW in ['U','V','W']:
@@ -973,17 +982,17 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             countXL = 0 # countXL indicates which slot the current rightlayer is in.
             index = 0
             dict_dir = {'+':1, '-':0}
-            coil_pitch = acm_variant.user_input['winding'].get('coil_pitch_y') #acm_variant.user_input['winding'].get('dict_coil_connection')[0]
+            coil_pitch = wp['coil_pitch_y'] #wp['dict_coil_connection'][0]
             # select the part (via `Set') to assign the FEM Coil condition
-            for UVW, UpDown in zip(acm_variant.user_input['winding'].get('layer_X_phases'), acm_variant.user_input['winding'].get('layer_X_signs')):
+            for UVW, UpDown in zip(wp['layer_X_phases'], wp['layer_X_signs']):
 
                 countXL += 1 
                 # V2 `winding_layout_v2` uses `grouping_AC` or lacks it for standard windings. 
                 # We need to map explicitly:
                 is_group_AC = True
-                if hasattr(acm_variant.user_input['winding'], 'grouping_AC'):
-                    is_group_AC = (acm_variant.user_input['winding'].get('grouping_AC')[index] == 1)
-                elif acm_variant.user_input['winding'].get('bool_DPNVorSEPA') is not None:
+                if hasattr(wp, 'grouping_AC'):
+                    is_group_AC = (wp['grouping_AC'][index] == 1)
+                elif wp['bool_DPNVorSEPA'] is not None:
                     # Alternating assignment or based on specific DP config if grouped.
                     is_group_AC = (index % 2 == 0) # Fallback heuristic if grouping_AC is missing
                     
@@ -1002,7 +1011,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 subcondition.SetValue("Direction2D", dict_dir[UpDown])
 
                 # left layer
-                Q = acm_variant.user_input['winding'].get('slot_count')
+                Q = wp['slot_count']
                 if coil_pitch > 0:
                     if countXL+coil_pitch <= Q:
                         count_leftlayer = countXL+coil_pitch
@@ -1019,13 +1028,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                         index_leftlayer = int(index+coil_pitch + Q)
 
                 # Check if it is a distributed windg???
-                if acm_variant.user_input['winding'].get('bool_distributed_or_concentrated') == False:
+                if wp['bool_distributed_or_concentrated'] == False:
                     # print('[JMAG.py] Concentrated winding!')
-                    UVW    = acm_variant.user_input['winding'].get('layer_Y_phases')[index_leftlayer]
-                    UpDown = acm_variant.user_input['winding'].get('layer_Y_signs')[index_leftlayer]
+                    UVW    = wp['layer_Y_phases'][index_leftlayer]
+                    UpDown = wp['layer_Y_signs'][index_leftlayer]
                 else:
                     # print('Distributed winding.')
-                    if acm_variant.user_input['winding'].get('layer_Y_phases')[index_leftlayer] != UVW:
+                    if wp['layer_Y_phases'][index_leftlayer] != UVW:
                         print('[JMAG.py] [Warning] Potential bug in your winding layout detected.')
                         raise Exception('Bug in winding layout detected.')
                     # 右层导体的电流方向是正，那么与其串联的一个coil_pitch之处的左层导体就是负！不需要再检查l_leftlayer2了~
@@ -1391,7 +1400,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             meshSize_Shaft = fea_config['designer.meshSize_Shaft']
             meshSize_Air = fea_config['designer.meshSizeAir']
             meshSize_General = fea_config['designer.meshSize_General']
-            # meshSize_Stator = fea_config.get('designer.meshSizeStator')
+            # meshSize_Stator = fea_config['designer.meshSizeStator']
 
             study.GetMeshControl().SetValue("MeshType", 1) # make sure this has been exe'd: study.GetCondition(u"RotCon").AddSet(model.GetSetList().GetSet(u"Motion_Region"), 0)
             study.GetMeshControl().SetValue("RadialDivision", 8) # for air region near which motion occurs
@@ -1457,6 +1466,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     ''' BELOW is for JMAG Designer
     '''
     def draw_spmsm(self, acm_variant, bool_pyx=False):
+        wp = acm_variant.user_input['winding']
 
         # blue
         # color_rgb_A = np.array([113, 142, 164])/255
@@ -1519,30 +1529,30 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 # # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
                 # EX = acm_variant.template.SIEX
                 # CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * acm_variant.winding.fill_factor * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
-                # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / acm_variant.winding.drive_winding_conductors_per_slot
-                # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['acm_variant.user_input['winding']'].number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+                # CurrentAmp_per_conductor = CurrentAmp_in_the_slot / acm_variant.winding.wires_per_slot
+                # CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wp'].number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
                 #     # try:
-                #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['acm_variant.user_input['winding']'].number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+                #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wp'].number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
                 #     # except AttributeError:
-                #     #     # print(EX['acm_variant.user_input['winding']'])
-                #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['acm_variant.user_input['winding']']['number_of_parallel_branch']
-                #     #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'number_of_parallel_branch', implying that the object acm_variant.user_input['winding'] has become a dict after jsonpickle.")
+                #     #     # print(EX['wp'])
+                #     #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wp']['number_of_parallel_branch']
+                #     #     print("[inner_rotor_motor.py] Reproduce design using jsonpickle will encounter error here: 'dict' object has no attribute 'number_of_parallel_branch', implying that the object wp has become a dict after jsonpickle.")
                 #     #     # quit() 
 
                 # # Maybe there is a bug here... regarding the excitation for suspension winding...
                 # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
                 # variant_BeariW_CurrentAmp =  CurrentAmp_per_conductor * 1 # number_of_parallel_branch is 1 for suspension winding
-                # acm_variant.user_input['winding']['pole_count'] // 2hase_current_amplitude = CurrentAmp_per_phase
+                # wp['pole_count'] // 2hase_current_amplitude = CurrentAmp_per_phase
                 # acm_variant.winding.drive_winding_current = acm_variant.user_input['fea_config_dict']['TORQUE_CURRENT_RATIO'] * variant_DriveW_CurrentAmp 
                 # acm_variant.winding.bearing_winding_current = acm_variant.user_input['fea_config_dict']['SUSPENSION_CURRENT_RATIO'] * variant_DriveW_CurrentAmp
                 # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
-                #                                                                                             acm_variant.user_input['winding']['pole_count'] // 2hase_current_amplitude,
+                #                                                                                             wp['pole_count'] // 2hase_current_amplitude,
                 #                                                                                             acm_variant.winding.drive_winding_current,
                 #                                                                                             acm_variant.winding.bearing_winding_current)
 
                 # # acm_variant.spec_geometry_dict['DriveW_CurrentAmp'] = acm_variant.DriveW_CurrentAmp
 
-                # slot_current_utilizing_ratio_for_torque = (acm_variant.winding.drive_winding_current + acm_variant.winding.bearing_winding_current) / acm_variant.user_input['winding']['pole_count'] // 2hase_current_amplitude
+                # slot_current_utilizing_ratio_for_torque = (acm_variant.winding.drive_winding_current + acm_variant.winding.bearing_winding_current) / wp['pole_count'] // 2hase_current_amplitude
                 # print('[JMAG.py]---Heads up! slot_current_utilizing_ratio_for_torque is', slot_current_utilizing_ratio_for_torque, '  (PS: =1 means it is combined winding)')
 
                 # # print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
@@ -1570,21 +1580,21 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     #     # 根据绕组的形状去计算可以放铜导线的面积，然后根据电流密度计算定子电流
     #     EX = acm_variant.template.SIEX
     #     CurrentAmp_in_the_slot = acm_variant.coils.mm2_slot_area * acm_variant.winding.fill_factor * EX['Js']*1e-6 * math.sqrt(2) #/2.2*2.8
-    #     CurrentAmp_per_conductor = CurrentAmp_in_the_slot / acm_variant.winding.drive_winding_conductors_per_slot
-    #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['acm_variant.user_input['winding']'].number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
+    #     CurrentAmp_per_conductor = CurrentAmp_in_the_slot / acm_variant.winding.wires_per_slot
+    #     CurrentAmp_per_phase = CurrentAmp_per_conductor * EX['wp'].number_of_parallel_branch # 跟几层绕组根本没关系！除以zQ的时候，就已经变成每根导体的电流了。
 
     #     # Maybe there is a bug here... regarding the excitation for suspension winding...
     #     # variant_DriveW_CurrentAmp = CurrentAmp_per_phase # this current amp value is for non-bearingless motor
     #     # variant_BeariW_CurrentAmp =  CurrentAmp_per_phase * 1 # number_of_parallel_branch is 1 for suspension winding
-    #     acm_variant.user_input['winding']['pole_count'] // 2hase_current_amplitude = CurrentAmp_per_phase
+    #     wp['pole_count'] // 2hase_current_amplitude = CurrentAmp_per_phase
     #     variant_DriveW_CurrentAmp = acm_variant.winding.drive_winding_current = acm_variant.user_input['fea_config_dict']['circuit.TORQUE_CURRENT_RATIO'] * CurrentAmp_per_phase
     #     variant_BeariW_CurrentAmp = acm_variant.winding.bearing_winding_current = acm_variant.user_input['fea_config_dict']['circuit.SUSPENSION_CURRENT_RATIO'] * CurrentAmp_per_phase
     #     # print('[inner_rotor_motor.py] Excitations have been over-written by the constraint on Js! Total, DriveW, BeariW [A]:', 
-    #                                                                                                 # acm_variant.user_input['winding']['pole_count'] // 2hase_current_amplitude,
+    #                                                                                                 # wp['pole_count'] // 2hase_current_amplitude,
     #                                                                                                 # acm_variant.winding.drive_winding_current,
     #                                                                                                 # acm_variant.winding.bearing_winding_current)
 
-    #     slot_current_utilizing_ratio_for_torque = (acm_variant.winding.drive_winding_current + acm_variant.winding.bearing_winding_current) / acm_variant.user_input['winding']['pole_count'] // 2hase_current_amplitude
+    #     slot_current_utilizing_ratio_for_torque = (acm_variant.winding.drive_winding_current + acm_variant.winding.bearing_winding_current) / wp['pole_count'] // 2hase_current_amplitude
     #     print('[JMAG.py]---Heads up! slot_current_utilizing_ratio_for_torque is', slot_current_utilizing_ratio_for_torque, '  (PS: =1 means it is combined winding)')
     #     print('---Variant CurrentAmp_in_the_slot =', CurrentAmp_in_the_slot)
     #     print('---variant_DriveW_CurrentAmp = CurrentAmp_per_phase =', variant_DriveW_CurrentAmp)
@@ -1592,7 +1602,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
     #     print('---acm_variant.BeariW_CurrentAmp =', variant_BeariW_CurrentAmp)
     #     print('---TORQUE_CURRENT_RATIO:', acm_variant.user_input['fea_config_dict']['circuit.TORQUE_CURRENT_RATIO'])
     #     print('---SUSPENSION_CURRENT_RATIO:', acm_variant.user_input['fea_config_dict']['circuit.SUSPENSION_CURRENT_RATIO'])
-    #     print('---zQ:', acm_variant.winding.drive_winding_conductors_per_slot)
+    #     print('---zQ:', acm_variant.winding.wires_per_slot)
 
 
     ''' JMAG Description
@@ -1682,6 +1692,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
     @staticmethod
     def read_csv_results_4_general_purpose(study_name, path_prefix, fea_config_dict, femm_solver, acm_variant=None):
+        wp = acm_variant.user_input['winding']
 
         machine_type = acm_variant.user_input['target']['machine_class']
 
@@ -1982,29 +1993,29 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         else:
 
 
-            geo = acm_variant.user_input.get('geometry', {})
-            win = acm_variant.user_input.get('winding', {})
+            geo = acm_variant.user_input['geometry']
+            win = wp
             copper_loss_parameters = [
-                geo.get('d_sleeve', 0.0) + geo.get('d_air_gap', 0.15),
-                geo.get('w_tooth', 1.2),
-                acm_variant.user_input['winding'].get('number_parallel_branch'),
-                win.get('drive_winding_conductors_per_slot', win.get('wires_per_slot', 10)),
-                acm_variant.user_input['winding'].get('coil_pitch_y'),
-                win.get('slot_count', 12),
-                win.get('l_stack', 16.0),
-                win.get('drive_winding_current', 0.0) + win.get('bearing_winding_current', 0.0), # total current amplitude
-                geo.get('r_rotor_outer', 4.0),       # mm
-                geo.get('r_stator_outer', 6.5) * 2 * 1e-3 # m, stator_yoke_diameter_Dsyi
+                geo['d_sleeve'] + geo['d_air_gap'],
+                geo['w_tooth'],
+                wp['number_parallel_branch'],
+                win['wires_per_slot'],
+                wp['coil_pitch_y'],
+                win['slot_count'],
+                win['l_stack'],
+                win['drive_winding_current'] + win['bearing_winding_current'], # total current amplitude
+                geo['r_rotor_outer'],       # mm
+                geo['r_stator_outer'] * 2 * 1e-3 # m, stator_yoke_diameter_Dsyi
             ]
             # slot_area_utilizing_ratio = (acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp) / acm_variant.CurrentAmp_per_phase
             # if slot_area_utilizing_ratio < 1:
             #     print('Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio, 'which means you are simulating a separate winding? If not, contrats--you found a bug...')
             #     print('DW, BW, Total:', acm_variant.DriveW_CurrentAmp, acm_variant.BeariW_CurrentAmp, acm_variant.CurrentAmp_per_phase)
             s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(
-                win.get('separate_winding_utilization_ratio_for_torque', 1.0) * acm_variant.geometry.slot_area * 1e-6, 
+                win['separate_winding_utilization_ratio_for_torque'] * acm_variant.geometry.slot_area * 1e-6, 
                 copper_loss_parameters=copper_loss_parameters, 
-                STATOR_SLOT_FILL_FACTOR=win.get('fill_factor', 0.5),
-                TEMPERATURE_OF_COIL=win.get('magnet_temperature', 75.0))
+                STATOR_SLOT_FILL_FACTOR=win['fill_factor'],
+                TEMPERATURE_OF_COIL=win['magnet_temperature'])
             # s, r, sAlongStack, rAlongStack, Js, Jr = 0, 0, 0, 0, 0, 0
 
         class data_manager(object):
@@ -2144,6 +2155,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
     # def build_str_results(self, axeses, acm_variant, project_name, tran_study_name, path2FEACsv, fea_config_dict, femm_solver=None):
     def build_str_results(self, acm_variant, project_name, tran_study_name, path2FEACsv, fea_config_dict, femm_solver=None):
+        wp = acm_variant.user_input['winding']
         print(f"DEBUG JMAG: build_str_results called with acm_variant type: {type(acm_variant)}")
         print(f"DEBUG JMAG: project_name: {project_name}")
         machine_type = acm_variant.user_input['target']['machine_class']
@@ -2201,30 +2213,30 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         str_results += '\n\tfemm loss info: '  + ', '.join(['%g'%(el) for el in dm.femm_loss_list])
 
         if fea_config_dict['delete_results_after_calculation'] == False:
-            power_factor = dm.power_factor(number_of_steps_at_steady_state, targetFreq=acm_variant.user_input['winding'].get('excitation_frequency_simulated', 500))
+            power_factor = dm.power_factor(number_of_steps_at_steady_state, targetFreq=wp['excitation_frequency_simulated'])
             str_results += '\n\tPF: %g' % (power_factor)
 
 
         # compute the fitness 
-        geom = acm_variant.user_input.get('geometry', {})
-        wind = acm_variant.user_input.get('winding', {})
+        geom = acm_variant.user_input['geometry']
+        wind = wp
         
-        r_ro = geom.get('r_rotor_outer', None)
+        r_ro = geom['r_rotor_outer']
         if r_ro is None:
             r_ro = 4.0
             logging.getLogger(__name__).warning("KeyError bypassed for 'r_rotor_outer'. Using default value: %g", r_ro)
 
-        r_ri = geom.get('r_shaft', geom.get('r_rotor_inner', None))
+        r_ri = geom['r_shaft']
         if r_ri is None:
             r_ri = 1.0
             logging.getLogger(__name__).warning("KeyError bypassed for 'r_shaft'/'r_rotor_inner'. Using default value: %g", r_ri)
 
-        l_st = wind.get('l_stack', None)
+        l_st = wind['l_stack']
         if l_st is None:
             l_st = 16.0
             logging.getLogger(__name__).warning("KeyError bypassed for 'l_stack'. Using default value: %g", l_st)
 
-        rated_speed = wind.get('rated_speed', wind.get('speed_rpm', None))
+        rated_speed = wind['rated_speed']
         if rated_speed is None:
             rated_speed = 20000.0
             logging.getLogger(__name__).warning("KeyError bypassed for 'rated_speed'/'speed_rpm'. Using default value: %g", rated_speed)
@@ -2258,7 +2270,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             raise Exception('Unknown machine type:', acm_variant.user_input['target']['machine_class'])
 
         # TODO: Fix windage loss calculation with new dictionary
-        # windage_loss = utility.get_windage_loss(acm_variant, acm_variant.user_input['winding'].get('stack_length_specified'))
+        # windage_loss = utility.get_windage_loss(acm_variant, wp['stack_length_specified'])
         windage_loss = 0.0
 
         # 这样计算效率，输出转矩大的，铁耗大一倍也没关系了，总之就是气隙变得最小。。。要不就不要优化气隙了。。。
@@ -2285,7 +2297,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # caculate the fitness
         logger = logging.getLogger(__name__)
         logger.info('Calculate the fitness for %s', acm_variant.user_input['target']['machine_class'])
-        logger.info('with x_denorm_dict: %s', acm_variant.user_input.get('user_input', {}))
+        logger.info('with x_denorm_dict: %s', acm_variant.user_input)
 
         # LOSS
         if 'IM' in machine_type:
@@ -2304,20 +2316,20 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
             rotor_copper_loss_in_end_turn  = 0
 
-        wind_dict = acm_variant.user_input.get('winding', {})
-        rated_power = acm_variant.user_input.get('target', {}).get('rated_power', None)
+        wind_dict = wp
+        rated_power = acm_variant.user_input['target']['rated_power']
         if rated_power is None:
-            rated_power = wind_dict.get('rated_power', None)
+            rated_power = wind_dict['rated_power']
             if rated_power is None:
                 rated_power = 250.0
                 logging.getLogger(__name__).warning("KeyError bypassed for 'rated_power'. Using default value: %g", rated_power)
 
-        rated_speed = wind_dict.get('rated_speed', wind_dict.get('speed_rpm', None))
+        rated_speed = wind_dict['rated_speed']
         if rated_speed is None:
             rated_speed = 20000.0
             logging.getLogger(__name__).warning("KeyError bypassed for 'rated_speed'/'speed_rpm'. Using default value: %g", rated_speed)
 
-        stack_length = acm_variant.user_input.get('winding', {}).get('l_stack', None)
+        stack_length = wp['l_stack']
         if stack_length is None:
             stack_length = 16.0
             logging.getLogger(__name__).warning("KeyError bypassed for 'l_stack'. Using default value: %g", stack_length)
@@ -2355,7 +2367,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             #     print('rotor_current_density is over 8e6 Arms/m^2')
         elif 'PMSM' in machine_type:
                                     # 基波电流幅值（在一根导体里的电流，六相逆变器中的GroupBDW相的电流，所以相当于已经考虑了并联支路数了）
-            stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.geometry.slot_area*1e-6/acm_variant.user_input['winding'].get('drive_winding_conductors_per_slot', acm_variant.user_input['winding'].get('wires_per_slot', 10)))
+            stator_current_density = dm.ui_info[2] / 1.4142135623730951 / (acm_variant.geometry.slot_area*1e-6/wp['wires_per_slot'])
             logger = logging.getLogger(__name__)
             logger.info('Data Magager: stator_current_density (GroupBDW) = %g Arms/m^2', stator_current_density)
             rotor_current_density = 0
@@ -2381,7 +2393,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         price_per_volume_magnet   = 11.61 * 61023.744 # $/in^3 NdFeB PM
         # price_per_volume_aluminum = 0.88  / 16387.064 # $/in^3 wire or cast Al
         
-        r_so = geom.get('r_stator_outer', None)
+        r_so = geom['r_stator_outer']
         if r_so is None:
             r_so = 40.0
             logging.getLogger(__name__).warning("KeyError bypassed for 'r_stator_outer'. Using default value: %g", r_so)
@@ -2390,7 +2402,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if 'PMSM' in machine_type or 'FSPM' in machine_type or 'CPPM' in machine_type or 'CSPPM' in machine_type:
             if 'FSPM' in machine_type:
                 # Find statorMagnet part
-                statorMagnetArea = geom.get('stator_magnet_area', None)
+                statorMagnetArea = geom['stator_magnet_area']
                 if statorMagnetArea is None:
                     statorMagnetArea = 100.0
                     logging.getLogger(__name__).warning("KeyError bypassed for 'stator_magnet_area'. Using default value: %g", statorMagnetArea)
@@ -2398,7 +2410,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 logger = logging.getLogger(__name__)
                 logger.info('Area_PM %s', (statorMagnetArea*1e-6))
             else:
-                magnet_area = getattr(acm_variant.geometry, 'magnet_area', geom.get('magnet_area', None))
+                magnet_area = getattr(acm_variant.geometry, 'magnet_area', geom['magnet_area'])
                 if magnet_area is None:
                     magnet_area = 100.0
                     logging.getLogger(__name__).warning("KeyError bypassed for 'magnet_area'. Using default value: %g", magnet_area)
@@ -2434,21 +2446,21 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             'IronLoss': rated_iron_loss,
             # 'CoggingTorque': raise Exception("CoggingTorque is not implemented")
         }
-        eval_config = acm_variant.user_input.get('eval_config', {})
+        eval_config = acm_variant.user_input['eval_config']
         
-        fit_OA_key = eval_config.get("moo.fitness_OA", None)
+        fit_OA_key = eval_config["moo.fitness_OA"]
         if fit_OA_key is None:
             fit_OA_key = "TorqueDensity"
             logging.getLogger(__name__).warning("KeyError bypassed for 'moo.fitness_OA'. Using default value: %s", fit_OA_key)
         f1 = fitness_mapping.get(fit_OA_key, 0.0)
 
-        fit_OB_key = eval_config.get("moo.fitness_OB", None)
+        fit_OB_key = eval_config["moo.fitness_OB"]
         if fit_OB_key is None:
             fit_OB_key = "Efficiency"
             logging.getLogger(__name__).warning("KeyError bypassed for 'moo.fitness_OB'. Using default value: %s", fit_OB_key)
         f2 = fitness_mapping.get(fit_OB_key, 0.0)
 
-        fit_OC_key = eval_config.get("moo.fitness_OC", None)
+        fit_OC_key = eval_config["moo.fitness_OC"]
         if fit_OC_key is None:
             fit_OC_key = "Cost"
             logging.getLogger(__name__).warning("KeyError bypassed for 'moo.fitness_OC'. Using default value: %s", fit_OC_key)
@@ -2475,8 +2487,8 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                             rated_stack_length_mm,  # new!
                             stack_length]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
 
-        counter = eval_config.get('counter', -1)
-        popsize = eval_config.get('moo.popsize', 1)
+        counter = eval_config['counter']
+        popsize = eval_config['moo.popsize']
         gen = int(counter // popsize) if isinstance(counter, (int, float)) and popsize > 0 else -1
         ind = counter if isinstance(counter, (int, float)) else -1
 

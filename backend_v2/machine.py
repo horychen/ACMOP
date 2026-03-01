@@ -12,7 +12,6 @@ class Machine:
         self.user_input = user_input
         self.geometry = MachineGeometry()
 
-        
     def sync(self):
         """
         同步机器参数字典到集合建模引擎中，提取点位配置并构建所有独立的模块实例 (定子、线圈、转子、磁钢等)。
@@ -28,16 +27,19 @@ class Machine:
         from winding_layout import winding_layout_v2
         # Notice DPNV_or_SEPA must be None for normal standard motors because winding_layout_v2 throws errors otherwise
         wily = winding_layout_v2(
-            DPNV_or_SEPA=self.user_input['winding'].get('DPNV_or_SEPA', None),
+            DPNV_or_SEPA=self.user_input['winding'].get('DPNV_or_SEPA'),
             Qs=self.user_input['winding']['slot_count'],
             p=self.user_input['winding']['pole_count'] // 2,
             ps=self.user_input['winding']['suspension_pole_count'] // 2,
-            coil_pitch_y=self.user_input['winding'].get('coil_pitch', 1)
+            coil_pitch_y=self.user_input['winding'].get('coil_pitch')
         )
         # Store wily's attributes directly into the dictionary rather than the object itself
         wily_dict = {k: v for k, v in dict(wily).items() if not k.startswith('_')}
         self.user_input['winding'].update(wily_dict)
-        
+        # import rich
+        # rich.print(wily_dict)
+        # quit()
+
         # Analyze winding performance to populate necessary features (currents/turns) automatically during sync
         from machine_analyzer import MotorPerformanceAnalyzer
         self.analyzer = MotorPerformanceAnalyzer(self.user_input)
@@ -47,6 +49,9 @@ class Machine:
         self.user_input['winding']['drive_winding_current'] = self.analysis['current_per_wire_a'] * 1.41421356
         self.user_input['winding']['bearing_winding_current'] = self.analysis['current_per_wire_a'] * 1.41421356
         self.user_input['winding']['wires_per_slot'] = self.analysis['wires_per_slot'] # zQ
+        self.user_input['winding']['phase_resistance'] = self.analysis['phase_resistance_100C']
+
+        self.user_input['winding']['excitation_frequency_simulated'] = self.user_input['winding']['rated_speed'] / 60 * (self.user_input['winding']['pole_count'] / 2)
         
         # 定义定子的槽部构形种类 (例如 "closed-slot" 表示闭槽结构)
         stator_options = f"{self.user_input['geometry']['tooth_shape']}-slot"

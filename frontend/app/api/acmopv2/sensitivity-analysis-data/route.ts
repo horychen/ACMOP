@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 构建 SwarmData.json 的完整路径
-    // folderPath 应该是相对于 backend 目录的路径，例如: "_default/TIA_prototype_sensitivity_analysis"
-    const swarmDataPath = path.join(process.cwd(), "../backend", folderPath, "SwarmData.json");
+    // folderPath 应该是相对于 backend_v2/output 目录的路径，例如: "_default/TIA_prototype_sensitivity_analysis"
+    const swarmDataPath = path.join(process.cwd(), "../backend_v2/output", folderPath, "SwarmData.json");
 
     // 检查文件是否存在
     if (!fs.existsSync(swarmDataPath)) {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     // 读取文件内容
     const fileContent = fs.readFileSync(swarmDataPath, "utf-8");
     let data;
-    
+
     try {
       data = JSON.parse(fileContent);
     } catch (parseError) {
