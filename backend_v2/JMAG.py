@@ -785,7 +785,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         if 'PMSM' in target_dict['machine_class']:
             safe_set_material(study, u"Magnet", mat_dict['magnet_material_name'])
             study.GetMaterial(u"Magnet").SetValue(u"EddyCurrentCalculation", 1)
-            study.GetMaterial(u"Magnet").SetValue(u"Temperature", target_dict['magnet_temperature']) 
+            study.GetMaterial(u"Magnet").SetValue(u"Temperature", mat_dict['magnet_temperature']) 
 
             study.GetMaterial(u"Magnet").SetValue(u"Poles", wp['pole_count'])
             study.GetMaterial(u"Magnet").SetDirectionXYZ(1, 0, 0)
@@ -1996,7 +1996,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             geo = acm_variant.user_input['geometry']
             win = wp
             copper_loss_parameters = [
-                geo['d_sleeve'] + geo['d_air_gap'],
+                geo['d_air_gap'],
                 geo['w_tooth'],
                 wp['number_parallel_branch'],
                 win['wires_per_slot'],
@@ -2012,10 +2012,10 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             #     print('Heads up! slot_area_utilizing_ratio is', slot_area_utilizing_ratio, 'which means you are simulating a separate winding? If not, contrats--you found a bug...')
             #     print('DW, BW, Total:', acm_variant.DriveW_CurrentAmp, acm_variant.BeariW_CurrentAmp, acm_variant.CurrentAmp_per_phase)
             s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(
-                win['separate_winding_utilization_ratio_for_torque'] * acm_variant.geometry.slot_area * 1e-6, 
+                1.0 * acm_variant.geometry.slot_area * 1e-6, # win['separate_winding_utilization_ratio_for_torque'] = 1.0
                 copper_loss_parameters=copper_loss_parameters, 
                 STATOR_SLOT_FILL_FACTOR=win['fill_factor'],
-                TEMPERATURE_OF_COIL=win['magnet_temperature'])
+                TEMPERATURE_OF_COIL=acm_variant.user_input['material']['magnet_temperature'])
             # s, r, sAlongStack, rAlongStack, Js, Jr = 0, 0, 0, 0, 0, 0
 
         class data_manager(object):
@@ -2488,7 +2488,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                             stack_length]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
 
         counter = eval_config['counter']
-        popsize = eval_config['moo.popsize']
+        popsize = fea_config_dict['moo.popsize']
         gen = int(counter // popsize) if isinstance(counter, (int, float)) and popsize > 0 else -1
         ind = counter if isinstance(counter, (int, float)) else -1
 

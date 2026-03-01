@@ -22,6 +22,8 @@ class Machine:
         
         # 利用用户参数初始化所有骨架点位
         self.geometry.sync(self.user_input)
+        self.user_input['geometry']['slot_area'] = self.geometry.slot_area
+        self.user_input['geometry']['magnet_area'] = self.geometry.magnet_area
 
         # 核心环节：动态注入 WindingLayout 实例，获取绕组排布与系数
         from winding_layout import winding_layout_v2
@@ -46,8 +48,8 @@ class Machine:
         self.analysis = self.analyzer.analyze()
         
         # FIX: Populate circuit excitaiton info for JMAG right after WindingLayout
-        self.user_input['winding']['drive_winding_current'] = self.analysis['current_per_wire_a'] * 1.41421356
-        self.user_input['winding']['bearing_winding_current'] = self.analysis['current_per_wire_a'] * 1.41421356
+        self.user_input['winding']['drive_winding_current'] = self.analysis['current_per_wire_a'] * 1.41421356 * self.user_input['winding']['torque_current_ratio']
+        self.user_input['winding']['bearing_winding_current'] = self.analysis['current_per_wire_a'] * 1.41421356 * self.user_input['winding']['suspension_current_ratio']
         self.user_input['winding']['wires_per_slot'] = self.analysis['wires_per_slot'] # zQ
         self.user_input['winding']['phase_resistance'] = self.analysis['phase_resistance_100C']
 

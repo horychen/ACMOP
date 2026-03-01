@@ -52,6 +52,7 @@ user_input = OrderedDict([
             ('lamination_factor', 0.98),
             ('magnet_material_name', 'N42SH'),
             ('magnet_start_angle', 0), # offset the magnetization to the magnet by an angle 径向磁化永磁体的时候转过去一定的角度
+            ('magnet_temperature', 80),
         ])),
         ('fea_config_dict', OrderedDict([
             ('pc_name', platform.node()),
@@ -76,12 +77,12 @@ user_input = OrderedDict([
             ('designer.meshSize_Shaft', 2.0),
             ('designer.meshSizeAir', 2.0),
             ('designer.meshSize_General', 2.0),
+            ('moo.popsize', 78),
         ])),
         ('target', OrderedDict([
             ('initial_rotation_angle', 0.0), # 转子初始位置，需要和电流矢量垂直
             ('machine_class', 'SPMSM'),
             ('select_FEA_tool', 'JMAG'),
-            ('magnet_temperature', 80),
             ('rated_power', 10),
             ('free_parameters', [
                 'search w_stator_width within [1.0, 1.5]',
