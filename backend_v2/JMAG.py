@@ -791,7 +791,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(u"Magnet").SetAxisXYZ(0, 0, -1)
             study.GetMaterial(u"Magnet").SetOriginXYZ(0, 0, 0)
             study.GetMaterial(u"Magnet").SetPattern(u"RadialCircular")
-            study.GetMaterial(u"Magnet").SetOrientation(True) # False: 南极朝右，北极朝左，True: 南极朝左，北极朝右
+            study.GetMaterial(u"Magnet").SetOrientation(False) # False: 南极朝右，北极朝左，True: 南极朝左，北极朝右
             study.GetMaterial(u"Magnet").SetValue(u"StartAngle", mat_dict['magnet_start_angle']) 
             study.GetMaterial(u"Magnet").SetValue(u"UseAnisotropicMagnet", 0)
 
