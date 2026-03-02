@@ -511,10 +511,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
 
         # Conditions - FEM Coils & Conductors (i.e. stator/rotor winding)
-        if wp['bool_CustomizedCircuit'] == True:
-            acm_variant.add_circuit_customized(app, model, study)
-        else:
-            self.add_circuit(app, model, study, acm_variant, bool_3PhaseCurrentSource=wp['bool_3PhaseCurrentSource'])
+        # if wp['bool_CustomizedCircuit'] == True:
+        #     acm_variant.add_circuit_customized(app, model, study)
+        # else:
+
+        self.add_circuit(app, model, study, acm_variant, bool_3PhaseCurrentSource=wp['bool_3PhaseCurrentSource'])
 
         # True: no mesh or field results are needed
         study.GetStudyProperties().SetValue("OnlyTableResults", fea_config['designer.OnlyTableResults'])
@@ -613,10 +614,11 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # speed, freq, slip
         study.GetCondition("RotCon").SetValue("AngularVelocity", 'speed')
-        if wp['bool_DPNVorSEPA'] == False:
-            app.ShowCircuitGrid(True)
-            study.GetCircuit().GetComponent("CS4").SetValue("Frequency", FREQUENCY)
-            study.GetCircuit().GetComponent("CS2").SetValue("Frequency", FREQUENCY)
+
+        # if wp['bool_DPNVorSEPA'] == False:
+        #     app.ShowCircuitGrid(True)
+        #     study.GetCircuit().GetComponent("CS4").SetValue("Frequency", FREQUENCY)
+        #     study.GetCircuit().GetComponent("CS2").SetValue("Frequency", FREQUENCY)
 
         # max_nonlinear_iteration = 50
         # study.GetStudyProperties().SetValue(u"NonlinearMaxIteration", max_nonlinear_iteration)
@@ -737,9 +739,6 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # study.GetMaterial("Shaft").SetValue("OutputResult", 0)
         # study.GetMaterial("Cage").SetValue("OutputResult", 0)
         # study.GetMaterial("Coil").SetValue("OutputResult", 0)
-
-        if wp['bool_CustomizedCircuit']:
-            raise
 
         self.study_name = study_name
         return study
@@ -897,71 +896,73 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         npb = wp['number_parallel_branch']
         nwl = wp['number_winding_layer']
         # if acm_variant.user_input['fea_config_dict']['DPNV_separate_winding_implementation'] == True or acm_variant.template.spec_input_dict['bool_DPNVorSEPA'] == False:
-        if wp['bool_DPNVorSEPA'] == False:
-            # either a separate winding or a DPNV winding implemented as a separate winding
-            ampD =  0.5 * (wp['drive_winding_current']/npb + wp['bearing_winding_current']) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
-            ampB = -0.5 * (wp['drive_winding_current']/npb - wp['bearing_winding_current']) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
-            if bool_3PhaseCurrentSource != True:
-                raise Exception('Logic Error Detected.')
-        else:
-            # case: DPNV as an actual two layer winding
-            ampD = wp['drive_winding_current']/npb
-            ampB = wp['bearing_winding_current']
-            if bool_3PhaseCurrentSource != False:
-                raise Exception('Logic Error Detected.')
+        # if wp['bool_DPNVorSEPA'] == False:
+        #     # either a separate winding or a DPNV winding implemented as a separate winding
+        #     ampD =  0.5 * (wp['drive_winding_current']/npb + wp['bearing_winding_current']) # 为了代码能被四极电机和二极电机通用，代入看看就知道啦。
+        #     ampB = -0.5 * (wp['drive_winding_current']/npb - wp['bearing_winding_current']) # 关于符号，注意下面的DriveW对应的circuit调用时的ampB前还有个负号！
+        #     if bool_3PhaseCurrentSource != True:
+        #         raise Exception('Logic Error Detected.')
+        # else:
 
-            circuit('GroupAC',  wp['wires_per_slot']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
-                Rs=wp['phase_resistance'],ampD= ampD,
-                                ampB=-ampB, freq=wp['excitation_frequency_simulated'], phase=0,
+        # case: DPNV as an actual two layer winding
+        ampD = wp['drive_winding_current']/npb
+        ampB = wp['bearing_winding_current']
+        if bool_3PhaseCurrentSource != False:
+            raise Exception('Logic Error Detected.')
+
+        circuit('GroupAC',  wp['wires_per_slot']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
+            Rs=wp['phase_resistance'],ampD= ampD,
+                            ampB=-ampB, freq=wp['excitation_frequency_simulated'], phase=0,
+                            CommutatingSequenceD=wp['CommutatingSequenceD'],
+                            CommutatingSequenceB=wp['CommutatingSequenceB'])
+                            
+        circuit('GroupBD',  wp['wires_per_slot']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
+            Rs=wp['phase_resistance'],ampD= ampD,
+                                ampB=+ampB, freq=wp['excitation_frequency_simulated'], phase=0,
                                 CommutatingSequenceD=wp['CommutatingSequenceD'],
-                                CommutatingSequenceB=wp['CommutatingSequenceB'])
-                              
-            circuit('GroupBD',  wp['wires_per_slot']/nwl, bool_3PhaseCurrentSource=bool_3PhaseCurrentSource,
-                Rs=wp['phase_resistance'],ampD= ampD,
-                                  ampB=+ampB, freq=wp['excitation_frequency_simulated'], phase=0,
-                                  CommutatingSequenceD=wp['CommutatingSequenceD'],
-                                  CommutatingSequenceB=wp['CommutatingSequenceB'],x=25) # CS4 corresponds to uauc (conflict with following codes but it does not matter.)
+                                CommutatingSequenceB=wp['CommutatingSequenceB'],x=25) # CS4 corresponds to uauc (conflict with following codes but it does not matter.)
 
         # Link FEM Coils to Coil Set     
         # if acm_variant.user_input['fea_config_dict']['DPNV_separate_winding_implementation'] == True or acm_variant.template.spec_input_dict['bool_DPNVorSEPA'] == False:
-        if wp['bool_DPNVorSEPA'] == False:
-            def link_FEMCoils_2_CoilSet(SetPrefix, Grouping, l1, l2):
-                wp = acm_variant.user_input['winding']
-                # link between FEM Coil Condition and Circuit FEM Coil
-                for UVW in ['U','V','W']:
-                    which_phase = "%s%s-Phase"%(Grouping,UVW)
-                    study.CreateCondition("FEMCoil", which_phase)
-                    condition = study.GetCondition(which_phase)
-                    condition.SetLink("CircuitCoil%s%s"%(Grouping,UVW))
-                    condition.GetSubCondition("untitled").SetName("Coil Set 1")
-                    condition.GetSubCondition("Coil Set 1").SetName("delete")
-                count = 0
-                dict_dir = {'+':1, '-':0, 'o':None}
-                # select the part to assign the FEM Coil condition
-                for UVW, UpDown in zip(l1,l2):
-                    count += 1 
-                    if dict_dir[UpDown] is None:
-                        # print 'Skip', UVW, UpDown
-                        continue
-                    which_phase = "%s%s-Phase"%(Grouping,UVW)
-                    condition = study.GetCondition(which_phase)
-                    condition.CreateSubCondition("FEMCoilData", "Coil Set %d"%(count))
-                    subcondition = condition.GetSubCondition("Coil Set %d"%(count))
-                    subcondition.ClearParts()
-                    subcondition.AddSet(model.GetSetList().GetSet("Coil%s%s%s %d"%(SetPrefix,UVW,UpDown,count)), 0)
-                    subcondition.SetValue("Direction2D", dict_dir[UpDown])
-                # clean up
-                for UVW in ['U','V','W']:
-                    which_phase = "%s%s-Phase"%(Grouping,UVW)
-                    condition = study.GetCondition(which_phase)
-                    condition.RemoveSubCondition("delete")
-            link_FEMCoils_2_CoilSet('LX', 'GroupAC', 
-                                    wp['dict_coil_connection']['layer X phases'], 
-                                    wp['dict_coil_connection']['layer X signs']) 
-            link_FEMCoils_2_CoilSet('LY', 'GroupBD', 
-                                    wp['dict_coil_connection']['layer Y phases'], 
-                                    wp['dict_coil_connection']['layer Y signs'])
-        else:
+        # if wp['bool_DPNVorSEPA'] == False:
+        #     def link_FEMCoils_2_CoilSet(SetPrefix, Grouping, l1, l2):
+        #         wp = acm_variant.user_input['winding']
+        #         # link between FEM Coil Condition and Circuit FEM Coil
+        #         for UVW in ['U','V','W']:
+        #             which_phase = "%s%s-Phase"%(Grouping,UVW)
+        #             study.CreateCondition("FEMCoil", which_phase)
+        #             condition = study.GetCondition(which_phase)
+        #             condition.SetLink("CircuitCoil%s%s"%(Grouping,UVW))
+        #             condition.GetSubCondition("untitled").SetName("Coil Set 1")
+        #             condition.GetSubCondition("Coil Set 1").SetName("delete")
+        #         count = 0
+        #         dict_dir = {'+':1, '-':0, 'o':None}
+        #         # select the part to assign the FEM Coil condition
+        #         for UVW, UpDown in zip(l1,l2):
+        #             count += 1 
+        #             if dict_dir[UpDown] is None:
+        #                 # print 'Skip', UVW, UpDown
+        #                 continue
+        #             which_phase = "%s%s-Phase"%(Grouping,UVW)
+        #             condition = study.GetCondition(which_phase)
+        #             condition.CreateSubCondition("FEMCoilData", "Coil Set %d"%(count))
+        #             subcondition = condition.GetSubCondition("Coil Set %d"%(count))
+        #             subcondition.ClearParts()
+        #             subcondition.AddSet(model.GetSetList().GetSet("Coil%s%s%s %d"%(SetPrefix,UVW,UpDown,count)), 0)
+        #             subcondition.SetValue("Direction2D", dict_dir[UpDown])
+        #         # clean up
+        #         for UVW in ['U','V','W']:
+        #             which_phase = "%s%s-Phase"%(Grouping,UVW)
+        #             condition = study.GetCondition(which_phase)
+        #             condition.RemoveSubCondition("delete")
+        #     link_FEMCoils_2_CoilSet('LX', 'GroupAC', 
+        #                             wp['dict_coil_connection']['layer X phases'], 
+        #                             wp['dict_coil_connection']['layer X signs']) 
+        #     link_FEMCoils_2_CoilSet('LY', 'GroupBD', 
+        #                             wp['dict_coil_connection']['layer Y phases'], 
+        #                             wp['dict_coil_connection']['layer Y signs'])
+        # else:
+        if True:
             # 两个改变，一个是激励大小的改变（本来是200A 和 5A，现在是205A和195A），
             # 另一个绕组分组的改变，现在的A相是上层加下层为一相，以前是用俩单层绕组等效的。
 
@@ -969,10 +970,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # Create FEM Coil Condition
             # here we map circuit component `Coil2A' to FEM Coil Condition 'phaseAuauc
             # here we map circuit component `Coil4A' to FEM Coil Condition 'phaseAubud
-            groups = ['GroupAC', 'GroupBD'] 
-            poles_list = [wp['pole_count'] // 2, wp['suspension_pole_count'] // 2] if wp['bool_DPNVorSEPA'] is not None else [wp['pole_count'] // 2]
-
-            for suffix, poles in zip(groups, poles_list): # 仍然需要考虑poles，是因为为Coil设置Set那里的代码还没有更新。这里的2(acm_variant.DriveW_poles)和4(acm_variant.BeariW_poles)等价于leftlayer和rightlayer。
+            for suffix in ['GroupAC', 'GroupBD']: # 仍然需要考虑poles，是因为为Coil设置Set那里的代码还没有更新。这里的2(acm_variant.DriveW_poles)和4(acm_variant.BeariW_poles)等价于leftlayer和rightlayer。
                 for UVW in ['U','V','W']:
                     study.CreateCondition("FEMCoil", 'phase'+UVW+suffix)
                     # link between FEM Coil Condition and Circuit FEM Coil
@@ -986,20 +984,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # select the part (via `Set') to assign the FEM Coil condition
             for UVW, UpDown in zip(wp['layer_X_phases'], wp['layer_X_signs']):
 
+
                 countXL += 1 
-                # V2 `winding_layout_v2` uses `grouping_AC` or lacks it for standard windings. 
-                # We need to map explicitly:
-                is_group_AC = True
-                if hasattr(wp, 'grouping_AC'):
-                    is_group_AC = (wp['grouping_AC'][index] == 1)
-                elif wp['bool_DPNVorSEPA'] is not None:
-                    # Alternating assignment or based on specific DP config if grouped.
-                    is_group_AC = (index % 2 == 0) # Fallback heuristic if grouping_AC is missing
-                    
-                if is_group_AC:
+                if wp['grouping_AC'][index] == 1:
                     suffix = 'GroupAC'
                 else:
                     suffix = 'GroupBD'
+                condition = study.GetCondition('phase'+UVW+suffix)
                 condition = study.GetCondition('phase'+UVW+suffix)
 
                 # right layer
@@ -1055,7 +1046,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                 # print l_leftlayer1
                 index += 1
             # clean up
-            for suffix in groups:
+            for suffix in ['GroupAC', 'GroupBD']:
                 for UVW in ['U','V','W']:
                     condition = study.GetCondition('phase'+UVW+suffix)
                     condition.RemoveSubCondition("delete")
@@ -1385,76 +1376,80 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         # this `if' judgment is effective only if JMAG-DeleteResultFiles is False 
         # if not study.AnyCaseHasResult(): 
-        # mesh
-        # acm_variant.add_mesh(study, model)
-        if True:
-            # this is for multi slide planes, which we will not be using
-            refarray = [[0 for i in range(2)] for j in range(1)]
-            refarray[0][0] = 3
-            refarray[0][1] = 1
-            study.GetMeshControl().GetTable("SlideTable2D").SetTable(refarray) 
 
-            fea_config = acm_variant.user_input['fea_config_dict']
-            CircumferentialDivision = fea_config['designer.CircumferentialDivision']
-            meshSize_Magnet = fea_config['designer.meshSize_Magnet']
-            meshSize_Shaft = fea_config['designer.meshSize_Shaft']
-            meshSize_Air = fea_config['designer.meshSizeAir']
-            meshSize_General = fea_config['designer.meshSize_General']
-            # meshSize_Stator = fea_config['designer.meshSizeStator']
+        fea_config = acm_variant.user_input['fea_config_dict']
+        meshctrl = study.GetMeshControl()
 
-            study.GetMeshControl().SetValue("MeshType", 1) # make sure this has been exe'd: study.GetCondition(u"RotCon").AddSet(model.GetSetList().GetSet(u"Motion_Region"), 0)
-            study.GetMeshControl().SetValue("RadialDivision", 8) # for air region near which motion occurs
-            study.GetMeshControl().SetValue("CircumferentialDivision", CircumferentialDivision) #1440) # for air region near which motion occurs 这个数足够大，sliding mesh才准确。
-            study.GetMeshControl().SetValue("AirRegionScale", 1.05) # [Model Length]: Specify a value within the following area. (1.05 <= value < 1000)
+        # Air Mesh Control
+        # this is for multi slide planes, which we will not be using
+        refarray = [[0 for i in range(2)] for j in range(1)]
+        refarray[0][0] = 3
+        refarray[0][1] = 1
+        meshctrl.GetTable("SlideTable2D").SetTable(refarray) 
 
-            study.GetMeshControl().SetValue("MeshSize", meshSize_General) # mm
+        meshctrl.SetValue("MeshType", 1) # make sure this has been exe'd: study.GetCondition(u"RotCon").AddSet(model.GetSetList().GetSet(u"Motion_Region"), 0)
+        meshctrl.SetValue("RadialDivision", 8) # for air region near which motion occurs
+        meshctrl.SetValue("CircumferentialDivision", fea_config['designer.CircumferentialDivision']) #1440) # for air region near which motion occurs 这个数足够大，sliding mesh才准确。
+        meshctrl.SetValue("AirRegionScale", 1.05) # [Model Length]: Specify a value within the following area. (1.05 <= value < 1000)
 
-            study.GetMeshControl().SetValue("AutoAirMeshSize", 0)
-            study.GetMeshControl().SetValue("AirMeshSize", meshSize_Air) # mm
-            study.GetMeshControl().SetValue("Adaptive", 0)
+        meshctrl.SetValue("AirMeshSize", fea_config['designer.meshSizeAir']) # mm
+        meshctrl.SetValue("AutoAirMeshSize", 0)
+        meshctrl.SetValue("Adaptive", 0)
 
-            # This is not neccessary for whole model FEA. In fact, for BPMSM simulation, it causes mesh error "The copy target region is not found".
-            # study.GetMeshControl().CreateCondition("RotationPeriodicMeshAutomatic", "autoRotMesh") # with this you can choose to set CircumferentialDivision automatically
+        meshctrl.SetValue("MeshSize", fea_config['designer.meshSize_General']) # mm
 
-            # study.GetMeshControl().CreateCondition("Part", "StatorMeshCtrl")
-            # study.GetMeshControl().GetCondition("StatorMeshCtrl").SetValue("Size", meshSize_Stator)
-            # study.GetMeshControl().GetCondition("StatorMeshCtrl").ClearParts()
-            # study.GetMeshControl().GetCondition("StatorMeshCtrl").AddSet(model.GetSetList().GetSet("StatorSet"), 0)
+        # This is not neccessary for whole model FEA. In fact, for BPMSM simulation, it causes mesh error "The copy target region is not found".
+        # meshctrl.CreateCondition("RotationPeriodicMeshAutomatic", "autoRotMesh") # with this you can choose to set CircumferentialDivision automatically
 
-            study.GetMeshControl().GetCondition(u"untitled 1").SetValue(u"Size", 12.35)
+        # Add mesh for Magnet Set
+        meshctrl.CreateCondition("Part", "MagnetMeshCtrl")
+        meshctrl.GetCondition("MagnetMeshCtrl").SetValue("Size", fea_config['designer.meshSize_Magnet'])
+        meshctrl.GetCondition("MagnetMeshCtrl").ClearParts()
+        meshctrl.GetCondition("MagnetMeshCtrl").AddSet(model.GetSetList().GetSet("MagnetSet"), 0)
 
-            study.GetMeshControl().CreateCondition("Part", "MagnetMeshCtrl")
-            study.GetMeshControl().GetCondition("MagnetMeshCtrl").SetValue("Size", meshSize_Magnet)
-            study.GetMeshControl().GetCondition("MagnetMeshCtrl").ClearParts()
-            study.GetMeshControl().GetCondition("MagnetMeshCtrl").AddSet(model.GetSetList().GetSet("MagnetSet"), 0)
+        # Add mesh for Stator Part
+        meshctrl.CreateCondition(u"Part", u"StatorMeshCtrl")
+        meshctrl.GetCondition(u"StatorMeshCtrl").SetValue(u"Size", fea_config['designer.meshSize_Stator'])
+        meshctrl.GetCondition(u"StatorMeshCtrl").ClearParts()
+        sel = meshctrl.GetCondition(u"StatorMeshCtrl").GetSelection()
+        sel.SelectPart(self.id_statorCore)
+        meshctrl.GetCondition(u"StatorMeshCtrl").AddSelected(sel)
 
-            # if self.bool_suppressShaft == False:
-            #     study.GetMeshControl().CreateCondition("Part", "ShaftMeshCtrl")
-            #     study.GetMeshControl().GetCondition("ShaftMeshCtrl").SetValue("Size", meshSize_Shaft) 
-            #     study.GetMeshControl().GetCondition("ShaftMeshCtrl").ClearParts()
-            #     study.GetMeshControl().GetCondition("ShaftMeshCtrl").AddSet(model.GetSetList().GetSet("ShaftSet"), 0)
+        # Add mesh for Rotor Part
+        meshctrl.CreateCondition(u"Part", u"RotorMeshCtrl")
+        meshctrl.GetCondition(u"RotorMeshCtrl").SetValue(u"Size", fea_config['designer.meshSize_Rotor'])
+        meshctrl.GetCondition(u"RotorMeshCtrl").ClearParts()
+        sel = meshctrl.GetCondition(u"RotorMeshCtrl").GetSelection()
+        sel.SelectPart(self.id_rotorCore)
+        meshctrl.GetCondition(u"RotorMeshCtrl").AddSelected(sel)
 
-            def mesh_all_cases(study):
-                numCase = study.GetDesignTable().NumCases()
-                print(f"DEBUG JMAG: mesh_all_cases for {numCase} cases")
-                for case in range(0, numCase):
-                    study.SetCurrentCase(case)
-                    if study.HasMesh() == False:
-                        print(f"DEBUG JMAG: Creating mesh for case {case}...")
-                        try:
-                            study.CreateMesh()
-                            print(f"DEBUG JMAG: Mesh created for case {case}")
-                        except Exception as e:
-                            print(f"DEBUG JMAG: Mesh creation failed for case {case}: {e}")
-                            raise e
-                    # if case == 0:
-                    #     app.View().ShowAllAirRegions()
-                    #     app.View().ShowMeshGeometry()
-                    #     app.View().ShowMesh()
-            mesh_all_cases(study)
+        # if self.bool_suppressShaft == False:
+        #     meshctrl.CreateCondition("Part", "ShaftMeshCtrl")
+        #     meshctrl.GetCondition("ShaftMeshCtrl").SetValue("Size", meshSize_Shaft) 
+        #     meshctrl.GetCondition("ShaftMeshCtrl").ClearParts()
+        #     meshctrl.GetCondition("ShaftMeshCtrl").AddSet(model.GetSetList().GetSet("ShaftSet"), 0)
 
+        def mesh_all_cases(study):
+            numCase = study.GetDesignTable().NumCases()
+            print(f"DEBUG JMAG: mesh_all_cases for {numCase} cases")
+            for case in range(0, numCase):
+                study.SetCurrentCase(case)
+                if study.HasMesh() == False:
+                    print(f"DEBUG JMAG: Creating mesh for case {case}...")
+                    try:
+                        study.CreateMesh()
+                        print(f"DEBUG JMAG: Mesh created for case {case}")
+                    except Exception as e:
+                        print(f"DEBUG JMAG: Mesh creation failed for case {case}: {e}")
+                        raise e
+                # if case == 0:
+                #     app.View().ShowAllAirRegions()
+                #     app.View().ShowMeshGeometry()
+                #     app.View().ShowMesh()
+        mesh_all_cases(study)
+
+        # Export Image of the Meshed Regions
         if False:
-            # Export Image
             app.View().ShowAllAirRegions()
             # app.View().ShowMeshGeometry() # 2nd btn
             app.View().ShowMesh() # 3rn btn
@@ -2449,22 +2444,13 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         eval_config = acm_variant.user_input['eval_config']
         
         fit_OA_key = eval_config["moo.fitness_OA"]
-        if fit_OA_key is None:
-            fit_OA_key = "TorqueDensity"
-            logging.getLogger(__name__).warning("KeyError bypassed for 'moo.fitness_OA'. Using default value: %s", fit_OA_key)
-        f1 = fitness_mapping.get(fit_OA_key, 0.0)
+        f1 = fitness_mapping[fit_OA_key]
 
         fit_OB_key = eval_config["moo.fitness_OB"]
-        if fit_OB_key is None:
-            fit_OB_key = "Efficiency"
-            logging.getLogger(__name__).warning("KeyError bypassed for 'moo.fitness_OB'. Using default value: %s", fit_OB_key)
-        f2 = fitness_mapping.get(fit_OB_key, 0.0)
+        f2 = fitness_mapping[fit_OB_key]
 
         fit_OC_key = eval_config["moo.fitness_OC"]
-        if fit_OC_key is None:
-            fit_OC_key = "Cost"
-            logging.getLogger(__name__).warning("KeyError bypassed for 'moo.fitness_OC'. Using default value: %s", fit_OC_key)
-        f3 = fitness_mapping.get(fit_OC_key, 0.0)
+        f3 = fitness_mapping[fit_OC_key]
 
         FRW = ss_avg_force_magnitude / (rotor_weight if rotor_weight != 0 else 1)
         logger = logging.getLogger(__name__)
@@ -2488,7 +2474,7 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
                             stack_length]           # new! 在计算FRW的时候，我们只知道原来的叠长下的力，所以需要知道原来的叠长是多少。
 
         counter = eval_config['counter']
-        popsize = fea_config_dict['moo.popsize']
+        popsize = eval_config['moo.popsize']
         gen = int(counter // popsize) if isinstance(counter, (int, float)) and popsize > 0 else -1
         ind = counter if isinstance(counter, (int, float)) else -1
 

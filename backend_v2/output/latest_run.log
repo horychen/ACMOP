@@ -1,224 +1,26 @@
-+------------------------------- Configuration -------------------------------+
-| Motor Parameters (user_input)                                               |
-| +-- winding                                                                 |
-| |   +-- phase_count: 3                                                      |
-| |   +-- slot_count: 12                                                      |
-| |   +-- pole_count: 10                                                      |
-| |   +-- coil_pitch: 1                                                       |
-| |   +-- l_stack: 16.0                                                       |
-| |   +-- rated_current_density: 14                                           |
-| |   +-- dc_bus_voltage: 12                                                  |
-| |   +-- fill_factor: 0.58                                                   |
-| |   +-- rated_speed: 20000                                                  |
-| |   +-- DPNV_or_SEPA: True                                                  |
-| |   +-- torque_current_ratio: 1.0                                           |
-| |   +-- suspension_current_ratio: 0.0                                       |
-| |   +-- suspension_pole_count: 8                                            |
-| |   +-- wires_per_slot: 32                                                  |
-| |   +-- drive_winding_current: 0.7942223352960001                           |
-| |   +-- bearing_winding_current: 0.7942223352960001                         |
-| |   +-- awg: 31                                                             |
-| |   +-- wire_diameter_with_insulation: 0.26                                 |
-| |   +-- wire_diameter: 0.226                                                |
-| |   +-- liner: 0.1                                                          |
-| |   +-- connection_type: wye                                                |
-| |   +-- kw1: None                                                           |
-| |   +-- phase_resistance: 1.431                                             |
-| |   +-- bool_CustomizedCircuit: False                                       |
-| |   +-- bool_DPNVorSEPA: True                                               |
-| |   +-- CommutatingSequenceD: 1                                             |
-| |   +-- CommutatingSequenceB: 0                                             |
-| |   +-- grouping_AC: [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]                   |
-| |   +-- bool_distributed_or_concentrated: False                             |
-| |   +-- layer_X_phases: ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W',  |
-| |   |   'W', 'U']                                                           |
-| |   +-- layer_X_signs: ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+',   |
-| |   |   '-', '-']                                                           |
-| |   +-- coil_pitch_y: 1                                                     |
-| |   +-- layer_Y_phases: ['U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V',  |
-| |   |   'W', 'W']                                                           |
-| |   +-- layer_Y_signs: ['+', '-', '-', '+', '+', '-', '-', '+', '+', '-',   |
-| |   |   '-', '+']                                                           |
-| |   +-- number_parallel_branch: 2                                           |
-| |   +-- number_winding_layer: 2                                             |
-| |   +-- bool_3PhaseCurrentSource: False                                     |
-| |   +-- distributed_or_concentrated: False                                  |
-| |   +-- deg_winding_U_phase_phase_axis_angle: None                          |
-| |   +-- dict_coil_connection: {'layer X phases': ['U', 'V', 'V', 'W', 'W',  |
-| |   |   'U', 'U', 'V', 'V', 'W', 'W', 'U'], 'layer X signs': ['+', '+',     |
-| |   |   '-', '-', '+', '+', '-', '-', '+', '+', '-', '-'], 'layer Y         |
-| |   |   phases': ['U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W',    |
-| |   |   'W'], 'layer Y signs': ['+', '-', '-', '+', '+', '-', '-', '+',     |
-| |   |   '+', '-', '-', '+']}                                                |
-| |   +-- SIPNV_or_SEPA: True                                                 |
-| |   +-- Qs: 12                                                              |
-| |   +-- p: 5                                                                |
-| |   +-- m: 3                                                                |
-| |   +-- SPP: 0.4                                                            |
-| |   +-- ps: 4                                                               |
-| |   +-- pr: None                                                            |
-| |   +-- list_layer_motor_phases: [['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V',  |
-| |   |   'V', 'W', 'W', 'U'], ['U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V',  |
-| |   |   'V', 'W', 'W']]                                                     |
-| |   +-- list_layer_motor_signs: [['+', '+', '-', '-', '+', '+', '-', '-',   |
-| |   |   '+', '+', '-', '-'], ['+', '-', '-', '+', '+', '-', '-', '+', '+',  |
-| |   |   '-', '-', '+']]                                                     |
-| |   +-- list_layer_suspension_phases: [['U', 'V', 'V', 'W', 'W', 'U', 'U',  |
-| |   |   'V', 'V', 'W', 'W', 'U'], ['U', 'U', 'V', 'V', 'W', 'W', 'U', 'U',  |
-| |   |   'V', 'V', 'W', 'W']]                                                |
-| |   +-- list_layer_suspension_signs: [['+', '-', '+', '-', '+', '-', '+',   |
-| |   |   '-', '+', '-', '+', '-'], ['+', '-', '+', '-', '+', '-', '+', '-',  |
-| |   |   '+', '-', '+', '-']]                                                |
-| |   +-- ox_distribution_three_phase: ['U+U+', 'V+U-', 'V-V-', 'W-V+',       |
-| |   |   'W+W+', 'U+W-', 'U-U-', 'V-U+', 'V+V+', 'W+V-', 'W-W-', 'U-W+']     |
-| |   +-- ox_distribution_phase_U: ['xx', 'o', '', '', '', 'x', 'oo', 'x',    |
-| |   |   '', '', '', 'o']                                                    |
-| |   `-- excitation_frequency_simulated: 1666.6666666666665                  |
-| +-- geometry                                                                |
-| |   +-- tooth_shape: closed                                                 |
-| |   +-- d_tooth_shoe: 0.15                                                  |
-| |   +-- d_tooth: 2.0                                                        |
-| |   +-- w_tooth: 1.2                                                        |
-| |   +-- d_magnet: 3.0                                                       |
-| |   +-- d_air_gap: 0.15                                                     |
-| |   +-- r_stator_outer: 6.5                                                 |
-| |   +-- r_rotor_outer: 4.0                                                  |
-| |   +-- r_shaft: 0.0                                                        |
-| |   +-- slot_area: 2.9930673886624795                                       |
-| |   `-- magnet_area: 4.71238898038469                                       |
-| +-- material                                                                |
-| |   +-- stator_core_steel_name: 20JNEH1200                                  |
-| |   +-- rotor_core_steel_name: 20JNEH1200                                   |
-| |   +-- lamination_factor: 0.98                                             |
-| |   +-- magnet_material_name: N42SH                                         |
-| |   +-- magnet_start_angle: 0                                               |
-| |   `-- magnet_temperature: 80                                              |
-| +-- fea_config_dict                                                         |
-| |   +-- pc_name: HORY-DESKTOP                                               |
-| |   +-- JMAG_Designer_Version: 20.0                                         |
-| |   +-- designer.show: True                                                 |
-| |   +-- designer.max_nonlinear_iteration: 50                                |
-| |   +-- delete_results_after_calculation: False                             |
-| |   +-- designer.JMAG_Scheduler: False                                      |
-| |   +-- designer.MultipleCPUs: False                                        |
-| |   +-- designer.AddIronLossCondition: True                                 |
-| |   +-- designer.OnlyTableResults: True                                     |
-| |   +-- designer.number_cycles_in_1stTSS: 3                                 |
-| |   +-- designer.number_cycles_in_2ndTSS: 0.5                               |
-| |   +-- designer.number_cycles_in_3rdTSS: 0.0                               |
-| |   +-- designer.number_cycles_prolonged: 0.0                               |
-| |   +-- designer.number_of_steps_1stTSS: 24                                 |
-| |   +-- designer.number_of_steps_2ndTSS: 32                                 |
-| |   +-- designer.StepPerCycle_3rdTSS: 64                                    |
-| |   +-- designer.TranRef-StepPerCycle: 64                                   |
-| |   +-- designer.CircumferentialDivision: 720                               |
-| |   +-- designer.meshSize_Magnet: 2.0                                       |
-| |   +-- designer.meshSize_Shaft: 2.0                                        |
-| |   +-- designer.meshSizeAir: 2.0                                           |
-| |   +-- designer.meshSize_General: 2.0                                      |
-| |   `-- moo.popsize: 78                                                     |
-| +-- target                                                                  |
-| |   +-- initial_rotation_angle: 0.0                                         |
-| |   +-- machine_class: SPMSM                                                |
-| |   +-- select_FEA_tool: JMAG                                               |
-| |   +-- rated_power: 10                                                     |
-| |   `-- free_parameters: ['search w_stator_width within [1.0, 1.5]',        |
-| |       'search d_stator_tooth within [1.6, 2.0]', 'search d_magnet within  |
-| |       [1.0, 3.0]']                                                        |
-| `-- eval_config                                                             |
-|     +-- project_loc: C:\_Codes\ACMOP\backend_v2\output                      |
-|     +-- project_name_prefix: machine-ind                                    |
-|     +-- counter: 0                                                          |
-|     +-- counter_loop: 0                                                     |
-|     +-- x_denorm: None                                                      |
-|     +-- study_name: Transient                                               |
-|     +-- jmag_temp_dir_name: jmag_temp                                       |
-|     +-- jmag_csv_dir_name: csv                                              |
-|     +-- jmag_screenshots_dir_name: jmag_screenshots                         |
-|     +-- swarm_data_file_name: SwarmData.json                                |
-|     +-- timeout_csv_results_s: 180                                          |
-|     +-- csv_file_flush_sleep_s: 5                                           |
-|     +-- moo.fitness_OA: TorqueDensity                                       |
-|     +-- moo.fitness_OB: Efficiency                                          |
-|     `-- moo.fitness_OC: Cost                                                |
-+-----------------------------------------------------------------------------+
-{
-    'awg': 31,
-    'wires_per_slot': 32,
-    'turns_per_tooth': 16.0,
-    'slot_fill_factor_cu': 54.3,
-    'current_per_wire_a': 0.5616,
-    'ampere_turns_per_slot': 17.97,
-    'line_load_a_per_cm': 82.71,
-    'thermal_load_aj': 1158.0,
-    'yoke_thickness_mm': 0.35,
-    'KV_rpm_V': 916.0,
-    'phase_resistance_100C': 1.431,
-    'total_loss_W': 2.63,
-    'copper_loss_W': 1.35,
-    'iron_loss_W': 1.27
-}
-Average Torque: -0.000692415 Nm which is negative, it is converted to positive to continue.
---- 12S10P 13.0mm 微电机后端第一步分析结果 ---
-AWG: 31, 满槽率: 54.3%, 槽内总导线: 32 根
-安匝(NI): 17.97, 热负荷 (AJ): 1158.0 A^2/(cm*mm^2)
-KV 值估算: 916.0 RPM/V
-相电阻 (100°C): 1.431 Ohm
-20k RPM 总损耗: 2.63 W (铜损 1.35W, 铁损 1.27W)
-------------------------------------------------------------
-Geometry drawn to C:\_Codes\ACMOP\backend_v2\output\stator_v2.svg with scale 30.0
-Exported C:\_Codes\ACMOP\backend_v2\output\stator_v2.svg successfully with user_input parameters.
-No custom steel is added to JMAG Designer.
-Drawing rotorCore in JMAG...
-Drawing magnet in JMAG...
-Drawing statorCore in JMAG...
-Drawing coil in JMAG...
-DEBUG JMAG FILE: C:\_Codes\ACMOP\backend_v2\JMAG.py
-[coil inner_coords] {'region1': (5.118130096215117, 0.9761647553303355), 'region2': (5.118130096215117, -0.9761647553303355)}
-PCoil=(5.118130096215117, -0.9761647553303355), Angle_StatorSlotSpan=30.0
-CoilLX: count=1, Phase=U, Sign=+, Location=(5.1181, -0.9762), Angle=-10.7982 deg
-CoilLX: count=2, Phase=V, Sign=+, Location=(4.9205, 1.7137), Angle=19.2018 deg
-CoilLX: count=3, Phase=V, Sign=-, Location=(3.4044, 3.9443), Angle=49.2018 deg
-CoilLX: count=4, Phase=W, Sign=-, Location=(0.9762, 5.1181), Angle=79.2018 deg
-CoilLX: count=5, Phase=W, Sign=+, Location=(-1.7137, 4.9205), Angle=109.2018 deg
-CoilLX: count=6, Phase=U, Sign=+, Location=(-3.9443, 3.4044), Angle=139.2018 deg
-CoilLX: count=7, Phase=U, Sign=-, Location=(-5.1181, 0.9762), Angle=169.2018 deg
-CoilLX: count=8, Phase=V, Sign=-, Location=(-4.9205, -1.7137), Angle=199.2018 deg
-CoilLX: count=9, Phase=V, Sign=+, Location=(-3.4044, -3.9443), Angle=229.2018 deg
-CoilLX: count=10, Phase=W, Sign=+, Location=(-0.9762, -5.1181), Angle=259.2018 deg
-CoilLX: count=11, Phase=W, Sign=-, Location=(1.7137, -4.9205), Angle=289.2018 deg
-CoilLX: count=12, Phase=U, Sign=-, Location=(3.9443, -3.4044), Angle=319.2018 deg
-CoilLY: count=1, Phase=U, Sign=+, Location=(4.9205, -1.7137), Angle=-19.2018 deg
-CoilLY: count=2, Phase=U, Sign=-, Location=(5.1181, 0.9762), Angle=10.7982 deg
-CoilLY: count=3, Phase=V, Sign=-, Location=(3.9443, 3.4044), Angle=40.7982 deg
-CoilLY: count=4, Phase=V, Sign=+, Location=(1.7137, 4.9205), Angle=70.7982 deg
-CoilLY: count=5, Phase=W, Sign=+, Location=(-0.9762, 5.1181), Angle=100.7982 deg
-CoilLY: count=6, Phase=W, Sign=-, Location=(-3.4044, 3.9443), Angle=130.7982 deg
-CoilLY: count=7, Phase=U, Sign=-, Location=(-4.9205, 1.7137), Angle=160.7982 deg
-CoilLY: count=8, Phase=U, Sign=+, Location=(-5.1181, -0.9762), Angle=190.7982 deg
-CoilLY: count=9, Phase=V, Sign=+, Location=(-3.9443, -3.4044), Angle=220.7982 deg
-CoilLY: count=10, Phase=V, Sign=-, Location=(-1.7137, -4.9205), Angle=250.7982 deg
-CoilLY: count=11, Phase=W, Sign=-, Location=(0.9762, -5.1181), Angle=280.7982 deg
-CoilLY: count=12, Phase=W, Sign=+, Location=(3.4044, -3.9443), Angle=310.7982 deg
-Magnet: ind=0, natural_ind=1, Location=(2.5000, 0.0000), Angle=0.0000 deg
-Magnet: ind=1, natural_ind=2, Location=(2.0225, 1.4695), Angle=36.0000 deg
-Magnet: ind=2, natural_ind=3, Location=(0.7725, 2.3776), Angle=72.0000 deg
-Magnet: ind=3, natural_ind=4, Location=(-0.7725, 2.3776), Angle=108.0000 deg
-Magnet: ind=4, natural_ind=5, Location=(-2.0225, 1.4695), Angle=144.0000 deg
-Magnet: ind=5, natural_ind=6, Location=(-2.5000, 0.0000), Angle=180.0000 deg
-Magnet: ind=6, natural_ind=7, Location=(-2.0225, -1.4695), Angle=216.0000 deg
-Magnet: ind=7, natural_ind=8, Location=(-0.7725, -2.3776), Angle=252.0000 deg
-Magnet: ind=8, natural_ind=9, Location=(0.7725, -2.3776), Angle=288.0000 deg
-Magnet: ind=9, natural_ind=10, Location=(2.0225, -1.4695), Angle=324.0000 deg
-Add GroupAC circuit
-Add GroupBD circuit
-DEBUG JMAG: FREQUENCY = 1666.6666666666665, number_cycles_in_1stTSS = 3
-DEBUG JMAG: mesh_all_cases for 1 cases
-DEBUG JMAG: Creating mesh for case 0...
-DEBUG JMAG: Mesh created for case 0
-DEBUG JMAG: run_study called for study: Transient
-DEBUG JMAG: Running jam.exe (study.RunAllCases)...
-DEBUG JMAG: build_str_results called with acm_variant type: <class 'machine.Machine'>
-DEBUG JMAG: project_name: machine-ind0
-Warning: FEM Coil Flux CSV not found at C:\_Codes\ACMOP\backend_v2\output\csv\0\Transient_flux_of_fem_coil.csv, skipping flux linkage processing.
-Warning: KeyError bypassed for terminal_voltage. Keys like 'TerminalGroupBDW/GroupACW' not found. Using default zeros array.
+Traceback (most recent call last):
+  File "C:\_Codes\ACMOP\backend_v2\winding_layout.py", line 24, in __getattr__
+    return self[name]
+           ~~~~^^^^^^
+KeyError: 'coil_pitch_y'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\_Codes\ACMOP\backend_v2\winding_layout.py", line 1081, in __init__
+    self.coil_pitch_y
+  File "C:\_Codes\ACMOP\backend_v2\winding_layout.py", line 26, in __getattr__
+    raise AttributeError(name)
+AttributeError: coil_pitch_y
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\_Codes\ACMOP\backend_v2\main_dex13.py", line 115, in <module>
+    mac.sync()
+  File "C:\_Codes\ACMOP\backend_v2\machine.py", line 31, in sync
+    wily = winding_layout_v2(
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\_Codes\ACMOP\backend_v2\winding_layout.py", line 1168, in __init__
+    raise Exception(f'Error: This winding is not implemented to get deg_winding_U_phase_phase_axis_angle: Qs,p,ps,coil_pitch_y = {Qs,p,ps,coil_pitch_y}', Wrap_Around, DPNV_or_SEPA)
+Exception: ('Error: This winding is not implemented to get deg_winding_U_phase_phase_axis_angle: Qs,p,ps,coil_pitch_y = (12, 5, 4, 1)', None, None)

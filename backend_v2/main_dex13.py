@@ -18,7 +18,7 @@ user_input = OrderedDict([
             ('dc_bus_voltage', 12), # 直流母线电压,用于判断最高可输出转速限值 V
             ('fill_factor', 0.58),
             ('rated_speed', 20000), # 额定评估转速点
-            ('DPNV_or_SEPA', True), # Winding Layout option
+            # ('DPNV_or_SEPA', True), # Winding Layout option # default is DPNV, SEPA is removed in this work
             # ('separate_winding_utilization_ratio_for_torque', 1.0), # 如果是 SEPA绕组会小于1
             # ('separate_winding_utilization_ratio_for_suspension', 0.0), # 如果是 SEPA绕组小于1，这两个数字加起来是1
             ('torque_current_ratio', 1.0), # 如果不是无轴承电机就是1
@@ -40,7 +40,7 @@ user_input = OrderedDict([
             ('d_tooth_shoe', 0.15),
             ('d_tooth', 2.0),
             ('w_tooth', 1.2),
-            ('d_magnet', 3.0),
+            ('d_magnet', 1.0),
             ('d_air_gap', 0.15),
             ('r_stator_outer', 13/2),
             ('r_rotor_outer', 8/2),
@@ -49,7 +49,7 @@ user_input = OrderedDict([
         ('material', OrderedDict([
             ('stator_core_steel_name', '20JNEH1200'), # other options include China steel 35CS250
             ('rotor_core_steel_name', '20JNEH1200'),
-            ('lamination_factor', 0.98),
+            ('lamination_factor', 98), # in [%]
             ('magnet_material_name', 'N42SH'),
             ('magnet_start_angle', 0), # offset the magnetization to the magnet by an angle 径向磁化永磁体的时候转过去一定的角度
             ('magnet_temperature', 80),
@@ -73,14 +73,16 @@ user_input = OrderedDict([
             ('designer.StepPerCycle_3rdTSS', 64),
             ('designer.TranRef-StepPerCycle', 64),
             ('designer.CircumferentialDivision', 720),
-            ('designer.meshSize_Magnet', 2.0),
-            ('designer.meshSize_Shaft', 2.0),
-            ('designer.meshSizeAir', 2.0),
-            ('designer.meshSize_General', 2.0),
-            ('moo.popsize', 78),
+            ('designer.meshSize_Stator', 0.15),
+            ('designer.meshSize_Rotor', 0.25),
+            ('designer.meshSize_Magnet', 0.2),
+            ('designer.meshSizeAir', 0.05),
+            ('designer.meshSize_General', 2), # Mesh for Coil
         ])),
         ('target', OrderedDict([
             ('initial_rotation_angle', 0.0), # 转子初始位置，需要和电流矢量垂直
+            ('initial_rotation_angle_increment', 3.0), # mechanical degrees
+            ('bool_multipleCases', None),
             ('machine_class', 'SPMSM'),
             ('select_FEA_tool', 'JMAG'),
             ('rated_power', 10),
@@ -103,6 +105,7 @@ user_input = OrderedDict([
             ('swarm_data_file_name', 'SwarmData.json'),
             ('timeout_csv_results_s', 180),
             ('csv_file_flush_sleep_s', 5),
+            ('moo.popsize', 78),
             ('moo.fitness_OA', 'TorqueDensity'),
             ('moo.fitness_OB', 'Efficiency'),
             ('moo.fitness_OC', 'Cost'),

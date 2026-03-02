@@ -1,5 +1,5 @@
 {
-    "python.languageServer": "Jedi",
+    "python.languageServer": "None",
     "python.defaultInterpreterPath": "C:\\Users\\horyc\\miniconda3\\python.exe",
     "python.analysis.extraPaths": [
         "backend",

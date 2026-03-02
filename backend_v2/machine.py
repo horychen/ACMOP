@@ -26,10 +26,8 @@ class Machine:
         self.user_input['geometry']['magnet_area'] = self.geometry.magnet_area
 
         # 核心环节：动态注入 WindingLayout 实例，获取绕组排布与系数
-        from winding_layout import winding_layout_v2
-        # Notice DPNV_or_SEPA must be None for normal standard motors because winding_layout_v2 throws errors otherwise
-        wily = winding_layout_v2(
-            DPNV_or_SEPA=self.user_input['winding'].get('DPNV_or_SEPA'),
+        from winding_layout import winding_layout_v3
+        wily = winding_layout_v3(
             Qs=self.user_input['winding']['slot_count'],
             p=self.user_input['winding']['pole_count'] // 2,
             ps=self.user_input['winding']['suspension_pole_count'] // 2,
@@ -40,6 +38,7 @@ class Machine:
         self.user_input['winding'].update(wily_dict)
         # import rich
         # rich.print(wily_dict)
+        # print(self.user_input['winding']['grouping_AC'])
         # quit()
 
         # Analyze winding performance to populate necessary features (currents/turns) automatically during sync
@@ -53,8 +52,9 @@ class Machine:
         self.user_input['winding']['wires_per_slot'] = self.analysis['wires_per_slot'] # zQ
         self.user_input['winding']['phase_resistance'] = self.analysis['phase_resistance_100C']
 
+        # Other derived parameters
         self.user_input['winding']['excitation_frequency_simulated'] = self.user_input['winding']['rated_speed'] / 60 * (self.user_input['winding']['pole_count'] / 2)
-        
+
         # 定义定子的槽部构形种类 (例如 "closed-slot" 表示闭槽结构)
         stator_options = f"{self.user_input['geometry']['tooth_shape']}-slot"
         
@@ -246,9 +246,22 @@ class Machine:
             # NOTE: backend_v2 structure passing self to toolJd requires toolJd to be compatible.
             toolJd.pre_process_PMSM(app, model, self)
             study = toolJd.add_magnetic_transient_study(app, model, path2FEACsv, study_name, self)
+
+            # 增加 Case of 初始角
+            if self.user_input['target']['initial_rotation_angle_increment'] is not None:
+                initial_rotation_angle_increment = self.user_input['target']['initial_rotation_angle_increment']
+                study.GetDesignTable().AddParameterVariableName(u"RotCon (RotationMotion2D): InitialRotationAngle")
+                study.GetDesignTable().AddCases(3)
+                self.user_input['target']['bool_multipleCases'] = True
+                #                               index Starting from 0
+                study.GetDesignTable().SetValue(1, 2, self.user_input['target']['initial_rotation_angle'] + initial_rotation_angle_increment)
+                study.GetDesignTable().SetValue(2, 2, self.user_input['target']['initial_rotation_angle'] + 2*initial_rotation_angle_increment)
+                study.GetDesignTable().SetValue(3, 2, self.user_input['target']['initial_rotation_angle'] + 3*initial_rotation_angle_increment)
+            # app.View().SetCurrentCase(1)
+
             toolJd.mesh_study(self, app, model, study, output_dir=project_loc)
             toolJd.run_study(self, app, study, self.user_input['fea_config_dict'], clock_time())
-            
+
             # 4. Monitor the output results are generated in the specified csv folder
             # import time
             # import os
@@ -265,11 +278,17 @@ class Machine:
             # time.sleep(eval_config['csv_file_flush_sleep_s']) # Give JMAG some time to finish writing all CSV files
             
             # 5. Compile & Save Results
-            self.compile_results(toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool)
+            if bool_multipleCases:
+                self.compile_results_for_multiple_cases(toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool)
+            else:
+                self.compile_results_for_single_case(toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool)
         else:
             raise Exception(f"FEA tool {select_FEA_tool} not implemented or supported.")
 
-    def compile_results(self, toolJd, study_name, path2FEACsv, json_path, select_FEA_tool):
+    def compile_results_for_multiple_cases(self, toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool):
+        pass
+
+    def compile_results_for_single_case(self, toolJd, study_name, path2FEACsv, json_path, select_FEA_tool):
         """Pack results into dictionary and save to JSON."""
         import os, jsonpickle
         project_name = self.user_input['evaluation']['project_name']

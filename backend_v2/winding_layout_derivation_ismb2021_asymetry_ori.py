@@ -959,8 +959,8 @@ def main_derivation():
                                 # (3, 18, 4, 1, 1, 0), # Eric's Homopolar Motor??? p is even number?
                                 # (3, 12, 7, 8, 1, 0), # BLDC motor concentrated winding
                                 # (3, 12, 4, 5, 1, 0), # FSPM-12/10
-                                (3, 12, 4, 5, 1, 0), # PEMD p4ps5
-                                (3, 12, 5, 4, 1, 0), # PEMD p4ps5
+                                # (3, 12, 4, 5, 1, 0), # PEMD p4ps5
+                                (3, 12, 5, 4, 1, 0), # SPindle p5ps4
                                 # (3, 24, 1, 2, 9, 0),
                                 # (3, 18, 2, 1, 1, 0), # David Meeker SPMLoss example  https://femm.info/wiki/spmloss
                                 # (3, 48, 2, 1, 12, 0), # XSQ

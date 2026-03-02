@@ -1,10 +1,4 @@
-    #禁止在cache时打印
-# def print(*arg, **kwarg):
-#     pass
-
-import enum
 import logging
-
 
 def infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(layer_X_phases, coil_pitch):
     return layer_X_phases[-coil_pitch:] + layer_X_phases[:-coil_pitch]
@@ -18,7 +12,7 @@ def infer_Y_layer_grpAC_from_X_layer_and_coil_pitch_y(grouping_AC, coil_pitch):
     # [3, 4, 5, 6, 7, 8, 0, 1, 2]
 from collections import OrderedDict
 
-class winding_layout_v2(OrderedDict):
+class winding_layout_v3(OrderedDict):
     def __getattr__(self, name):
         try:
             return self[name]
@@ -31,737 +25,21 @@ class winding_layout_v2(OrderedDict):
         else:
             self[name] = value
 
-    def __init__(self, DPNV_or_SEPA, Qs, p, ps=None, coil_pitch_y=None, pr=None, m=3, Wrap_Around=None):
+    def __init__(self, Qs, p, ps=None, coil_pitch_y=None, pr=None, m=3, Wrap_Around=None):
         ''' Naming convention:
         # right layer = 1st layer = X layer = torque layer for separate winding
         # left layer  = 2nd layer = Y layer = suspension layer for separate winding
         '''
         super().__init__()
-        self.bool_CustomizedCircuit = False
-        self.bool_DPNVorSEPA = DPNV_or_SEPA
-        self.CommutatingSequenceD = 0
-        self.CommutatingSequenceB = 0
-        self.grouping_AC = [1] * Qs
         self.bool_distributed_or_concentrated = (coil_pitch_y != 1)
-
-        # number of phase
-        # m = 3
-        if p % m == 0 or (ps is not None and ps % m == 0):
-            if DPNV_or_SEPA is not None:
-                logger = logging.getLogger(__name__)
-                logger.warning('Warning: asymmetric suspension winding for DPNV.')
-
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    # Regular Motor Winding
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-        if DPNV_or_SEPA is None \
-        and Qs == 12 \
-        and p == 2 \
-        and ps == None \
-        and coil_pitch_y == 3:
-
-            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.number_parallel_branch = 1
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = True
-
-        if DPNV_or_SEPA is None \
-        and Qs == 12 \
-        and p == 5 \
-        and ps == None \
-        and coil_pitch_y == 1:
-
-            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.number_parallel_branch = 1
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = True
-
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    # Separate Winding for Bearingless Motor
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-        if DPNV_or_SEPA == False \
-        and Qs == 24 \
-        and p == 2 \
-        and ps == 1:
-            self.layer_X_phases = [ 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V' ]*2
-            self.layer_X_signs  = [ '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-' ]*2
-            self.layer_Y_phases = [ 'U', 'U', 'V', 'V', 'V', 'V', 'W', 'W', 'W', 'W', 'U', 'U', 'U', 'U', 'V', 'V', 'V', 'V', 'W', 'W', 'W', 'W', 'U', 'U' ]
-            self.layer_Y_signs  = [ '-', '-', '+', '+', '+', '+', '-', '-', '-', '-', '+', '+', '+', '+', '-', '-', '-', '-', '+', '+', '+', '+', '-', '-' ]
-            if coil_pitch_y is None:
-                self.coil_pitch_y = int(Qs/(2*p)) # = Qs / poles, for single layer
-            else:
-                raise Exception('Do not specify coil_pitch_y for single layer winding.')
-
-            self.number_parallel_branch = 1.
-            self.number_winding_layer = 1 # for torque winding
-
-            # Excitation options
-            self.bool_3PhaseCurrentSource = True
-            # Commutating sequence is predefined in codes (population.py) for separate winding, which is correct when rotor rotates CCW. This is still, however, used in FEMM_Solver.py, which should also be avoided.
-            self.CommutatingSequenceD = 0 # D stands for Drive winding (i.e., torque winding)
-            self.CommutatingSequenceB = 0 # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
-
-        if DPNV_or_SEPA == False \
-        and Qs == 36 \
-        and p == 3 \
-        and ps == 2:
-            self.layer_X_phases = [ 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V' ]*3
-            self.layer_X_signs  = [ '+', '+', '-', '-', '-', '-', '-', '-', '+', '+', '+', '+' ]*3
-            self.layer_Y_phases = [ 'U', 'U', 'U', 'W', 'W', 'W', 'V', 'V', 'V', 'U', 'U', 'U', 'W', 'W', 'W', 'V', 'V', 'V' ]*2
-            self.layer_Y_signs  = [ '+', '+', '+', '-', '-', '-', '+', '+', '+', '-', '-', '-', '+', '+', '+', '-', '-', '-' ]*2
-            if coil_pitch_y is None:
-                self.coil_pitch_y = int(Qs/(2*p)) # = Qs / poles, for single layer
-            else:
-                raise Exception('Do not specify coil_pitch_y for single layer winding.')
-
-            self.number_parallel_branch = 1.
-            self.number_winding_layer = 1 # for torque winding
-
-            # Excitation options
-            self.bool_3PhaseCurrentSource = True
-            # Commutating sequence is predefined in codes (population.py) for separate winding, which is correct when rotor rotates CCW. This is still, however, used in FEMM_Solver.py, which should also be avoided.
-            self.CommutatingSequenceD = 0 # D stands for Drive winding (i.e., torque winding)
-            self.CommutatingSequenceB = 0 # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # Combined Winding for Bearingless Motor
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 5 \
-            and ps == 1 \
-            and coil_pitch_y == 6:
 
-                self.layer_X_phases = ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U']
-                self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 11 \
-            and ps == 10 \
-            and coil_pitch_y == 4:
-
-                self.layer_X_phases = ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U']
-                self.layer_X_signs  = ['+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 10 \
-            and ps == 11 \
-            and coil_pitch_y == 4:
-
-                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-                self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 10 \
-            and ps == 11 \
-            and coil_pitch_y == 3:
-
-                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-                self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 8 \
-            and ps == 7 \
-            and coil_pitch_y == 4:
-
-                self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 8 \
-            and ps == 7 \
-            and coil_pitch_y == 1:
-
-                self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 7 \
-            and ps == 8 \
-            and coil_pitch_y == 1:
-
-                self.layer_X_phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
-                self.layer_X_signs  = ['+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 7 \
-            and ps == 8 \
-            and coil_pitch_y == 4:
-
-                self.layer_X_phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
-                self.layer_X_signs  = ['+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 5 \
-            and ps == 4 \
-            and coil_pitch_y == 4:
-
-                self.layer_X_phases = ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U']
-                self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 5 \
-            and ps == 4 \
-            and coil_pitch_y == 1:
-
-                self.layer_X_phases = ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U']
-                self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 5 \
-            and ps == 1 \
-            and coil_pitch_y == 4:
-
-                self.layer_X_phases = ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U']
-                self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 5 \
-            and ps == 1 \
-            and coil_pitch_y == 6:
-
-                self.layer_X_phases = ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U']
-                self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 4 \
-            and ps == 1 \
-            and coil_pitch_y == 5:
-
-                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 24 \
-            and p == 40 \
-            and ps == 1 \
-            and coil_pitch_y == 10:
-
-                self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 24 \
-            and p == 8 \
-            and ps == 1 \
-            and coil_pitch_y == 1:
-
-                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 24 \
-            and p == 20 \
-            and ps == 1 \
-            and coil_pitch_y == 9:
-
-                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-                self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 24 \
-            and p == 16 \
-            and ps == 1 \
-            and coil_pitch_y == 10:
-
-                self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 24 \
-            and p == 8 \
-            and ps == 1 \
-            and coil_pitch_y == 9:
-
-                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 24 \
-            and p == 8 \
-            and ps == 1 \
-            and coil_pitch_y == 10:
-                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-                self.grouping_AC            = [0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-            and Qs == 6 \
-            and p == 4 \
-            and ps == 1 \
-            and coil_pitch_y == 1:
-
-                self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 0, 1, 1, 1, 0]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 4 \
-            and ps == 1 \
-            and coil_pitch_y == 1:
-
-                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-        
-        if DPNV_or_SEPA == True \
-            and Qs == 6 \
-            and p ==  2 \
-            and ps == 1 \
-            and coil_pitch_y == 1:
-                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W']
-                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 0, 1, 0, 1]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-
-
-        if DPNV_or_SEPA == True \
-            and Qs == 12 \
-            and p == 2 \
-            and ps == 1 \
-            and coil_pitch_y == 1:
-
-                self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-                self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-                self.coil_pitch_y   = coil_pitch_y
-                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-                self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
-                self.number_parallel_branch = 2
-                self.number_winding_layer   = 2
-
-                self.bool_3PhaseCurrentSource = False
-                self.CommutatingSequenceD = 1
-                self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-        and Qs == 24 \
+        if Qs == 12 \
         and p == 4 \
-        and ps == 1 \
-        and coil_pitch_y == 9:
-            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-
-            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-
-            self.coil_pitch_y   = coil_pitch_y
-
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-
-
-            self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0]
-
-            self.number_parallel_branch = 2
-
-            self.number_winding_layer   = 2
-
-
-
-            self.bool_3PhaseCurrentSource = False
-
-            self.CommutatingSequenceD = 1
-
-            self.CommutatingSequenceB = 0
-
-
-
-        if DPNV_or_SEPA == True \
-        and Qs == 6 \
-        and p == 5 \
-        and ps == 4 \
-        and coil_pitch_y == 2:
-
-            self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W']
-            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.grouping_AC            = [0, 1, 0, 1, 0, 1]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-        and Qs == 6 \
-        and p == 4 \
-        and ps == 5 \
-        and coil_pitch_y == 2:
-
-            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V']
-            self.layer_X_signs  = ['+', '+', '+', '+', '+', '+']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.grouping_AC            = [0, 1, 0, 1, 0, 1]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-        and Qs == 12 \
-        and p == 14 \
-        and ps == 13 \
-        and coil_pitch_y == 1:
-
-            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)  
-
-            self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-        and Qs == 12 \
-        and p == 22 \
-        and ps == 23 \
-        and coil_pitch_y == 2:
-
-            self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
-            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-        and Qs == 24 \
-        and p == 14 \
-        and ps == 13 \
-        and coil_pitch_y == 1:
-
-            self.layer_X_phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
-            self.layer_X_signs  = ['+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.grouping_AC            = [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-        and Qs == 24 \
-        and p == 10 \
-        and ps == 11 \
-        and coil_pitch_y == 1:
-
-            self.layer_X_phases = ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U']
-            self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.grouping_AC            = [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-        and Qs == 12 \
-        and p == 4 \
-        and ps == 5 \
-        and coil_pitch_y == 1:
+        and ps == 5:
 
             self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
             self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
@@ -777,174 +55,82 @@ class winding_layout_v2(OrderedDict):
             self.CommutatingSequenceD = 1
             self.CommutatingSequenceB = 0
 
-        if DPNV_or_SEPA == True \
-        and Qs == 18 \
-        and p == 4 \
-        and ps == 5 \
-        and coil_pitch_y == 2:
+        if Qs == 12 \
+            and p == 5 \
+            and ps == 4:
 
-            self.layer_X_phases = ['U', 'W', 'U', 'W', 'V', 'W', 'V', 'U', 'V', 'U', 'W', 'U', 'W', 'V', 'W', 'V', 'U', 'V']
-            self.layer_X_signs  = ['+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+                self.layer_X_phases = ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U']
+                self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
+                self.coil_pitch_y   = coil_pitch_y
+                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
 
-            self.grouping_AC            = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
+                self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
+                self.number_parallel_branch = 2
+                self.number_winding_layer   = 2
 
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
+                self.bool_3PhaseCurrentSource = False
+                self.CommutatingSequenceD = 1
+                self.CommutatingSequenceB = 0
 
-        if DPNV_or_SEPA == True \
-        and Qs == 36 \
-        and p == 3 \
-        and ps == 2 \
-        and coil_pitch_y == 5:
+        if Qs == 12 \
+            and p == 5 \
+            and ps == 1:
 
-            self.layer_X_phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
-            self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+                self.layer_X_phases = ['U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U']
+                self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
+                self.coil_pitch_y   = coil_pitch_y
+                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
 
-            self.grouping_AC            = [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
+                self.grouping_AC            = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+                self.number_parallel_branch = 2
+                self.number_winding_layer   = 2
 
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
+                self.bool_3PhaseCurrentSource = False
+                self.CommutatingSequenceD = 1
+                self.CommutatingSequenceB = 0
+        
+        if Qs == 12 \
+            and p == 4 \
+            and ps == 1 \
+            and coil_pitch_y == 1:
 
-        # This winding is wrong
-        if DPNV_or_SEPA == True \
-        and Qs == 27 \
-        and p == 3 \
-        and ps == 2 \
-        and coil_pitch_y == 4:
+                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W']
+                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
+                self.coil_pitch_y   = coil_pitch_y
+                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
 
-            self.layer_X_phases = ['U', 'W', 'W', 'V', 'U', 'U', 'W', 'V', 'V', 'U', 'W', 'W', 'V', 'U', 'U', 'W', 'V', 'V', 'U', 'W', 'W', 'V', 'U', 'U', 'W', 'V', 'V']
-            self.layer_X_signs  = ['+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+                self.grouping_AC            = [0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1]
+                self.number_parallel_branch = 2
+                self.number_winding_layer   = 2
 
-            self.grouping_AC            = [0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
+                self.bool_3PhaseCurrentSource = False
+                self.CommutatingSequenceD = 1
+                self.CommutatingSequenceB = 0
 
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
+        if Qs == 12 \
+            and p == 2 \
+            and ps == 1:
 
-        if DPNV_or_SEPA == True \
-        and Qs == 24 \
-        and p == 2 \
-        and ps == 1:
-            self.layer_X_phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V'] # ExampleQ24p2m3ps1: torque winding outer layer
-            self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-            self.coil_pitch_y = int(Qs/(2*p)) if coil_pitch_y is None else coil_pitch_y # Y layer can be inferred from coil pitch and X layer diagram
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+                self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
+                self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
+                self.coil_pitch_y   = coil_pitch_y
+                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
 
-            # grouping AC is valid for the X layer signs, the Y layer can always be inferred from the X layer signs and the coil pitch.
-            self.grouping_AC    = [  0,   0,   1,   1,   1,   1,   0,   0,   0,   0,   1,   1,   1,   1,   0,   0,   0,   0,   1,   1,   1,   1,   0,   0] # 只取决于1s tlayer/outer layer/right layer的反相情况
-            self.number_parallel_branch = 2.
-            self.number_winding_layer = 2 # for torque winding and this means there could be a short pitch
+                self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
+                self.number_parallel_branch = 2
+                self.number_winding_layer   = 2
 
-            # Excitation options
-            self.bool_3PhaseCurrentSource = False # 3PhaseCurrentSource is a macro in circuit setup of JMAG
-            self.CommutatingSequenceD = 1 # D stands for Drive winding (i.e., torque winding)
-            self.CommutatingSequenceB = 0 # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
+                self.bool_3PhaseCurrentSource = False
+                self.CommutatingSequenceD = 1
+                self.CommutatingSequenceB = 0
 
-        if DPNV_or_SEPA == True \
-        and Qs == 24 \
-        and p == 2 \
-        and ps == 3 \
-        and coil_pitch_y == 5:
-
-            self.layer_X_phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
-            self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-        and Qs == 24 \
+        if Qs == 12 \
         and p == 1 \
-        and ps == 2 \
-        and coil_pitch_y == 9:
-
-            self.layer_X_phases = ['U', 'U', 'U', 'W', 'W', 'W', 'W', 'V', 'V', 'V', 'V', 'U', 'U', 'U', 'U', 'W', 'W', 'W', 'W', 'V', 'V', 'V', 'V', 'U']
-            self.layer_X_signs  = ['+', '+', '+', '-', '-', '-', '-', '+', '+', '+', '+', '-', '-', '-', '-', '+', '+', '+', '+', '-', '-', '-', '-', '+']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.grouping_AC            = [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-        if DPNV_or_SEPA == True \
-        and Qs == 6 \
-        and p == 1 \
-        and ps == 2 \
-        and coil_pitch_y == 2:
-
-            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V']
-            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.grouping_AC            = [0, 1, 0, 1, 0, 1]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-
-        if DPNV_or_SEPA == True \
-        and Qs == 6 \
-        and p == 2 \
-        and ps == 1 \
-        and coil_pitch_y == 1:
-
-            self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W']
-            self.layer_X_signs  = ['+', '+', '+', '+', '+', '+']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.grouping_AC            = [0, 1, 0, 1, 0, 1]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-
-        if DPNV_or_SEPA == True \
-        and Qs == 12 \
-        and p == 1 \
-        and ps == 2 \
-        and coil_pitch_y == 5:
+        and ps == 2:
 
             self.layer_X_phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V']
             self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
@@ -960,30 +146,7 @@ class winding_layout_v2(OrderedDict):
             self.CommutatingSequenceD = 1
             self.CommutatingSequenceB = 0
 
-
-        if DPNV_or_SEPA == True \
-        and Qs == 12 \
-        and p == 2 \
-        and ps == 1 \
-        and coil_pitch_y == 3:
-
-            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-            self.coil_pitch_y   = coil_pitch_y
-            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
-            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
-
-            self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
-            self.number_parallel_branch = 2
-            self.number_winding_layer   = 2
-
-            self.bool_3PhaseCurrentSource = False
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-
-
-        if DPNV_or_SEPA == True \
-        and Qs == 12 \
+        if Qs == 12 \
         and p == 4 \
         and ps == 5 \
         and coil_pitch_y == 1:
@@ -1005,11 +168,9 @@ class winding_layout_v2(OrderedDict):
             self.kd1 = 1.0
             self.kp1 = 0.866
 
-        if DPNV_or_SEPA == True \
-        and Qs == 18 \
+        if Qs == 18 \
         and p == 2 \
-        and ps == 1 \
-        and coil_pitch_y == 4:
+        and ps == 1:
 
             self.layer_X_phases = ['U', 'W', 'W', 'V', 'U', 'U', 'W', 'V', 'V', 'U', 'W', 'W', 'V', 'U', 'U', 'W', 'V', 'V']
             self.layer_X_signs  = ['+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-']
@@ -1025,20 +186,17 @@ class winding_layout_v2(OrderedDict):
             self.CommutatingSequenceD = 1
             self.CommutatingSequenceB = 0
 
-        # TIA-ISMB 2020 stator winding for the double layer rotor winding
-        if DPNV_or_SEPA == True \
-        and Qs == 18 \
-        and p == 2 \
-        and ps == 3 \
-        and coil_pitch_y == 4:
-
-            self.layer_X_phases = ['U', 'W', 'W', 'V', 'U', 'U', 'W', 'V', 'V', 'U', 'W', 'W', 'V', 'U', 'U', 'W', 'V', 'V']
-            self.layer_X_signs  = ['+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-', '+', '-', '-']
+        if Qs == 24 \
+        and p == 4 \
+        and ps == 1 \
+        and coil_pitch_y == 9:
+            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
+            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
             self.coil_pitch_y   = coil_pitch_y
             self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
             self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
 
-            self.grouping_AC            = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1]
+            self.grouping_AC            = [0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0]
             self.number_parallel_branch = 2
             self.number_winding_layer   = 2
 
@@ -1046,33 +204,95 @@ class winding_layout_v2(OrderedDict):
             self.CommutatingSequenceD = 1
             self.CommutatingSequenceB = 0
 
+        if Qs == 24 \
+        and p == 2 \
+        and ps == 1:
+            self.layer_X_phases = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V'] # ExampleQ24p2m3ps1: torque winding outer layer
+            self.layer_X_signs  = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
+            self.coil_pitch_y = int(Qs/(2*p)) if coil_pitch_y is None else coil_pitch_y # Y layer can be inferred from coil pitch and X layer diagram
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
 
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    # Customized Winding
-    #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-        if DPNV_or_SEPA is None \
-        and Qs == 2 \
-        and p == 1 \
-        and ps == 2 \
-        and Wrap_Around == 'Toroidal':
-            'This is dummy wily. The actual winding layout is given in CrossSectStator.py'
-            self.layer_X_phases = [ 'U', 'U' ]
-            self.layer_X_signs  = [ '+', '-' ]
-            self.layer_Y_phases = 'Toroidal'
-            self.layer_Y_signs  = 'Toroidal'
-
-            self.number_parallel_branch = 2
-            self.number_winding_layer = 1 # for torque winding
+            # grouping AC is valid for the X layer signs, the Y layer can always be inferred from the X layer signs and the coil pitch.
+            self.grouping_AC    = [  0,   0,   1,   1,   1,   1,   0,   0,   0,   0,   1,   1,   1,   1,   0,   0,   0,   0,   1,   1,   1,   1,   0,   0] # 只取决于1s tlayer/outer layer/right layer的反相情况
+            self.number_parallel_branch = 2.
+            self.number_winding_layer = 2 # for torque winding and this means there could be a short pitch
 
             # Excitation options
-            # self.bool_3PhaseCurrentSource = True
-
-            self.coil_pitch_y = coil_pitch_y
-
-            # Commutating sequence is predefined in codes (population.py) for separate winding, which is correct when rotor rotates CCW. This is still, however, used in FEMM_Solver.py, which should also be avoided.
-            self.CommutatingSequenceD = 0 # D stands for Drive winding (i.e., torque winding)
+            self.bool_3PhaseCurrentSource = False # 3PhaseCurrentSource is a macro in circuit setup of JMAG
+            self.CommutatingSequenceD = 1 # D stands for Drive winding (i.e., torque winding)
             self.CommutatingSequenceB = 0 # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
 
+        if Qs == 6 \
+            and p == 4 \
+            and ps == 1:
+
+                self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V']
+                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+']
+                self.coil_pitch_y   = coil_pitch_y
+                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+                self.grouping_AC            = [0, 0, 1, 1, 1, 0]
+                self.number_parallel_branch = 2
+                self.number_winding_layer   = 2
+
+                self.bool_3PhaseCurrentSource = False
+                self.CommutatingSequenceD = 1
+                self.CommutatingSequenceB = 0
+        
+        if Qs == 6 \
+            and p ==  2 \
+            and ps == 1:
+                self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W']
+                self.layer_X_signs  = ['+', '+', '+', '+', '+', '+']
+                self.coil_pitch_y   = coil_pitch_y
+                self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+                self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+                self.grouping_AC            = [0, 1, 0, 1, 0, 1]
+                self.number_parallel_branch = 2
+                self.number_winding_layer   = 2
+
+                self.bool_3PhaseCurrentSource = False
+                self.CommutatingSequenceD = 1
+                self.CommutatingSequenceB = 0
+
+        if Qs == 6 \
+        and p == 5 \
+        and ps == 4:
+
+            self.layer_X_phases = ['U', 'V', 'W', 'U', 'V', 'W']
+            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-']
+            self.coil_pitch_y   = coil_pitch_y
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+            self.grouping_AC            = [0, 1, 0, 1, 0, 1]
+            self.number_parallel_branch = 2
+            self.number_winding_layer   = 2
+
+            self.bool_3PhaseCurrentSource = False
+            self.CommutatingSequenceD = 1
+            self.CommutatingSequenceB = 0
+
+        if Qs == 6 \
+        and p == 1 \
+        and ps == 2:
+
+            self.layer_X_phases = ['U', 'W', 'V', 'U', 'W', 'V']
+            self.layer_X_signs  = ['+', '-', '+', '-', '+', '-']
+            self.coil_pitch_y   = coil_pitch_y
+            self.layer_Y_phases = infer_Y_layer_phases_from_X_layer_and_coil_pitch_y(self.layer_X_phases, self.coil_pitch_y)
+            self.layer_Y_signs  = infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(self.layer_X_signs, self.coil_pitch_y)
+
+            self.grouping_AC            = [0, 1, 0, 1, 0, 1]
+            self.number_parallel_branch = 2
+            self.number_winding_layer   = 2
+
+            self.bool_3PhaseCurrentSource = False
+            self.CommutatingSequenceD = 1
+            self.CommutatingSequenceB = 0
 
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # End of winding definition
@@ -1084,19 +304,6 @@ class winding_layout_v2(OrderedDict):
             # below is valid for PMSM only
 
             q = SPP = Qs / (2*p * m)
-            # print('[wily] q =', q)
-            # if q%1 > 0:
-            #     print('[wily] Fractional slot winding with an SPP of %g.'%(q))
-            #     if q>1:
-            #         raise Exception('This case is not thought thorough.')
-
-            # Example: Q24p1
-            # + + + + 0 0 0 0 0 - - - -
-            # 0 1 2 3 4 5 6 7 8 9
-            # 电流激励是sin(t)，0时刻的时候，电流导致的磁场刚好和U相相轴正交，所以转子的初始位置就应该是U轴相轴的位置。
-
-            # Valid for PMSM                                                这个1是由于1号槽从x轴便宜了半个槽距角所导致的，那么为什么1号槽这么特别？因为我们默认了u相是从1号槽开始的，但是有时候U相可能从24号槽开始，那么就要进一步进入这种情况
-            # self.initial_excitation_bias_compensation_deg = 360/Qs*0.5 * (1 + self.coil_pitch_y)
 
             # 寻找初始d轴激励角度
             if q%1 == 0:
@@ -1172,141 +379,6 @@ class winding_layout_v2(OrderedDict):
         self.dict_coil_connection = {'layer X phases': self.layer_X_phases, 'layer X signs':self.layer_X_signs,   # 这里的命名规则是按照seprate winding的情况来的。
                                      'layer Y phases': self.layer_Y_phases, 'layer Y signs':self.layer_Y_signs}   # 这里的命名规则是按照seprate winding的情况来的。
 
-
-        # ACMDM: motor mode and suspension mode (ACMDM is the initiative my first try to clean up the code, which has been aborted)
-        self.SIPNV_or_SEPA = DPNV_or_SEPA
-        self.Qs = Qs
-        self.p = p
-        self.m = m
-        self.SPP = self.Qs / (2*self.p * self.m)
-        self.ps = ps
-        self.pr = pr
-        if DPNV_or_SEPA is not None:
-            if self.number_winding_layer == 1: # this is equivalent to separate winding for now
-                self.list_layer_motor_phases      = [self.layer_X_phases]
-                self.list_layer_motor_signs       = [self.layer_X_signs]
-                self.list_layer_suspension_phases = [self.layer_Y_phases]
-                self.list_layer_suspension_signs  = [self.layer_Y_signs]
-
-            elif self.number_winding_layer == 2: # this is equivalent to combined winding for now
-                self.list_layer_motor_phases      = [self.layer_X_phases, self.layer_Y_phases] #??? 这有啥用？？？
-                self.list_layer_motor_signs       = [self.layer_X_signs, self.layer_Y_signs]
-                self.list_layer_suspension_phases = self.list_layer_motor_phases[::]
-                suspension_layer_X_signs = [(el if ac==0 else ('-' if el == '+' else '+')) for el, ac in zip(self.layer_X_signs, self.grouping_AC)]
-                self.list_layer_suspension_signs  = [ suspension_layer_X_signs, 
-                                                      infer_Y_layer_signs_from_X_layer_and_coil_pitch_y(suspension_layer_X_signs, self.coil_pitch_y)]
-            else:
-                raise Exception('Invalid number_winding_layer.')
-
-            # save for winding function analysis
-            self.ox_distribution_three_phase = []
-            for phases, signs in zip(self.list_layer_motor_phases, self.list_layer_motor_signs):
-                temp = [phase+sign for phase, sign in zip(phases, signs)]
-                self.ox_distribution_three_phase = temp if self.ox_distribution_three_phase == [] else [a+b for a,b in zip(self.ox_distribution_three_phase, temp)]
-            def replace_uvw_with_ox(string, UVW):
-                string = string.replace(UVW+'+', 'x')
-                string = string.replace(UVW+'-', 'o')
-                return string
-            def replace_uvw_with_empty_string(string, UVW):
-                string = string.replace(UVW+'+', '')
-                string = string.replace(UVW+'-', '')
-                return string
-            self.ox_distribution_phase_U = [replace_uvw_with_ox(el, 'U') for el in self.ox_distribution_three_phase]
-            self.ox_distribution_phase_U = [replace_uvw_with_empty_string(el, 'V') for el in self.ox_distribution_phase_U]
-            self.ox_distribution_phase_U = [replace_uvw_with_empty_string(el, 'W') for el in self.ox_distribution_phase_U]
-            # print(self.ox_distribution_three_phase)
-            # print(self.ox_distribution_phase_U)
-
-# if __name__ == '__main__':
-#     wily = winding_layout_v2(DPNV_or_SEPA=True, Qs=24, p=2, ps=1, coil_pitch=6)
-#     quit()
-
-class pole_specific_winding_with_neutral():
-    def __init__(self, Qr, p, ps, coil_pitch_y=None):
-
-        if Qr == 10 \
-        and p == 4 \
-        and ps == 5 \
-        and coil_pitch_y == 2:
-            self.pairs = [(1, 3, 5, 7, 9), (2, 4, 6, 8, 10)]
-
-        # Since p=2, this is a double layer windidng reduced to single layer implementation with neutral plate
-        if Qr == 30 \
-        and p == 2 \
-        and ps == 3 \
-        and coil_pitch_y == 10:
-            self.pairs = [(1, 11, 21), (2, 12, 22), (3, 13, 23), (4, 14, 24), (5, 15, 25), (6, 16, 26), (7, 17, 27), (8, 18, 28), (9, 19, 29), (10, 20, 30)]
-
-        # Since p=2, this is a double layer windidng reduced to single layer implementation with neutral plate
-        if Qr == 18 \
-        and p == 2 \
-        and ps == 3 \
-        and coil_pitch_y == 6:
-            self.pairs = [(1, 7, 13), (2, 8, 14), (3, 9, 15), (4, 10, 16), (5, 11, 17), (6, 12, 18)]
-
-        # this is for test purpose
-        # to test the Qr30ps3 rotor circuit and see if it induces current under field without one pole pair component.
-        # I only swap p and ps, and leave others the same with the rotor winding above
-        if Qr == 30 \
-        and p == 3 \
-        and ps == 2 \
-        and coil_pitch_y == 10:
-            self.pairs = [(1, 11, 21), (2, 12, 22), (3, 13, 23), (4, 14, 24), (5, 15, 25), (6, 16, 26), (7, 17, 27), (8, 18, 28), (9, 19, 29), (10, 20, 30)]
-
-        # this is for test purpose
-        # to test the Qr30ps3 rotor circuit and see if it induces current under field WITH one pole pair component.
-        # I only swap p and ps, and leave others the same with the rotor winding above
-        if Qr == 30 \
-        and p == 1 \
-        and ps == 2 \
-        and coil_pitch_y == 10:
-            self.pairs = [(1, 11, 21), (2, 12, 22), (3, 13, 23), (4, 14, 24), (5, 15, 25), (6, 16, 26), (7, 17, 27), (8, 18, 28), (9, 19, 29), (10, 20, 30)]
-
-
-        if Qr == 20 \
-        and p == 3 \
-        and ps == 2 \
-        and coil_pitch_y == 10:
-            self.pairs = [(1, 11), (2, 12), (3, 13), (4, 14), (5, 15), (6, 16), (7, 17), (8, 18), (9, 19), (10, 20)]
-
-        if Qr == 24 \
-        and p == 3 \
-        and ps == 2 \
-        and coil_pitch_y == 12:
-            self.pairs = [(1, 13), (2, 14), (3, 15), (4, 16), (5, 17), (6, 18), (7, 19), (8, 20), (9, 21), (10, 22), (11, 23), (12, 24)]
-
-        if Qr == 28 \
-        and p == 3 \
-        and ps == 2 \
-        and coil_pitch_y == 14:
-            '''
-            For Qs=27, find valid set of pole specific winding with neutral plate.
-            ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
-            c/d = 1/2
-            Qr  = 28
-            p   = 3
-            ps  = 2
-            k1  = 1
-            k   = 14
-            t   = 2
-            nl  = 15
-            y   =  14
-            m/n =  14/3 (this is consistent with Pyrhonen@(2.83): m cannot be multiples of n.)
-            FSW
-            q=z/n=1/3 = 28/(2*3*14)
-            p*gamma =180
-            kw_h = sin(h*gamma/2) =1.00, 0.00, -1.00, -0.00, 1.00, 0.00, -1.00, -0.00, 1.00, ...
-            number_of_coils = 14.0
-            number of coils per phase = 1.0
-            ----
-            Winding Layout (m=14 phases):
-             | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |10 |11 |12 |13 |14 |15 |16 |17 |18 |19 |20 |21 |22 |23 |24 |25 |26 |27 |28
-             | a | b | c | d | e | f | g | h | i | j | k | l | m | n | a | b | c | d | e | f | g | h | i | j | k | l | m | n
-             [(0, 14), (1, 15), (2, 16), (3, 17), (4, 18), (5, 19), (6, 20), (7, 21), (8, 22), (9, 23), (10, 24), (11, 25), (12, 26), (13, 27)]
-            [Finished in 0.1s]
-            '''
-            # self.pairs=[(0, 14), (1, 15), (2, 16), (3, 17), (4, 18), (5, 19), (6, 20), (7, 21), (8, 22), (9, 23), (10, 24), (11, 25), (12, 26), (13, 27)]
-            self.pairs=[(1, 15), (2, 16), (3, 17), (4, 18), (5, 19), (6, 20), (7, 21), (8, 22), (9, 23), (10, 24), (11, 25), (12, 26), (13, 27), (14, 28)]
 
 from pylab import np, plt, fft, linspace
 import math
@@ -1531,304 +603,4 @@ if __name__ == '__main__':
     U_phase.plotFuncObj(U_phase.winding_func)
     U_phase.plot2piFft(U_phase.winding_func, Fs=1/(2*math.pi/3600), L=65536*2**4) # 采样频率：在2pi的周期内取720个点
 
-
     plt.show()
-
-    if False:
-        # PMLSM AAAAA
-        # full teeth despite static end effect
-        zQ = 50
-        turns_per_layer = zQ / wily.number_winding_layer
-        ox_distribution_one_phase = ['o','xx','oo','xx',
-                                     'o','n','n','n',
-                                     'n','n','n','n',
-                                     'x','oo','xx','oo',
-                                     'x','n','n','n',
-                                     'n','n','n','n']
-        AA_ph = PhaseWinding(wily.Qs, wily.m, turns_per_layer, ox_distribution_one_phase)
-        AA_ph.plot2piFft(AA_ph.winding_func, 10, 10000)
-
-
-
-
-
-
-
-# Obsolte after 20191126
-class winding_layout(object):
-    def __init__(self, DPNV_or_SEPA, Qs, p, ps=None):
-
-        # separate winding
-        if DPNV_or_SEPA == False \
-        and Qs == 24 \
-        and p == 2:
-            self.l41=[ 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', ]
-            self.l42=[ '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', ]
-            # separate style for one phase: ---- ++++
-            self.l21=[ 'U', 'U', 'V', 'V', 'V', 'V', 'W', 'W', 'W', 'W', 'U', 'U', 'U', 'U', 'V', 'V', 'V', 'V', 'W', 'W', 'W', 'W', 'U', 'U', ]
-            self.l22=[ '-', '-', '+', '+', '+', '+', '-', '-', '-', '-', '+', '+', '+', '+', '-', '-', '-', '-', '+', '+', '+', '+', '-', '-', ]
-            self.coil_pitch = 6 # = Qs / poles for single layer
-            self.CommutatingSequenceD = 0
-            self.CommutatingSequenceB = 0
-            self.number_parallel_branch = 1.
-            self.bool_3PhaseCurrentSource = True
-            self.no_winding_layer = 1 # for torque winding
-
-        # combined winding
-        if DPNV_or_SEPA == True \
-        and Qs == 24 \
-        and p == 2:
-            # DPNV winding implemented as DPNV winding (GroupAC means it experiences flip phasor excitation from suspension inverter, while GroupBD does not.)
-            #                     U-GrBD                        U-GrBD    W-GrBD                        W-GrBD    V-GrBD                        V-GrBD
-            #                               W-GrAC    V-GrAC                        V-GrAC    U-GrAC                        U-GrAC    W-GrAC             : flip phases 19-14??? slot of phase U??? (这个例子的这句话看不懂)
-            self.l_rightlayer1 = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V'] # ExampleQ24p2m3ps1: torque winding outer layer
-            self.l_rightlayer2 = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-            self.l_leftlayer1  = self.l_rightlayer1[::] # ExampleQ24p2m3ps1: torque winding inner layer
-            self.l_leftlayer2  = self.l_rightlayer2[::]
-            self.grouping_AC   = [  0,   0,   1,   1,   1,   1,   0,   0,   0,   0,   1,   1,   1,   1,   0,   0,   0,   0,   1,   1,   1,   1,   0,   0] # 只取决于outerlayer/rightlayer的反相情况
-            self.coil_pitch    = 6 # left layer can be inferred from coil pitch and right layer diagram
-            self.CommutatingSequenceD = 1 # D stands for Drive winding (i.e., torque winding)
-            self.CommutatingSequenceB = 0 # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
-            self.number_parallel_branch = 2.
-            self.bool_3PhaseCurrentSource = False # 3PhaseCurrentSource is a macro in circuit setup of JMAG
-            self.no_winding_layer = 2 # for torque winding and this means there could be a short pitch
-
-            # backward compatibility
-            self.l41 = self.l_rightlayer1
-            self.l42 = self.l_rightlayer2
-            self.l21 = self.l_leftlayer1
-            self.l22 = self.l_leftlayer2
-
-        # combined winding
-        if DPNV_or_SEPA == True \
-        and Qs == 24 \
-        and p == 1:
-            # DPNV winding implemented as DPNV winding (GroupAC means it experiences flip phasor excitation from suspension inverter, while GroupBD does not.)
-            #                     U-GroupBD                               V-GroupBD                               W-GroupBD
-            #                                         W-GroupAC                               U-GroupAC                               V-GroupAC           : flip phases 13-16 slot of phase U
-            self.l_rightlayer1 = ['U', 'U', 'U', 'U', 'W', 'W', 'W', 'W', 'V', 'V', 'V', 'V', 'U', 'U', 'U', 'U', 'W', 'W', 'W', 'W', 'V', 'V', 'V', 'V'] # ExampleQ24p1m3ps2: torque winding outer layer
-            self.l_rightlayer2 = ['+', '+', '+', '+', '-', '-', '-', '-', '+', '+', '+', '+', '-', '-', '-', '-', '+', '+', '+', '+', '-', '-', '-', '-'] 
-            self.l_leftlayer1  = ['U', 'W', 'W', 'W', 'W', 'V', 'V', 'V', 'V', 'U', 'U', 'U', 'U', 'W', 'W', 'W', 'W', 'V', 'V', 'V', 'V', 'U', 'U', 'U'] # ExampleQ24p1m3ps2: torque winding inner layer
-            self.l_leftlayer2  = ['+', '-', '-', '-', '-', '+', '+', '+', '+', '-', '-', '-', '-', '+', '+', '+', '+', '-', '-', '-', '-', '+', '+', '+']
-            self.grouping_AC   = [  0,   0,   0,   0,   1,   1,   1,   1,   0,   0,   0,   0,   1,   1,   1,   1,   0,   0,   0,   0,   1,   1,   1,   1] # 只取决于rightlayer的反相情况
-            self.coil_pitch    = 9 # left layer can be inferred from coil pitch and right layer diagram
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0
-            self.number_parallel_branch = 2.
-            self.bool_3PhaseCurrentSource = False # 3PhaseCurrentSource is a macro in circuit setup of JMAG
-            self.no_winding_layer = 2 # for torque winding and this means there could be a short pitch
-            self.initial_excitation_bias_compensation_deg = 360/24*0.5 # for torque winding # Note that the initial excitation direction is biased (not aligned with x-axis) due to the fact that the u-phase winding is not aligned with x-axis
-
-            # backward compatibility
-            self.l41 = self.l_rightlayer1
-            self.l42 = self.l_rightlayer2
-            self.l21 = self.l_leftlayer1
-            self.l22 = self.l_leftlayer2
-
-
-        # PMSM ONLY
-
-        # combined winding
-        # concentrated winding
-        if DPNV_or_SEPA == True \
-        and Qs == 6 \
-        and p == 2:
-            # DPNV winding implemented as DPNV winding (GroupAC means it experiences flip phasor excitation from suspension inverter, while GroupBD does not.)
-            self.l_rightlayer1 = ['U', 'V', 'W', 'U', 'V', 'W'] # torque winding right layer
-            self.l_rightlayer2 = ['+', '+', '+', '+', '+', '+']
-            self.l_leftlayer1  = ['W', 'U', 'V', 'W', 'U', 'V']
-            self.l_leftlayer2  = ['-', '-', '-', '-', '-', '-']
-            # self.grouping_AC   = [  0,   0,   0,   1,   1,   1] # 只取决于outerlayer/rightlayer的反相情况，AC是在悬浮逆变器激励下会反相的
-            self.CommutatingSequenceB = 1 # [???]
-
-            self.grouping_AC   = [  0,   1,   0,   1,   0,   1] # Jingwei's layout
-            self.CommutatingSequenceB = 0 # [CHECKED]
-
-            self.coil_pitch    = -1 # left layer can be inferred from coil pitch and right layer diagram
-                                    # We use negative coil_pitch to indicate concentrated winding
-            self.CommutatingSequenceD = 1
-            self.number_parallel_branch = 2.
-            self.bool_3PhaseCurrentSource = False # 3PhaseCurrentSource is a macro in circuit setup of JMAG
-            self.no_winding_layer = 2 # for torque winding and this means there could be a short pitch
-
-            self.initial_excitation_bias_compensation_deg = 0 # for torque winding
-
-            # backward compatibility
-            self.l41 = self.l_rightlayer1
-            self.l42 = self.l_rightlayer2
-            self.l21 = self.l_leftlayer1
-            self.l22 = self.l_leftlayer2
-
-        # combined winding
-        # distrubuted winding
-        if DPNV_or_SEPA == True \
-        and Qs == 6 \
-        and p == 1:
-            # DPNV winding implemented as DPNV winding (GroupAC means it experiences flip phasor excitation from suspension inverter, while GroupBD does not.)
-            self.l_rightlayer1 = ['U', 'W', 'V', 'U', 'W', 'V'] # torque winding right layer
-            self.l_rightlayer2 = ['+', '-', '+', '-', '+', '-']
-            self.l_leftlayer1  = ['W', 'V', 'U', 'W', 'V', 'U']
-            self.l_leftlayer2  = ['-', '+', '-', '+', '-', '+']
-            self.grouping_AC   = [  0,   1,   0,   1,   0,   1] # 只取决于outerlayer/rightlayer的反相情况，AC是在悬浮逆变器激励下会反相的
-                                                                # Same with Jingwei's layout
-            self.coil_pitch    = 2 # left layer can be inferred from coil pitch and right layer diagram
-            self.CommutatingSequenceD = 1
-            self.CommutatingSequenceB = 0 # [CHECKED]
-            self.number_parallel_branch = 2.
-            self.bool_3PhaseCurrentSource = False # 3PhaseCurrentSource is a macro in circuit setup of JMAG
-            self.no_winding_layer = 2 # for torque winding and this means there could be a short pitch
-
-            self.initial_excitation_bias_compensation_deg = 0 # for torque winding
-
-            # backward compatibility
-            self.l41 = self.l_rightlayer1
-            self.l42 = self.l_rightlayer2
-            self.l21 = self.l_leftlayer1
-            self.l22 = self.l_leftlayer2
-
-
-
-        # combined winding
-        # distrubuted winding
-        if DPNV_or_SEPA == True \
-        and Qs == 12 \
-        and p == 2:
-            # DPNV winding implemented as DPNV winding (GroupAC means it experiences flip phasor excitation from suspension inverter, while GroupBD does not.)
-            self.l_rightlayer1 = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V'] # torque winding right layer
-            self.l_rightlayer2 = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-            self.l_leftlayer1  = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V']
-            self.l_leftlayer2  = ['+', '-', '+', '-', '+', '-', '+', '-', '+', '-', '+', '-']
-
-            # self.grouping_AC   = [  0,   1,   0,   0,   0,   0,   1,   0,   1,   1,   1,   1] # 只取决于outerlayer/rightlayer的反相情况，AC是在悬浮逆变器激励下会反相的
-            # self.CommutatingSequenceB = 1 # 0 # [CHECKED] # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
-            self.grouping_AC   = [  0,   1,   1,   0,   0,   1,   1,   0,   0,   1,   1,   0] # Jingwei's layout
-            self.CommutatingSequenceB = 0 # 0 # [CHECKED] # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
-            
-            self.CommutatingSequenceD = 1 # D stands for Drive winding (i.e., torque winding)
-            self.coil_pitch    = 3 # left layer can be inferred from coil pitch and right layer diagram
-            self.number_parallel_branch = 2.
-            self.bool_3PhaseCurrentSource = False # 3PhaseCurrentSource is a macro in circuit setup of JMAG
-            self.no_winding_layer = 2 # for torque winding and this means there could be a short pitch
-
-            self.initial_excitation_bias_compensation_deg = 0 # for u phase torque winding
-
-            # backward compatibility
-            self.l41 = self.l_rightlayer1
-            self.l42 = self.l_rightlayer2
-            self.l21 = self.l_leftlayer1
-            self.l22 = self.l_leftlayer2
-
-        # combined winding
-        # concentrated winding
-        ps = 5 # ps should be specified in future revision
-        if DPNV_or_SEPA == True \
-        and Qs == 12 \
-        and p == 4 \
-        and ps == 5:
-            # DPNV winding implemented as DPNV winding (GroupAC means it experiences flip phasor excitation from suspension inverter, while GroupBD does not.)
-            # self.l_rightlayer1 = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W'] # torque winding right layer
-            # self.l_rightlayer2 = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+'] # This configuration gives negative torque
-            # self.l_leftlayer1  = ['W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V']
-            # self.l_leftlayer2  = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
-            # self.l_rightlayer1 = ['U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V'] # Want to change the commutating sequence so the torque is positive? No, it is not that intuitive.
-            # self.l_rightlayer2 = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-            # self.l_leftlayer1  = ['V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W', 'V', 'U', 'W']
-            # self.l_leftlayer2  = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
-            self.l_rightlayer1 = ['U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W'] # Want to change torque sign? Yes, this works
-            self.l_rightlayer2 = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
-            self.l_leftlayer1  = ['W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V', 'W', 'U', 'V']
-            self.l_leftlayer2  = ['+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+', '+']
-            # self.grouping_AC   = [  0,   0,   0,   1,   1,   1,   1,   1,   1,   0,   0,   0] # 只取决于outerlayer/rightlayer的反相情况，AC是在悬浮逆变器激励下会反相的
-            self.grouping_AC   = [  0,   0,   1,   1,   0,   0,   1,   1,   0,   0,   1,   1] # Jingwei's layout
-            self.coil_pitch    = -1 # left layer can be inferred from coil pitch and right layer diagram
-                                    # We use negative coil_pitch to indicate concentrated winding
-            self.CommutatingSequenceD = 1 # D stands for Drive winding (i.e., torque winding)
-            self.CommutatingSequenceB = 0 # [CHECKED] # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
-            self.number_parallel_branch = 2.
-            self.bool_3PhaseCurrentSource = False # 3PhaseCurrentSource is a macro in circuit setup of JMAG
-            self.no_winding_layer = 2 # for torque winding and this means there could be a short pitch
-
-            self.initial_excitation_bias_compensation_deg = 0 # for torque winding
-
-            # backward compatibility
-            self.l41 = self.l_rightlayer1
-            self.l42 = self.l_rightlayer2
-            self.l21 = self.l_leftlayer1
-            self.l22 = self.l_leftlayer2
-
-
-
-        # combined winding
-        # distrubuted winding
-        if DPNV_or_SEPA == True \
-        and Qs == 12 \
-        and p == 1:
-            # DPNV winding implemented as DPNV winding (GroupAC means it experiences flip phasor excitation from suspension inverter, while GroupBD does not.)
-            self.l_rightlayer1 = ['U', 'U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V'] # torque winding right layer
-            self.l_rightlayer2 = ['+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-            self.l_leftlayer1  = ['U', 'W', 'W', 'V', 'V', 'U', 'U', 'W', 'W', 'V', 'V', 'U']
-            self.l_leftlayer2  = ['+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+']
-
-            self.grouping_AC   = [  0,   0,   1,   1,   0,   0,   1,   1,   0,   0,   1,   1]
-            self.CommutatingSequenceB = 0 # 0 # [CHECKED] # B stands for Bearing winding (i.e., suspension winding), commutating sequence decides the direction of the rotating field
-            
-            self.CommutatingSequenceD = 1 # D stands for Drive winding (i.e., torque winding)
-            self.coil_pitch    = 5 # left layer can be inferred from coil pitch and right layer diagram
-            self.number_parallel_branch = 2.
-            self.bool_3PhaseCurrentSource = False # 3PhaseCurrentSource is a macro in circuit setup of JMAG
-            self.no_winding_layer = 2 # for torque winding and this means there could be a short pitch
-
-            self.initial_excitation_bias_compensation_deg = 0 # for u phase torque winding
-
-            # backward compatibility
-            self.l41 = self.l_rightlayer1
-            self.l42 = self.l_rightlayer2
-            self.l21 = self.l_leftlayer1
-            self.l22 = self.l_leftlayer2
-
-
-        try: 
-            self.coil_pitch
-            self.distributed_or_concentrated = False if abs(self.coil_pitch) == 1 else True
-        except:
-            raise Exception('Error: Not implemented for this winding.')
-
-
-        # new names
-        self.layer_A1 = self.l41
-        self.layer_A2 = self.l42
-        self.layer_B1 = self.l21
-        self.layer_B2 = self.l22
-        self.Qs = Qs
-        self.p = p
-
-
-        # # combined winding (special case in which the list grouping_AC is not needed)
-        # if DPNV_or_SEPA == True \
-        # and Qs == 24 \
-        # and p == 2:
-        #     # DPNV winding implemented as separate winding
-        #     # if self.fea_config_dict['DPNV_separate_winding_implementation'] == True or self.fea_config_dict['DPNV'] == False: 
-        #         # You may see this msg because there are more than one designs in the initial_design.txt file.
-        #         # msg = 'Not implemented error. In fact, this equivalent implementation works for 4 pole motor only.'
-        #         # logging.getLogger(__name__).warn(msg)
-
-        #     # this is legacy codes for easy implementation in FEMM
-        #     self.l41=[ 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V', 'W', 'W', 'U', 'U', 'V', 'V']
-        #     self.l42=[ '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-', '+', '+', '-', '-']
-        #     # DPNV style for one phase: -- oo ++ oo
-        #     self.l21=[  'U', 'U', 'W', 'W', 'V', 'V', 
-        #                 'U', 'U', 'W', 'W', 'V', 'V', 
-        #                 'U', 'U', 'W', 'W', 'V', 'V', 
-        #                 'U', 'U', 'W', 'W', 'V', 'V']
-        #     self.l22=[  '-', '-', 'o', 'o', '+', '+', # 横着读和竖着读都是负零正零。 
-        #                 'o', 'o', '-', '-', 'o', 'o', 
-        #                 '+', '+', 'o', 'o', '-', '-', 
-        #                 'o', 'o', '+', '+', 'o', 'o']
-        #     self.coil_pitch = 6
-        #     self.CommutatingSequenceD = 0
-        #     self.CommutatingSequenceB = 0
-        #     self.number_parallel_branch = 1.
-        #     self.bool_3PhaseCurrentSource = True
-        #     self.no_winding_layer = 1 # for torque winding
-

@@ -28,7 +28,7 @@
   - When working in `backend/`, imports may be relative to `codes4`.
   - Prefer absolute imports from the backend root where possible.
 - **Dependencies**: 
-  - JMAG Designer 17.1.05i (Legacy). Higher versions may have breaking API changes.
+  - The installed version is JMAG Designer 20, not JMAG 17.
   - Cairo/PyX are used for diagram generation.
 - **Code Standards**:
   - 强制采用 Type Hints (类型注解) 增加代码可读度与健壮性。
