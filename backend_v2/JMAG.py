@@ -2148,8 +2148,548 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         dm.DisplacementAngle_list = DisplacementAngle_list
         return dm
 
+    @staticmethod
+    def read_csv_results_multiple_cases(study_name, path_prefix, fea_config_dict, femm_solver, acm_variant=None):
+        import copy
+        import numpy as np
+        import os
+        import logging
+        import utility
+        import math
+        wp = acm_variant.user_input['winding']
+        machine_type = acm_variant.user_input['target']['machine_class']
+
+        class data_manager(object):
+            def __init__(self):
+                self.basic_info = []
+                self.time_list = []
+                self.TorCon_list = []
+                self.ForConX_list = []
+                self.ForConY_list = []
+                self.ForConAbs_list = []
+                self.jmag_loss_list = None
+                self.femm_loss_list = None
+                self.Current_dict = {}
+                self.FluxLinkage_dict = {}
+                self.key_list = []
+                
+            def set_derived(self, jmag_loss, femm_loss, Vol_Cu):
+                self.jmag_loss_list = jmag_loss
+                self.femm_loss_list = femm_loss
+                self.Vol_Cu = Vol_Cu
+
+            def unpack(self, bool_more_info=False):
+                if bool_more_info:
+                    return self.basic_info, self.time_list, self.TorCon_list, self.ForConX_list, self.ForConY_list, self.ForConAbs_list, \
+                        self.DisplacementAngle_list, \
+                        self.circuit_current(which='GroupACU'), self.circuit_current(which='GroupACV'), self.circuit_current(which='GroupACW'), \
+                        self.circuit_current(which='GroupBDU'), self.circuit_current(which='GroupBDV'), self.circuit_current(which='GroupBDW'), \
+                        self.terminal_voltage(which='GroupACU'), self.terminal_voltage(which='GroupACV'), self.terminal_voltage(which='GroupACW'), \
+                        self.terminal_voltage(which='GroupBDU'), self.terminal_voltage(which='GroupBDV'), self.terminal_voltage(which='GroupBDW'), \
+                        self.coil_fluxLinkage(which='GroupACU'), self.coil_fluxLinkage(which='GroupACV'), self.coil_fluxLinkage(which='GroupACW'), \
+                        self.coil_fluxLinkage(which='GroupBDU'), self.coil_fluxLinkage(which='GroupBDV'), self.coil_fluxLinkage(which='GroupBDW')
+                else:
+                    return self.basic_info, self.time_list, self.TorCon_list, self.ForConX_list, self.ForConY_list, self.ForConAbs_list
+
+            def terminal_voltage(self, which='GroupBDW'):
+                for w in [which, 'GroupACW']:
+                    for suffix in [' [Case 1]', '']:
+                        k = 'Terminal%s%s' % (w, suffix)
+                        if k in self.Current_dict:
+                            return self.Current_dict[k]
+                return [0.0] * len(self.Current_dict.get('Time(s)', []))
+
+            def coil_fluxLinkage(self, which='GroupBDW'):
+                for w in [which, 'GroupACW']:
+                    for suffix in [' [Case 1]', '']:
+                        k = 'CircuitCoil%s%s' % (w, suffix)
+                        if k in self.FluxLinkage_dict:
+                            return self.FluxLinkage_dict[k]
+                return [0.0] * len(self.Current_dict.get('Time(s)', []))
+
+            def circuit_current(self, which='GroupBDW'):
+                for w in [which, 'GroupACW']:
+                    for suffix in [' [Case 1]', '']:
+                        k = 'CircuitCoil%s%s' % (w, suffix)
+                        if k in self.Current_dict:
+                            return self.Current_dict[k]
+                if 'CircuitCoilDefault' in self.Current_dict:
+                    return self.Current_dict['CircuitCoilDefault']
+                return [0.0] * len(self.Current_dict.get('Time(s)', []))
+
+            def get_voltage_and_current(self, number_of_steps_at_steady_state):
+                key = 'Default'
+                mytime  = self.Current_dict['Time(s)'][-number_of_steps_at_steady_state:]
+                voltage = self.terminal_voltage()[-number_of_steps_at_steady_state:]
+                current = self.circuit_current(which=key)[-number_of_steps_at_steady_state:]
+                self.myvoltage = voltage
+                self.mycurrent = current
+                self.mytime    = mytime
+
+            def power_factor(self, number_of_steps_at_steady_state, targetFreq=1e3, numPeriodicalExtension=1000):
+                self.get_voltage_and_current(number_of_steps_at_steady_state)
+                power_factor, u, i, phase_diff_ui = utility.compute_power_factor_from_half_period(self.myvoltage, self.mycurrent, self.mytime, targetFreq=targetFreq, numPeriodicalExtension=numPeriodicalExtension)
+                self.ui_info = [power_factor, u, i, phase_diff_ui]
+                return power_factor
+
+
+        def get_col_case_map(filepath):
+            col_to_case = {}
+            case_ids = []
+            with open(filepath, 'r') as f:
+                for count, row in enumerate(utility.csv_row_reader(f), 1):
+                    if count == 3:
+                        for i, val in enumerate(row):
+                            if i == 0: continue
+                            if val:
+                                col_to_case[i] = val
+                                if val not in case_ids:
+                                    case_ids.append(val)
+                        break
+            return case_ids, col_to_case
+
+        torque_csv_path = os.path.join(path_prefix, study_name + '_torque.csv')
+        case_ids, col_map = get_col_case_map(torque_csv_path)
+        
+        dm_dict = {cid: data_manager() for cid in case_ids}
+
+        # 1. Torque
+        with open(torque_csv_path, 'r') as f:
+            for count, row in enumerate(utility.csv_row_reader(f), 1):
+                if count <= 8:
+                    pass
+                else:
+                    t = float(row[0])
+                    for cid in case_ids:
+                        if len(dm_dict[cid].time_list) == 0 or dm_dict[cid].time_list[-1] != t:
+                            dm_dict[cid].time_list.append(t)
+                    for i, val in enumerate(row):
+                        if i == 0: continue
+                        if i in col_map:
+                            dm_dict[col_map[i]].TorCon_list.append(float(val))
+
+        # 2. Force
+        force_csv_path = os.path.join(path_prefix, study_name + '_force.csv')
+        if os.path.exists(force_csv_path):
+            _, col_map_force = get_col_case_map(force_csv_path)
+            header_map_force = {}
+            with open(force_csv_path, 'r') as f:
+                for count, row in enumerate(utility.csv_row_reader(f), 1):
+                    if count <= 8:
+                        if count == 8:
+                            for i, val in enumerate(row): header_map_force[i] = val
+                    else:
+                        for i, val in enumerate(row):
+                            if i == 0: continue
+                            if i in col_map_force:
+                                cid = col_map_force[i]
+                                if '1st' in header_map_force.get(i, ''):
+                                    dm_dict[cid].ForConX_list.append(float(val))
+                                elif '2nd' in header_map_force.get(i, ''):
+                                    dm_dict[cid].ForConY_list.append(float(val))
+            for cid in case_ids:
+                if len(dm_dict[cid].ForConX_list) > 0:
+                    dm_dict[cid].ForConAbs_list = np.sqrt(np.array(dm_dict[cid].ForConX_list)**2 + np.array(dm_dict[cid].ForConY_list)**2).tolist()
+
+        # 3. Current
+        current_csv_path = os.path.join(path_prefix, study_name + '_circuit_current.csv')
+        if os.path.exists(current_csv_path):
+            _, col_map_current = get_col_case_map(current_csv_path)
+            header_map_current = {}
+            with open(current_csv_path, 'r') as f:
+                for count, row in enumerate(utility.csv_row_reader(f), 1):
+                    if count <= 8:
+                        if count == 8:
+                            for i, val in enumerate(row):
+                                header_map_current[i] = val
+                                if i == 0:
+                                    for cid in case_ids: dm_dict[cid].Current_dict[val] = []
+                                elif i in col_map_current:
+                                    cid = col_map_current[i]
+                                    dm_dict[cid].Current_dict[val] = []
+                                    dm_dict[cid].key_list.append(val)
+                    else:
+                        for i, val in enumerate(row):
+                            if i == 0:
+                                for cid in case_ids: dm_dict[cid].Current_dict[header_map_current[0]].append(float(val))
+                            elif i in col_map_current:
+                                cid = col_map_current[i]
+                                dm_dict[cid].Current_dict[header_map_current[i]].append(float(val))
+            for cid in case_ids:
+                if dm_dict[cid].key_list:
+                    dm_dict[cid].Current_dict['CircuitCoilDefault'] = dm_dict[cid].Current_dict[dm_dict[cid].key_list[-1]]
+
+        # 4. Flux Linkage
+        flux_csv_path = os.path.join(path_prefix, study_name + '_flux_of_fem_coil.csv')
+        if os.path.exists(flux_csv_path):
+            _, col_map_flux = get_col_case_map(flux_csv_path)
+            header_map_flux = {}
+            with open(flux_csv_path, 'r') as f:
+                for count, row in enumerate(utility.csv_row_reader(f), 1):
+                    if count <= 8:
+                        if count == 8:
+                            for i, val in enumerate(row):
+                                header_map_flux[i] = val
+                                if i == 0:
+                                    for cid in case_ids: dm_dict[cid].FluxLinkage_dict[val] = []
+                                elif i in col_map_flux:
+                                    cid = col_map_flux[i]
+                                    dm_dict[cid].FluxLinkage_dict[val] = []
+                    else:
+                        for i, val in enumerate(row):
+                            if i == 0:
+                                for cid in case_ids: dm_dict[cid].FluxLinkage_dict[header_map_flux[0]].append(float(val))
+                            elif i in col_map_flux:
+                                cid = col_map_flux[i]
+                                dm_dict[cid].FluxLinkage_dict[header_map_flux[i]].append(float(val))
+            for cid in case_ids:
+                keys = list(dm_dict[cid].FluxLinkage_dict.keys())
+                if len(keys) > 1:
+                    dm_dict[cid].FluxLinkage_dict['CircuitCoilDefault'] = dm_dict[cid].FluxLinkage_dict[keys[-1]]
+
+        # 5. Displacement angle
+        disp_csv_path = os.path.join(path_prefix, study_name + '_total_rotational_displacement.csv')
+        if os.path.exists(disp_csv_path):
+            _, col_map_disp = get_col_case_map(disp_csv_path)
+            for cid in case_ids: dm_dict[cid].DisplacementAngle_list = []
+            with open(disp_csv_path, 'r') as f:
+                for count, row in enumerate(utility.csv_row_reader(f), 1):
+                    if count > 8:
+                        for i, val in enumerate(row):
+                            if i == 0: continue
+                            if i in col_map_disp:
+                                cid = col_map_disp[i]
+                                dm_dict[cid].DisplacementAngle_list.append(float(val))
+
+        # 6. Terminal Voltage
+        voltage_fname = os.path.join(path_prefix, study_name + "_circuit_voltage.csv")
+        if not os.path.exists(voltage_fname):
+            voltage_fname = os.path.join(path_prefix, study_name + "_EXPORT_CIRCUIT_VOLTAGE.csv")
+        if os.path.exists(voltage_fname):
+            _, col_map_volt = get_col_case_map(voltage_fname)
+            header_map_volt = {}
+            with open(voltage_fname, 'r') as f:
+                for count, row in enumerate(utility.csv_row_reader(f), 1):
+                    if count <= 8:
+                        if 'Time' in row[0]:
+                            header_line = count
+                            for i, val in enumerate(row):
+                                header_map_volt[i] = val
+                                if i == 0: pass
+                                elif i in col_map_volt:
+                                    cid = col_map_volt[i]
+                                    dm_dict[cid].Current_dict[val] = []
+                    elif 'header_line' in locals() and count > header_line:
+                        for i, val in enumerate(row):
+                            if i == 0: pass
+                            elif i in col_map_volt:
+                                cid = col_map_volt[i]
+                                dm_dict[cid].Current_dict[header_map_volt[i]].append(float(val))
+
+        # 7. Losses
+        for cid in case_ids:
+            dm_dict[cid].stator_iron_loss = 0.0
+            dm_dict[cid].rotor_iron_loss = 0.0
+            dm_dict[cid].stator_eddycurrent_loss = 0.0
+            dm_dict[cid].rotor_eddycurrent_loss = 0.0
+            dm_dict[cid].stator_hysteresis_loss = 0.0
+            dm_dict[cid].rotor_hysteresis_loss = 0.0
+            
+        def parse_loss(filename, stator_key, rotor_key):
+            fname = os.path.join(path_prefix, study_name + filename)
+            if not os.path.exists(fname): return
+            _, col_map_loss = get_col_case_map(fname)
+            header_map_loss = {}
+            with open(fname, 'r') as f:
+                for count, row in enumerate(utility.csv_row_reader(f), 1):
+                    if count <= 8:
+                        if 'Frequency' in row[0] or 'Time' in row[0]:
+                            for i, val in enumerate(row): header_map_loss[i] = val
+                    else:
+                        for i, val in enumerate(row):
+                            if i == 0: continue
+                            if i in col_map_loss:
+                                cid = col_map_loss[i]
+                                if 'statorCore' in header_map_loss[i]:
+                                    val_stator = getattr(dm_dict[cid], stator_key)
+                                    setattr(dm_dict[cid], stator_key, val_stator + float(val))
+                                elif 'rotorCore' in header_map_loss[i]:
+                                    val_rotor = getattr(dm_dict[cid], rotor_key)
+                                    setattr(dm_dict[cid], rotor_key, val_rotor + float(val))
+
+        parse_loss('_iron_loss_loss.csv', 'stator_iron_loss', 'rotor_iron_loss')
+        parse_loss('_joule_loss_loss.csv', 'stator_eddycurrent_loss', 'rotor_eddycurrent_loss')
+        parse_loss('_hysteresis_loss_loss.csv', 'stator_hysteresis_loss', 'rotor_hysteresis_loss')
+
+        # 8. Joule Loss
+        joule_csv_path = os.path.join(path_prefix, study_name + '_joule_loss.csv')
+        if os.path.exists(joule_csv_path):
+            _, col_map_joule = get_col_case_map(joule_csv_path)
+            header_map_joule = {}
+            for cid in case_ids:
+                dm_dict[cid].stator_copper_loss = 0.0
+                dm_dict[cid].rotor_Joule_loss_list = []
+            with open(joule_csv_path, 'r') as f:
+                for count, row in enumerate(utility.csv_row_reader(f), 1):
+                    if count <= 8:
+                        if count == 8:
+                            for i, val in enumerate(row): header_map_joule[i] = val
+                    else:
+                        for i, val in enumerate(row):
+                            if i == 0: continue
+                            if i in col_map_joule:
+                                cid = col_map_joule[i]
+                                if 'Coil' in header_map_joule.get(i, '') or 'Coils' in header_map_joule.get(i, '') or 'statorCore' in header_map_joule.get(i, ''):
+                                    if 'Coil' in header_map_joule.get(i, '') or 'Coils' in header_map_joule.get(i, ''):
+                                        if dm_dict[cid].stator_copper_loss == 0.0:
+                                            dm_dict[cid].stator_copper_loss = float(val)
+                                elif 'Magnet' in header_map_joule.get(i, '') or 'Cage' in header_map_joule.get(i, ''):
+                                    dm_dict[cid].rotor_Joule_loss_list.append(float(val))
+
+        # Combine JMAG losses
+        for cid in case_ids:
+            try:
+                effective_part = dm_dict[cid].rotor_Joule_loss_list[-int(fea_config_dict['designer.number_of_steps_2ndTSS']):]
+                rotor_Joule_loss = sum(effective_part) / len(effective_part) if effective_part else 0.0
+            except:
+                rotor_Joule_loss = 0.0
+            dm_dict[cid].jmag_loss_list = [
+                dm_dict[cid].stator_copper_loss,
+                rotor_Joule_loss,
+                dm_dict[cid].stator_iron_loss + dm_dict[cid].rotor_iron_loss,
+                dm_dict[cid].stator_eddycurrent_loss + dm_dict[cid].rotor_eddycurrent_loss,
+                dm_dict[cid].stator_hysteresis_loss + dm_dict[cid].rotor_hysteresis_loss
+            ]
+
+            if femm_solver is not None:
+                try:
+                    s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = femm_solver.get_copper_loss_Bolognani(
+                        acm_variant.slot_area_utilizing_ratio * femm_solver.stator_slot_area,
+                        femm_solver.rotor_slot_area,
+                        total_CurrentAmp=acm_variant.DriveW_CurrentAmp + acm_variant.BeariW_CurrentAmp)
+                except Exception as e:
+                    raise e
+            else:
+                geo = acm_variant.user_input['geometry']
+                win = wp
+                copper_loss_parameters = [
+                    geo['d_air_gap'],
+                    geo['w_tooth'],
+                    wp['number_parallel_branch'],
+                    win['wires_per_slot'],
+                    wp['coil_pitch_y'],
+                    win['slot_count'],
+                    win['l_stack'],
+                    win['drive_winding_current'] + win['bearing_winding_current'],
+                    geo['r_rotor_outer'],
+                    geo['r_stator_outer'] * 2 * 1e-3
+                ]
+                s, r, sAlongStack, rAlongStack, Js, Jr, Vol_Cu = utility.get_copper_loss_Bolognani(
+                    1.0 * acm_variant.geometry.slot_area * 1e-6,
+                    copper_loss_parameters=copper_loss_parameters,
+                    STATOR_SLOT_FILL_FACTOR=win['fill_factor'],
+                    TEMPERATURE_OF_COIL=acm_variant.user_input['material']['magnet_temperature'])
+            
+            dm_dict[cid].femm_loss_list = [s, r, sAlongStack, rAlongStack, Js, Jr]
+            dm_dict[cid].Vol_Cu = Vol_Cu
+        
+        ordered_dms = [dm_dict[str(x)] for x in sorted([int(c) for c in case_ids])]
+        return ordered_dms
+
+    def build_str_results_for_multiple_cases(self, acm_variant, project_name, tran_study_name, path2FEACsv, fea_config_dict, femm_solver=None):
+        import numpy as np
+        import math
+        import utility
+        import logging
+        wp = acm_variant.user_input['winding']
+        machine_type = acm_variant.user_input['target']['machine_class']
+
+        dm_list = self.read_csv_results_multiple_cases(tran_study_name, path2FEACsv, fea_config_dict, femm_solver, acm_variant)
+        
+        out_f1, out_f2, out_f3, out_FRW = [], [], [], []
+        out_normalized_torque_ripple, out_normalized_force_error_magnitude, out_force_error_angle = [], [], []
+        out_power_factor, out_rated_ratio, out_rated_stack_length_mm, out_rated_total_loss = [], [], [], []
+        out_rated_stator_copper_loss_along_stack, out_rated_magnet_Joule_loss, out_rated_rotor_copper_loss_along_stack = [], [], []
+        out_stator_copper_loss_in_end_turn, out_rotor_copper_loss_in_end_turn, out_rated_iron_loss, out_rated_windage_loss = [], [], [], []
+        out_str_results = []
+        out_coil_flux_linkage_peak2peak_value = []
+        out_TRV, out_Cost, out_Cost_Fe, out_Cost_Cu, out_Cost_PM = [], [], [], [], []
+        out_ss_avg_force_magnitude, out_rotor_weight, out_torque_average = [], [], []
+        cost_function_O1_list, cost_function_O2_list = [], []
+
+        for dm in dm_list:
+            self.dm = dm
+            coil_flux_linkage_peak2peak_value_results = []
+            for k, v in dm.FluxLinkage_dict.items():
+                if v: coil_flux_linkage_peak2peak_value_results.append(max(v) - min(v))
+            if coil_flux_linkage_peak2peak_value_results:
+                coil_flux_linkage_peak2peak_value = np.average(coil_flux_linkage_peak2peak_value_results)
+            else:
+                coil_flux_linkage_peak2peak_value = 0.0
+                
+            if fea_config_dict['designer.number_cycles_in_3rdTSS'] == 0:
+                number_of_steps_at_steady_state = fea_config_dict['designer.number_of_steps_2ndTSS']
+            else:
+                number_of_steps_3rdTSS = fea_config_dict['designer.number_cycles_in_3rdTSS']*fea_config_dict['designer.StepPerCycle_3rdTSS']
+                number_of_steps_at_steady_state = number_of_steps_3rdTSS
+            dm.number_of_steps_at_steady_state = number_of_steps_at_steady_state
+
+            basic_info, time_list, TorCon_list, ForConX_list, ForConY_list, ForConAbs_list = dm.unpack()
+            sfv = utility.suspension_force_vector(ForConX_list, ForConY_list, range_ss=number_of_steps_at_steady_state)
+            
+            str_results, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle = self.add_plots(None, dm, title=tran_study_name, label='Transient FEA', zorder=8, time_list=time_list, sfv=sfv, torque=TorCon_list, range_ss=sfv.range_ss)
+            
+            if fea_config_dict['delete_results_after_calculation'] == False:
+                try: power_factor = dm.power_factor(number_of_steps_at_steady_state, targetFreq=wp['excitation_frequency_simulated'])
+                except: power_factor = 0.0
+            else:
+                power_factor = 0.0
+
+            geom = acm_variant.user_input['geometry']
+            wind = wp
+            
+            r_ro = geom.get('r_rotor_outer', 4.0)
+            r_ri = geom.get('r_shaft', 1.0)
+            l_st = wind.get('l_stack', 16.0)
+            rated_speed = wind.get('rated_speed', 20000.0)
+            
+            rotor_volume = math.pi * ((r_ro*1e-3)**2 - (r_ri*1e-3)**2) * (l_st*1e-3)
+            rotor_weight = rotor_volume * 7650.0  
+            shaft_power  = rated_speed/60. * 2*math.pi * torque_average
+
+            if 'PMSM' in machine_type or 'SPMSM' in machine_type:
+                magnet_Joule_loss = dm.jmag_loss_list[1]
+                if len(dm.femm_loss_list) > 0 and dm.femm_loss_list[0] is not None:
+                    copper_loss = dm.femm_loss_list[0] + magnet_Joule_loss
+                else:
+                    copper_loss = magnet_Joule_loss
+                iron_loss = dm.jmag_loss_list[2]
+            else:
+                copper_loss = dm.jmag_loss_list[0] + dm.jmag_loss_list[1]
+                iron_loss = dm.jmag_loss_list[2]
+
+            windage_loss = 0.0
+            total_loss   = copper_loss + iron_loss + windage_loss
+            efficiency   = shaft_power / (total_loss + shaft_power) if total_loss + shaft_power > 0 else 0
+
+            if 'PM' in machine_type or 'SPMSM' in machine_type:
+                stator_copper_loss_along_stack = dm.femm_loss_list[2]
+                magnet_Joule_loss = dm.jmag_loss_list[1]
+                rotor_copper_loss_along_stack = 0.0
+                stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
+                rotor_copper_loss_in_end_turn = 0
+            else:
+                stator_copper_loss_along_stack = dm.femm_loss_list[2]
+                magnet_Joule_loss = 0.0
+                rotor_copper_loss_along_stack  = dm.femm_loss_list[3]
+                stator_copper_loss_in_end_turn = dm.femm_loss_list[0] - stator_copper_loss_along_stack
+                rotor_copper_loss_in_end_turn  = dm.femm_loss_list[1] - rotor_copper_loss_along_stack
+
+            rated_power = acm_variant.user_input['target']['rated_power']
+            if rated_power is None:
+                rated_power = wind.get('rated_power', 250.0)
+
+            required_torque = rated_power / (2*math.pi*rated_speed)*60
+            
+            rated_ratio = required_torque / (torque_average if torque_average != 0 else 1e-9)
+            rated_stack_length_mm = rated_ratio * l_st
+            rated_stator_copper_loss_along_stack = rated_ratio * stator_copper_loss_along_stack
+            rated_magnet_Joule_loss = rated_ratio * magnet_Joule_loss
+            rated_rotor_copper_loss_along_stack = rated_ratio * rotor_copper_loss_along_stack
+            rated_iron_loss = rated_ratio * dm.jmag_loss_list[2]
+            rated_windage_loss = 0.0
+
+            rated_total_loss = rated_stator_copper_loss_along_stack + rated_magnet_Joule_loss + rated_rotor_copper_loss_along_stack + stator_copper_loss_in_end_turn + rotor_copper_loss_in_end_turn + rated_iron_loss + rated_windage_loss
+
+            rated_shaft_power  = rated_power
+            rated_efficiency   = rated_shaft_power / (rated_total_loss + rated_shaft_power) if rated_total_loss + rated_shaft_power > 0 else 0
+            rated_rotor_volume = math.pi * ((r_ro*1e-3)**2 - (r_ri*1e-3)**2) * (rated_stack_length_mm*1e-3)
+            TRV = required_torque / rated_rotor_volume
+
+            r_so = geom.get('r_stator_outer', 40.0)
+            Vol_Fe = ( math.pi*(r_so*1e-3)**2 - math.pi*(r_ri*1e-3)**2 ) * (rated_stack_length_mm*1e-3)
+            
+            price_per_volume_steel    = 0.28  * 61023.744
+            price_per_volume_copper   = 1.2   * 61023.744
+            price_per_volume_magnet   = 11.61 * 61023.744
+
+            if 'PM' in machine_type or 'SPMSM' in machine_type:
+                magnet_area = getattr(acm_variant.geometry, 'magnet_area', geom.get('magnet_area', 100.0))
+                Vol_PM = (magnet_area*1e-6) * (rated_stack_length_mm*1e-3)
+            else:
+                Vol_PM = 0.0
+
+            Cost = Vol_Fe * price_per_volume_steel + dm.Vol_Cu * price_per_volume_copper + Vol_PM * price_per_volume_magnet
+            Cost_Fe = Vol_Fe * price_per_volume_steel
+            Cost_Cu = dm.Vol_Cu * price_per_volume_copper
+            Cost_PM = Vol_PM * price_per_volume_magnet
+
+            fitness_mapping = {
+                'TorqueDensity': -TRV,
+                'Cost': Cost,
+                'TorqueDensityOverSquireRootCopperLoss': -TRV / math.sqrt(rated_stator_copper_loss_along_stack + stator_copper_loss_in_end_turn),
+                'Efficiency': -rated_efficiency,
+                'TorqueRipple': normalized_torque_ripple,
+                'ForceErrorMagnitude': normalized_force_error_magnitude,
+                'ForceErrorAngle': force_error_angle,
+                'IronLoss': rated_iron_loss,
+            }
+            eval_config = acm_variant.user_input['eval_config']
+            f1 = fitness_mapping.get(eval_config.get("moo.fitness_OA"), 0.0)
+            f2 = fitness_mapping.get(eval_config.get("moo.fitness_OB"), 0.0)
+            f3 = fitness_mapping.get(eval_config.get("moo.fitness_OC"), 0.0)
+            FRW = ss_avg_force_magnitude / (rotor_weight if rotor_weight != 0 else 1)
+            
+            cost_function_O1, list_cost_O1 = utility.compute_list_cost(utility.use_weights('O1'), rotor_volume, rotor_weight, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, dm.jmag_loss_list, dm.femm_loss_list, power_factor, total_loss)
+            cost_function_O2, list_cost_O2 = utility.compute_list_cost(utility.use_weights('O2'), rotor_volume, rotor_weight, torque_average, normalized_torque_ripple, ss_avg_force_magnitude, normalized_force_error_magnitude, force_error_angle, dm.jmag_loss_list, dm.femm_loss_list, power_factor, total_loss)
+            
+            out_f1.append(f1)
+            out_f2.append(f2)
+            out_f3.append(f3)
+            out_FRW.append(FRW)
+            out_normalized_torque_ripple.append(normalized_torque_ripple)
+            out_normalized_force_error_magnitude.append(normalized_force_error_magnitude)
+            out_force_error_angle.append(force_error_angle)
+            out_power_factor.append(power_factor)
+            out_rated_ratio.append(rated_ratio)
+            out_rated_stack_length_mm.append(rated_stack_length_mm)
+            out_rated_total_loss.append(rated_total_loss)
+            out_rated_stator_copper_loss_along_stack.append(rated_stator_copper_loss_along_stack)
+            out_rated_magnet_Joule_loss.append(rated_magnet_Joule_loss)
+            out_rated_rotor_copper_loss_along_stack.append(rated_rotor_copper_loss_along_stack)
+            out_stator_copper_loss_in_end_turn.append(stator_copper_loss_in_end_turn)
+            out_rotor_copper_loss_in_end_turn.append(rotor_copper_loss_in_end_turn)
+            out_rated_iron_loss.append(rated_iron_loss)
+            out_rated_windage_loss.append(rated_windage_loss)
+            out_str_results.append(str_results)
+            out_coil_flux_linkage_peak2peak_value.append(coil_flux_linkage_peak2peak_value)
+            out_TRV.append(TRV)
+            out_Cost.append(Cost)
+            out_Cost_Fe.append(Cost_Fe)
+            out_Cost_Cu.append(Cost_Cu)
+            out_Cost_PM.append(Cost_PM)
+            out_ss_avg_force_magnitude.append(ss_avg_force_magnitude)
+            out_rotor_weight.append(rotor_weight)
+            out_torque_average.append(torque_average)
+            cost_function_O1_list.append(cost_function_O1)
+            cost_function_O2_list.append(cost_function_O2)
+
+        gen = -1
+        ind = -1
+
+        return (cost_function_O1_list, cost_function_O2_list), out_f1, out_f2, out_f3, out_FRW, \
+               out_normalized_torque_ripple, out_normalized_force_error_magnitude, out_force_error_angle, \
+               project_name, machine_type, \
+               gen, ind, \
+               out_power_factor, out_rated_ratio, out_rated_stack_length_mm, out_rated_total_loss, \
+               out_rated_stator_copper_loss_along_stack, out_rated_magnet_Joule_loss, out_rated_rotor_copper_loss_along_stack, \
+               out_stator_copper_loss_in_end_turn, out_rotor_copper_loss_in_end_turn, out_rated_iron_loss, out_rated_windage_loss, \
+               out_str_results, acm_variant.geometry.slot_area, out_coil_flux_linkage_peak2peak_value, \
+               out_TRV, out_Cost, out_Cost_Fe, out_Cost_Cu, out_Cost_PM, \
+               out_ss_avg_force_magnitude, out_rotor_weight, out_torque_average
+
     # def build_str_results(self, axeses, acm_variant, project_name, tran_study_name, path2FEACsv, fea_config_dict, femm_solver=None):
-    def build_str_results(self, acm_variant, project_name, tran_study_name, path2FEACsv, fea_config_dict, femm_solver=None):
+    def build_str_results_for_single_case(self, acm_variant, project_name, tran_study_name, path2FEACsv, fea_config_dict, femm_solver=None):
         wp = acm_variant.user_input['winding']
         print(f"DEBUG JMAG: build_str_results called with acm_variant type: {type(acm_variant)}")
         print(f"DEBUG JMAG: project_name: {project_name}")

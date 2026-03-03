@@ -15,6 +15,7 @@ description: Global agent rules and guidelines for ACMOP project (FastAPI + Next
 - **OS**: Windows
 - **Python Environment**: Conda environment named `acmop`
 - **Primary Shell**: PowerShell (pwsh)
+- **Antigravity Rule**: We are going to use PowerShell as our terminal. Do NOT use command prompt.
 
 ## Project Structure (系统架构)
 - `backend/`: Legacy Python backend (V1). Use `backend/codes4` for core logic.

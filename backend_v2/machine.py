@@ -259,34 +259,115 @@ class Machine:
                 study.GetDesignTable().SetValue(3, 2, self.user_input['target']['initial_rotation_angle'] + 3*initial_rotation_angle_increment)
             # app.View().SetCurrentCase(1)
 
-            toolJd.mesh_study(self, app, model, study, output_dir=project_loc)
-            toolJd.run_study(self, app, study, self.user_input['fea_config_dict'], clock_time())
+            # toolJd.mesh_study(self, app, model, study, output_dir=project_loc)
+            # toolJd.run_study(self, app, study, self.user_input['fea_config_dict'], clock_time())
 
-            # 4. Monitor the output results are generated in the specified csv folder
-            # import time
-            # import os
-            # expected_csv = os.path.join(path2FEACsv, f"{study_name}_torque.csv")
-            # print(f"Monitoring output results generation in: {path2FEACsv}")
-            # wait_time = 0
-            # timeout_limit = eval_config['timeout_csv_results_s']
-            # while not os.path.exists(expected_csv):
-            #     time.sleep(2)
-            #     wait_time += 2
-            #     if wait_time > timeout_limit: # timeout checks
-            #         raise Exception(f"Timeout waiting for JMAG CSV results at {expected_csv}.")
-            # print("CSV results detected. Waiting a few seconds for file flush...")
-            # time.sleep(eval_config['csv_file_flush_sleep_s']) # Give JMAG some time to finish writing all CSV files
-            
-            # 5. Compile & Save Results
-            if bool_multipleCases:
-                self.compile_results_for_multiple_cases(toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool)
+            # 4. Compile & Save Results
+            if self.user_input['target']['bool_multipleCases']:
+                spec_performance_dict = self.compile_results_for_multiple_cases(toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool)
+                
+                try:
+                    from rich.console import Console
+                    from rich.tree import Tree
+                    
+                    console = Console()
+                    tree = Tree(f"[bold green]Multi-Case Results for {spec_performance_dict.get('individual_name', 'Unknown')}[/bold green]")
+                    
+                    for k, v in spec_performance_dict.items():
+                        if k in ['x_denorm_dict', 'project_name', 'individual_name', 'select_FEA_tool']:
+                            continue
+                        if isinstance(v, list):
+                            branch = tree.add(f"[bold cyan]{k}[/bold cyan]:")
+                            for i, val in enumerate(v):
+                                try:
+                                    branch.add(f"Case {i+1}: {val:.4g}")
+                                except:
+                                    branch.add(f"Case {i+1}: {val}")
+                        else:
+                            try:
+                                tree.add(f"[bold cyan]{k}[/bold cyan]: {v:.4g}")
+                            except:
+                                tree.add(f"[bold cyan]{k}[/bold cyan]: {v}")
+                    
+                    console.print(tree)
+                except ImportError:
+                    print("rich package is not installed. Skipping terminal tree output.")
             else:
                 self.compile_results_for_single_case(toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool)
         else:
             raise Exception(f"FEA tool {select_FEA_tool} not implemented or supported.")
 
-    def compile_results_for_multiple_cases(self, toolJd, study_name, path2FEACsv, swarm_data_json_file_path, select_FEA_tool):
-        pass
+    def compile_results_for_multiple_cases(self, toolJd, study_name, path2FEACsv, json_path, select_FEA_tool):
+        import os, jsonpickle
+        from collections import OrderedDict
+        project_name = self.user_input['evaluation']['project_name']
+        counter = self.user_input['evaluation']['counter']
+        target_dict = self.user_input['target']
+        fea_config_dict = self.user_input['fea_config_dict']
+        
+        results = toolJd.build_str_results_for_multiple_cases(self, project_name, study_name, path2FEACsv, fea_config_dict, femm_solver=None)
+        
+        (cost_function, f1, f2, f3, FRW, \
+         normalized_torque_ripple, \
+         normalized_force_error_magnitude, \
+         force_error_angle, \
+         project_name, machine_class, \
+         number_current_generation, individual_index,\
+         power_factor, \
+         rated_ratio, \
+         rated_stack_length_mm, \
+         rated_total_loss, \
+         rated_stator_copper_loss_along_stack, \
+         rated_magnet_Joule_loss, \
+         rated_rotor_copper_loss_along_stack, \
+         stator_copper_loss_in_end_turn, \
+         rotor_copper_loss_in_end_turn, \
+         rated_iron_loss, \
+         rated_windage_loss, \
+         str_results, \
+         mm2_slot_area, \
+         coil_flux_linkage_peak2peak_value, \
+         TRV, Cost, Cost_Fe, Cost_Cu, Cost_PM, \
+         ss_avg_force_magnitude, rotor_weight, torque_average) = results
+
+        spec_performance_dict = OrderedDict([
+            ('x_denorm_dict', target_dict.get('free_parameters', {}).copy() if isinstance(target_dict.get('free_parameters'), dict) else target_dict.get('free_parameters')),
+            ('project_name', project_name),
+            ('individual_name', f"multi-{counter}"),
+            ('f1', f1),
+            ('f2', f2),
+            ('f3', f3),
+            ('TRV', TRV),
+            ('FRW', FRW),
+            ('torque_average', torque_average),
+            ('ss_avg_force_magnitude', ss_avg_force_magnitude),
+            ('rotor_weight', rotor_weight),
+            ('normalized_torque_ripple', normalized_torque_ripple),
+            ('normalized_force_error_magnitude', normalized_force_error_magnitude),
+            ('force_error_angle', force_error_angle),
+            ('mm2_slot_area', mm2_slot_area),
+            ('Cost', Cost),
+            ('rated_total_loss', rated_total_loss),
+            ('select_FEA_tool', select_FEA_tool),
+        ])
+
+        results2file = {f'spec_performance_dict-ind{counter}': spec_performance_dict}
+        
+        try:
+            if os.path.exists(json_path) and os.path.getsize(json_path) > 0:
+                with open(json_path, 'r') as rf:
+                    existing_data = jsonpickle.decode(rf.read())
+            else:
+                existing_data = {}
+        except:
+            existing_data = {}
+
+        existing_data.update(results2file)
+        with open(json_path, 'w') as wf:
+            wf.write(jsonpickle.encode(existing_data, indent=4))
+
+        target_dict['results_for_optimization'] = (cost_function, f1, f2, f3, FRW, normalized_torque_ripple, normalized_force_error_magnitude, force_error_angle)
+        return spec_performance_dict
 
     def compile_results_for_single_case(self, toolJd, study_name, path2FEACsv, json_path, select_FEA_tool):
         """Pack results into dictionary and save to JSON."""

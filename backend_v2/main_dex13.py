@@ -90,7 +90,10 @@ user_input = OrderedDict([
                 'search w_stator_width within [1.0, 1.5]',
                 'search d_stator_tooth within [1.6, 2.0]',
                 'search d_magnet within [1.0, 3.0]',
-            ])
+            ]),
+            ('sweep_over', [
+                'pole_count: 10, 8',
+            ]),
         ])),
         ('eval_config', OrderedDict([
             ('project_loc', os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")),
@@ -159,3 +162,5 @@ if __name__ == "__main__":
     
     # 启用FEA_evaluate流水线
     mac.FEA_evaluate()
+
+
