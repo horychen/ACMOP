@@ -928,7 +928,7 @@ def main_derivation():
 
     # m, Q, p, ps, y, turn function bias (turn_func_bias)
     Slot_Pole_Combinations = [
-                                (3, 12, 5, 4, 1, 0), # Spindle p5ps4
+                                (3, 18, 3, 1, 1, 0), # Spindle p3ps4
                                 # (3, 6, 4, 1, 1, 0), # homopolar consqeuent pole
                                 # (3, 12, 4, 5, 1, 0), # Slice BLESSIM for Qr=10
                                 # (3, 24, 13, 14, 1, 0), # Slice BLESSIM

@@ -258,15 +258,10 @@ def pareto_front_plot_script(_swarm_data, fig, ax, marker, label, fea_config_dic
                             bool_return_more_details=False):
     import utility_moo
 
-    from Problem_BearinglessSynchronousDesign import Problem_BearinglessSynchronousDesign
-    ad.flag_do_not_evaluate_when_init_pop = True # this is very important, or else Problem_BearinglessSynchronousDesign.fitness() will invoke JMAG Designer as unexpected.
-    udp = Problem_BearinglessSynchronousDesign()
-    import pygmo as pg
-    prob = pg.problem(udp)
     popsize = fea_config_dict["moo.popsize"]
 
     swarm_data_on_pareto_front, more_info = utility_moo.learn_about_the_archive(
-        prob, _swarm_data, popsize, 
+        None, _swarm_data, popsize,
         fea_config_dict, bool_plot_and_show=False, bool_more_info=True)
 #####    
     # swarm_data_on_pareto_front = swarm_data_on_pareto_front[228:]       # TODO: 有损修改，需要重新调整结构
@@ -347,7 +342,6 @@ def pareto_front_plot_color_bar_etc(scatter_handle, fig, ax, font, bool_no_limit
         else:
             ax.legend(loc='best')
             ax.grid(True)
-            ax.set_xlabel(r'$\rm {-TRV}$ [$\rm Nm/m^3$]')
 
 
     # Eric asked about non-transparent legend
@@ -931,6 +925,7 @@ def inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, z_filter=20, outp
         mpl.rcParams['font.family'] = 'sans-serif' # (Streamlit) 2021-03-16 20:37:40.259 font.family must be one of (serif, sans-serif, cursive, monospace) when text.usetex is True. serif will be used by default. 
         mpl.rcParams['legend.fontsize'] = 12.5
         mpl.rcParams['font.size'] = 14.0
+        mpl.rcParams['text.usetex'] = False
         font = {'family' : 'Times New Roman', #'serif',
                 'color' : 'darkblue',
                 'weight' : 'normal',

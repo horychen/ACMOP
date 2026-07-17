@@ -2,7 +2,8 @@ from pylab import np, plt
 import pandas as pd
 import os, json, builtins, datetime
 import streamlit as st
-import utility_postprocess, acmop, utility, base64, acm_designer, population
+import pygmo as pg
+import utility_postprocess, acmop, utility, base64, acm_designer, population, postprocess_data
 # import acm_designer
 from io import BytesIO
 
@@ -63,6 +64,367 @@ def pyplot_width(fig):
     st.image(buf, width=int(image_width), use_column_width=use_column_width)
 
 
+def _load_metrics_for_selected_folders(path2project, swarm_dict):
+    selected_specs = [mop.select_spec for mop in swarm_dict.values()]
+    df = postprocess_data.load_acmop_metrics(path2project)
+    if selected_specs and not df.empty:
+        df = df[df["select_spec"].isin(selected_specs)].copy()
+    return df
+
+
+def _metric_columns_available(df):
+    preferred_columns = [
+        "select_spec",
+        "archive_record_no",
+        "design_key",
+        "project_name",
+        "Cost",
+        "rated_efficiency_pct",
+        "TRV_kNm_per_m3",
+        "FRW",
+        "normalized_torque_ripple_pct",
+        "normalized_force_error_magnitude_pct",
+        "force_error_angle",
+        "power_factor",
+        "rated_total_loss",
+        "rated_stack_length_mm",
+        "torque_average",
+        "ss_avg_force_magnitude",
+        "Cost_Fe",
+        "Cost_Cu",
+        "Cost_PM",
+        "f1",
+        "f2",
+        "f3",
+        "valid_metrics",
+    ]
+    return [column for column in preferred_columns if column in df.columns]
+
+
+def _show_selected_design_metrics(row):
+    metric_specs = [
+        ("Cost", "Cost", "{:.3g}"),
+        ("Efficiency", "rated_efficiency_pct", "{:.2f}%"),
+        ("TRV", "TRV_kNm_per_m3", "{:.2f} kNm/m3"),
+        ("FRW", "FRW", "{:.3f}"),
+        ("Torque Ripple", "normalized_torque_ripple_pct", "{:.2f}%"),
+        ("Force Error", "normalized_force_error_magnitude_pct", "{:.2f}%"),
+        ("Error Angle", "force_error_angle", "{:.2f} deg"),
+        ("PF", "power_factor", "{:.3f}"),
+    ]
+    cols = st.columns(4)
+    for index, (label, column, fmt) in enumerate(metric_specs):
+        value = row.get(column, np.nan)
+        if pd.isna(value):
+            display_value = "N/A"
+        else:
+            display_value = fmt.format(float(value))
+        cols[index % 4].metric(label, display_value)
+
+
+def _plot_metric_scatter(df):
+    plot_df = df.dropna(subset=["Cost", "rated_efficiency_pct", "f3"])
+    if plot_df.empty:
+        st.info("No Cost / Efficiency / f3 data available for scatter plot.")
+        return
+    fig, ax = plt.subplots(figsize=(8, 5), dpi=140)
+    scatter = ax.scatter(
+        plot_df["Cost"],
+        plot_df["rated_efficiency_pct"],
+        c=plot_df["f3"],
+        cmap="viridis",
+        s=28,
+        alpha=0.78,
+        edgecolors="none",
+    )
+    ax.set_xlabel("Cost")
+    ax.set_ylabel("Rated efficiency [%]")
+    ax.grid(True, alpha=0.25)
+    ax.set_title("Cost vs Efficiency, colored by ripple objective")
+    cbar = fig.colorbar(scatter, ax=ax)
+    cbar.set_label("f3 ripple objective")
+    st.pyplot(fig)
+
+
+def _plot_ripple_scatter(df):
+    plot_df = df.dropna(subset=["normalized_torque_ripple_pct", "normalized_force_error_magnitude_pct", "force_error_angle"])
+    if plot_df.empty:
+        st.info("No ripple/error data available for scatter plot.")
+        return
+    fig, ax = plt.subplots(figsize=(8, 5), dpi=140)
+    scatter = ax.scatter(
+        plot_df["normalized_torque_ripple_pct"],
+        plot_df["normalized_force_error_magnitude_pct"],
+        c=plot_df["force_error_angle"],
+        cmap="plasma",
+        s=28,
+        alpha=0.78,
+        edgecolors="none",
+    )
+    ax.set_xlabel("Torque ripple [%]")
+    ax.set_ylabel("Force error magnitude [%]")
+    ax.grid(True, alpha=0.25)
+    ax.set_title("Ripple and suspension force error")
+    cbar = fig.colorbar(scatter, ax=ax)
+    cbar.set_label("Force error angle [deg]")
+    st.pyplot(fig)
+
+
+def _plot_loss_breakdown(row):
+    loss_columns = {
+        "Stator copper": "rated_stator_copper_loss_along_stack",
+        "Magnet Joule": "rated_magnet_Joule_loss",
+        "Rotor copper": "rated_rotor_copper_loss_along_stack",
+        "End turn stator": "stator_copper_loss_in_end_turn",
+        "End turn rotor": "rotor_copper_loss_in_end_turn",
+        "Iron": "rated_iron_loss",
+        "Windage": "rated_windage_loss",
+    }
+    values = []
+    labels = []
+    for label, column in loss_columns.items():
+        value = row.get(column, np.nan)
+        if pd.notna(value) and float(value) > 0:
+            labels.append(label)
+            values.append(float(value))
+    if not values:
+        st.info("No positive loss breakdown data available for the selected design.")
+        return
+    fig, ax = plt.subplots(figsize=(6, 5), dpi=140)
+    ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=90)
+    ax.axis("equal")
+    ax.set_title("Rated loss breakdown")
+    st.pyplot(fig)
+
+
+PARETO_HIGHLIGHT_METRICS = {
+    "TRV": {
+        "label": "Max TRV",
+        "short_label": "TRV max",
+        "sources": [("TRV", 1.0), ("f1", -1.0)],
+        "direction": "max",
+        "scale": 0.001,
+        "unit": "kNm/m3",
+        "color": "#1f77b4",
+        "marker": "o",
+    },
+    "FRW": {
+        "label": "Max FRW",
+        "short_label": "FRW max",
+        "sources": [("FRW", 1.0)],
+        "direction": "max",
+        "scale": 1.0,
+        "unit": "1",
+        "color": "#e07a1f",
+        "marker": "^",
+    },
+    "normalized_torque_ripple": {
+        "label": "Min torque ripple",
+        "short_label": r"$T_{ripple}$ min",
+        "sources": [("normalized_torque_ripple", 1.0)],
+        "direction": "min",
+        "scale": 100.0,
+        "unit": "%",
+        "color": "#c43c35",
+        "marker": "*",
+    },
+    "normalized_force_error_magnitude": {
+        "label": r"Min $E_m$",
+        "short_label": r"$E_m$ min",
+        "sources": [("normalized_force_error_magnitude", 1.0)],
+        "direction": "min",
+        "scale": 100.0,
+        "unit": "%",
+        "color": "#168a6b",
+        "marker": "D",
+    },
+    "force_error_angle": {
+        "label": r"Min $E_a$",
+        "short_label": r"$E_a$ min",
+        "sources": [("force_error_angle", 1.0)],
+        "direction": "min",
+        "scale": 1.0,
+        "unit": "deg",
+        "color": "#2f6fb0",
+        "marker": "P",
+    },
+    "rated_efficiency": {
+        "label": r"Max $\eta$",
+        "short_label": r"$\eta$ max",
+        "sources": [("RatedEfficiency", 1.0), ("rated_efficiency", 1.0), ("f2", -1.0)],
+        "direction": "max",
+        "scale": 100.0,
+        "unit": "%",
+        "color": "#7a5195",
+        "marker": "h",
+    },
+    "Cost": {
+        "label": "Min Cost",
+        "short_label": "Cost min",
+        "sources": [("Cost", 1.0), ("f1", 1.0)],
+        "direction": "min",
+        "scale": 1.0,
+        "unit": "USD",
+        "color": "#6b6258",
+        "marker": "X",
+    },
+    "power_factor": {
+        "label": "Max PF",
+        "short_label": "PF max",
+        "sources": [("power_factor", 1.0)],
+        "direction": "max",
+        "scale": 1.0,
+        "unit": "1",
+        "color": "#d95f8d",
+        "marker": "v",
+    },
+}
+
+
+def _rank_one_indices(fitnesses):
+    if len(fitnesses) == 0:
+        return np.asarray([], dtype=int)
+    if len(fitnesses) == 1:
+        return np.asarray([0], dtype=int)
+    fronts, _, _, _ = pg.fast_non_dominated_sorting(fitnesses)
+    return np.asarray(fronts[0], dtype=int)
+
+
+def _get_analyzer_metric_values(analyzer, metric_style):
+    for source_key, multiplier in metric_style["sources"]:
+        try:
+            values = np.asarray(
+                analyzer.get_metric_of_the_whole_swarm(source_key),
+                dtype=float,
+            )
+        except (KeyError, TypeError, ValueError):
+            continue
+        return values * multiplier
+    return None
+
+
+def _find_pareto_metric_optima(mop, z_filter, metric_keys):
+    analyzer = mop.ad.analyzer
+    swarm_data_xf = analyzer.swarm_data_xf or []
+    if not swarm_data_xf:
+        return []
+
+    fitnesses = np.asarray([individual[-3:] for individual in swarm_data_xf], dtype=float)
+    rank_one = _rank_one_indices(fitnesses)
+    candidate_mask = (
+        np.isfinite(fitnesses[rank_one]).all(axis=1)
+        & (fitnesses[rank_one, 2] < z_filter)
+    )
+    candidate_indices = rank_one[candidate_mask]
+    if len(candidate_indices) == 0:
+        return []
+
+    project_names = getattr(analyzer, "swarm_data_project_names", [])
+    selections = []
+    for metric_key in metric_keys:
+        style = PARETO_HIGHLIGHT_METRICS[metric_key]
+        metric_values = _get_analyzer_metric_values(analyzer, style)
+        if metric_values is None:
+            continue
+        if len(metric_values) != len(swarm_data_xf):
+            continue
+
+        finite_candidates = candidate_indices[np.isfinite(metric_values[candidate_indices])]
+        if len(finite_candidates) == 0:
+            continue
+        direction_multiplier = 1.0 if style["direction"] == "min" else -1.0
+        best_index = min(
+            finite_candidates.tolist(),
+            key=lambda index: (
+                direction_multiplier * metric_values[index],
+                fitnesses[index, 2],
+            ),
+        )
+        selections.append(
+            {
+                "metric_key": metric_key,
+                "archive_index": int(best_index),
+                "project_name": project_names[best_index] if best_index < len(project_names) else "",
+                "metric_value": float(metric_values[best_index]),
+                "OA": float(fitnesses[best_index, 0]),
+                "OB": float(fitnesses[best_index, 1]),
+                "OC": float(fitnesses[best_index, 2]),
+            }
+        )
+    return selections
+
+
+def _highlight_pareto_metric_optima(fig, swarm_dict, z_filter, metric_keys):
+    if not metric_keys:
+        return pd.DataFrame()
+
+    ax = fig.axes[0]
+    rows = []
+    legend_labels = set()
+    annotation_groups = {}
+    for spec_number, (_, mop) in enumerate(swarm_dict.items(), start=1):
+        for selection in _find_pareto_metric_optima(mop, z_filter, metric_keys):
+            style = PARETO_HIGHLIGHT_METRICS[selection["metric_key"]]
+            legend_label = style["short_label"]
+            scatter_label = legend_label if legend_label not in legend_labels else None
+            legend_labels.add(legend_label)
+
+            x_coord = selection["OA"]
+            y_coord = selection["OB"] * 100.0
+            ax.scatter(
+                [x_coord],
+                [y_coord],
+                s=190,
+                marker=style["marker"],
+                c=style["color"],
+                edgecolors="black",
+                linewidths=1.0,
+                zorder=300,
+                label=scatter_label,
+            )
+            annotation_key = (spec_number, round(x_coord, 12), round(y_coord, 12))
+            annotation_group = annotation_groups.setdefault(
+                annotation_key,
+                {"x": x_coord, "y": y_coord, "labels": []},
+            )
+            annotation_group["labels"].append(style["short_label"])
+            rows.append(
+                {
+                    "Specification": mop.ad.select_spec,
+                    "Metric": style["label"],
+                    "Individual": selection["project_name"] or f'archive #{selection["archive_index"] + 1}',
+                    "Value": selection["metric_value"] * style["scale"],
+                    "Unit": style["unit"],
+                    "OA": selection["OA"],
+                    "OB": selection["OB"],
+                    "OC": selection["OC"],
+                }
+            )
+
+    if rows:
+        x_limits = ax.get_xlim()
+        y_limits = ax.get_ylim()
+        for (spec_number, _, _), annotation_group in annotation_groups.items():
+            x_coord = annotation_group["x"]
+            y_coord = annotation_group["y"]
+            x_is_right = x_coord >= sum(x_limits) / 2.0
+            y_is_top = y_coord >= sum(y_limits) / 2.0
+            ax.annotate(
+                f'{", ".join(annotation_group["labels"])} ({spec_number})',
+                (x_coord, y_coord),
+                xytext=(-8 if x_is_right else 8, -8 if y_is_top else 8),
+                textcoords="offset points",
+                fontsize=8.5,
+                color="#202124",
+                horizontalalignment="right" if x_is_right else "left",
+                verticalalignment="top" if y_is_top else "bottom",
+                zorder=301,
+            )
+        legend = ax.legend(loc="best", ncol=2, fontsize=9)
+        legend.set_zorder(555)
+    return pd.DataFrame(rows)
+
+
 # from emy-c (maintained by zjl)
 def get_user_config():
     history = {}
@@ -115,6 +477,7 @@ if __name__ == '__main__':
     swarm_dict = {}
     if selected_specifications == []:
         st.error("Please select at least one specification.")
+        st.stop()
     else:
         for folder in selected_specifications:
             with open(path2project+folder+'/acmop-settings.txt', 'r') as f:
@@ -163,7 +526,61 @@ if __name__ == '__main__':
     # """ DO NOT MODIFY ENDS """
 
     # 标签页
-    tab0, tab1, tab2, tab3 = st.tabs(["Optimization Setup", "Population", "Select Individual", "Sensitivity Analysis"])
+    tab_metrics, tab0, tab1, tab2, tab3 = st.tabs(["Metrics Dashboard", "Optimization Setup", "Population", "Select Individual", "Sensitivity Analysis"])
+
+    with tab_metrics:
+        st.subheader("Post-process Metrics Dashboard")
+        metrics_df = _load_metrics_for_selected_folders(path2project, swarm_dict)
+        if metrics_df.empty:
+            st.warning("No ACMOP post-process metric records were found for the selected folders.")
+        else:
+            valid_only = st.checkbox("Use only valid metric rows", value=True, key="metrics.valid_only")
+            if valid_only and "valid_metrics" in metrics_df.columns:
+                metrics_df = metrics_df[metrics_df["valid_metrics"]].copy()
+
+            available_specs = sorted(metrics_df["select_spec"].dropna().unique().tolist())
+            selected_metric_specs = st.multiselect(
+                "Filter specifications in dashboard",
+                options=available_specs,
+                default=available_specs,
+                key="metrics.selected_specs",
+            )
+            if selected_metric_specs:
+                metrics_df = metrics_df[metrics_df["select_spec"].isin(selected_metric_specs)].copy()
+
+            st.caption(f"{len(metrics_df)} metric records loaded from existing ACMOP/JMAG result archives.")
+            summary_df = postprocess_data.summarize_metric_archive(metrics_df)
+            if not summary_df.empty:
+                st.write("#### Archive Summary")
+                st.dataframe(summary_df, use_container_width=True)
+
+            table_columns = _metric_columns_available(metrics_df)
+            st.download_button(
+                "Download filtered metrics CSV",
+                data=metrics_df[table_columns].to_csv(index=False).encode("utf-8-sig"),
+                file_name="acmop_metrics_filtered.csv",
+                mime="text/csv",
+            )
+
+            st.write("#### All Metrics")
+            st.dataframe(metrics_df[table_columns], use_container_width=True, height=360)
+
+            st.write("#### Selected Design")
+            label_series = metrics_df.apply(
+                lambda row: f"{row.get('select_spec', '')} | #{row.get('archive_record_no', '')} | {row.get('project_name', row.get('design_key', ''))}",
+                axis=1,
+            )
+            selected_label = st.selectbox("Choose one design record", options=label_series.tolist(), key="metrics.selected_design")
+            selected_row = metrics_df.loc[label_series[label_series == selected_label].index[0]]
+            st.code(selected_row.get("design_key", ""), language="text")
+            _show_selected_design_metrics(selected_row)
+
+            col_left, col_right = st.columns(2)
+            with col_left:
+                _plot_metric_scatter(metrics_df)
+            with col_right:
+                _plot_ripple_scatter(metrics_df)
+            _plot_loss_breakdown(selected_row)
 
     with tab0: # Optimization Setup
         mop = swarm_dict[user_selected_folder]
@@ -195,10 +612,64 @@ if __name__ == '__main__':
         ## 是否显示自动最优个体表格和帕累托前沿？
         optimal_xf_dict = None
         if st.checkbox("Show Swarm Table and Pareto Front?"):
-            z_filter = float(st.text_input(label='Input z-filter for Pareto front:', value='20')) #, key='Input z_filter for Pareto front'))
+            oc_values = [
+                float(individual[-1])
+                for mop_item in swarm_dict.values()
+                for individual in mop_item.ad.analyzer.swarm_data_xf
+                if len(individual) >= 3 and np.isfinite(individual[-1])
+            ]
+            minimum_oc = min(oc_values) if oc_values else None
+            default_z_filter = 20.0
+            if minimum_oc is not None and minimum_oc >= default_z_filter:
+                default_z_filter = float(np.floor(max(oc_values)) + 1.0)
+            z_filter = st.number_input(
+                label='Input z-filter for Pareto front:',
+                min_value=0.0,
+                value=default_z_filter,
+            )
             df_swarm, fig_Pareto, optimal_fitness_dict, optimal_xf_dict = utility_postprocess.inspect_swarm_and_show_table_plus_Pareto_front(swarm_dict, z_filter, output_dir=path2project)
+
+            st.write('#### Highlight metric optima on Rank-1 Pareto front')
+            if "pareto.highlight_metrics" not in st.session_state:
+                st.session_state["pareto.highlight_metrics"] = []
+            metric_keys = list(PARETO_HIGHLIGHT_METRICS)
+            button_rows = [st.columns(5), st.columns(5)]
+            for index, metric_key in enumerate(metric_keys):
+                column = button_rows[index // 5][index % 5]
+                if column.button(
+                    PARETO_HIGHLIGHT_METRICS[metric_key]["label"],
+                    key=f"pareto.button.{metric_key}",
+                    use_container_width=True,
+                ):
+                    st.session_state["pareto.highlight_metrics"] = [metric_key]
+            if button_rows[1][3].button("Show all", key="pareto.button.all", use_container_width=True):
+                st.session_state["pareto.highlight_metrics"] = metric_keys
+            if button_rows[1][4].button("Clear", key="pareto.button.clear", use_container_width=True):
+                st.session_state["pareto.highlight_metrics"] = []
+
+            highlighted_df = _highlight_pareto_metric_optima(
+                fig_Pareto,
+                swarm_dict,
+                z_filter,
+                st.session_state["pareto.highlight_metrics"],
+            )
             st.pyplot(fig_Pareto)
             st.table(df_swarm)
+            if not highlighted_df.empty:
+                st.dataframe(highlighted_df, use_container_width=True, hide_index=True)
+            elif st.session_state["pareto.highlight_metrics"]:
+                st.warning("No Rank-1 individual satisfies the current OC filter and selected metric.")
+            missing_specs = [
+                mop_item.ad.select_spec
+                for mop_item in swarm_dict.values()
+                if mop_item.ad.select_spec not in optimal_fitness_dict
+            ]
+            if missing_specs:
+                minimum_text = f"；当前数据中的最小 OC 为 {minimum_oc:.3f}" if minimum_oc is not None else ""
+                st.warning(
+                    f"以下规格在 OC < {z_filter:g} 的条件下没有帕累托个体："
+                    f"{', '.join(missing_specs)}{minimum_text}。"
+                )
 
         st.write('# 2. Template/Initial Design Information')
         wily_fname = 'wily_p%dps%dQ%dy%d'%(mop.spec_input_dict['p'], mop.spec_input_dict['ps'], mop.spec_input_dict['Qs'], mop.spec_input_dict['coil_pitch_y'])
@@ -216,7 +687,7 @@ if __name__ == '__main__':
         if not os.path.exists(cairo_fname):     mop.part_evaluation_geometry()
 
         # Show user selected mop's auto optimal designs
-        if optimal_xf_dict is not None:
+        if optimal_xf_dict is not None and mop.ad.select_spec in optimal_xf_dict:
             # auto_optimal_designs_fitnesses = optimal_fitness_dict[mop.ad.select_spec] # obsolete
             
             auto_optimal_designs_xf        = optimal_xf_dict[mop.ad.select_spec]
