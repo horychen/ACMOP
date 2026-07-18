@@ -1,5 +1,5 @@
 # Please use shortcut "ctrl+k,ctrl+1" to fold the code for better navigation
-import os, json, acm_designer, VanGogh_Cairo, bearingless_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design, bearingless_spmsm_heart
+import os, json, acm_designer, VanGogh_Cairo, bearingless_spmsm_design, bearingless_outer_rotor_spmsm_design, vernier_motor_design, bearingless_induction_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design, bearingless_spmsm_heart
 import utility
 import logging
 from dataclasses import dataclass
@@ -122,7 +122,9 @@ class AC_Machine_Optiomization_Wrapper(object):
     # '[2] Initial Design Part'
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     def part_initialDesign(self):
-        if 'PMSM' in self.select_spec:
+        if 'OuterRotor' in self.select_spec or 'Outer Rotor' in self.select_spec:
+            function = bearingless_outer_rotor_spmsm_design.bearingless_outer_rotor_spmsm_template
+        elif 'PMSM' in self.select_spec:
             function = bearingless_spmsm_design.bearingless_spmsm_template
             if 'Heart' in self.select_spec:
                 function = bearingless_spmsm_heart.bearingless_spmsm_template
@@ -259,8 +261,12 @@ class AC_Machine_Optiomization_Wrapper(object):
         acm_variant = self.ad.build_acm_variant(self.ad.acm_template, x_denorm, counter=counter) # counter has the same function as filename
         self.acm_variant = acm_variant # for visualizaiton only
 
-        toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1, 
-                                                            height_in_points=acm_variant.template.d['GP']['mm_r_so'].value*2.1,
+        drawing_radius = max(
+            acm_variant.template.d['GP']['mm_r_so'].value,
+            acm_variant.template.d['GP']['mm_r_ro'].value,
+        )
+        toolCairo = VanGogh_Cairo.VanGogh_Cairo(acm_variant, width_in_points=drawing_radius*2.1,
+                                                            height_in_points=drawing_radius*2.1,
                                                             filename=filename)
         if 'PMSM' in acm_variant.template.name:
             saved_filename = toolCairo.draw_spmsm(acm_variant, bool_draw_whole_model=True)
@@ -629,7 +635,7 @@ class AC_Machine_Optiomization_Wrapper(object):
 
 def main(number_which_part):
     mop = AC_Machine_Optiomization_Wrapper(
-        select_spec            = "PMSM Q12p5ps4y1 Spindle", # "PMSM Q12p4ps5y1 Heart", # select_spec = "SliceIM Q12p4ps5y1-Qr10",
+        select_spec            = "OuterRotor SPMSM Q12p5ps4y1 Prototype", # "PMSM Q12p5ps4y1 Spindle",
         select_fea_config_dict = "#0301 JMAG Non-Bearingless",   # "#0213 JMAG Bearingless Sub-hamonics",     # select_fea_config_dict = "#01 JMAG IM Evaluation Setting",
         project_loc            = fr'../_default/',
         bool_show_GUI          = True    # TODO: make bool_show_GUI a property of class (see the codes in unit conversion)
@@ -665,8 +671,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # mop = main(1)
-    # mop = main(31)
-    mop = main(3)
+    mop = main(31)
+    # mop = main(3)
     # mop = main(4)
     # mop = main(5)
 

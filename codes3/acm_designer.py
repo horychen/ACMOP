@@ -6,7 +6,7 @@ import population, FEMM_Solver, pyrhonen_procedure_as_function
 
 # BPMSM codes
 import JMAG, FEMM_SlidingMesh
-import bearingless_spmsm_design, vernier_motor_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design
+import bearingless_spmsm_design, bearingless_outer_rotor_spmsm_design, vernier_motor_design, flux_alternator_design, flux_switching_pm_design, bearingless_consequentPole_design, bearingless_VShapeconsequentPole_design, bearingless_consequentsinglePole_design
 
 class Swarm_Data_Analyzer(object):
     def __init__(self, fname, desired_x_denorm_dict):
@@ -1361,7 +1361,9 @@ class acm_designer(object):
         return self.swarm_data_file
 
     def build_acm_variant(self, template, x_denorm, counter, counter_loop=1):
-        if 'SPMSM' in template.machine_type:
+        if template.machine_type == 'OuterRotorSPMSM':
+            acm_variant = bearingless_outer_rotor_spmsm_design.bearingless_outer_rotor_spmsm_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
+        elif 'SPMSM' in template.machine_type:
             acm_variant = bearingless_spmsm_design.bearingless_spmsm_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)
         elif 'PMVM' in template.machine_type:
             acm_variant = vernier_motor_design.vernier_motor_VShapePM_design_variant(template=template, x_denorm=x_denorm, counter=counter, counter_loop=counter_loop)

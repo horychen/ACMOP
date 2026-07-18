@@ -1,5 +1,11 @@
 from pylab import np, cos, sin, arctan
 import logging
+from CrossSectOuterRotorStator import (
+    CrossSectInnerStator,
+    CrossSectInnerStatorWinding,
+    CrossSectOuterRotorStator,
+    CrossSectOuterRotorStatorWinding,
+)
 class CrossSectInnerRotorStator:
     # CrossSectInnerRotorStator Describes the inner rotor motor stator.
     #    Properties are set upon class creation and cannot be modified.

@@ -124,7 +124,7 @@ class VanGogh_Cairo:
         # region1 = self.prepareSection(list_regions_1)
 
         # Shaft
-        if 1:
+        if getattr(acm_variant, 'shaft', None) is not None:
             list_regions = acm_variant.shaft.draw(self)
         # self.bMirror = False
         # self.iRotateCopy = 1
@@ -138,7 +138,11 @@ class VanGogh_Cairo:
         # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
         # Sleeve
-        # list_regions = acm_variant.sleeve.draw(self)
+        if acm_variant.template.machine_type == 'OuterRotorSPMSM':
+            list_regions = acm_variant.sleeve.draw(
+                self,
+                bool_draw_whole_model=bool_draw_whole_model,
+            )
         # self.bMirror = False
         # self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p*2
         # regionS = self.prepareSection(list_regions)
