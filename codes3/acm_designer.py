@@ -1441,6 +1441,33 @@ class acm_designer(object):
 
     ''' Produce JMAG Project
     '''
+    def build_jmag_2d_model(self, acm_variant):
+        if acm_variant.template.machine_type != 'OuterRotorSPMSM':
+            raise ValueError('build_jmag_2d_model currently supports OuterRotorSPMSM only.')
+
+        temp_dir = os.path.join(self.fea_config_dict['output_dir'], 'temp')
+        if not os.path.isdir(temp_dir):
+            os.makedirs(temp_dir)
+        project_file = os.path.join(temp_dir, acm_variant.name + '-2D.jproj')
+
+        toolJd = JMAG.JMAG(self.fea_config_dict, self.spec_input_dict)
+        toolJd.open(project_file)
+        if toolJd.draw_outer_rotor_spmsm(acm_variant) != 1:
+            raise Exception('Outer-rotor 2D drawer failed.')
+
+        app = toolJd.app
+        if app.NumModels() < 1:
+            raise Exception('No JMAG model was created for %s.' % acm_variant.name)
+        model = app.GetModel(acm_variant.name)
+        toolJd.pre_process_outer_rotor_spmsm(app, model, acm_variant)
+        app.Save()
+
+        self.toolJd = toolJd
+        self.acm_variant = acm_variant
+        self.project_name = acm_variant.name
+        self.expected_project_file = project_file
+        return toolJd
+
     def build_jmag_project(self, acm_variant, project_meta_data=None, bool_re_evaluate=False):
         if project_meta_data is None:
             # this object is reloaded, so retrieve saved meta data
@@ -1463,7 +1490,9 @@ class acm_designer(object):
             toolJd = JMAG.JMAG(self.fea_config_dict, self.spec_input_dict)
 
             toolJd.open(expected_project_file)
-            if 'PMSM' in acm_variant.template.name:
+            if acm_variant.template.machine_type == 'OuterRotorSPMSM':
+                DRAW_SUCCESS = toolJd.draw_outer_rotor_spmsm(acm_variant)
+            elif 'PMSM' in acm_variant.template.name:
                 DRAW_SUCCESS = toolJd.draw_spmsm(acm_variant)
             elif 'Flux_Alternator' in acm_variant.template.name:
                 DRAW_SUCCESS = toolJd.draw_doublySalient(acm_variant, bool_draw_whole_model=True)
@@ -1490,7 +1519,9 @@ class acm_designer(object):
                 logger.error('there is no model yet for %s'%(acm_variant.name))
                 raise Exception('why is there no model yet? %s'%(acm_variant.name))
 
-            if 'PMSM' in acm_variant.template.name:
+            if acm_variant.template.machine_type == 'OuterRotorSPMSM':
+                toolJd.pre_process_outer_rotor_spmsm(app, model, acm_variant)
+            elif 'PMSM' in acm_variant.template.name:
                 toolJd.pre_process_PMSM(app, model, acm_variant)
             elif 'FSPM' in acm_variant.template.name:
                 toolJd.pre_process_FSPM(app, model, acm_variant)

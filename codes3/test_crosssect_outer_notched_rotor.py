@@ -42,6 +42,33 @@ class CrossSectOuterNotchedRotorTests(unittest.TestCase):
         self.assertGreater(self.rotor.mm_r_ro, self.rotor.mm_r_ry_inner)
         self.assertGreater(self.rotor.mm_r_ry_inner, self.rotor.mm_r_magnet_inner)
 
+    def test_full_pole_arc_does_not_retrace_the_first_radial_edge(self):
+        rotor = CrossSectOuterNotchedRotor.CrossSectOuterNotchedRotor(
+            mm_d_pm=4.0,
+            deg_alpha_rm=36.0,
+            deg_alpha_rs=36.0,
+            mm_d_ri=8.0,
+            mm_r_ro=74.0,
+            mm_d_rp=4.0,
+            mm_d_rs=0.0,
+            p=5,
+            s=1,
+        )
+
+        token = rotor.draw(RecordingDrawer())
+
+        radial_lines = [
+            segment
+            for segment in token["list_regions"][0]
+            if segment[0] == "line"
+        ]
+        self.assertEqual(2, len(radial_lines))
+        self.assertAlmostEqual(rotor.mm_r_ro, np.hypot(*radial_lines[0][1]))
+        self.assertAlmostEqual(
+            rotor.mm_r_ry_inner,
+            np.hypot(*radial_lines[0][2]),
+        )
+
     def test_core_draws_sector_and_whole_model(self):
         sector = self.rotor.draw(RecordingDrawer())
         whole = self.rotor.draw(RecordingDrawer(), bool_draw_whole_model=True)

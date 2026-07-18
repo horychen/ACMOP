@@ -138,7 +138,7 @@ class VanGogh_Cairo:
         # region2 = self.prepareSection(list_regions, bRotateMerge=False, color=color_rgb_B)
 
         # Sleeve
-        if acm_variant.template.machine_type == 'OuterRotorSPMSM':
+        if getattr(acm_variant, 'sleeve', None) is not None:
             list_regions = acm_variant.sleeve.draw(
                 self,
                 bool_draw_whole_model=bool_draw_whole_model,

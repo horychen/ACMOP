@@ -163,9 +163,15 @@ class CrossSectOuterNotchedRotor:
 
         if close_to_outer_radius:
             p1 = point(self.mm_r_ro, 0.0)
-            _append_line(drawer, segments, p1, p2)
-        _append_arc(drawer, segments, p3, p2)
-        _append_line(drawer, segments, p3, p4)
+            if alpha_start <= EPS:
+                # At full pole arc p2 and p3 coincide. Drawing p1->p2->p4
+                # would retrace the radial edge and JMAG drops the region.
+                _append_line(drawer, segments, p1, p4)
+            else:
+                _append_line(drawer, segments, p1, p2)
+        if alpha_start > EPS:
+            _append_arc(drawer, segments, p3, p2)
+            _append_line(drawer, segments, p3, p4)
 
         segment_start = alpha_start
         current_yoke_point = p4

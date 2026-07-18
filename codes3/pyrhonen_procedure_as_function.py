@@ -1844,19 +1844,32 @@ def get_zQ(SI, wily, stator_inner_diameter_Dis, rotor_outer_diameter_Dr, specifi
     logger.info('[zQ] The desired value of no_series_coil_turns_N according to the guess_air_gap_flux_density_Bg is %s', no_series_coil_turns_N)
     no_series_coil_turns_N = round(no_series_coil_turns_N)
     logger.info('[zQ] Rounds up to: %s', no_series_coil_turns_N)
-    backup = no_series_coil_turns_N
     distribution_q = SI['Qs'] / (2*SI['p']*SI['m'])
-    bool_we_have_plenty_voltage = True
-    if bool_we_have_plenty_voltage:
-        no_series_coil_turns_N = min([SI['p']*distribution_q*i for i in range(1000,0,-1)], key=lambda x:abs(x - no_series_coil_turns_N)) # using larger turns value has priority
-    else:
-        no_series_coil_turns_N = min([SI['p']*distribution_q*i for i in range(1000)], key=lambda x:abs(x - no_series_coil_turns_N))  # using lower turns value has priority # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
-    if no_series_coil_turns_N > 990:
-        raise
+    series_turn_step = SI['p'] * distribution_q
+    if not np.isfinite(series_turn_step) or series_turn_step <= 0:
+        raise ValueError(
+            'Cannot calculate zQ because the series-turn step is invalid: %s'
+            % series_turn_step
+        )
+
+    # This constraint makes conductors per slot an integer. The previous
+    # implementation searched only 1000 candidates and then used a bare
+    # ``raise`` for larger designs, which caused an unrelated RuntimeError.
+    turn_step_count = max(
+        1,
+        int(np.floor(no_series_coil_turns_N / series_turn_step + 0.5)),
+    )
+    no_series_coil_turns_N = series_turn_step * turn_step_count
     logger.info('[zQ] no_series_coil_turns_N should be multiple of pq: %s = q * p = %s * %s', no_series_coil_turns_N, distribution_q, SI['p'])
     no_conductors_per_slot_zQ = 2* SI['m'] * no_series_coil_turns_N / SI['Qs'] * number_parallel_branch
-    logger.info('[zQ] = %s', no_conductors_per_slot_zQ)
-    return no_conductors_per_slot_zQ
+    rounded_zQ = int(round(no_conductors_per_slot_zQ))
+    if rounded_zQ <= 0 or not np.isclose(no_conductors_per_slot_zQ, rounded_zQ):
+        raise ValueError(
+            'Calculated zQ must be a positive integer, got %s.'
+            % no_conductors_per_slot_zQ
+        )
+    logger.info('[zQ] = %s', rounded_zQ)
+    return rounded_zQ
 
 #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 # Play with this Pyrhonen procedure

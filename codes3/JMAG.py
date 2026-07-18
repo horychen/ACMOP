@@ -782,6 +782,152 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
 
         add_parts_to_set('MagnetSet', list_xy_magnets)
         return True
+    @staticmethod
+    def parse_outer_rotor_part_ids(part_ID_list, p, s, Q, has_sleeve):
+        magnet_count = int(2 * p * s)
+        coil_count = int(2 * Q)
+        expected_count = 1 + magnet_count + int(has_sleeve) + 1 + coil_count
+        if len(part_ID_list) != expected_count:
+            raise utility.ExceptionBadNumberOfParts(
+                "Outer-rotor part count is unexpected. Should be %d but get %d."
+                % (expected_count, len(part_ID_list))
+            )
+
+        cursor = 0
+        id_rotor_core = part_ID_list[cursor]
+        cursor += 1
+        magnet_ids = part_ID_list[cursor : cursor + magnet_count]
+        cursor += magnet_count
+
+        id_sleeve = None
+        if has_sleeve:
+            id_sleeve = part_ID_list[cursor]
+            cursor += 1
+
+        id_stator_core = part_ID_list[cursor]
+        cursor += 1
+        coil_ids = part_ID_list[cursor : cursor + coil_count]
+
+        return {
+            "rotor_core": id_rotor_core,
+            "magnets": magnet_ids,
+            "sleeve": id_sleeve,
+            "stator_core": id_stator_core,
+            "coils": coil_ids,
+        }
+
+    def pre_process_outer_rotor_spmsm(self, app, model, acm_variant):
+        """Create JMAG groups and sets for an outer-rotor SPMSM model."""
+        SI = acm_variant.template.SI
+        p = SI["p"]
+        s = SI["no_segmented_magnets"]
+        Q = SI["Qs"]
+        has_sleeve = acm_variant.sleeve is not None
+
+        layout = self.parse_outer_rotor_part_ids(
+            list(model.GetPartIDs()),
+            p,
+            s,
+            Q,
+            has_sleeve,
+        )
+        self.outer_rotor_part_layout = layout
+        self.id_rotorCore = layout["rotor_core"]
+        self.id_statorCore = layout["stator_core"]
+        self.id_sleeve = layout["sleeve"]
+        self.bool_suppressShaft = True
+
+        def group(name, id_list):
+            model.GetGroupList().CreateGroup(name)
+            for part_id in id_list:
+                model.GetGroupList().AddPartToGroup(name, part_id)
+
+        def add_part_set(name, part_ids):
+            model.GetSetList().CreatePartSet(name)
+            part_set = model.GetSetList().GetSet(name)
+            part_set.SetMatcherType("Selection")
+            part_set.ClearParts()
+            selection = part_set.GetSelection()
+            for part_id in part_ids:
+                selection.SelectPart(part_id)
+            part_set.AddSelected(selection)
+
+        def add_position_set(name, x, y):
+            model.GetSetList().CreatePartSet(name)
+            part_set = model.GetSetList().GetSet(name)
+            part_set.SetMatcherType("Selection")
+            part_set.ClearParts()
+            selection = part_set.GetSelection()
+            selection.SelectPartByPosition(x, y, 0)
+            part_set.AddSelected(selection)
+
+        group("Magnet", layout["magnets"])
+        group("Coils", layout["coils"])
+        if has_sleeve:
+            group("Sleeve", [layout["sleeve"]])
+
+        add_part_set("OuterRotorCoreSet", [layout["rotor_core"]])
+        add_part_set("StatorCoreSet", [layout["stator_core"]])
+        add_part_set("MagnetSet", layout["magnets"])
+        if has_sleeve:
+            add_part_set("SleeveSet", [layout["sleeve"]])
+
+        motion_ids = [layout["rotor_core"]] + layout["magnets"]
+        if has_sleeve:
+            motion_ids.append(layout["sleeve"])
+        add_part_set("Motion_Region", motion_ids)
+
+        slot_span = 2.0 * np.pi / Q
+        coil_radius = np.hypot(
+            acm_variant.coils.PCoil[0],
+            acm_variant.coils.PCoil[1],
+        )
+        wily = acm_variant.template.d["EX"]["wily"]
+
+        theta = np.arctan2(
+            acm_variant.coils.PCoil[1],
+            acm_variant.coils.PCoil[0],
+        )
+        for index, (phase, sign) in enumerate(
+            zip(wily.layer_X_phases, wily.layer_X_signs),
+            start=1,
+        ):
+            add_position_set(
+                "CoilLX%s%s %d" % (phase, sign, index),
+                coil_radius * np.cos(theta),
+                coil_radius * np.sin(theta),
+            )
+            theta += slot_span
+
+        theta = (
+            np.arctan2(
+                -acm_variant.coils.PCoil[1],
+                acm_variant.coils.PCoil[0],
+            )
+            + slot_span
+        )
+        for index, (phase, sign) in enumerate(
+            zip(wily.layer_Y_phases, wily.layer_Y_signs),
+            start=1,
+        ):
+            add_position_set(
+                "CoilLY%s%s %d" % (phase, sign, index),
+                coil_radius * np.cos(theta),
+                coil_radius * np.sin(theta),
+            )
+            theta += slot_span
+
+        logging.getLogger(__name__).info(
+            "Outer-rotor 2D preprocess: core=%s, magnets=%d, sleeve=%s, "
+            "stator=%s, coils=%d",
+            layout["rotor_core"],
+            len(layout["magnets"]),
+            layout["sleeve"],
+            layout["stator_core"],
+            len(layout["coils"]),
+        )
+        return True
+
     def pre_process_PMSM(self, app, model, acm_variant):
         # pre-process : you can select part by coordinate!
         ''' Group '''
@@ -1378,11 +1524,12 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
         # elif 'Flux_Alternator' in acm_variant.template.name:
         #     rotorCoreName = "SalientPoleRotor"
         rotorCoreName = acm_variant.rotorCore.name
+        statorCoreName = acm_variant.stator_core.name
 
         if 'M19' in acm_template.spec_input_dict['Steel']:
-            study.SetMaterialByName("StatorCore", "M-19 Steel Gauge-29")
-            study.GetMaterial("StatorCore").SetValue("Laminated", 1)
-            study.GetMaterial("StatorCore").SetValue("LaminationFactor", 95)
+            study.SetMaterialByName(statorCoreName, "M-19 Steel Gauge-29")
+            study.GetMaterial(statorCoreName).SetValue("Laminated", 1)
+            study.GetMaterial(statorCoreName).SetValue("LaminationFactor", 95)
                 # study.GetMaterial(u"Stator Core").SetValue(u"UserConductivityValue", 1900000)
 
             study.SetMaterialByName(rotorCoreName, "M-19 Steel Gauge-29")
@@ -1390,33 +1537,33 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 98)
 
         elif 'M15' in acm_template.spec_input_dict['Steel']:
-            study.SetMaterialByName("StatorCore", "M-15 Steel")
-            study.GetMaterial("StatorCore").SetValue("Laminated", 1)
-            study.GetMaterial("StatorCore").SetValue("LaminationFactor", 98)
+            study.SetMaterialByName(statorCoreName, "M-15 Steel")
+            study.GetMaterial(statorCoreName).SetValue("Laminated", 1)
+            study.GetMaterial(statorCoreName).SetValue("LaminationFactor", 98)
 
             study.SetMaterialByName(rotorCoreName, "M-15 Steel")
             study.GetMaterial(rotorCoreName).SetValue("Laminated", 1)
             study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 98)
 
         elif acm_template.spec_input_dict['Steel'] == 'Arnon5':
-            study.SetMaterialByName("StatorCore", "Arnon5-final")
-            study.GetMaterial("StatorCore").SetValue("Laminated", 1)
-            study.GetMaterial("StatorCore").SetValue("LaminationFactor", 96)
+            study.SetMaterialByName(statorCoreName, "Arnon5-final")
+            study.GetMaterial(statorCoreName).SetValue("Laminated", 1)
+            study.GetMaterial(statorCoreName).SetValue("LaminationFactor", 96)
 
             study.SetMaterialByName(rotorCoreName, "Arnon5-final")
             study.GetMaterial(rotorCoreName).SetValue("Laminated", 1)
             study.GetMaterial(rotorCoreName).SetValue("LaminationFactor", 96)
 
         elif acm_template.spec_input_dict['Steel'] == '35CS250':
-            study.SetMaterialByName(u"StatorCore", u"35CS250")
+            study.SetMaterialByName(statorCoreName, u"35CS250")
             study.SetMaterialByName(rotorCoreName, u"35CS250")
 
         else:
             msg = 'Warning: default material is used: DCMagnetic Type/50A1000.'
             print(msg)
             logging.getLogger(__name__).warn(msg)
-            study.SetMaterialByName("StatorCore", "DCMagnetic Type/50A1000")
-            study.GetMaterial("StatorCore").SetValue("UserConductivityType", 1)
+            study.SetMaterialByName(statorCoreName, "DCMagnetic Type/50A1000")
+            study.GetMaterial(statorCoreName).SetValue("UserConductivityType", 1)
             study.SetMaterialByName(rotorCoreName, "DCMagnetic Type/50A1000")
             study.GetMaterial(rotorCoreName).SetValue("UserConductivityType", 1)
 
@@ -2359,6 +2506,46 @@ class JMAG(object): #< ToolBase & DrawerBase & MakerExtrnudeBase & MakerRevolveB
             # # print('---SUSPENSION_CURRENT_RATIO:', acm_variant.template.fea_config_dict['SUSPENSION_CURRENT_RATIO'])
 
             # Import Model into Designer
+            self.save(acm_variant.name, self.show(acm_variant, toString=False))
+
+        return True
+
+    def draw_outer_rotor_spmsm(self, acm_variant, bool_pyx=False):
+        """Build the 2D CAD model for an outer-rotor SPMSM."""
+        color_core = np.array([236, 236, 236]) / 255
+        color_magnet = np.array([226, 226, 226]) / 255
+
+        rotor_token = acm_variant.rotorCore.draw(self)
+        self.bMirror = False
+        self.iRotateCopy = acm_variant.rotorCore.p * 2
+        self.prepareSection(rotor_token, color=color_core)
+
+        magnet_token = acm_variant.rotorMagnet.draw(self)
+        self.bMirror = False
+        self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p * 2
+        self.prepareSection(
+            magnet_token,
+            bRotateMerge=False,
+            color=color_magnet,
+        )
+
+        if not bool_pyx and acm_variant.sleeve is not None:
+            sleeve_token = acm_variant.sleeve.draw(self)
+            self.bMirror = False
+            self.iRotateCopy = acm_variant.rotorMagnet.notched_rotor.p * 2
+            self.prepareSection(sleeve_token)
+
+        stator_token = acm_variant.stator_core.draw(self)
+        self.bMirror = True
+        self.iRotateCopy = acm_variant.stator_core.Q
+        self.prepareSection(stator_token, color=color_core)
+
+        if not bool_pyx:
+            coil_token = acm_variant.coils.draw(self)
+            self.bMirror = False
+            self.iRotateCopy = acm_variant.coils.stator_core.Q
+            self.prepareSection(coil_token)
+            self.calculate_excitation_current(acm_variant)
             self.save(acm_variant.name, self.show(acm_variant, toString=False))
 
         return True

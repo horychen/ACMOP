@@ -284,6 +284,22 @@ class AC_Machine_Optiomization_Wrapper(object):
         else:
             raise Exception("Nothing to draw. Are you adding a new machine type?????")
 
+    def part_evaluation_jmag_geometry(self, specify_x_denorm=None, counter='JMAG2D'):
+        self.logger.info('\n ------- part_evaluation_jmag_geometry -------')
+        if specify_x_denorm is None:
+            x_denorm = self.ad.acm_template.build_x_denorm()
+        else:
+            x_denorm = specify_x_denorm
+
+        acm_variant = self.ad.build_acm_variant(
+            self.ad.acm_template,
+            x_denorm,
+            counter=counter,
+        )
+        self.acm_variant = acm_variant
+        self.ad.build_jmag_2d_model(acm_variant)
+        return acm_variant
+
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     # '[4] Optimization Part' Multi-Objective Optimization0
     #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
@@ -652,6 +668,8 @@ def main(number_which_part):
         mop.part_evaluation() # Module 3
     elif number_which_part == 31:
         mop.part_evaluation_geometry(bool_show_pdf=True)
+    elif number_which_part == 32:
+        mop.part_evaluation_jmag_geometry()
     elif number_which_part == 4:
         mop.part_optimization() # Module 4
     elif number_which_part == 5:
@@ -671,7 +689,8 @@ def main(number_which_part):
 
 if __name__ == '__main__':
     # mop = main(1)
-    mop = main(31)
+    # mop = main(31)
+    mop = main(32)
     # mop = main(3)
     # mop = main(4)
     # mop = main(5)
